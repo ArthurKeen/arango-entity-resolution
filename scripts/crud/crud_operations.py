@@ -203,10 +203,10 @@ class EntityResolutionCRUD:
             collection.update(customer_id, update_data)
             print(f"✓ Updated customer: {customer_id}")
             return True
-        except Exception:
-            print(f"⚠ Customer not found: {customer_id}")
-            return False
         except Exception as e:
+            if "not found" in str(e).lower():
+                print(f"⚠ Customer not found: {customer_id}")
+                return False
             print(f"✗ Failed to update customer {customer_id}: {e}")
             return False
     
@@ -217,10 +217,10 @@ class EntityResolutionCRUD:
             collection.update(key_id, update_data)
             print(f"✓ Updated blocking key: {key_id}")
             return True
-        except Exception:
-            print(f"⚠ Blocking key not found: {key_id}")
-            return False
         except Exception as e:
+            if "not found" in str(e).lower():
+                print(f"⚠ Blocking key not found: {key_id}")
+                return False
             print(f"✗ Failed to update blocking key {key_id}: {e}")
             return False
     

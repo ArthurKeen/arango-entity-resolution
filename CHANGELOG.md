@@ -4,16 +4,35 @@ All notable changes to the ArangoDB Entity Resolution project will be documented
 
 ## [Unreleased]
 
+### Added
+- **Code Quality**: Comprehensive refactoring to eliminate duplicate code
+- **Shared Utilities**: New `scripts/common/` module with reusable ArangoDB connection logic
+- **Environment Variables**: Support for configuration via environment variables
+- **Error Handling**: Improved exception handling with consistent messaging
+
 ### Changed
 - **BREAKING**: Upgraded ArangoDB from 3.11 to 3.12 for testing environment
 - Updated Python ArangoDB driver from 7.8.0 to 8.0.0 for compatibility with ArangoDB 3.12
 - Updated Docker Compose configuration to use ArangoDB 3.12 image
 - Enhanced documentation with ArangoDB 3.12 compatibility notes
+- **Code Refactoring**: Eliminated duplicate code patterns between database and CRUD scripts
+- **Documentation**: Updated project structure and technology stack information
+- **Error Messages**: Standardized success/warning/error message formatting
+
+### Fixed
+- **Exception Handling**: Fixed unreachable code in CRUD operations exception handling
+- **Argument Parsing**: Consolidated connection argument parsing into shared utility
+- **Documentation**: Removed duplicate PRD file, updated README with current project state
+
+### Removed
+- **Duplicate Files**: Removed `ER_Record_Blocking_PRD.md` (content preserved in `docs/PRD.md`)
+- **Hardcoded Values**: Replaced hardcoded connection strings with environment variable support
 
 ### Notes
 - **Platform Support**: ArangoDB 3.12 no longer provides native support for Windows and macOS. Docker containers are now required for these platforms.
 - **API Changes**: The deprecated `api/traversal` endpoint has been removed in 3.12. Our scripts do not use this endpoint, so no changes were required.
 - **Python Driver**: Updated to python-arango 8.0.0 which is compatible with ArangoDB 3.12.
+- **Code Quality**: Refactored scripts follow DRY principles with shared base classes
 
 ### Migration Guide
 If upgrading from a previous version:

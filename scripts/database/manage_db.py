@@ -12,17 +12,17 @@ from typing import Dict, List, Optional
 from arango import ArangoClient
 from arango.exceptions import DatabaseCreateError, DatabaseDeleteError, DocumentInsertError
 
+# Add the scripts directory to the path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from common.arango_base import ArangoBaseConnection, add_common_args
 
-class ArangoDBManager:
+
+class ArangoDBManager(ArangoBaseConnection):
     """Manages ArangoDB operations for entity resolution testing"""
     
     def __init__(self, host: str = "localhost", port: int = 8529, 
-                 username: str = "root", password: str = "testpassword123"):
-        self.host = host
-        self.port = port
-        self.username = username
-        self.password = password
-        self.client = ArangoClient(hosts=f"http://{host}:{port}")
+                 username: str = "root", password: Optional[str] = None):
+        super().__init__(host, port, username, password)
         self._sys_db = None
     
     def connect(self) -> bool:
@@ -31,10 +31,10 @@ class ArangoDBManager:
             self._sys_db = self.client.db('_system', username=self.username, password=self.password)
             # Test connection
             self._sys_db.properties()
-            print(f"✓ Connected to ArangoDB at {self.host}:{self.port}")
+            self.print_success(f"Connected to ArangoDB at {self.host}:{self.port}")
             return True
         except Exception as e:
-            print(f"✗ Failed to connect to ArangoDB: {e}")
+            self.print_error(f"Failed to connect to ArangoDB: {e}")
             return False
     
     def create_database(self, db_name: str, users: Optional[List[Dict]] = None) -> bool:
@@ -44,13 +44,13 @@ class ArangoDBManager:
                 name=db_name,
                 users=users or [{'username': self.username, 'password': self.password, 'active': True}]
             )
-            print(f"✓ Created database: {db_name}")
+            self.print_success(f"Created database: {db_name}")
             return True
         except DatabaseCreateError as e:
             if "duplicate" in str(e).lower():
-                print(f"⚠ Database {db_name} already exists")
+                self.print_warning(f"Database {db_name} already exists")
                 return True
-            print(f"✗ Failed to create database {db_name}: {e}")
+            self.print_error(f"Failed to create database {db_name}: {e}")
             return False
     
     def delete_database(self, db_name: str) -> bool:
@@ -70,12 +70,12 @@ class ArangoDBManager:
         """List all databases"""
         try:
             databases = self._sys_db.databases()
-            print("📋 Available databases:")
+            self.print_info("Available databases:")
             for db in databases:
                 print(f"  - {db}")
             return databases
         except Exception as e:
-            print(f"✗ Failed to list databases: {e}")
+            self.print_error(f"Failed to list databases: {e}")
             return []
     
     def initialize_entity_resolution_schema(self, db_name: str) -> bool:
@@ -233,10 +233,9 @@ def main():
                        help='Database name (required for create, delete, init, load-data)')
     parser.add_argument('--data-file', required=False,
                        help='Path to test data JSON file (for load-data action)')
-    parser.add_argument('--host', default='localhost', help='ArangoDB host')
-    parser.add_argument('--port', type=int, default=8529, help='ArangoDB port')
-    parser.add_argument('--username', '-u', default='root', help='Username')
-    parser.add_argument('--password', '-p', default='testpassword123', help='Password')
+    
+    # Add common connection arguments
+    add_common_args(parser)
     
     args = parser.parse_args()
     
