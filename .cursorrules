@@ -1,0 +1,42 @@
+# Cursor AI Rules for ArangoDB Entity Resolution with Record Blocking
+
+## Project Context
+This is an ArangoDB-based entity resolution system that identifies and links records from multiple data sources using record blocking techniques. The system leverages ArangoDB's graph capabilities and exposes functionality via REST API.
+
+## Code Style and Standards
+- Follow language-specific best practices (TBD based on chosen language)
+- Use clear, descriptive variable and function names
+- Include comprehensive docstrings/comments for complex algorithms
+- Prioritize readability and maintainability
+- Follow SOLID principles for system design
+
+## Entity Resolution Specific Guidelines
+- Always consider performance implications when dealing with large datasets
+- Implement configurable similarity metrics and blocking strategies
+- Document algorithm choices and trade-offs
+- Include proper error handling for data quality issues
+- Design for horizontal scalability
+
+## Testing Requirements
+- Write unit tests for all similarity functions
+- Include integration tests for the complete pipeline
+- Test with various data quality scenarios (missing values, typos, etc.)
+- Performance testing with large datasets
+
+## Documentation Standards
+- Maintain up-to-date API documentation
+- Document configuration options clearly
+- Include examples for common use cases
+- Keep research notes and algorithm explanations in the research/ directory
+
+## Database Considerations
+- Design ArangoDB schemas with entity resolution workflows in mind
+- Consider graph relationships between entities
+- Optimize queries for blocking and matching operations
+- Plan for data versioning and audit trails
+
+## Security and Privacy
+- Handle PII data according to privacy regulations
+- Implement proper access controls
+- Secure API endpoints appropriately
+- Consider data anonymization techniques for testing
