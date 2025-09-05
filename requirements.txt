@@ -1,5 +1,5 @@
-# ArangoDB Python Driver
-python-arango==7.8.0
+# ArangoDB Python Driver (compatible with ArangoDB 3.12)
+python-arango==8.0.0
 
 # Data Processing
 pandas==2.1.4

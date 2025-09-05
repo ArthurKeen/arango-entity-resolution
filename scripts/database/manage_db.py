@@ -9,7 +9,7 @@ import sys
 import json
 import argparse
 from typing import Dict, List, Optional
-from arango import ArangoClient, Database
+from arango import ArangoClient
 from arango.exceptions import DatabaseCreateError, DatabaseDeleteError, DocumentInsertError
 
 
@@ -174,22 +174,22 @@ class ArangoDBManager:
         try:
             if collection_name == 'customers':
                 # Hash indexes for exact matches
-                collection.add_hash_index(['email'], unique=False)
-                collection.add_hash_index(['phone'], unique=False)
-                collection.add_hash_index(['source'], unique=False)
+                collection.add_index({'type': 'hash', 'fields': ['email'], 'unique': False})
+                collection.add_index({'type': 'hash', 'fields': ['phone'], 'unique': False})
+                collection.add_index({'type': 'hash', 'fields': ['source'], 'unique': False})
                 
-                # Skiplist indexes for range queries
-                collection.add_skiplist_index(['last_name', 'first_name'])
-                collection.add_skiplist_index(['zip_code'])
+                # Persistent indexes for range queries (skiplist is deprecated)
+                collection.add_index({'type': 'persistent', 'fields': ['last_name', 'first_name']})
+                collection.add_index({'type': 'persistent', 'fields': ['zip_code']})
                 
                 # Fulltext index for address search
-                collection.add_fulltext_index(['address'])
+                collection.add_index({'type': 'fulltext', 'fields': ['address']})
                 
                 print(f"  ✓ Created indexes for {collection_name}")
                 
             elif collection_name == 'blocking_keys':
-                collection.add_hash_index(['key_value'], unique=True)
-                collection.add_hash_index(['key_type'], unique=False)
+                collection.add_index({'type': 'hash', 'fields': ['key_value'], 'unique': True})
+                collection.add_index({'type': 'hash', 'fields': ['key_type'], 'unique': False})
                 print(f"  ✓ Created indexes for {collection_name}")
                 
         except Exception as e:

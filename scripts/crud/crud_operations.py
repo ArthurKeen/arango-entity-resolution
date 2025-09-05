@@ -9,7 +9,7 @@ import argparse
 import sys
 from typing import Dict, List, Any, Optional
 from arango import ArangoClient
-from arango.exceptions import DocumentNotFoundError, DocumentInsertError
+from arango.exceptions import DocumentInsertError
 
 
 class EntityResolutionCRUD:
@@ -203,7 +203,7 @@ class EntityResolutionCRUD:
             collection.update(customer_id, update_data)
             print(f"✓ Updated customer: {customer_id}")
             return True
-        except DocumentNotFoundError:
+        except Exception:
             print(f"⚠ Customer not found: {customer_id}")
             return False
         except Exception as e:
@@ -217,7 +217,7 @@ class EntityResolutionCRUD:
             collection.update(key_id, update_data)
             print(f"✓ Updated blocking key: {key_id}")
             return True
-        except DocumentNotFoundError:
+        except Exception:
             print(f"⚠ Blocking key not found: {key_id}")
             return False
         except Exception as e:
@@ -232,7 +232,7 @@ class EntityResolutionCRUD:
             collection.delete(customer_id)
             print(f"✓ Deleted customer: {customer_id}")
             return True
-        except DocumentNotFoundError:
+        except Exception:
             print(f"⚠ Customer not found: {customer_id}")
             return False
         except Exception as e:
@@ -246,7 +246,7 @@ class EntityResolutionCRUD:
             collection.delete(key_id)
             print(f"✓ Deleted blocking key: {key_id}")
             return True
-        except DocumentNotFoundError:
+        except Exception:
             print(f"⚠ Blocking key not found: {key_id}")
             return False
         except Exception as e:

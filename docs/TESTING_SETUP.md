@@ -11,6 +11,7 @@ Before setting up the testing environment, ensure you have the following install
 1. **Docker** (v20.0 or higher)
    - Download: https://docs.docker.com/get-docker/
    - Verify installation: `docker --version`
+   - **Note**: ArangoDB 3.12 requires Docker for Windows and macOS users (native support discontinued)
 
 2. **Docker Compose** (v2.0 or higher)
    - Usually included with Docker Desktop
@@ -360,7 +361,7 @@ Modify `docker-compose.yml` for advanced configurations:
 ```yaml
 services:
   arangodb:
-    image: arangodb:3.11
+    image: arangodb:3.12
     environment:
       ARANGO_ROOT_PASSWORD: your_secure_password
       # Add custom configurations
