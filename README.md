@@ -42,7 +42,31 @@ arango-entity-resolution-record-blocking/
 
 ## Getting Started
 
-This project is currently in the planning phase. Please refer to the [PRD](docs/PRD.md) for detailed requirements and specifications.
+### Quick Setup for Testing
+
+1. **Prerequisites**: Ensure you have Docker, Docker Compose, and Python 3.8+ installed
+2. **Automated Setup**: Run the setup script to get started immediately
+   ```bash
+   ./scripts/setup.sh
+   ```
+3. **Access ArangoDB**: Open http://localhost:8529 (username: `root`, password: `testpassword123`)
+4. **Test the System**: 
+   ```bash
+   python3 scripts/crud/crud_operations.py count --collection customers
+   ```
+
+For detailed setup instructions, see [Testing Setup Guide](docs/TESTING_SETUP.md).
+
+### Development Status
+
+This project includes a fully functional Docker-based testing environment with:
+- ✅ **ArangoDB Setup**: Docker Compose configuration with data persistence
+- ✅ **Database Management**: Scripts for creating, deleting, and initializing databases
+- ✅ **CRUD Operations**: Complete set of database operations for testing
+- ✅ **Sample Data**: Realistic customer data with duplicates for entity resolution testing
+- ✅ **Documentation**: Comprehensive setup and usage guides
+
+**Next Phase**: Core algorithm implementation (blocking, similarity matching, clustering)
 
 ## Research Foundation
 

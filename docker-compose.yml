@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  arangodb:
+    image: arangodb:3.11
+    container_name: arango-entity-resolution
+    restart: unless-stopped
+    environment:
+      ARANGO_ROOT_PASSWORD: ${ARANGO_ROOT_PASSWORD:-testpassword123}
+      ARANGO_NO_AUTH: ${ARANGO_NO_AUTH:-false}
+    ports:
+      - "8529:8529"
+    volumes:
+      - ${HOME}/data:/data
+      - ./scripts/init:/docker-entrypoint-initdb.d
+    networks:
+      - arango-network
+    command: >
+      arangod
+      --server.endpoint tcp://0.0.0.0:8529
+      --server.authentication true
+      --log.level info
+
+networks:
+  arango-network:
+    driver: bridge
+
+volumes:
+  arango_data:
+    external: false
