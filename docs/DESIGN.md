@@ -231,13 +231,34 @@ Implement a comprehensive entity resolution system that:
 
 ### Data Flow Architecture
 
+**End-to-End Native ArangoDB Workflow**:
 ```
-Input Data → Data Ingestion → Blocking → Similarity → Clustering → Golden Records
-    │             │            │          │           │              │
-    │             │            │          │           │              │
-Raw CSV/JSON → Collections → Candidate → Scored → Entity → Unified
-Files            in ArangoDB   Pairs      Pairs    Clusters  Entities
+Input Data → Data Ingestion → ArangoSearch → Similarity → Graph → WCC → Golden Records
+    │             │             Blocking      Scoring   Building Clustering    │
+    │             │                │           │          │        │           │
+Raw CSV/JSON → Collections → ArangoSearch → Scored → Similarity → Entity → Unified
+Files        in ArangoDB      Views        Pairs     Graph      Clusters  Entities
+                                 │           │          │         │          │
+                              N-gram    Native AQL   UPSERT    Graph      Source
+                              Analyzers  Functions    Edges   Algorithm  Selection
 ```
+
+**Detailed Processing Pipeline**:
+
+1. **Data Ingestion**: Raw data → ArangoDB document collections
+2. **ArangoSearch Setup**: Custom analyzers (n-gram, phonetic) → Search views
+3. **Blocking Phase**: ArangoSearch queries → Candidate pairs with BM25 scoring
+4. **Similarity Computation**: Native AQL functions → Fellegi-Sunter scores
+5. **Graph Construction**: UPSERT operations → Similarity edge collection
+6. **Clustering**: Weakly Connected Components → Entity clusters
+7. **Golden Record Synthesis**: Multi-source consolidation → Unified entities
+
+**Performance Optimizations**:
+- **Database-Native Processing**: All operations within ArangoDB (no export/import)
+- **Efficient Indexing**: ArangoSearch inverted indexes for blocking
+- **Batch Operations**: AQL queries process thousands of comparisons
+- **Graph Algorithms**: Native WCC implementation for clustering
+- **Memory Efficiency**: Streaming results for large datasets
 
 ### Component Specifications
 
@@ -273,61 +294,200 @@ class DataIngestionService:
 - Generate blocking keys using configurable strategies
 - Create ArangoSearch views for efficient candidate generation
 - Manage blocking key indexes and optimization
+- Execute multi-strategy blocking with performance metrics
+
+**Blocking Strategy Types**:
+- **N-gram blocking**: 3-character overlapping sequences for typo tolerance
+- **Prefix blocking**: First 3 characters of names for exact prefix matches
+- **Phonetic blocking**: Soundex/Metaphone for name pronunciation similarities
+- **Normalized blocking**: Cleaned and standardized field values
 
 **Implementation**:
 ```javascript
 // Foxx service: /entity-resolution/blocking
+const { query } = require('@arangodb');
 const router = require('@arangodb/foxx/router')();
 
 router.post('/generate-candidates', function(req, res) {
-  const { collection, strategies, limit } = req.body;
+  const { collection, targetDocId, strategies, limit = 100 } = req.body;
   
-  // Multi-strategy blocking using ArangoSearch
-  const candidates = executeBlockingStrategy(collection, strategies, limit);
+  // Multi-strategy ArangoSearch blocking
+  const candidates = generateCandidatesWithArangoSearch(
+    collection, 
+    targetDocId, 
+    strategies, 
+    limit
+  );
   
   res.json({
     total_candidates: candidates.length,
-    reduction_ratio: calculateReductionRatio(candidates),
-    candidates: candidates
+    reduction_ratio: calculateReductionRatio(candidates, collection),
+    candidates: candidates,
+    strategies_used: strategies
   });
 });
+
+function generateCandidatesWithArangoSearch(collection, targetDocId, strategies, limit) {
+  const aql = `
+    LET targetDoc = DOCUMENT(@targetDocId)
+    
+    FOR candidate IN ${collection}_blocking_view
+      SEARCH candidate._id != targetDoc._id AND (
+        // N-gram strategy for names and addresses
+        ANALYZER(PHRASE(candidate.first_name, targetDoc.first_name, "ngram_analyzer"), "ngram_analyzer") OR
+        ANALYZER(PHRASE(candidate.last_name, targetDoc.last_name, "ngram_analyzer"), "ngram_analyzer") OR
+        ANALYZER(PHRASE(candidate.address, targetDoc.address, "ngram_analyzer"), "ngram_analyzer") OR
+        
+        // Exact match strategy for structured fields
+        candidate.email == targetDoc.email OR
+        candidate.phone == targetDoc.phone
+      )
+      LIMIT @limit
+      RETURN {
+        candidateId: candidate._id,
+        targetId: targetDoc._id,
+        score: BM25(candidate),
+        matchedFields: [
+          candidate.email == targetDoc.email ? "email" : null,
+          candidate.phone == targetDoc.phone ? "phone" : null
+        ]
+      }
+  `;
+  
+  return query(aql, { 
+    targetDocId: targetDocId,
+    limit: limit 
+  }).toArray();
+}
 ```
 
 #### 3. Similarity Computation Service (Foxx)
 
 **Responsibilities**:
 - Implement Fellegi-Sunter similarity scoring
-- Field-specific similarity functions
+- Field-specific similarity functions using ArangoDB's native functions
 - Configurable weighting strategies
+- Multi-field aggregate scoring with confidence metrics
+
+**Native ArangoDB Similarity Functions**:
+- `NGRAM_SIMILARITY()`: N-gram based string similarity
+- `LEVENSHTEIN_DISTANCE()`: Edit distance computation
+- `SOUNDEX()`: Phonetic similarity matching
+- `JARO_WINKLER()`: String similarity with prefix weighting
 
 **Implementation**:
 ```javascript
-function computeFellegiSunterScore(docA, docB, fieldWeights) {
-  let totalScore = 0;
+const { query } = require('@arangodb');
+
+function computeAggregateScore(docA, docB, fieldWeights) {
+  // Use ArangoDB's native similarity functions for performance
+  const similarities = query(`
+    LET docA = @docA
+    LET docB = @docB
+    
+    RETURN {
+      name_ngram: NGRAM_SIMILARITY(docA.first_name + " " + docA.last_name, 
+                                   docB.first_name + " " + docB.last_name, 3),
+      address_ngram: NGRAM_SIMILARITY(docA.address, docB.address, 3),
+      email_exact: docA.email == docB.email ? 1.0 : 0.0,
+      phone_exact: docA.phone == docB.phone ? 1.0 : 0.0,
+      name_levenshtein: 1 - (LEVENSHTEIN_DISTANCE(docA.last_name, docB.last_name) / 
+                            MAX(LENGTH(docA.last_name), LENGTH(docB.last_name)))
+    }
+  `, { docA, docB }).next();
   
-  for (const [field, weights] of Object.entries(fieldWeights)) {
-    const agreement = computeFieldSimilarity(docA[field], docB[field]);
-    const weight = agreement ? 
-      Math.log(weights.m_prob / weights.u_prob) :
-      Math.log((1 - weights.m_prob) / (1 - weights.u_prob));
-    totalScore += weight;
+  // Apply Fellegi-Sunter framework with field-specific weights
+  return computeFellegiSunterScore(similarities, fieldWeights);
+}
+
+function computeFellegiSunterScore(similarities, fieldWeights) {
+  let totalScore = 0;
+  const fieldScores = {};
+  
+  for (const [field, simValue] of Object.entries(similarities)) {
+    if (fieldWeights[field]) {
+      const weights = fieldWeights[field];
+      const agreement = simValue > weights.threshold;
+      
+      const weight = agreement ? 
+        Math.log(weights.m_prob / weights.u_prob) :
+        Math.log((1 - weights.m_prob) / (1 - weights.u_prob));
+      
+      fieldScores[field] = {
+        similarity: simValue,
+        agreement: agreement,
+        weight: weight
+      };
+      
+      totalScore += weight;
+    }
   }
   
-  return totalScore;
+  return {
+    total_score: totalScore,
+    field_scores: fieldScores,
+    is_match: totalScore > fieldWeights.global.upper_threshold,
+    confidence: Math.min(Math.max((totalScore - fieldWeights.global.lower_threshold) / 
+                                 (fieldWeights.global.upper_threshold - fieldWeights.global.lower_threshold), 0), 1)
+  };
 }
 ```
 
 #### 4. Clustering Service (Foxx)
 
 **Responsibilities**:
-- Build similarity graphs from scored pairs
-- Execute graph clustering algorithms
-- Generate entity clusters with confidence scores
+- Build similarity graphs from scored pairs using UPSERT for idempotency
+- Execute graph clustering algorithms (Weakly Connected Components)
+- Generate entity clusters with confidence scores and metadata
+- Create robust graph structures for complex entity relationships
+
+**Graph-Based Workflow**:
+1. **Similarity Graph Creation**: Convert scored pairs into graph edges
+2. **Weakly Connected Components**: Group transitively connected entities
+3. **Cluster Validation**: Verify cluster quality and coherence
+4. **Metadata Generation**: Track clustering provenance and confidence
 
 **Implementation**:
 ```javascript
-function clusterEntities(edgeCollection, threshold) {
-  // Use ArangoDB's native graph algorithm
+const { query, db } = require('@arangodb');
+
+function buildSimilarityGraph(scoredPairs, threshold) {
+  // Use UPSERT for idempotent edge creation
+  const edgeInserts = scoredPairs
+    .filter(pair => pair.total_score > threshold)
+    .map(pair => {
+      const aql = `
+        UPSERT { _from: @from, _to: @to }
+        INSERT {
+          _from: @from,
+          _to: @to,
+          similarity_score: @score,
+          field_scores: @fieldScores,
+          algorithm: "fellegi_sunter",
+          created_at: DATE_NOW()
+        }
+        UPDATE {
+          similarity_score: AVERAGE([OLD.similarity_score, @score]),
+          updated_at: DATE_NOW(),
+          update_count: (OLD.update_count || 0) + 1
+        }
+        IN similarities
+        RETURN NEW
+      `;
+      
+      return query(aql, {
+        from: pair.docA_id,
+        to: pair.docB_id,
+        score: pair.total_score,
+        fieldScores: pair.field_scores
+      }).next();
+    });
+  
+  return edgeInserts;
+}
+
+function clusterEntitiesWithWCC(edgeCollection, threshold) {
+  // Use ArangoDB's native Weakly Connected Components algorithm
   const aql = `
     FOR component IN GRAPH_WEAKLY_CONNECTED_COMPONENTS(
       @edgeCollection,
@@ -336,19 +496,205 @@ function clusterEntities(edgeCollection, threshold) {
         threshold: @threshold
       }
     )
-    RETURN component
+    LET clusterSize = LENGTH(component.vertices)
+    LET avgScore = AVERAGE(
+      FOR edge IN component.edges
+        RETURN edge.similarity_score
+    )
+    
+    RETURN {
+      cluster_id: CONCAT("cluster_", MD5(TO_STRING(component.vertices))),
+      member_ids: component.vertices,
+      cluster_size: clusterSize,
+      average_similarity: avgScore,
+      edges_count: LENGTH(component.edges),
+      confidence_score: avgScore * (clusterSize > 2 ? 0.9 : 1.0),
+      created_at: DATE_NOW()
+    }
   `;
   
-  return query(aql, { edgeCollection, threshold }).toArray();
+  return query(aql, { 
+    edgeCollection: edgeCollection,
+    threshold: threshold 
+  }).toArray();
+}
+
+function validateClusterQuality(clusters) {
+  // Ensure cluster coherence and detect potential issues
+  return clusters.map(cluster => {
+    const qualityMetrics = {
+      size_appropriate: cluster.cluster_size >= 2 && cluster.cluster_size <= 50,
+      similarity_coherent: cluster.average_similarity > 0.7,
+      density_adequate: cluster.edges_count >= (cluster.cluster_size - 1)
+    };
+    
+    return {
+      ...cluster,
+      quality_score: Object.values(qualityMetrics).filter(Boolean).length / 3,
+      quality_issues: Object.entries(qualityMetrics)
+        .filter(([_, passed]) => !passed)
+        .map(([metric, _]) => metric)
+    };
+  });
 }
 ```
 
 #### 5. Golden Record Generation (Foxx)
 
 **Responsibilities**:
-- Synthesize master records from entity clusters
-- Apply data quality rules and preferences
-- Maintain provenance and audit trails
+- Synthesize master records from entity clusters using data quality rules
+- Apply source trustworthiness and recency preferences  
+- Maintain complete provenance and audit trails
+- Handle conflicting data through configurable resolution strategies
+
+**Golden Record Strategy**:
+- **Source Priority**: Prefer data from more trusted/recent sources
+- **Completeness**: Combine non-conflicting attributes from multiple records
+- **Quality Scoring**: Use data quality metrics to select best values
+- **Conflict Resolution**: Apply business rules for handling disagreements
+
+**Implementation**:
+```javascript
+function generateGoldenRecord(cluster, sourcePreferences) {
+  // Retrieve all records in the cluster
+  const memberRecords = query(`
+    FOR memberId IN @memberIds
+      LET record = DOCUMENT(memberId)
+      RETURN {
+        id: record._id,
+        data: record,
+        source: record.source,
+        created_at: record.created_at,
+        quality_score: calculateRecordQuality(record)
+      }
+  `, { memberIds: cluster.member_ids }).toArray();
+  
+  // Apply golden record synthesis logic
+  const goldenRecord = synthesizeGoldenRecord(memberRecords, sourcePreferences);
+  
+  // Store golden record with full provenance
+  const aql = `
+    INSERT {
+      _key: @clusterId,
+      cluster_id: @clusterId,
+      consolidated_data: @goldenData,
+      source_records: @sourceRecords,
+      synthesis_strategy: @strategy,
+      quality_score: @qualityScore,
+      created_at: DATE_NOW(),
+      provenance: @provenance
+    } INTO golden_records
+    RETURN NEW
+  `;
+  
+  return query(aql, {
+    clusterId: cluster.cluster_id,
+    goldenData: goldenRecord.data,
+    sourceRecords: cluster.member_ids,
+    strategy: goldenRecord.strategy,
+    qualityScore: goldenRecord.quality_score,
+    provenance: goldenRecord.provenance
+  }).next();
+}
+
+function synthesizeGoldenRecord(memberRecords, sourcePreferences) {
+  const goldenData = {};
+  const provenance = {};
+  const conflictResolutions = [];
+  
+  // Process each field using preference rules
+  const fieldNames = new Set();
+  memberRecords.forEach(record => 
+    Object.keys(record.data).forEach(field => fieldNames.add(field))
+  );
+  
+  for (const field of fieldNames) {
+    if (field.startsWith('_')) continue; // Skip ArangoDB internal fields
+    
+    const fieldValues = memberRecords
+      .map(record => ({
+        value: record.data[field],
+        source: record.source,
+        quality: record.quality_score,
+        timestamp: record.created_at
+      }))
+      .filter(item => item.value != null);
+    
+    if (fieldValues.length === 0) continue;
+    
+    // Apply field synthesis strategy
+    const synthesis = selectBestFieldValue(fieldValues, sourcePreferences);
+    goldenData[field] = synthesis.value;
+    provenance[field] = synthesis.provenance;
+    
+    if (synthesis.conflicts.length > 0) {
+      conflictResolutions.push({
+        field: field,
+        conflicts: synthesis.conflicts,
+        resolution: synthesis.resolution_strategy
+      });
+    }
+  }
+  
+  return {
+    data: goldenData,
+    strategy: "multi_source_synthesis",
+    quality_score: calculateGoldenRecordQuality(goldenData, memberRecords),
+    provenance: provenance,
+    conflicts: conflictResolutions
+  };
+}
+
+function selectBestFieldValue(fieldValues, sourcePreferences) {
+  // Handle single value case
+  if (fieldValues.length === 1) {
+    return {
+      value: fieldValues[0].value,
+      provenance: { source: fieldValues[0].source, strategy: "single_source" },
+      conflicts: []
+    };
+  }
+  
+  // Detect conflicts
+  const uniqueValues = [...new Set(fieldValues.map(fv => fv.value))];
+  const hasConflicts = uniqueValues.length > 1;
+  
+  if (!hasConflicts) {
+    // All values agree
+    const bestSource = fieldValues.reduce((best, current) => 
+      (sourcePreferences[current.source] || 0) > (sourcePreferences[best.source] || 0) ? 
+        current : best
+    );
+    
+    return {
+      value: bestSource.value,
+      provenance: { source: bestSource.source, strategy: "consensus" },
+      conflicts: []
+    };
+  }
+  
+  // Resolve conflicts using source preferences and quality
+  const bestValue = fieldValues.reduce((best, current) => {
+    const currentScore = (sourcePreferences[current.source] || 0) * 0.7 + 
+                        current.quality * 0.3;
+    const bestScore = (sourcePreferences[best.source] || 0) * 0.7 + 
+                     best.quality * 0.3;
+    
+    return currentScore > bestScore ? current : best;
+  });
+  
+  return {
+    value: bestValue.value,
+    provenance: { 
+      source: bestValue.source, 
+      strategy: "conflict_resolution",
+      alternatives: fieldValues.filter(fv => fv.value !== bestValue.value)
+    },
+    conflicts: uniqueValues.filter(v => v !== bestValue.value),
+    resolution_strategy: "source_preference_with_quality"
+  };
+}
+```
 
 ### Database Schema Design
 
@@ -415,20 +761,63 @@ golden_records: {
 }
 ```
 
-#### ArangoSearch Views
+#### ArangoSearch Views and Analyzers
 
+**Custom Analyzers for Blocking**:
 ```javascript
-// Blocking view for candidate generation
+// N-gram analyzer for handling typos and variations
+// Converts "John Doe" -> ["joh", "ohn", "hn ", " do", "doe"]
+db._create("ngram_analyzer", "text", {
+  locale: "en.utf-8",
+  stopwords: [],
+  case: "lower",
+  accent: false,
+  stemming: false,
+  ngram: {
+    min: 3,
+    max: 3,
+    preserveOriginal: true
+  }
+});
+
+// Phonetic analyzer for name variations
+db._create("phonetic_analyzer", "text", {
+  locale: "en.utf-8",
+  case: "lower",
+  accent: false,
+  stemming: false,
+  // Add phonetic algorithms like Soundex, Metaphone
+});
+```
+
+**Blocking Views for Candidate Generation**:
+```javascript
+// Primary blocking view using multiple analyzers
 customers_blocking_view: {
   links: {
     customers: {
-      analyzers: ["identity", "ngram_analyzer", "phonetic_analyzer"],
+      analyzers: [
+        "identity",        // Exact matches
+        "ngram_analyzer",  // Typo tolerance
+        "phonetic_analyzer" // Name variations
+      ],
+      includeAllFields: true,
       fields: {
-        first_name: { analyzers: ["ngram_analyzer", "phonetic_analyzer"] },
-        last_name: { analyzers: ["ngram_analyzer", "phonetic_analyzer"] },
-        address: { analyzers: ["ngram_analyzer"] },
-        email: { analyzers: ["identity"] },
-        phone: { analyzers: ["identity"] }
+        first_name: { 
+          analyzers: ["ngram_analyzer", "phonetic_analyzer"] 
+        },
+        last_name: { 
+          analyzers: ["ngram_analyzer", "phonetic_analyzer"] 
+        },
+        address: { 
+          analyzers: ["ngram_analyzer"] 
+        },
+        email: { 
+          analyzers: ["identity"] 
+        },
+        phone: { 
+          analyzers: ["identity"] 
+        }
       }
     }
   }
