@@ -76,3 +76,14 @@ Claude Role: Provides schema recommendations, query optimization tips, scalabili
 - Always test Claude's suggestions thoroughly before production implementation
 - Use Claude as a collaborative tool, not a replacement for domain expertise
 - Maintain human oversight for critical system design decisions
+
+Master Development Guide
+CRITICAL: NO UNICODE OR EMOJIS ALLOWED
+ABSOLUTE RULE: NEVER USE UNICODE OR EMOJI CHARACTERS
+
+NO emoji symbols in code, comments, or output
+Use PLAIN ASCII text only (characters 0-127)
+Replace emojis with text: [DONE], [ERROR], [WARNING], etc.
+Use ASCII arrows: ->, =>, <- instead of Unicode arrows
+This applies to ALL interactions and outputs
+VIOLATION = CRITICAL ERROR requiring immediate correction

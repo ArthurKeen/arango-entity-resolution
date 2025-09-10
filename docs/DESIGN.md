@@ -1026,8 +1026,42 @@ The hybrid Python/Foxx architecture with ArangoDB provides the optimal balance o
 
 The phased implementation approach minimizes risk while delivering value incrementally, allowing for validation and adjustment throughout the development process.
 
+## Implementation References
+
+### Technical Documentation
+- **[ArangoSearch Implementation Strategy](../research/notes/arango_search_implementation_strategy.md)**: Detailed technical guide for implementing blocking using ArangoSearch with custom analyzers, views, and AQL queries
+- **[Foxx Services Architecture](FOXX_ARCHITECTURE.md)**: Comprehensive guide to the mixed Python/Foxx architecture with deployment strategies
+- **[Research Bibliography](../research/bibliography.md)**: Academic foundation with paper summaries and implementation insights
+
+### Research Foundation
+- **[Blocking Techniques](../research/papers/blocking/)**: Implementation of Papadakis survey findings
+- **[Similarity Scoring](../research/papers/similarity/)**: Fellegi-Sunter probabilistic framework
+- **[System Architecture](../research/papers/systems/)**: End-to-end design based on Magellan principles
+
+### Key Implementation Insights from ArangoSearch Strategy
+
+**Native Database Processing Advantages**:
+1. **Performance**: All blocking and similarity operations happen within the database, eliminating network latency
+2. **Scalability**: ArangoSearch views and custom analyzers scale with the database cluster
+3. **Simplicity**: Single AQL queries can generate candidate pairs and compute similarities
+4. **Robustness**: UPSERT operations ensure idempotent graph construction for repeated processing
+
+**ArangoSearch-Specific Optimizations**:
+1. **Custom Analyzers**: N-gram tokenization for typo tolerance, phonetic matching for name variations
+2. **Multi-Analyzer Views**: Combine exact, approximate, and phonetic matching strategies
+3. **BM25 Scoring**: Built-in relevance scoring for candidate ranking
+4. **Native Graph Algorithms**: Weakly Connected Components for efficient clustering
+
+**Production Considerations**:
+1. **Memory Management**: Streaming results for large datasets to avoid memory overflow
+2. **Query Optimization**: Proper use of LIMIT clauses and index hints for performance
+3. **Monitoring**: Track reduction ratios, candidate pair counts, and processing times
+4. **Configuration Management**: Parameterized analyzers and similarity thresholds
+
+This implementation strategy provides the technical foundation for building a production-ready entity resolution system that leverages ArangoDB's unique multi-model capabilities while maintaining the flexibility of the hybrid Python/Foxx architecture.
+
 ---
 
-**Document Version**: 1.0  
+**Document Version**: 1.1  
 **Last Updated**: 2024-01-25  
 **Next Review**: 2024-02-01
