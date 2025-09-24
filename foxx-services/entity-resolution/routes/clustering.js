@@ -577,7 +577,8 @@ function getGraphStatistics(edgeCollection) {
   `;
   
   try {
-    const stats = query(aql, { '@edgeCollection': edgeCollection }).next();
+    const result = db._query(aql, { '@edgeCollection': edgeCollection });
+    const stats = result.toArray()[0];
     return stats || {};
   } catch (error) {
     logError(`Failed to get graph statistics: ${error.message}`);

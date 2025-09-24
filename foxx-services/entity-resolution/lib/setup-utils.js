@@ -10,6 +10,7 @@
  */
 
 const { db } = require('@arangodb');
+const analyzers = require('@arangodb/analyzers');
 const { logInfo, logError, logDebug } = require('../utils/logger');
 
 /**
@@ -25,8 +26,13 @@ function createAnalyzer(name, config) {
       return { name: name, status: 'exists', created: false };
     }
     
-    // Create the analyzer
-    const result = db._createAnalyzer(name, config.type, config.properties, config.features);
+    // Create the analyzer using the analyzers module
+    const result = analyzers.save(
+      name, 
+      config.type, 
+      config.properties || {}, 
+      config.features || ['frequency', 'norm', 'position']
+    );
     
     logInfo(`Successfully created analyzer: ${name}`);
     return { 
@@ -96,10 +102,10 @@ function createView(name, config) {
  */
 function checkAnalyzerExists(name) {
   try {
-    const analyzer = db._analyzer(name);
+    const analyzer = analyzers.analyzer(name);
     return analyzer !== null;
   } catch (error) {
-    // If analyzer doesn't exist, _analyzer throws an error
+    // If analyzer doesn't exist, analyzer() throws an error
     return false;
   }
 }
@@ -138,7 +144,7 @@ function getAnalyzerConfig(name) {
       return null;
     }
     
-    const analyzer = db._analyzer(name);
+    const analyzer = analyzers.analyzer(name);
     return {
       name: analyzer.name(),
       type: analyzer.type(),
@@ -182,7 +188,7 @@ function removeAnalyzer(name, force = false) {
       return { name: name, status: 'not_found', removed: false };
     }
     
-    db._dropAnalyzer(name, force);
+    analyzers.remove(name, force);
     logInfo(`Successfully removed analyzer: ${name}`);
     return { name: name, status: 'removed', removed: true };
     
@@ -256,7 +262,7 @@ function getSystemInfo() {
     return {
       database: db._name(),
       version: db._version(),
-      analyzers: db._analyzers().map(a => ({
+      analyzers: analyzers.toArray().map(a => ({
         name: a.name(),
         type: a.type(),
         features: a.features()

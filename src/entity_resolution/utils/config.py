@@ -57,6 +57,7 @@ class EntityResolutionConfig:
     
     # Collection and view names
     default_collections: list = None
+    default_source_collection: str = "customers"
     edge_collection: str = "similarities"
     cluster_collection: str = "entity_clusters"
     golden_record_collection: str = "golden_records"

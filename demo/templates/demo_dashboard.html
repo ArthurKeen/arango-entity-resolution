@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entity Resolution Demo Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .metric-label {
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .metric-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .metric-value.positive {
+            color: #28a745;
+        }
+        
+        .metric-value.negative {
+            color: #dc3545;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            border-radius: 10px;
+            transition: width 1s ease;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        
+        .roi-calculator {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            grid-column: span 2;
+        }
+        
+        .roi-calculator h3 {
+            color: white;
+            border-bottom-color: white;
+        }
+        
+        .input-group {
+            margin: 15px 0;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        .roi-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .roi-metric {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .roi-metric .value {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+        
+        .roi-metric .label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        
+        .demo-controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        
+        .pipeline-visualization {
+            grid-column: span 2;
+            background: #f8f9fa;
+        }
+        
+        .pipeline-step {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        
+        .step-content {
+            flex: 1;
+        }
+        
+        .step-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .step-description {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .step-metrics {
+            text-align: right;
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .roi-calculator,
+            .pipeline-visualization {
+                grid-column: span 1;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .roi-results {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #667eea;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Entity Resolution Demo Dashboard</h1>
+            <p>AI-Powered Customer Deduplication & Data Quality Enhancement</p>
+        </div>
+        
+        <div class="demo-controls">
+            <button class="btn" onclick="loadDemoData()">Load Demo Data</button>
+            <button class="btn" onclick="runDemo()">Run Demo</button>
+            <button class="btn" onclick="generateReport()">Export Report</button>
+        </div>
+        
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Processing entity resolution pipeline...</p>
+        </div>
+        
+        <div id="dashboard" class="dashboard-grid">
+            <!-- Key Metrics Card -->
+            <div class="card">
+                <h3>Dataset Overview</h3>
+                <div class="metric">
+                    <span class="metric-label">Total Records</span>
+                    <span class="metric-value" id="total-records">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Unique Entities</span>
+                    <span class="metric-value positive" id="unique-entities">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Duplicates Found</span>
+                    <span class="metric-value negative" id="duplicates-found">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Duplication Rate</span>
+                    <span class="metric-value" id="duplication-rate">0%</span>
+                </div>
+            </div>
+            
+            <!-- Performance Metrics Card -->
+            <div class="card">
+                <h3>Performance Metrics</h3>
+                <div class="metric">
+                    <span class="metric-label">Processing Time</span>
+                    <span class="metric-value positive" id="processing-time">0.0s</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Records/Second</span>
+                    <span class="metric-value positive" id="records-per-second">0</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Accuracy</span>
+                    <span class="metric-value positive" id="accuracy">99.5%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Confidence</span>
+                    <span class="metric-value positive" id="confidence">92%</span>
+                </div>
+            </div>
+            
+            <!-- Data Quality Improvement -->
+            <div class="card">
+                <h3>Data Quality Improvement</h3>
+                <div class="chart-container">
+                    <canvas id="quality-chart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Business Impact -->
+            <div class="card">
+                <h3>Business Impact</h3>
+                <div class="chart-container">
+                    <canvas id="impact-chart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Pipeline Visualization -->
+            <div class="card pipeline-visualization">
+                <h3>Entity Resolution Pipeline</h3>
+                <div class="pipeline-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <div class="step-title">Data Loading</div>
+                        <div class="step-description">Load customer records into ArangoDB</div>
+                    </div>
+                    <div class="step-metrics" id="step1-metrics">0.00s</div>
+                </div>
+                <div class="pipeline-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <div class="step-title">Similarity Analysis</div>
+                        <div class="step-description">Compute similarity scores using AI algorithms</div>
+                    </div>
+                    <div class="step-metrics" id="step2-metrics">0.00s</div>
+                </div>
+                <div class="pipeline-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <div class="step-title">Record Blocking</div>
+                        <div class="step-description">Optimize comparisons with intelligent blocking</div>
+                    </div>
+                    <div class="step-metrics" id="step3-metrics">99.9% reduction</div>
+                </div>
+                <div class="pipeline-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <div class="step-title">Entity Clustering</div>
+                        <div class="step-description">Group similar records into entity clusters</div>
+                    </div>
+                    <div class="step-metrics" id="step4-metrics">0.00s</div>
+                </div>
+                <div class="pipeline-step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <div class="step-title">Golden Records</div>
+                        <div class="step-description">Generate master customer profiles</div>
+                    </div>
+                    <div class="step-metrics" id="step5-metrics">0.00s</div>
+                </div>
+            </div>
+            
+            <!-- ROI Calculator -->
+            <div class="card roi-calculator">
+                <h3>ROI Calculator</h3>
+                <div class="input-group">
+                    <label for="customer-count">Number of Customers:</label>
+                    <input type="number" id="customer-count" value="100000" onchange="calculateROI()">
+                </div>
+                <div class="input-group">
+                    <label for="marketing-budget">Annual Marketing Budget ($):</label>
+                    <input type="number" id="marketing-budget" value="500000" onchange="calculateROI()">
+                </div>
+                <div class="roi-results" id="roi-results">
+                    <div class="roi-metric">
+                        <span class="value" id="annual-savings">$0</span>
+                        <div class="label">Annual Savings</div>
+                    </div>
+                    <div class="roi-metric">
+                        <span class="value" id="roi-percentage">0%</span>
+                        <div class="label">First Year ROI</div>
+                    </div>
+                    <div class="roi-metric">
+                        <span class="value" id="payback-months">0</span>
+                        <div class="label">Payback (Months)</div>
+                    </div>
+                    <div class="roi-metric">
+                        <span class="value" id="duplicates-eliminated">0</span>
+                        <div class="label">Duplicates Eliminated</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Demo data variables
+        let demoData = null;
+        let demoResults = null;
+        
+        // Chart instances
+        let qualityChart = null;
+        let impactChart = null;
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            calculateROI();
+        });
+        
+        function initializeCharts() {
+            // Data Quality Chart
+            const qualityCtx = document.getElementById('quality-chart').getContext('2d');
+            qualityChart = new Chart(qualityCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Clean Records', 'Duplicates'],
+                    datasets: [{
+                        data: [70, 30],
+                        backgroundColor: ['#28a745', '#dc3545'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+            
+            // Business Impact Chart
+            const impactCtx = document.getElementById('impact-chart').getContext('2d');
+            impactChart = new Chart(impactCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Marketing', 'Sales', 'Support', 'Compliance'],
+                    datasets: [{
+                        label: 'Annual Savings ($K)',
+                        data: [150, 200, 100, 75],
+                        backgroundColor: '#667eea',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        async function loadDemoData() {
+            try {
+                showLoading(true);
+                
+                // Simulate loading demo data
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Load demo data from JSON file (you'd implement actual file loading)
+                demoData = {
+                    total_records: 10000,
+                    unique_entities: 8000,
+                    duplicate_rate: 0.2,
+                    generation_date: new Date().toISOString()
+                };
+                
+                updateDashboard();
+                showLoading(false);
+                
+            } catch (error) {
+                console.error('Error loading demo data:', error);
+                alert('Error loading demo data');
+                showLoading(false);
+            }
+        }
+        
+        async function runDemo() {
+            if (!demoData) {
+                alert('Please load demo data first');
+                return;
+            }
+            
+            try {
+                showLoading(true);
+                
+                // Simulate running the demo pipeline
+                await simulatePipeline();
+                
+                demoResults = {
+                    processing_time: 2.5,
+                    records_per_second: demoData.total_records / 2.5,
+                    duplicates_eliminated: demoData.total_records - demoData.unique_entities,
+                    accuracy: 0.995,
+                    confidence: 0.92
+                };
+                
+                updateDashboard();
+                showLoading(false);
+                
+            } catch (error) {
+                console.error('Error running demo:', error);
+                alert('Error running demo');
+                showLoading(false);
+            }
+        }
+        
+        async function simulatePipeline() {
+            const steps = [
+                { id: 'step1-metrics', value: '0.5s', delay: 500 },
+                { id: 'step2-metrics', value: '1.2s', delay: 700 },
+                { id: 'step3-metrics', value: '99.9% reduction', delay: 300 },
+                { id: 'step4-metrics', value: '0.6s', delay: 600 },
+                { id: 'step5-metrics', value: '0.2s', delay: 200 }
+            ];
+            
+            for (const step of steps) {
+                await new Promise(resolve => setTimeout(resolve, step.delay));
+                document.getElementById(step.id).textContent = step.value;
+            }
+        }
+        
+        function updateDashboard() {
+            if (demoData) {
+                // Update dataset overview
+                document.getElementById('total-records').textContent = demoData.total_records.toLocaleString();
+                document.getElementById('unique-entities').textContent = demoData.unique_entities.toLocaleString();
+                
+                const duplicates = demoData.total_records - demoData.unique_entities;
+                document.getElementById('duplicates-found').textContent = duplicates.toLocaleString();
+                document.getElementById('duplication-rate').textContent = (demoData.duplicate_rate * 100).toFixed(1) + '%';
+                
+                // Update quality chart
+                const cleanRecords = (1 - demoData.duplicate_rate) * 100;
+                const duplicateRecords = demoData.duplicate_rate * 100;
+                
+                qualityChart.data.datasets[0].data = [cleanRecords, duplicateRecords];
+                qualityChart.update();
+            }
+            
+            if (demoResults) {
+                // Update performance metrics
+                document.getElementById('processing-time').textContent = demoResults.processing_time.toFixed(1) + 's';
+                document.getElementById('records-per-second').textContent = Math.round(demoResults.records_per_second).toLocaleString();
+                document.getElementById('accuracy').textContent = (demoResults.accuracy * 100).toFixed(1) + '%';
+                document.getElementById('confidence').textContent = (demoResults.confidence * 100).toFixed(0) + '%';
+                
+                // Update impact chart with real savings
+                const marketingSavings = demoData.total_records * 50 * demoData.duplicate_rate / 1000;
+                const salesSavings = marketingSavings * 1.3;
+                const supportSavings = marketingSavings * 0.7;
+                const complianceSavings = marketingSavings * 0.5;
+                
+                impactChart.data.datasets[0].data = [marketingSavings, salesSavings, supportSavings, complianceSavings];
+                impactChart.update();
+            }
+            
+            calculateROI();
+        }
+        
+        function calculateROI() {
+            const customerCount = parseInt(document.getElementById('customer-count').value) || 0;
+            const marketingBudget = parseInt(document.getElementById('marketing-budget').value) || 0;
+            
+            // Use demo data duplicate rate if available, otherwise use 20%
+            const duplicateRate = demoData ? demoData.duplicate_rate : 0.2;
+            
+            const duplicatesEliminated = Math.round(customerCount * duplicateRate);
+            const marketingWaste = marketingBudget * duplicateRate;
+            const serviceSavings = customerCount * 25 * duplicateRate * 0.3;
+            const salesSavings = customerCount * 100 * duplicateRate * 0.1;
+            const revenueSavings = customerCount * 200 * duplicateRate * 0.05;
+            
+            const totalAnnualSavings = marketingWaste + serviceSavings + salesSavings + revenueSavings;
+            
+            // Implementation cost based on database size
+            let implementationCost = 50000;
+            if (customerCount > 50000) implementationCost = 75000;
+            if (customerCount > 100000) implementationCost = 150000;
+            if (customerCount > 500000) implementationCost = 250000;
+            
+            const roiPercentage = ((totalAnnualSavings - implementationCost) / implementationCost) * 100;
+            const paybackMonths = (implementationCost / (totalAnnualSavings / 12));
+            
+            // Update ROI display
+            document.getElementById('annual-savings').textContent = '$' + Math.round(totalAnnualSavings).toLocaleString();
+            document.getElementById('roi-percentage').textContent = Math.round(roiPercentage) + '%';
+            document.getElementById('payback-months').textContent = paybackMonths.toFixed(1);
+            document.getElementById('duplicates-eliminated').textContent = duplicatesEliminated.toLocaleString();
+        }
+        
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+            document.getElementById('dashboard').style.opacity = show ? '0.5' : '1';
+        }
+        
+        function generateReport() {
+            if (!demoData || !demoResults) {
+                alert('Please run the demo first');
+                return;
+            }
+            
+            const report = {
+                demo_date: new Date().toISOString(),
+                dataset: demoData,
+                results: demoResults,
+                roi_analysis: {
+                    customer_count: parseInt(document.getElementById('customer-count').value),
+                    annual_savings: document.getElementById('annual-savings').textContent,
+                    roi_percentage: document.getElementById('roi-percentage').textContent,
+                    payback_months: document.getElementById('payback-months').textContent
+                }
+            };
+            
+            // Download report as JSON
+            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `entity_resolution_demo_report_${new Date().getTime()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

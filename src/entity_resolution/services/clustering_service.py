@@ -8,14 +8,12 @@ Handles graph-based entity clustering using:
 - Fallback to Python graph implementation
 """
 
-import requests
 from typing import Dict, List, Any, Optional, Set, Tuple
 from collections import defaultdict
-from ..utils.config import Config, get_config
-from ..utils.logging import get_logger
+from .base_service import BaseEntityResolutionService, Config
 
 
-class ClusteringService:
+class ClusteringService(BaseEntityResolutionService):
     """
     Entity clustering service using graph-based algorithms
     
@@ -25,31 +23,18 @@ class ClusteringService:
     """
     
     def __init__(self, config: Optional[Config] = None):
-        self.config = config or get_config()
-        self.logger = get_logger(__name__)
-        self.foxx_available = False
+        super().__init__(config)
         
-    def connect(self) -> bool:
-        """Test connection to Foxx services if enabled"""
-        if not self.config.er.enable_foxx_services:
-            self.logger.info("Foxx services disabled, using Python fallback")
-            return True
-        
+    def _get_service_name(self) -> str:
+        return "clustering"
+    
+    def _test_service_endpoints(self) -> bool:
+        """Test if clustering Foxx endpoints are available"""
         try:
-            # Test Foxx service availability
-            url = self.config.get_foxx_service_url("health")
-            response = requests.get(url, auth=self.config.get_auth_tuple(), timeout=5)
-            
-            if response.status_code == 200:
-                self.foxx_available = True
-                self.logger.info("Foxx clustering service available")
-            else:
-                self.logger.warning("Foxx service not available, using Python fallback")
-                
-        except Exception as e:
-            self.logger.warning(f"Cannot connect to Foxx services: {e}")
-        
-        return True
+            result = self._make_foxx_request("clustering/wcc", method="GET")
+            return result.get("success", False) or "error" not in result or "404" not in str(result.get("error", ""))
+        except Exception:
+            return False
     
     def build_similarity_graph(self, scored_pairs: List[Dict[str, Any]],
                               threshold: Optional[float] = None,
@@ -232,8 +217,11 @@ class ClusteringService:
     
     def _cluster_via_python(self, scored_pairs: List[Dict[str, Any]],
                            min_similarity: float, max_cluster_size: int) -> Dict[str, Any]:
-        """Perform clustering via Python implementation"""
+        """Perform clustering via Python implementation using Weakly Connected Components"""
         try:
+            import time
+            start_time = time.time()
+            
             # Build graph first
             graph_result = self._build_graph_via_python(
                 scored_pairs, min_similarity, self.config.er.edge_collection)

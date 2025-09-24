@@ -8,14 +8,13 @@ Handles similarity computation using:
 - Fallback to Python implementation
 """
 
-import requests
 import math
 from typing import Dict, List, Any, Optional
-from ..utils.config import Config, get_config
-from ..utils.logging import get_logger
+from .base_service import BaseEntityResolutionService, Config
+from ..utils.algorithms import validate_email, validate_phone, validate_zip_code, validate_state
 
 
-class SimilarityService:
+class SimilarityService(BaseEntityResolutionService):
     """
     Similarity computation service using Fellegi-Sunter framework
     
@@ -25,31 +24,18 @@ class SimilarityService:
     """
     
     def __init__(self, config: Optional[Config] = None):
-        self.config = config or get_config()
-        self.logger = get_logger(__name__)
-        self.foxx_available = False
+        super().__init__(config)
         
-    def connect(self) -> bool:
-        """Test connection to Foxx services if enabled"""
-        if not self.config.er.enable_foxx_services:
-            self.logger.info("Foxx services disabled, using Python fallback")
-            return True
-        
+    def _get_service_name(self) -> str:
+        return "similarity"
+    
+    def _test_service_endpoints(self) -> bool:
+        """Test if similarity Foxx endpoints are available"""
         try:
-            # Test Foxx service availability
-            url = self.config.get_foxx_service_url("health")
-            response = requests.get(url, auth=self.config.get_auth_tuple(), timeout=5)
-            
-            if response.status_code == 200:
-                self.foxx_available = True
-                self.logger.info("Foxx similarity service available")
-            else:
-                self.logger.warning("Foxx service not available, using Python fallback")
-                
-        except Exception as e:
-            self.logger.warning(f"Cannot connect to Foxx services: {e}")
-        
-        return True
+            result = self._make_foxx_request("similarity/compute", method="GET")
+            return result.get("success", False) or "error" not in result or "404" not in str(result.get("error", ""))
+        except Exception:
+            return False
     
     def compute_similarity(self, doc_a: Dict[str, Any], doc_b: Dict[str, Any],
                           field_weights: Optional[Dict[str, Any]] = None,
@@ -66,7 +52,7 @@ class SimilarityService:
         Returns:
             Similarity computation results
         """
-        field_weights = field_weights or self.get_default_field_weights()
+        field_weights = field_weights or self.get_field_weights()
         
         if self.foxx_available:
             return self._compute_via_foxx(doc_a, doc_b, field_weights, include_details)
@@ -87,7 +73,7 @@ class SimilarityService:
         Returns:
             Batch similarity results
         """
-        field_weights = field_weights or self.get_default_field_weights()
+        field_weights = field_weights or self.get_field_weights()
         
         if self.foxx_available:
             return self._compute_batch_via_foxx(pairs, field_weights, include_details)
@@ -97,7 +83,7 @@ class SimilarityService:
     def get_default_field_weights(self) -> Dict[str, Any]:
         """Get default Fellegi-Sunter field weights"""
         return {
-            # Name fields
+            # Name fields - n-gram similarity
             "name_ngram": {
                 "m_prob": 0.9,
                 "u_prob": 0.01,
@@ -116,6 +102,8 @@ class SimilarityService:
                 "threshold": 0.7,
                 "importance": 1.0
             },
+            
+            # Name fields - Levenshtein similarity
             "first_name_levenshtein": {
                 "m_prob": 0.8,
                 "u_prob": 0.05,
@@ -127,6 +115,34 @@ class SimilarityService:
                 "u_prob": 0.03,
                 "threshold": 0.6,
                 "importance": 0.9
+            },
+            
+            # Name fields - Jaro-Winkler similarity
+            "first_name_jaro_winkler": {
+                "m_prob": 0.88,
+                "u_prob": 0.03,
+                "threshold": 0.75,
+                "importance": 0.9
+            },
+            "last_name_jaro_winkler": {
+                "m_prob": 0.92,
+                "u_prob": 0.02,
+                "threshold": 0.75,
+                "importance": 1.1
+            },
+            
+            # Name fields - Phonetic similarity
+            "first_name_phonetic": {
+                "m_prob": 0.75,
+                "u_prob": 0.08,
+                "threshold": 1.0,
+                "importance": 0.6
+            },
+            "last_name_phonetic": {
+                "m_prob": 0.8,
+                "u_prob": 0.06,
+                "threshold": 1.0,
+                "importance": 0.7
             },
             
             # Address fields
@@ -167,40 +183,53 @@ class SimilarityService:
             
             # Global thresholds
             "global": {
-                "upper_threshold": 2.0,   # Clear match
-                "lower_threshold": -1.0   # Clear non-match
+                "upper_threshold": 3.5,   # Clear match (increased for more fields)
+                "lower_threshold": -1.5   # Clear non-match
             }
         }
+    
+    def configure_field_weights(self, custom_weights: Dict[str, Any]) -> None:
+        """
+        Configure custom field weights for similarity computation
+        
+        Args:
+            custom_weights: Custom field weights to override defaults
+        """
+        default_weights = self.get_default_field_weights()
+        
+        # Deep merge custom weights with defaults
+        for field, weights in custom_weights.items():
+            if field in default_weights:
+                if isinstance(weights, dict) and isinstance(default_weights[field], dict):
+                    default_weights[field].update(weights)
+                else:
+                    default_weights[field] = weights
+            else:
+                default_weights[field] = weights
+        
+        self._custom_field_weights = default_weights
+        self.logger.info(f"Configured custom field weights for {len(custom_weights)} fields")
+    
+    def get_field_weights(self) -> Dict[str, Any]:
+        """Get currently configured field weights (custom or default)"""
+        return getattr(self, '_custom_field_weights', self.get_default_field_weights())
     
     def _compute_via_foxx(self, doc_a: Dict[str, Any], doc_b: Dict[str, Any],
                          field_weights: Dict[str, Any], include_details: bool) -> Dict[str, Any]:
         """Compute similarity via Foxx service"""
-        try:
-            url = self.config.get_foxx_service_url("similarity/compute")
-            
-            payload = {
-                "docA": doc_a,
-                "docB": doc_b,
-                "fieldWeights": field_weights,
-                "includeDetails": include_details
-            }
-            
-            response = requests.post(
-                url,
-                auth=self.config.get_auth_tuple(),
-                json=payload,
-                timeout=self.config.er.foxx_timeout
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                return result.get("similarity", {})
-            else:
-                return {"success": False, "error": f"Foxx service returned {response.status_code}"}
-                
-        except Exception as e:
-            self.logger.error(f"Foxx similarity computation failed: {e}")
-            return {"success": False, "error": str(e)}
+        payload = {
+            "docA": doc_a,
+            "docB": doc_b,
+            "fieldWeights": field_weights,
+            "includeDetails": include_details
+        }
+        
+        result = self._make_foxx_request("similarity/compute", method="POST", payload=payload)
+        
+        if result.get("success", True):
+            return result.get("similarity", result)
+        else:
+            return self._handle_service_error("Foxx similarity computation", Exception(result.get("error", "Unknown error")))
     
     def _compute_via_python(self, doc_a: Dict[str, Any], doc_b: Dict[str, Any],
                            field_weights: Dict[str, Any], include_details: bool) -> Dict[str, Any]:
@@ -222,11 +251,19 @@ class SimilarityService:
                     doc_a['first_name'], doc_b['first_name'])
                 similarities["first_name_levenshtein"] = self._normalized_levenshtein(
                     doc_a['first_name'], doc_b['first_name'])
+                similarities["first_name_jaro_winkler"] = self._jaro_winkler_similarity(
+                    doc_a['first_name'], doc_b['first_name'])
+                similarities["first_name_phonetic"] = self._phonetic_similarity(
+                    doc_a['first_name'], doc_b['first_name'])
             
             if doc_a.get('last_name') and doc_b.get('last_name'):
                 similarities["last_name_ngram"] = self._ngram_similarity(
                     doc_a['last_name'], doc_b['last_name'])
                 similarities["last_name_levenshtein"] = self._normalized_levenshtein(
+                    doc_a['last_name'], doc_b['last_name'])
+                similarities["last_name_jaro_winkler"] = self._jaro_winkler_similarity(
+                    doc_a['last_name'], doc_b['last_name'])
+                similarities["last_name_phonetic"] = self._phonetic_similarity(
                     doc_a['last_name'], doc_b['last_name'])
             
             # Address comparisons
@@ -394,22 +431,152 @@ class SimilarityService:
         
         return matrix[len(str1)][len(str2)]
     
+    def _jaro_winkler_similarity(self, str1: str, str2: str, prefix_scale: float = 0.1) -> float:
+        """Calculate Jaro-Winkler similarity between two strings"""
+        if not str1 or not str2:
+            return 0.0
+        
+        str1 = str1.lower().strip()
+        str2 = str2.lower().strip()
+        
+        if str1 == str2:
+            return 1.0
+        
+        # Calculate Jaro similarity
+        jaro_sim = self._jaro_similarity(str1, str2)
+        
+        if jaro_sim < 0.7:  # Standard threshold for applying Winkler prefix bonus
+            return jaro_sim
+        
+        # Calculate common prefix length (up to 4 characters)
+        prefix_len = 0
+        for i in range(min(len(str1), len(str2), 4)):
+            if str1[i] == str2[i]:
+                prefix_len += 1
+            else:
+                break
+        
+        # Apply Winkler modification
+        return jaro_sim + (prefix_len * prefix_scale * (1 - jaro_sim))
+    
+    def _jaro_similarity(self, str1: str, str2: str) -> float:
+        """Calculate Jaro similarity between two strings"""
+        if not str1 or not str2:
+            return 0.0
+        
+        if str1 == str2:
+            return 1.0
+        
+        len1, len2 = len(str1), len(str2)
+        match_window = max(len1, len2) // 2 - 1
+        match_window = max(0, match_window)
+        
+        str1_matches = [False] * len1
+        str2_matches = [False] * len2
+        
+        matches = 0
+        transpositions = 0
+        
+        # Find matches
+        for i in range(len1):
+            start = max(0, i - match_window)
+            end = min(i + match_window + 1, len2)
+            
+            for j in range(start, end):
+                if str2_matches[j] or str1[i] != str2[j]:
+                    continue
+                str1_matches[i] = True
+                str2_matches[j] = True
+                matches += 1
+                break
+        
+        if matches == 0:
+            return 0.0
+        
+        # Count transpositions
+        k = 0
+        for i in range(len1):
+            if not str1_matches[i]:
+                continue
+            while not str2_matches[k]:
+                k += 1
+            if str1[i] != str2[k]:
+                transpositions += 1
+            k += 1
+        
+        jaro = (matches / len1 + matches / len2 + (matches - transpositions / 2) / matches) / 3
+        return jaro
+    
+    def _phonetic_similarity(self, str1: str, str2: str) -> float:
+        """Calculate phonetic similarity using Soundex algorithm"""
+        if not str1 or not str2:
+            return 0.0
+        
+        soundex1 = self._soundex(str1)
+        soundex2 = self._soundex(str2)
+        
+        return 1.0 if soundex1 == soundex2 else 0.0
+    
+    def _soundex(self, name: str) -> str:
+        """Generate Soundex code for a name"""
+        if not name:
+            return "0000"
+        
+        name = name.upper().strip()
+        if not name:
+            return "0000"
+        
+        # Soundex mapping
+        soundex_map = {
+            'B': '1', 'F': '1', 'P': '1', 'V': '1',
+            'C': '2', 'G': '2', 'J': '2', 'K': '2', 'Q': '2', 'S': '2', 'X': '2', 'Z': '2',
+            'D': '3', 'T': '3',
+            'L': '4',
+            'M': '5', 'N': '5',
+            'R': '6'
+        }
+        
+        # Keep first letter
+        result = name[0]
+        
+        # Process remaining characters
+        for char in name[1:]:
+            if char in soundex_map:
+                code = soundex_map[char]
+                # Don't add consecutive duplicates
+                if not result or result[-1] != code:
+                    result += code
+        
+        # Remove vowels and H, W, Y (except first letter)
+        if len(result) > 1:
+            result = result[0] + ''.join(c for c in result[1:] if c.isdigit())
+        
+        # Pad with zeros or truncate to 4 characters
+        result = (result + "000")[:4]
+        
+        return result
+
     def _compute_fellegi_sunter_score(self, similarities: Dict[str, float],
                                      field_weights: Dict[str, Any], 
                                      include_details: bool = False) -> Dict[str, Any]:
         """Apply Fellegi-Sunter probabilistic framework"""
         total_score = 0
         field_scores = {}
+        total_weight = 0
         
         for field, sim_value in similarities.items():
             if field in field_weights:
                 weights = field_weights[field]
                 threshold = weights.get("threshold", 0.5)
-                agreement = sim_value > threshold
+                agreement = sim_value >= threshold
                 
                 # Fellegi-Sunter log-likelihood ratio
                 m_prob = weights.get("m_prob", 0.8)
                 u_prob = weights.get("u_prob", 0.05)
+                
+                # Ensure probabilities are valid
+                m_prob = max(min(m_prob, 0.999), 0.001)
+                u_prob = max(min(u_prob, 0.999), 0.001)
                 
                 if agreement:
                     weight = math.log(m_prob / u_prob)
@@ -420,12 +587,19 @@ class SimilarityService:
                     "similarity": sim_value,
                     "agreement": agreement,
                     "weight": weight,
-                    "threshold": threshold
+                    "threshold": threshold,
+                    "m_prob": m_prob,
+                    "u_prob": u_prob
                 }
                 
                 # Add field importance multiplier
                 importance = weights.get("importance", 1.0)
-                total_score += weight * importance
+                weighted_score = weight * importance
+                total_score += weighted_score
+                total_weight += importance
+        
+        # Normalize score by total weight
+        normalized_score = total_score / total_weight if total_weight > 0 else 0
         
         # Calculate confidence and match decision
         global_weights = field_weights.get("global", {})
@@ -435,21 +609,32 @@ class SimilarityService:
         is_match = total_score > upper_threshold
         is_possible_match = total_score > lower_threshold and total_score <= upper_threshold
         
-        confidence = min(max(
-            (total_score - lower_threshold) / (upper_threshold - lower_threshold), 
-            0
-        ), 1)
+        # Calculate confidence based on distance from thresholds
+        if is_match:
+            confidence = min(0.5 + (total_score - upper_threshold) / (upper_threshold * 2), 1.0)
+        elif is_possible_match:
+            confidence = 0.3 + 0.4 * (total_score - lower_threshold) / (upper_threshold - lower_threshold)
+        else:
+            confidence = max(0.1 * (total_score - lower_threshold) / abs(lower_threshold), 0.0)
         
         result = {
+            "success": True,
             "total_score": total_score,
+            "normalized_score": normalized_score,
             "is_match": is_match,
             "is_possible_match": is_possible_match,
             "confidence": confidence,
-            "decision": "match" if is_match else ("possible_match" if is_possible_match else "non_match")
+            "decision": "match" if is_match else ("possible_match" if is_possible_match else "non_match"),
+            "method": "fellegi_sunter"
         }
         
         if include_details:
             result["field_scores"] = field_scores
             result["thresholds"] = global_weights
+            result["statistics"] = {
+                "fields_compared": len(field_scores),
+                "agreeing_fields": sum(1 for f in field_scores.values() if f["agreement"]),
+                "total_weight": total_weight
+            }
         
         return result

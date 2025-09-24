@@ -13,7 +13,7 @@
 
 const createRouter = require('@arangodb/foxx/router');
 const joi = require('joi');
-const { query, db } = require('@arangodb');
+const { query, db, aql } = require('@arangodb');
 const { context } = require('@arangodb/foxx');
 
 const router = createRouter();
@@ -343,15 +343,16 @@ function computeAggregateScore(docA, docB, fieldWeights, includeDetails = false)
       
       first_name_levenshtein: LENGTH(docA.first_name || "") > 0 AND LENGTH(docB.first_name || "") > 0 ? 
         1 - (LEVENSHTEIN_DISTANCE(docA.first_name, docB.first_name) / 
-             MAX(LENGTH(docA.first_name), LENGTH(docB.first_name))) : 0.0,
+             (LENGTH(docA.first_name) > LENGTH(docB.first_name) ? LENGTH(docA.first_name) : LENGTH(docB.first_name))) : 0.0,
       last_name_levenshtein: LENGTH(docA.last_name || "") > 0 AND LENGTH(docB.last_name || "") > 0 ? 
         1 - (LEVENSHTEIN_DISTANCE(docA.last_name, docB.last_name) / 
-             MAX(LENGTH(docA.last_name), LENGTH(docB.last_name))) : 0.0
+             (LENGTH(docA.last_name) > LENGTH(docB.last_name) ? LENGTH(docA.last_name) : LENGTH(docB.last_name))) : 0.0
     }
   `;
   
   try {
-    const similarities = query(aqlQuery, { docA, docB }).next();
+    const result = db._query(aqlQuery, { docA, docB });
+    const similarities = result.toArray()[0];
     
     // Apply Fellegi-Sunter framework with field-specific weights
     return computeFellegiSunterScore(similarities, fieldWeights, includeDetails);

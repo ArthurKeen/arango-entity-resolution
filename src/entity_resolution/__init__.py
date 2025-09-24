@@ -22,6 +22,7 @@ from .core.entity_resolver import EntityResolver
 from .services.blocking_service import BlockingService
 from .services.similarity_service import SimilarityService
 from .services.clustering_service import ClusteringService
+from .services.golden_record_service import GoldenRecordService
 from .data.data_manager import DataManager
 from .utils.config import Config
 
@@ -30,6 +31,7 @@ __all__ = [
     'BlockingService', 
     'SimilarityService',
     'ClusteringService',
+    'GoldenRecordService',
     'DataManager',
     'Config'
 ]
