@@ -1,0 +1,89 @@
+graph TD
+    Start([Raw Data Sources]) --> Ingestion[Stage 1: Data Ingestion]
+    
+    subgraph "Stage 1: Data Ingestion & Preprocessing"
+        Ingestion --> Validation{Data Quality<br/>Assessment}
+        Validation -->|Pass| Normalization[Schema Normalization<br/>Field Standardization]
+        Validation -->|Fail| Cleanup[Data Cleanup<br/>Error Handling]
+        Cleanup --> Normalization
+        Normalization --> LoadDB[(Store in ArangoDB<br/>Document Collection)]
+    end
+
+    LoadDB --> Blocking[Stage 2: Record Blocking]
+
+    subgraph "Stage 2: Record Blocking (Candidate Generation)"
+        Blocking --> ExactBlock[Exact Blocking<br/>Email, Phone]
+        Blocking --> PhoneticBlock[Phonetic Blocking<br/>Soundex Names]
+        Blocking --> NgramBlock[N-gram Blocking<br/>Company Names]
+        
+        ExactBlock --> CandidateGen[Candidate Pair<br/>Generation]
+        PhoneticBlock --> CandidateGen
+        NgramBlock --> CandidateGen
+        
+        CandidateGen --> Reduction{99% Pair<br/>Reduction?}
+        Reduction -->|Yes| CandidatePairs[Candidate Pairs<br/>Ready for Analysis]
+        Reduction -->|No| OptimizeBlocking[Optimize Blocking<br/>Strategies]
+        OptimizeBlocking --> Blocking
+    end
+
+    CandidatePairs --> Similarity[Stage 3: Similarity Computation]
+
+    subgraph "Stage 3: Similarity Computation & Classification"
+        Similarity --> FieldSim[Field-Level Similarity<br/>Jaro-Winkler, Levenshtein]
+        FieldSim --> ProbScore[Probabilistic Scoring<br/>Fellegi-Sunter Framework]
+        ProbScore --> Classification{Classification<br/>Decision}
+        Classification -->|Match| MatchPairs[Match Pairs<br/>High Confidence]
+        Classification -->|Non-Match| NonMatchPairs[Non-Match Pairs<br/>Low Confidence]
+        Classification -->|Possible| ReviewPairs[Review Pairs<br/>Manual Check]
+        
+        ReviewPairs --> ManualReview{Manual Review}
+        ManualReview -->|Match| MatchPairs
+        ManualReview -->|Non-Match| NonMatchPairs
+    end
+
+    MatchPairs --> GraphConstruction[Stage 4: Graph Construction]
+    
+    subgraph "Stage 4: Graph-Based Clustering"
+        GraphConstruction --> SimilarityGraph[Build Similarity Graph<br/>Nodes=Records, Edges=Similarity]
+        SimilarityGraph --> WCC[Weakly Connected<br/>Components Algorithm]
+        WCC --> ClusterValidation{Cluster Quality<br/>Validation}
+        ClusterValidation -->|Valid| EntityClusters[Valid Entity<br/>Clusters]
+        ClusterValidation -->|Invalid| ClusterRefinement[Cluster Refinement<br/>Split Large Clusters]
+        ClusterRefinement --> WCC
+    end
+
+    EntityClusters --> GoldenGeneration[Stage 5: Golden Record Generation]
+
+    subgraph "Stage 5: Golden Record Generation"
+        GoldenGeneration --> SourceRanking[Source Prioritization<br/>Quality, Recency, Reliability]
+        SourceRanking --> ConflictResolution[Conflict Resolution<br/>Business Rules, ML Models]
+        ConflictResolution --> MasterCreation[Master Record Creation<br/>Best Available Data]
+        MasterCreation --> AuditTrail[Audit Trail Creation<br/>Lineage Preservation]
+    end
+
+    AuditTrail --> Output[Golden Records & Reports]
+
+    subgraph "Performance Metrics"
+        PerfMetrics[Performance Monitoring]
+        PerfMetrics --> Throughput[Throughput: 1000+ records/sec]
+        PerfMetrics --> Accuracy[Accuracy: 99.5% precision]
+        PerfMetrics --> Efficiency[Efficiency: 99%+ pair reduction]
+    end
+
+    Output --> PerfMetrics
+    
+    NonMatchPairs -.-> PerfMetrics
+    EntityClusters -.-> PerfMetrics
+
+    %% Styling
+    classDef startEnd fill:#e3f2fd,stroke:#0d47a1,stroke-width:3px
+    classDef process fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef decision fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef data fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef metrics fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+
+    class Start,Output startEnd
+    class Ingestion,Normalization,Cleanup,Blocking,ExactBlock,PhoneticBlock,NgramBlock,CandidateGen,Similarity,FieldSim,ProbScore,GraphConstruction,SimilarityGraph,WCC,GoldenGeneration,SourceRanking,ConflictResolution,MasterCreation,AuditTrail,OptimizeBlocking,ClusterRefinement process
+    class Validation,Reduction,Classification,ManualReview,ClusterValidation decision
+    class LoadDB,CandidatePairs,MatchPairs,NonMatchPairs,ReviewPairs,EntityClusters data
+    class PerfMetrics,Throughput,Accuracy,Efficiency metrics

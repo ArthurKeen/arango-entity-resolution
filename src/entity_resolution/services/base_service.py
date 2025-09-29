@@ -4,6 +4,7 @@ Base Service Class for Entity Resolution Services
 Provides common functionality for all entity resolution services:
 - Configuration management
 - Logging setup
+- Database connectivity
 - Foxx service connectivity
 - Error handling patterns
 """
@@ -14,35 +15,52 @@ from abc import ABC, abstractmethod
 
 from ..utils.config import Config, get_config
 from ..utils.logging import get_logger
+from ..utils.database import DatabaseMixin
+from ..utils.constants import (
+    FOXX_CONFIG, 
+    ERROR_MESSAGES, 
+    SUCCESS_MESSAGES,
+    PERFORMANCE_LIMITS
+)
 
 # Re-export for convenience
 __all__ = ['BaseEntityResolutionService', 'Config']
 
 
-class BaseEntityResolutionService(ABC):
+class BaseEntityResolutionService(DatabaseMixin, ABC):
     """
     Abstract base class for all entity resolution services
     
     Provides common functionality:
     - Configuration initialization
     - Logging setup
+    - Database connectivity (via DatabaseMixin)
     - Foxx service connectivity testing
     - Standard error handling patterns
     """
     
     def __init__(self, config: Optional[Config] = None):
         """Initialize base service with configuration and logging"""
+        super().__init__()
         self.config = config or get_config()
         self.logger = get_logger(self.__class__.__name__)
         self.foxx_available = False
         
     def connect(self) -> bool:
         """
-        Test connection to Foxx services if enabled
+        Test connection to database and Foxx services if enabled
         
         Returns:
             True if connected or fallback mode available
         """
+        # Test database connection first
+        if not self.test_connection():
+            self.logger.error(ERROR_MESSAGES['database_connection'])
+            return False
+        
+        self.logger.info(SUCCESS_MESSAGES['database_connected'])
+        
+        # Test Foxx service connection if enabled
         if not self.config.er.enable_foxx_services:
             self.logger.info("Foxx services disabled, using Python fallback")
             return True
@@ -50,7 +68,8 @@ class BaseEntityResolutionService(ABC):
         try:
             # Test basic Foxx service availability
             health_url = self.config.get_foxx_service_url("health")
-            response = requests.get(health_url, auth=self.config.get_auth_tuple(), timeout=5)
+            timeout = FOXX_CONFIG['timeout_seconds']
+            response = requests.get(health_url, auth=self.config.get_auth_tuple(), timeout=timeout)
             
             if response.status_code == 200:
                 # Test service-specific endpoints
@@ -96,7 +115,7 @@ class BaseEntityResolutionService(ABC):
         """
         try:
             url = self.config.get_foxx_service_url(endpoint)
-            timeout = timeout or self.config.er.foxx_timeout
+            timeout = timeout or FOXX_CONFIG['timeout_seconds']
             auth = self.config.get_auth_tuple()
             
             if method.upper() == "GET":

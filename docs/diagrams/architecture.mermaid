@@ -1,0 +1,95 @@
+graph TB
+    subgraph "Data Sources"
+        CRM[CRM System]
+        Marketing[Marketing Platform]
+        Sales[Sales Database]
+        Support[Support System]
+        External[External APIs]
+    end
+
+    subgraph "Entity Resolution Engine"
+        subgraph "ArangoDB Multi-Model Database"
+            Documents[(Document Store<br/>Raw Records<br/>Golden Records)]
+            Graph[(Graph Database<br/>Similarity Edges<br/>Entity Clusters)]
+            Search[(Search Engine<br/>Blocking Indexes<br/>Text Analysis)]
+        end
+        
+        subgraph "Core Services"
+            BlockingService[Blocking Service<br/>Candidate Generation]
+            SimilarityService[Similarity Service<br/>Fellegi-Sunter Framework]
+            ClusteringService[Clustering Service<br/>Graph Algorithms]
+            GoldenService[Golden Record Service<br/>Master Creation]
+        end
+        
+        subgraph "Infrastructure"
+            DataManager[Data Manager<br/>Ingestion & Validation]
+            DatabaseManager[Database Manager<br/>Connection & Transaction]
+            FoxxServices[Foxx Microservices<br/>High-Performance Computing]
+        end
+    end
+
+    subgraph "Output Systems"
+        GoldenRecords[Golden Records<br/>Master Customer Data]
+        Clusters[Entity Clusters<br/>Relationship Groups]
+        Reports[Analytics Reports<br/>Quality Metrics]
+        API[REST API<br/>Integration Endpoints]
+    end
+
+    subgraph "Demo & Presentation"
+        InteractiveDemo[Interactive Demos<br/>Stakeholder Presentations]
+        DatabaseInspector[Database Inspector<br/>Real-time Visualization]
+        BusinessAnalytics[Business Analytics<br/>ROI Calculations]
+    end
+
+    %% Data Flow
+    CRM --> DataManager
+    Marketing --> DataManager
+    Sales --> DataManager
+    Support --> DataManager
+    External --> DataManager
+
+    DataManager --> Documents
+    DataManager --> BlockingService
+
+    Documents <--> Graph
+    Graph <--> Search
+    Documents <--> Search
+
+    BlockingService --> SimilarityService
+    SimilarityService --> ClusteringService
+    ClusteringService --> GoldenService
+
+    BlockingService -.-> Search
+    SimilarityService -.-> Documents
+    ClusteringService -.-> Graph
+    GoldenService -.-> Documents
+
+    DatabaseManager -.-> Documents
+    DatabaseManager -.-> Graph
+    DatabaseManager -.-> Search
+
+    FoxxServices -.-> BlockingService
+    FoxxServices -.-> SimilarityService
+    FoxxServices -.-> ClusteringService
+
+    GoldenService --> GoldenRecords
+    ClusteringService --> Clusters
+    GoldenService --> Reports
+    GoldenService --> API
+
+    Documents --> InteractiveDemo
+    Graph --> DatabaseInspector
+    Reports --> BusinessAnalytics
+
+    %% Styling
+    classDef dataSource fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef database fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef service fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef output fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef demo fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+
+    class CRM,Marketing,Sales,Support,External dataSource
+    class Documents,Graph,Search database
+    class BlockingService,SimilarityService,ClusteringService,GoldenService,DataManager,DatabaseManager,FoxxServices service
+    class GoldenRecords,Clusters,Reports,API output
+    class InteractiveDemo,DatabaseInspector,BusinessAnalytics demo

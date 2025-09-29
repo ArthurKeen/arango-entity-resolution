@@ -77,13 +77,23 @@ Claude Role: Provides schema recommendations, query optimization tips, scalabili
 - Use Claude as a collaborative tool, not a replacement for domain expertise
 - Maintain human oversight for critical system design decisions
 
-Master Development Guide
-CRITICAL: NO UNICODE OR EMOJIS ALLOWED
-ABSOLUTE RULE: NEVER USE UNICODE OR EMOJI CHARACTERS
+## Development Standards
 
-NO emoji symbols in code, comments, or output
-Use PLAIN ASCII text only (characters 0-127)
-Replace emojis with text: [DONE], [ERROR], [WARNING], etc.
-Use ASCII arrows: ->, =>, <- instead of Unicode arrows
-This applies to ALL interactions and outputs
-VIOLATION = CRITICAL ERROR requiring immediate correction
+### Code and Documentation Style
+- Use plain ASCII text (characters 0-127) for all code and documentation
+- Avoid Unicode symbols and emoji characters in technical documentation
+- Use text indicators for status: [DONE], [ERROR], [WARNING], [INFO]
+- Use ASCII arrows and symbols: ->, =>, <-, *, +, -
+- Maintain professional tone in all technical communications
+
+### Output Formatting
+- Code comments should use standard ASCII characters only
+- Log messages should use text-based status indicators
+- Documentation should be readable in any text editor
+- Error messages should use clear, descriptive text without symbols
+
+### Quality Assurance
+- All code must pass ASCII-only validation
+- Documentation should be accessible across different systems
+- Output should be compatible with standard development tools
+- Maintain consistency in formatting and style throughout the project

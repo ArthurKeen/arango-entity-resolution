@@ -1,0 +1,104 @@
+graph TB
+    subgraph "Application Layer"
+        PythonServices[Python Services<br/>Entity Resolution Logic]
+        FoxxServices[Foxx Microservices<br/>High-Performance Computing]
+        DemoSystem[Demo & Presentation<br/>Interactive Interfaces]
+    end
+
+    subgraph "ArangoDB Multi-Model Database"
+        subgraph "Document Store"
+            RawRecords[(Raw Customer Records<br/>JSON Documents)]
+            GoldenRecords[(Golden Records<br/>Master Entities)]
+            Metadata[(Metadata & Audit<br/>Processing History)]
+        end
+
+        subgraph "Graph Database"
+            SimilarityEdges{{Similarity Edges<br/>Weighted Connections}}
+            EntityClusters{{Entity Clusters<br/>Connected Components}}
+            Relationships{{Business Relationships<br/>Company-Person Links}}
+        end
+
+        subgraph "Search Engine (ArangoSearch)"
+            BlockingIndexes[Blocking Indexes<br/>Phonetic, N-gram, Exact]
+            TextAnalyzers[Text Analyzers<br/>Soundex, Stemming, Tokenization]
+            FuzzySearch[Fuzzy Search<br/>Edit Distance, Similarity]
+        end
+
+        subgraph "Native Graph Algorithms"
+            WCC[Weakly Connected Components<br/>Entity Clustering]
+            Traversals[Graph Traversals<br/>Relationship Discovery]
+            Communities[Community Detection<br/>Entity Networks]
+        end
+    end
+
+    subgraph "External Systems Comparison"
+        subgraph "Traditional Approach"
+            RelationalDB[(Relational Database<br/>PostgreSQL/MySQL)]
+            ExternalSearch[External Search<br/>Elasticsearch/Solr]
+            GraphDB[(Graph Database<br/>Neo4j/Neptune)]
+            
+            RelationalDB -.-> ExternalSearch
+            ExternalSearch -.-> GraphDB
+            GraphDB -.-> RelationalDB
+        end
+    end
+
+    %% Application to ArangoDB connections
+    PythonServices --> RawRecords
+    PythonServices --> GoldenRecords
+    PythonServices --> SimilarityEdges
+    PythonServices --> EntityClusters
+
+    FoxxServices --> BlockingIndexes
+    FoxxServices --> TextAnalyzers
+    FoxxServices --> WCC
+    FoxxServices --> Traversals
+
+    DemoSystem --> RawRecords
+    DemoSystem --> EntityClusters
+    DemoSystem --> Metadata
+
+    %% Internal ArangoDB connections
+    RawRecords <--> SimilarityEdges
+    SimilarityEdges <--> EntityClusters
+    GoldenRecords <--> EntityClusters
+    
+    RawRecords --> BlockingIndexes
+    BlockingIndexes --> TextAnalyzers
+    TextAnalyzers --> FuzzySearch
+    
+    SimilarityEdges --> WCC
+    EntityClusters --> Communities
+    Relationships --> Traversals
+
+    BlockingIndexes -.-> SimilarityEdges
+    FuzzySearch -.-> SimilarityEdges
+    WCC -.-> EntityClusters
+
+    %% Performance annotations
+    PerfNote1[Single Database<br/>No Data Movement<br/>ACID Transactions]
+    PerfNote2[Native Integration<br/>Atomic Operations<br/>Consistent Views]
+    
+    PerfNote1 -.-> RawRecords
+    PerfNote2 -.-> SimilarityEdges
+
+    %% Comparison annotations
+    CompNote1[Multiple Systems<br/>Data Synchronization<br/>Complex Architecture]
+    CompNote1 -.-> RelationalDB
+
+    %% Styling
+    classDef app fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
+    classDef document fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef graph fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef search fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef algorithm fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef external fill:#ffebee,stroke:#b71c1c,stroke-width:2px,stroke-dasharray: 5 5
+    classDef note fill:#f1f8e9,stroke:#33691e,stroke-width:1px
+
+    class PythonServices,FoxxServices,DemoSystem app
+    class RawRecords,GoldenRecords,Metadata document
+    class SimilarityEdges,EntityClusters,Relationships graph
+    class BlockingIndexes,TextAnalyzers,FuzzySearch search
+    class WCC,Traversals,Communities algorithm
+    class RelationalDB,ExternalSearch,GraphDB external
+    class PerfNote1,PerfNote2,CompNote1 note
