@@ -12,20 +12,19 @@ except ImportError:
     pd = None
     PANDAS_AVAILABLE = False
 from typing import Dict, List, Any, Optional, Union
-from arango import ArangoClient
 from arango.database import StandardDatabase
 from arango.collection import StandardCollection
 
 from ..utils.config import Config, get_config
 from ..utils.logging import get_logger
+from ..utils.database import DatabaseMixin
 
 
-class DataManager:
+class DataManager(DatabaseMixin):
     """
-    Manages data operations for entity resolution
+    Manages data operations for entity resolution using centralized database management
     
     Handles:
-    - Database connections
     - Data ingestion from various sources
     - Collection management
     - Basic CRUD operations
@@ -35,28 +34,23 @@ class DataManager:
     def __init__(self, config: Optional[Config] = None):
         self.config = config or get_config()
         self.logger = get_logger(__name__)
-        self.client = None
-        self.db = None
+        super().__init__()
         
     def connect(self) -> bool:
         """
-        Establish connection to ArangoDB
+        Establish connection to ArangoDB using centralized database manager
         
         Returns:
             True if connection successful, False otherwise
         """
         try:
-            self.client = ArangoClient(hosts=self.config.get_database_url())
-            self.db = self.client.db(
-                self.config.db.database,
-                username=self.config.db.username,
-                password=self.config.db.password
-            )
-            
-            # Test connection
-            self.db.properties()
-            self.logger.info(f"Connected to ArangoDB at {self.config.db.host}:{self.config.db.port}")
-            return True
+            # Use centralized database manager
+            if self.test_connection():
+                self.logger.info(f"Connected to ArangoDB at {self.config.db.host}:{self.config.db.port}")
+                return True
+            else:
+                self.logger.error("Failed to connect to ArangoDB")
+                return False
             
         except Exception as e:
             self.logger.error(f"Failed to connect to ArangoDB: {e}")
@@ -74,14 +68,14 @@ class DataManager:
             True if created or already exists, False on error
         """
         try:
-            if self.db.has_collection(name):
+            if self.database.has_collection(name):
                 self.logger.info(f"Collection '{name}' already exists")
                 return True
             
             if edge:
-                collection = self.db.create_collection(name, edge=True)
+                collection = self.database.create_collection(name, edge=True)
             else:
-                collection = self.db.create_collection(name)
+                collection = self.database.create_collection(name)
                 
             self.logger.info(f"Created {'edge ' if edge else ''}collection: {name}")
             return True
@@ -108,7 +102,7 @@ class DataManager:
             if not self.create_collection(collection_name):
                 return {"success": False, "error": "Failed to create collection"}
             
-            collection = self.db.collection(collection_name)
+            collection = self.database.collection(collection_name)
             
             # Load data
             with open(file_path, 'r') as f:
@@ -174,7 +168,7 @@ class DataManager:
             if not self.create_collection(collection_name):
                 return {"success": False, "error": "Failed to create collection"}
             
-            collection = self.db.collection(collection_name)
+            collection = self.database.collection(collection_name)
             
             # Convert DataFrame to records
             records = df.to_dict('records')
@@ -219,7 +213,7 @@ class DataManager:
             if not self.db.has_collection(collection_name):
                 return {"success": False, "error": f"Collection '{collection_name}' does not exist"}
             
-            collection = self.db.collection(collection_name)
+            collection = self.database.collection(collection_name)
             properties = collection.properties()
             
             return {
@@ -251,7 +245,7 @@ class DataManager:
                 self.logger.warning(f"Collection '{collection_name}' does not exist")
                 return []
             
-            collection = self.db.collection(collection_name)
+            collection = self.database.collection(collection_name)
             
             # Get sample using AQL
             aql = f"""

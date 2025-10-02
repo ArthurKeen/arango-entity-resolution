@@ -8,6 +8,7 @@ Handles record blocking and candidate generation using:
 - Fallback to Python implementation
 """
 
+import requests
 from typing import Dict, List, Any, Optional
 from .base_service import BaseEntityResolutionService, Config
 from ..utils.algorithms import soundex

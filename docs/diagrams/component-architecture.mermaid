@@ -1,0 +1,57 @@
+graph TB
+    subgraph "Presentation Layer"
+        InteractiveDemo[Interactive Demos<br/>Stakeholder Presentations]
+        DatabaseInspector[Database Inspector<br/>Real-time Visualization]
+        BusinessAnalytics[Business Analytics<br/>ROI Calculations]
+    end
+
+    subgraph "Core Services Layer"
+        BlockingService[Blocking Service<br/>Candidate Generation]
+        SimilarityService[Similarity Service<br/>Fellegi-Sunter Framework]
+        ClusteringService[Clustering Service<br/>Graph Algorithms]
+        GoldenService[Golden Record Service<br/>Master Creation]
+    end
+
+    subgraph "Data Management Layer"
+        DataManager[Data Manager<br/>Ingestion & Validation]
+        DatabaseManager[Database Manager<br/>Connection & Transaction]
+        FoxxServices[Foxx Microservices<br/>High-Performance Computing]
+    end
+
+    subgraph "Infrastructure Layer"
+        ArangoDBCore[ArangoDB Core<br/>Document + Graph + Search]
+        ArangoSearch[ArangoSearch<br/>Full-Text Search & Indexing]
+        GraphAlgorithms[Graph Algorithms<br/>WCC, Traversals, Communities]
+        Configuration[Configuration<br/>Environment Management]
+    end
+
+    %% Data flow connections
+    InteractiveDemo --> BlockingService
+    DatabaseInspector --> ClusteringService
+    BusinessAnalytics --> GoldenService
+
+    BlockingService --> SimilarityService
+    SimilarityService --> ClusteringService
+    ClusteringService --> GoldenService
+
+    DataManager --> BlockingService
+    DatabaseManager --> ArangoDBCore
+    FoxxServices --> BlockingService
+    FoxxServices --> SimilarityService
+    FoxxServices --> ClusteringService
+
+    ArangoDBCore --> ArangoSearch
+    ArangoDBCore --> GraphAlgorithms
+    Configuration --> ArangoDBCore
+    Configuration --> ArangoSearch
+
+    %% Styling
+    classDef presentation fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef core fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef data fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
+    classDef infrastructure fill:#fff3e0,stroke:#e65100,stroke-width:2px
+
+    class InteractiveDemo,DatabaseInspector,BusinessAnalytics presentation
+    class BlockingService,SimilarityService,ClusteringService,GoldenService core
+    class DataManager,DatabaseManager,FoxxServices data
+    class ArangoDBCore,ArangoSearch,GraphAlgorithms,Configuration infrastructure

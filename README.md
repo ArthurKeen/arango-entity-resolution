@@ -148,214 +148,94 @@ This **production-ready** entity resolution system identifies and links records 
 
 ## System Architecture
 
-> **Note**: For graphic illustrations of these diagrams, see [docs/diagrams/](docs/diagrams/) which contains Mermaid files that can be rendered into PNG/SVG images for presentations and documentation.
-
 ### **High-Level Architecture**
 
-```
-+----------------+    +------------------+    +------------------+
-|   Data Sources |    |   Entity         |    |   Output &       |
-|                |    |   Resolution     |    |   Integration    |
-|   - CRM        |    |   Engine         |    |                  |
-|   - Marketing  |--->|                  |--->|   - Golden       |
-|   - Sales      |    |   ArangoDB       |    |     Records      |
-|   - Support    |    |   Multi-Model    |    |   - Clusters     |
-|   - External   |    |   Database       |    |   - Reports      |
-+----------------+    +------------------+    +------------------+
-                             |
-                             v
-                   +------------------+
-                   |   Demo &         |
-                   |   Presentation   |
-                   |   System         |
-                   +------------------+
-```
+The system follows a layered architecture with clear separation of concerns:
+
+- **Data Sources**: CRM, Marketing, Sales, Support, External APIs
+- **Entity Resolution Engine**: Core processing with ArangoDB multi-model database
+- **Output & Integration**: Golden records, clusters, reports, API endpoints
+- **Presentation System**: Interactive demos and stakeholder presentations
+
+![High-Level Architecture](docs/diagrams/high-level-architecture.svg)
+
+> **Detailed System Architecture**: See [system-architecture.svg](docs/diagrams/system-architecture.svg) for a comprehensive view of all system components, data flows, and integrations.
 
 ### **Component Architecture**
 
-```
-Entity Resolution System
-├── Core Services Layer
-│   ├── BlockingService      (Candidate Generation)
-│   ├── SimilarityService    (Fellegi-Sunter Framework)
-│   ├── ClusteringService    (Graph Algorithms)
-│   └── GoldenRecordService  (Master Record Creation)
-│
-├── Data Management Layer
-│   ├── DataManager          (Ingestion & Validation)
-│   └── DatabaseManager     (Connection & Transaction)
-│
-├── Infrastructure Layer
-│   ├── ArangoDB Core        (Document + Graph + Search)
-│   ├── Foxx Microservices  (High-Performance Computing)
-│   └── Configuration        (Environment Management)
-│
-└── Presentation Layer
-    ├── Interactive Demos    (Stakeholder Presentations)
-    ├── Database Inspector   (Real-time Visualization)
-    └── Business Analytics   (ROI & Impact Calculation)
-```
+The system is organized into four main layers:
+
+- **Core Services Layer**: BlockingService, SimilarityService, ClusteringService, GoldenRecordService
+- **Data Management Layer**: DataManager, DatabaseManager, FoxxServices
+- **Infrastructure Layer**: ArangoDB Multi-Model, ArangoSearch, Graph Algorithms
+- **Presentation Layer**: Interactive Demos, Database Inspector, Business Analytics
+
+![Component Architecture](docs/diagrams/component-architecture.svg)
 
 ### **ArangoDB Multi-Model Integration**
 
-```
-+-------------------+
-|    Application    |
-|    Services       |
-+-------------------+
-         |
-         v
-+-------------------+    +-------------------+    +-------------------+
-|   Document Store  |    |   Graph Database  |    |   Search Engine   |
-|                   |    |                   |    |                   |
-|   - Raw Records   |    |   - Similarity    |    |   - Blocking      |
-|   - Golden Data   |<-->|     Edges         |<-->|     Indexes       |
-|   - Metadata      |    |   - Entity        |    |   - Analyzers     |
-|   - Audit Trail   |    |     Clusters      |    |   - Fuzzy Match   |
-+-------------------+    +-------------------+    +-------------------+
-                                    |
-                                    v
-                         +-------------------+
-                         |   Native Graph    |
-                         |   Algorithms      |
-                         |                   |
-                         |   - WCC           |
-                         |   - Traversals    |
-                         |   - Communities   |
-                         +-------------------+
-```
+The system leverages ArangoDB's unique multi-model capabilities:
+
+- **Document Store**: Raw records, golden records, metadata with ACID transactions
+- **Graph Database**: Similarity edges, entity clusters, relationships with native algorithms
+- **Search Engine**: Blocking indexes, text analyzers, fuzzy search with real-time indexing
+
+![ArangoDB Multi-Model Integration](docs/diagrams/arango-multimodel.svg)
 
 ## Entity Resolution Workflow
 
-> **Graphic Version**: See [workflow.mermaid](docs/diagrams/workflow.mermaid) for a detailed flowchart that can be rendered as an image.
+![Entity Resolution Workflow](docs/diagrams/workflow.svg)
 
 ### **Complete Pipeline Flow**
 
-```
-[Data Sources] -> [Ingestion] -> [Blocking] -> [Similarity] -> [Clustering] -> [Golden Records]
-       |              |            |             |              |               |
-       v              v            v             v              v               v
-   Multiple        Validate &   Generate      Compute        Group           Create
-   Systems         Normalize    Candidates    Scores         Entities        Masters
-   
-   - CRM           - Schema     - Exact       - Jaro-        - Connected     - Best Data
-   - Marketing     - Quality    - Phonetic    - Levenshtein  - Components    - Conflicts
-   - Sales         - Dedupe     - N-gram      - Jaccard      - Validation    - Lineage
-   - Support       - Index      - Sorted      - Custom       - Scoring       - Quality
-```
+The entity resolution process follows a systematic 5-stage pipeline:
+
+1. **Data Sources** → **Ingestion**: Multiple systems (CRM, Marketing, Sales, Support) → Validate & Normalize
+2. **Ingestion** → **Blocking**: Schema normalization → Generate candidates (Exact, Phonetic, N-gram, Sorted)
+3. **Blocking** → **Similarity**: Candidate pairs → Compute scores (Jaro-Winkler, Levenshtein, Jaccard, Custom)
+4. **Similarity** → **Clustering**: Scored pairs → Group entities (Connected Components, Validation, Scoring)
+5. **Clustering** → **Golden Records**: Entity groups → Create masters (Best Data, Conflict Resolution, Lineage)
+
+![Complete Pipeline Flow](docs/diagrams/workflow.svg)
 
 ### **Detailed Workflow Stages**
 
-```
-Stage 1: Data Ingestion & Preprocessing
-+------------------+
-| Raw Data Sources |
-+------------------+
-         |
-         v
-+------------------+    +------------------+
-|   Data Quality   |    |   Schema         |
-|   Assessment     |    |   Normalization  |
-+------------------+    +------------------+
-         |                       |
-         +-------+-------+-------+
-                 |
-                 v
-         +------------------+
-         |   ArangoDB       |
-         |   Document Store |
-         +------------------+
+The entity resolution process consists of five detailed stages:
 
-Stage 2: Record Blocking (Candidate Generation)
-+------------------+
-|   Full Dataset   |
-|   (n records)    |
-+------------------+
-         |
-         v
-+------------------+    +------------------+    +------------------+
-|   Exact Block    |    |  Phonetic Block  |    |   N-gram Block   |
-|   (email, phone) |    |   (soundex)      |    |   (company)      |
-+------------------+    +------------------+    +------------------+
-         |                       |                       |
-         +-------+-------+-------+-------+-------+-------+
-                                 |
-                                 v
-                    +------------------+
-                    |   Candidate      |
-                    |   Pairs          |
-                    |   (99% reduction)|
-                    +------------------+
+**Stage 1: Data Ingestion & Preprocessing**
+- Raw data sources → Data quality assessment → Schema normalization → ArangoDB document store
 
-Stage 3: Similarity Computation & Classification
-+------------------+
-|   Candidate      |
-|   Pairs          |
-+------------------+
-         |
-         v
-+------------------+    +------------------+    +------------------+
-|   Field-Level    |    |   Probabilistic  |    |   Decision       |
-|   Similarity     |    |   Scoring        |    |   Classification |
-+------------------+    +------------------+    +------------------+
-| - Name (Jaro)    |    | - Fellegi-Sunter |    | - Match          |
-| - Email (Exact)  |    | - Weight Vector  |    | - Non-Match      |
-| - Phone (Norm)   |    | - Confidence     |    | - Possible       |
-| - Address (Edit) |    | - Threshold      |    | - Review         |
-+------------------+    +------------------+    +------------------+
+**Stage 2: Record Blocking (Candidate Generation)**
+- Full dataset → Multiple blocking strategies (Exact, Phonetic, N-gram) → Candidate pairs (99% reduction)
 
-Stage 4: Graph-Based Clustering
-+------------------+
-|   Similarity     |
-|   Graph          |
-+------------------+
-         |
-         v
-+------------------+    +------------------+    +------------------+
-|   Graph          |    |   Connected      |    |   Cluster        |
-|   Construction   |    |   Components     |    |   Validation     |
-+------------------+    +------------------+    +------------------+
-| - Nodes=Records  |    | - Weakly Conn.   |    | - Size Limits    |
-| - Edges=Similarity    | - Transitive     |    | - Quality Score  |
-| - Weights=Scores |    | - Efficient      |    | - Manual Review  |
-+------------------+    +------------------+    +------------------+
+**Stage 3: Similarity Computation & Classification**
+- Candidate pairs → Field-level similarity → Probabilistic scoring (Fellegi-Sunter) → Decision classification
 
-Stage 5: Golden Record Generation
-+------------------+
-|   Entity         |
-|   Clusters       |
-+------------------+
-         |
-         v
-+------------------+    +------------------+    +------------------+
-|   Source         |    |   Conflict       |    |   Master         |
-|   Prioritization |    |   Resolution     |    |   Record         |
-+------------------+    +------------------+    +------------------+
-| - Quality Score  |    | - Business Rules |    | - Best Values    |
-| - Recency        |    | - ML Models      |    | - Complete Data  |
-| - Reliability    |    | - Manual Rules   |    | - Audit Trail    |
-| - Completeness   |    | - Default Logic  |    | - Lineage Links  |
-+------------------+    +------------------+    +------------------+
-```
+**Stage 4: Graph-Based Clustering**
+- Similarity graph → Graph construction → Connected components (WCC) → Cluster validation
+
+**Stage 5: Golden Record Generation**
+- Entity clusters → Source prioritization → Conflict resolution → Master record creation
+
+![Detailed Workflow Stages](docs/diagrams/workflow.svg)
 
 ### **Performance & Scalability Flow**
 
-```
-Input Scale Analysis:
-+------------+    +------------+    +------------+    +------------+
-|   10K      |    |    100K    |    |     1M     |    |    10M     |
-|  Records   |    |  Records   |    |  Records   |    |  Records   |
-+------------+    +------------+    +------------+    +------------+
-|            |    |            |    |            |    |            |
-| Naive: 50M |    | Naive: 5B  |    | Naive:500B |    | Naive: 50T |
-| pairs      |    | pairs      |    | pairs      |    | pairs      |
-|            |    |            |    |            |    |            |
-| Blocked:   |    | Blocked:   |    | Blocked:   |    | Blocked:   |
-| 500K pairs |    | 5M pairs   |    | 50M pairs  |    | 500M pairs |
-|            |    |            |    |            |    |            |
-| Time: 2sec |    | Time: 20sec|    | Time: 3min |    | Time: 30min|
-+------------+    +------------+    +------------+    +------------+
-```
+The system demonstrates exceptional scalability through record blocking:
+
+**Scale Analysis:**
+- **10K Records**: Naive 50M pairs → Blocked 500K pairs → 2 seconds
+- **100K Records**: Naive 5B pairs → Blocked 5M pairs → 20 seconds  
+- **1M Records**: Naive 500B pairs → Blocked 50M pairs → 3 minutes
+- **10M Records**: Naive 50T pairs → Blocked 500M pairs → 30 minutes
+
+**Key Performance Metrics:**
+- **99%+ pair reduction** through intelligent blocking strategies
+- **Linear scalability** with record blocking optimization
+- **Sub-second response** for real-time applications
+- **Horizontal scaling** with ArangoDB cluster coordination
+
+![Performance & Scalability](docs/diagrams/workflow.svg)
 
 ### **Competitive Advantages**
 
@@ -382,38 +262,38 @@ Input Scale Analysis:
 
 ## Project Structure
 
-```
-arango-entity-resolution-record-blocking/
-+-- src/                   # Core entity resolution implementation
-    +-- entity_resolution/ # Main package
-        +-- core/         # Entity resolver orchestration
-        +-- services/     # Blocking, similarity, clustering services
-        +-- data/         # Data management and ingestion
-        +-- utils/        # Configuration, logging, database utilities
-        +-- demo/         # Unified demo management system
-+-- demo/                  # Presentation and demonstration system
-    +-- scripts/          # Interactive and automated demo scripts
-    +-- data/             # Demo datasets and scenarios
-    +-- templates/        # Presentation templates and dashboards
-    +-- PRESENTATION_SCRIPT.md # Complete presentation guide
-+-- foxx-services/         # ArangoDB Foxx microservices
-    +-- entity-resolution/ # High-performance native services
-+-- docs/                  # Documentation and requirements
-    +-- PRD.md            # Product Requirements Document
-    +-- TESTING_SETUP.md  # Comprehensive testing setup guide
-    +-- DESIGN.md         # Architecture and design decisions
-+-- research/              # Academic papers and research materials
-    +-- papers/           # Academic papers on entity resolution
-    +-- notes/            # Research notes and summaries
-+-- scripts/               # Utility scripts and tools
-    +-- database/         # Database management tools
-    +-- foxx/             # Foxx deployment automation
-    +-- benchmarks/       # Performance testing tools
-+-- examples/              # Usage examples and integration demos
-+-- tests/                 # Test framework and validation
-+-- config/                # Configuration files and templates
-+-- docker-compose.yml     # ArangoDB container configuration
-```
+The project is organized into logical modules for maintainability and scalability:
+
+**Core Implementation (`src/`)**:
+- `entity_resolution/` - Main package with core services, data management, and utilities
+- `core/` - Entity resolver orchestration and pipeline coordination
+- `services/` - Blocking, similarity, clustering, and golden record services
+- `data/` - Data management, ingestion, and validation
+- `utils/` - Configuration, logging, database utilities, and constants
+
+**Demo & Presentation (`demo/`)**:
+- `scripts/` - Interactive and automated demo scripts
+- `data/` - Demo datasets and industry scenarios
+- `templates/` - Presentation templates and dashboards
+- `PRESENTATION_SCRIPT.md` - Complete presentation guide
+
+**High-Performance Services (`foxx-services/`)**:
+- `entity-resolution/` - ArangoDB Foxx microservices for native performance
+
+**Documentation (`docs/`)**:
+- `PRD.md` - Product Requirements Document
+- `TESTING_SETUP.md` - Comprehensive testing setup guide
+- `diagrams/` - Mermaid diagrams for architecture and workflows
+
+**Research & Utilities**:
+- `research/` - Academic papers and research materials
+- `scripts/` - Database management, testing, and deployment tools
+- `foxx/` - Foxx deployment automation
+- `benchmarks/` - Performance testing tools
+- `examples/` - Usage examples and integration demos
+- `tests/` - Test framework and validation
+- `config/` - Configuration files and templates
+- `docker-compose.yml` - ArangoDB container configuration
 
 ## Key Features (Implemented)
 

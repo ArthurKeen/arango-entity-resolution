@@ -7,35 +7,37 @@ Provides Create, Read, Update, Delete operations for testing
 import json
 import argparse
 import sys
+import os
 from typing import Dict, List, Any, Optional
-from arango import ArangoClient
 from arango.exceptions import DocumentInsertError
+
+# Add src to Python path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
+
+from entity_resolution.utils.database import DatabaseManager, get_database_manager
+from entity_resolution.utils.config import get_config
+from entity_resolution.utils.logging import get_logger
 
 
 class EntityResolutionCRUD:
-    """CRUD operations for entity resolution testing"""
+    """CRUD operations for entity resolution testing using centralized database management"""
     
-    def __init__(self, host: str = "localhost", port: int = 8529, 
-                 username: str = "root", password: str = "testpassword123",
-                 database: str = "entity_resolution_test"):
-        self.host = host
-        self.port = port
-        self.username = username
-        self.password = password
+    def __init__(self, database: str = "entity_resolution_test"):
+        self.config = get_config()
+        self.logger = get_logger(__name__)
         self.database_name = database
-        
-        self.client = ArangoClient(hosts=f"http://{host}:{port}")
+        self.db_manager = get_database_manager()
         self.db = None
     
     def connect(self) -> bool:
-        """Establish connection to database"""
+        """Establish connection to database using centralized manager"""
         try:
-            self.db = self.client.db(self.database_name, username=self.username, password=self.password)
-            # Test connection
-            self.db.properties()
+            self.db = self.db_manager.get_database(self.database_name)
+            self.logger.info(f"Connected to database: {self.database_name}")
             print(f"✓ Connected to database: {self.database_name}")
             return True
         except Exception as e:
+            self.logger.error(f"Failed to connect to database {self.database_name}: {e}")
             print(f"✗ Failed to connect to database {self.database_name}: {e}")
             return False
     

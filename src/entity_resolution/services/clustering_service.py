@@ -8,6 +8,7 @@ Handles graph-based entity clustering using:
 - Fallback to Python graph implementation
 """
 
+import requests
 from typing import Dict, List, Any, Optional, Set, Tuple
 from collections import defaultdict
 from .base_service import BaseEntityResolutionService, Config

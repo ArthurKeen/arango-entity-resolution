@@ -9,33 +9,52 @@ import sys
 import json
 import argparse
 from typing import Dict, List, Optional
-from arango import ArangoClient
 from arango.exceptions import DatabaseCreateError, DatabaseDeleteError, DocumentInsertError
 
-# Add the scripts directory to the path for imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from common.arango_base import ArangoBaseConnection, add_common_args
+# Add src to Python path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
+
+from entity_resolution.utils.database import DatabaseManager, get_database_manager
+from entity_resolution.utils.config import get_config
+from entity_resolution.utils.logging import get_logger
 
 
-class ArangoDBManager(ArangoBaseConnection):
-    """Manages ArangoDB operations for entity resolution testing"""
+class ArangoDBManager:
+    """Manages ArangoDB operations for entity resolution testing using centralized database management"""
     
-    def __init__(self, host: str = "localhost", port: int = 8529, 
-                 username: str = "root", password: Optional[str] = None):
-        super().__init__(host, port, username, password)
+    def __init__(self):
+        self.config = get_config()
+        self.logger = get_logger(__name__)
+        self.db_manager = get_database_manager()
         self._sys_db = None
     
     def connect(self) -> bool:
-        """Establish connection to ArangoDB"""
+        """Establish connection to ArangoDB using centralized manager"""
         try:
-            self._sys_db = self.client.db('_system', username=self.username, password=self.password)
-            # Test connection
-            self._sys_db.properties()
-            self.print_success(f"Connected to ArangoDB at {self.host}:{self.port}")
+            self._sys_db = self.db_manager.get_database('_system')
+            self.logger.info(f"Connected to ArangoDB at {self.config.db.host}:{self.config.db.port}")
+            self.print_success(f"Connected to ArangoDB at {self.config.db.host}:{self.config.db.port}")
             return True
         except Exception as e:
+            self.logger.error(f"Failed to connect to ArangoDB: {e}")
             self.print_error(f"Failed to connect to ArangoDB: {e}")
             return False
+    
+    def print_success(self, message: str) -> None:
+        """Print success message with checkmark"""
+        print(f"✓ {message}")
+    
+    def print_warning(self, message: str) -> None:
+        """Print warning message with warning symbol"""
+        print(f"⚠ {message}")
+    
+    def print_error(self, message: str) -> None:
+        """Print error message with X symbol"""
+        print(f"✗ {message}")
+    
+    def print_info(self, message: str) -> None:
+        """Print info message with icon"""
+        print(f"📋 {message}")
     
     def create_database(self, db_name: str, users: Optional[List[Dict]] = None) -> bool:
         """Create a new database"""
