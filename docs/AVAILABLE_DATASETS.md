@@ -1,10 +1,6 @@
 # Available Datasets and Demo Guide
 
-## Important Clarification
-
-**This project does NOT include a Neo4j movie dataset implementation.** The system is designed for **customer entity resolution** using synthetic business data, not the famous Neo4j movie database with actors and directors.
-
-## What Datasets ARE Actually Implemented
+## Available Datasets
 
 ### 1. **Customer Entity Resolution Dataset** (Primary)
 
