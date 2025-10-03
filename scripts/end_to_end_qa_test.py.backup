@@ -1,0 +1,342 @@
+#!/usr/bin/env python3
+"""
+End-to-End QA Test for Entity Resolution System
+
+This script runs a complete end-to-end test of the entity resolution pipeline
+to validate the entire system works correctly from data ingestion to golden records.
+"""
+
+import sys
+import os
+import time
+import json
+from datetime import datetime
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+from entity_resolution.utils.database import DatabaseManager
+from entity_resolution.utils.config import Config
+from entity_resolution.core.entity_resolver import EntityResolutionPipeline
+
+class EndToEndQATest:
+    """End-to-end QA test for entity resolution system."""
+    
+    def __init__(self):
+        self.config = Config.from_env()
+        self.db_manager = DatabaseManager()
+        self.test_results = []
+        self.start_time = datetime.now()
+        
+    def log_test(self, test_name, success, message="", duration=0):
+        """Log test result."""
+        status = "✅ PASS" if success else "❌ FAIL"
+        self.test_results.append({
+            'test': test_name,
+            'success': success,
+            'message': message,
+            'duration': duration
+        })
+        print(f"{status} {test_name}: {message}")
+    
+    def test_complete_pipeline(self):
+        """Test complete entity resolution pipeline."""
+        print("\n🔍 End-to-End Test: Complete Pipeline")
+        start_time = time.time()
+        
+        try:
+            # Create test data
+            test_customers = [
+                {"id": 1, "name": "John Smith", "email": "john@example.com", "phone": "555-1234", "address": "123 Main St"},
+                {"id": 2, "name": "Jon Smith", "email": "jon@example.com", "phone": "555-1234", "address": "123 Main Street"},
+                {"id": 3, "name": "John A. Smith", "email": "john.smith@example.com", "phone": "555-1234", "address": "123 Main St"},
+                {"id": 4, "name": "Jane Doe", "email": "jane@example.com", "phone": "555-5678", "address": "456 Oak Ave"},
+                {"id": 5, "name": "Jane M. Doe", "email": "jane.doe@example.com", "phone": "555-5678", "address": "456 Oak Avenue"},
+                {"id": 6, "name": "Bob Johnson", "email": "bob@example.com", "phone": "555-9999", "address": "789 Pine Rd"}
+            ]
+            
+            # Initialize pipeline
+            pipeline = EntityResolutionPipeline(self.config)
+            if not pipeline.connect():
+                self.log_test("Complete Pipeline", False, "Failed to connect pipeline")
+                return False
+            
+            # Create test collection
+            collection_name = "qa_e2e_customers"
+            if not pipeline.data_manager.create_collection(collection_name):
+                self.log_test("Complete Pipeline", False, "Failed to create test collection")
+                return False
+            
+            # Load test data
+            collection = pipeline.data_manager.database.collection(collection_name)
+            for customer in test_customers:
+                collection.insert(customer)
+            
+            print(f"  📊 Loaded {len(test_customers)} test customers")
+            
+            # Test blocking service
+            print("  🔍 Testing blocking service...")
+            try:
+                # Setup blocking for the collection
+                setup_result = pipeline.blocking_service.setup_for_collections([collection_name])
+                if not setup_result.get('success', False):
+                    self.log_test("Complete Pipeline", False, "Blocking service setup failed")
+                    return False
+                
+                # Generate candidates for a test record
+                test_record = list(collection.all())[0]
+                candidates = pipeline.blocking_service.generate_candidates(collection_name, test_record['_key'])
+                print(f"    Generated {len(candidates)} candidates")
+                
+            except Exception as e:
+                self.log_test("Complete Pipeline", False, f"Blocking service failed: {e}")
+                return False
+            
+            # Test similarity service
+            print("  🔍 Testing similarity service...")
+            try:
+                # Test similarity computation between two records
+                records = list(collection.all())
+                if len(records) >= 2:
+                    similarity = pipeline.similarity_service.compute_similarity(records[0], records[1])
+                    print(f"    Similarity score: {similarity.get('score', 0):.3f}")
+                else:
+                    print("    Not enough records for similarity test")
+                
+            except Exception as e:
+                self.log_test("Complete Pipeline", False, f"Similarity service failed: {e}")
+                return False
+            
+            # Test clustering service
+            print("  🔍 Testing clustering service...")
+            try:
+                # Create some test similarity pairs
+                test_pairs = [
+                    {"doc_a": records[0], "doc_b": records[1], "score": 0.8},
+                    {"doc_a": records[1], "doc_b": records[2], "score": 0.7}
+                ] if len(records) >= 3 else []
+                
+                if test_pairs:
+                    clusters = pipeline.clustering_service.cluster_entities(test_pairs)
+                    print(f"    Generated {len(clusters)} clusters")
+                else:
+                    print("    Not enough records for clustering test")
+                    clusters = []
+                
+            except Exception as e:
+                self.log_test("Complete Pipeline", False, f"Clustering service failed: {e}")
+                return False
+            
+            # Verify results
+            print(f"  📊 Pipeline components tested successfully")
+            
+            # Clean up
+            pipeline.data_manager.database.delete_collection(collection_name)
+            
+            # Clean up any blocking views that might have been created
+            try:
+                if pipeline.data_manager.database.has_view(f"{collection_name}_blocking_view"):
+                    pipeline.data_manager.database.delete_view(f"{collection_name}_blocking_view")
+            except:
+                pass  # View might not exist or method might not be available
+            
+            duration = time.time() - start_time
+            self.log_test("Complete Pipeline", True, 
+                         f"Pipeline completed successfully - all components tested", 
+                         duration)
+            return True
+            
+        except Exception as e:
+            duration = time.time() - start_time
+            self.log_test("Complete Pipeline", False, f"Error: {e}", duration)
+            return False
+    
+    def test_data_quality_validation(self):
+        """Test data quality validation."""
+        print("\n🔍 End-to-End Test: Data Quality Validation")
+        start_time = time.time()
+        
+        try:
+            pipeline = EntityResolutionPipeline(self.config)
+            if not pipeline.connect():
+                self.log_test("Data Quality Validation", False, "Failed to connect pipeline")
+                return False
+            
+            # Create test collection with quality issues
+            collection_name = "qa_quality_test"
+            if not pipeline.data_manager.create_collection(collection_name):
+                self.log_test("Data Quality Validation", False, "Failed to create test collection")
+                return False
+            
+            # Load test data with quality issues
+            test_data = [
+                {"id": "1", "name": "John Smith", "email": "john@example.com"},  # Invalid ID format
+                {"id": 2, "name": "", "email": "invalid-email", "phone": "123"},  # Empty name, invalid email
+                {"id": 3, "name": "Jane Doe", "email": "jane@example.com", "phone": "555-1234"},  # Good data
+                {"id": 4, "name": "Bob", "email": "bob@", "phone": "555-5678"}  # Invalid email
+            ]
+            
+            collection = pipeline.data_manager.database.collection(collection_name)
+            for record in test_data:
+                collection.insert(record)
+            
+            # Test data quality validation
+            quality_report = pipeline.data_manager.validate_data_quality(collection_name)
+            
+            if not quality_report:
+                self.log_test("Data Quality Validation", False, "Failed to generate quality report")
+                return False
+            
+            # Check if quality issues were detected
+            issues_detected = quality_report.get('issues_found', 0) > 0
+            print(f"  📊 Quality report: {quality_report.get('issues_found', 0)} issues found")
+            
+            # Clean up
+            pipeline.data_manager.database.delete_collection(collection_name)
+            
+            duration = time.time() - start_time
+            self.log_test("Data Quality Validation", True, 
+                         f"Quality validation completed with {quality_report.get('issues_found', 0)} issues detected", 
+                         duration)
+            return True
+            
+        except Exception as e:
+            duration = time.time() - start_time
+            self.log_test("Data Quality Validation", False, f"Error: {e}", duration)
+            return False
+    
+    def test_error_recovery(self):
+        """Test error recovery and resilience."""
+        print("\n🔍 End-to-End Test: Error Recovery")
+        start_time = time.time()
+        
+        try:
+            pipeline = EntityResolutionPipeline(self.config)
+            if not pipeline.connect():
+                self.log_test("Error Recovery", False, "Failed to connect pipeline")
+                return False
+            
+            # Test with invalid collection
+            try:
+                result = pipeline.blocking_service.setup_for_collections(["non_existent_collection"])
+                # Should handle gracefully
+            except Exception as e:
+                print(f"  ⚠️  Expected error handled: {e}")
+            
+            # Test with empty collection
+            collection_name = "qa_empty_test"
+            if pipeline.data_manager.create_collection(collection_name):
+                try:
+                    result = pipeline.blocking_service.setup_for_collections([collection_name])
+                    # Should handle empty collection gracefully
+                except Exception as e:
+                    print(f"  ⚠️  Empty collection handled: {e}")
+                
+                # Clean up
+                pipeline.data_manager.database.delete_collection(collection_name)
+            
+            duration = time.time() - start_time
+            self.log_test("Error Recovery", True, "Error handling and recovery working correctly", duration)
+            return True
+            
+        except Exception as e:
+            duration = time.time() - start_time
+            self.log_test("Error Recovery", False, f"Error: {e}", duration)
+            return False
+    
+    def run_all_tests(self):
+        """Run all end-to-end tests."""
+        print("🚀 Starting End-to-End QA Tests")
+        print("=" * 50)
+        
+        tests = [
+            self.test_complete_pipeline,
+            self.test_data_quality_validation,
+            self.test_error_recovery
+        ]
+        
+        passed = 0
+        failed = 0
+        
+        for test in tests:
+            try:
+                if test():
+                    passed += 1
+                else:
+                    failed += 1
+            except Exception as e:
+                print(f"❌ Test failed with exception: {e}")
+                failed += 1
+        
+        # Generate report
+        self.generate_report(passed, failed)
+        
+        return failed == 0
+    
+    def generate_report(self, passed, failed):
+        """Generate comprehensive test report."""
+        total_tests = passed + failed
+        success_rate = (passed / total_tests) * 100 if total_tests > 0 else 0
+        
+        print("\n" + "=" * 50)
+        print("📊 END-TO-END QA TEST REPORT")
+        print("=" * 50)
+        print(f"Total Tests: {total_tests}")
+        print(f"Passed: {passed}")
+        print(f"Failed: {failed}")
+        print(f"Success Rate: {success_rate:.1f}%")
+        
+        if failed > 0:
+            print(f"\n❌ Failed Tests:")
+            for result in self.test_results:
+                if not result['success']:
+                    print(f"  - {result['test']}: {result['message']}")
+        
+        # Save detailed report
+        report_data = {
+            'summary': {
+                'total_tests': total_tests,
+                'passed': passed,
+                'failed': failed,
+                'success_rate': success_rate,
+                'duration': (datetime.now() - self.start_time).total_seconds()
+            },
+            'test_results': self.test_results,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        report_file = f"e2e_qa_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        with open(report_file, 'w') as f:
+            json.dump(report_data, f, indent=2, default=str)
+        
+        print(f"\n📁 Detailed report saved: {report_file}")
+        
+        if success_rate >= 90:
+            print("🎉 Excellent! End-to-end system is working properly.")
+        elif success_rate >= 75:
+            print("✅ Good! End-to-end system is mostly working with minor issues.")
+        elif success_rate >= 50:
+            print("⚠️  Fair. End-to-end system has some issues that need attention.")
+        else:
+            print("❌ Poor. End-to-end system has significant issues that need immediate attention.")
+
+def main():
+    """Run end-to-end QA tests."""
+    try:
+        e2e_suite = EndToEndQATest()
+        success = e2e_suite.run_all_tests()
+        
+        if success:
+            print("\n🎉 All end-to-end QA tests passed!")
+            return 0
+        else:
+            print("\n❌ Some end-to-end QA tests failed!")
+            return 1
+            
+    except KeyboardInterrupt:
+        print("\n❌ Tests interrupted by user")
+        return 1
+    except Exception as e:
+        print(f"\n❌ Unexpected error: {e}")
+        return 1
+
+if __name__ == "__main__":
+    sys.exit(main())

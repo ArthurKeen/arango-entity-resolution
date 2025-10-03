@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+"""
+Clean up custom services from _system database.
+
+This script removes custom services that were incorrectly deployed to the
+_system database and redeploys them to a proper application database.
+"""
+
+import sys
+import os
+import json
+from datetime import datetime
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+from entity_resolution.utils.database import DatabaseManager
+from entity_resolution.utils.config import Config
+
+def get_service_info(db, mount):
+    """Get information about a service."""
+    try:
+        cursor = db.aql.execute('FOR app IN _apps FILTER app.mount == @mount RETURN app', bind_vars={'mount': mount})
+        apps = list(cursor)
+        return apps[0] if apps else None
+    except Exception as e:
+        print(f"  ❌ Error getting service info for {mount}: {e}")
+        return None
+
+def backup_service_config(db, mount, backup_dir="backups"):
+    """Backup service configuration."""
+    try:
+        if not os.path.exists(backup_dir):
+            os.makedirs(backup_dir)
+        
+        service_info = get_service_info(db, mount)
+        if not service_info:
+            print(f"  ℹ️  {mount}: service not found")
+            return True
+        
+        print(f"  📋 {mount}: backing up service configuration...")
+        
+        # Save service configuration to JSON file
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_file = os.path.join(backup_dir, f"service_{mount.replace('/', '_')}_backup_{timestamp}.json")
+        
+        with open(backup_file, 'w') as f:
+            json.dump(service_info, f, indent=2, default=str)
+        
+        print(f"  ✅ Service config backup saved: {backup_file}")
+        return True
+        
+    except Exception as e:
+        print(f"  ❌ Error backing up service {mount}: {e}")
+        return False
+
+def remove_service(db, mount):
+    """Remove a service from the database."""
+    try:
+        # Try to uninstall the service
+        # Note: This is a simplified approach - in practice, you'd use the ArangoDB API
+        print(f"  🗑️  Removing service: {mount}")
+        
+        # For now, we'll just log what should be done
+        print(f"  ℹ️  Service {mount} should be uninstalled using ArangoDB web interface or API")
+        print(f"  ℹ️  Or use: arangosh --javascript.execute 'db._uninstallService(\"{mount}\")'")
+        
+        return True
+        
+    except Exception as e:
+        print(f"  ❌ Error removing service {mount}: {e}")
+        return False
+
+def main():
+    print("🧹 Cleaning up custom services from _system database...")
+    
+    config = Config.from_env()
+    db_manager = DatabaseManager()
+    
+    if not db_manager.test_connection():
+        print("❌ Could not connect to database")
+        return False
+    
+    # Get system database connection
+    db = db_manager.get_database()
+    
+    # Custom services that should not be in _system database
+    custom_services = [
+        '/test',
+        '/entity-resolution'
+    ]
+    
+    print(f"🔍 Checking for custom services in _system database...")
+    
+    # Check which custom services exist
+    existing_services = []
+    for mount in custom_services:
+        service_info = get_service_info(db, mount)
+        if service_info:
+            existing_services.append(mount)
+            print(f"  ⚠️  Found custom service: {mount}")
+            print(f"    System: {service_info.get('system', False)}")
+            print(f"    Development: {service_info.get('development', False)}")
+        else:
+            print(f"  ℹ️  Service not found: {mount}")
+    
+    if not existing_services:
+        print("✅ No custom services found in _system database")
+        return True
+    
+    print(f"\n📊 Found {len(existing_services)} custom services in _system database")
+    
+    # Backup service configurations
+    print(f"\n💾 Backing up service configurations...")
+    backup_success = True
+    for mount in existing_services:
+        if not backup_service_config(db, mount):
+            backup_success = False
+    
+    if not backup_success:
+        print("❌ Some service backups failed. Aborting cleanup for safety.")
+        return False
+    
+    # Remove custom services from _system database
+    print(f"\n🗑️  Removing custom services from _system database...")
+    print("⚠️  WARNING: This requires manual intervention!")
+    print("   Services must be uninstalled through ArangoDB web interface or API.")
+    print("   The following services need to be removed:")
+    
+    for mount in existing_services:
+        print(f"   - {mount}")
+    
+    print(f"\n📋 Manual removal steps:")
+    print(f"   1. Open ArangoDB web interface")
+    print(f"   2. Go to Services section")
+    print(f"   3. Uninstall each custom service")
+    print(f"   4. Redeploy services to application database")
+    
+    print(f"\n📁 Service configurations backed up in 'backups/' directory")
+    print("   You can use these to redeploy services to proper application database.")
+    
+    return True
+
+if __name__ == "__main__":
+    try:
+        success = main()
+        if success:
+            print("\n🎉 Service cleanup analysis completed!")
+            print("   Manual steps required to complete the cleanup.")
+        else:
+            print("\n❌ Service cleanup analysis failed!")
+            sys.exit(1)
+    except KeyboardInterrupt:
+        print("\n❌ Operation cancelled by user")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n❌ Unexpected error: {e}")
+        sys.exit(1)

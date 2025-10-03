@@ -33,7 +33,7 @@ class TestDatabaseSetup:
         self.port = 8529
         self.base_url = f"http://localhost:{self.port}"
         self.username = "root"
-        self.password = "testpassword123"
+        self.password = config.db.password
         self.test_database = "entity_resolution_test"
         
     def run_command(self, command: str, capture_output: bool = True) -> subprocess.CompletedProcess:
