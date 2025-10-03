@@ -290,3 +290,16 @@ def get_business_impact_estimate(customer_count: int, duplicate_rate: float,
     impact['total_annual_cost'] = sum(impact.values()) - impact['duplicate_customers']
     
     return impact
+
+# Database connection constants
+DEFAULT_DATABASE_HOST = 'localhost'
+DEFAULT_DATABASE_PORT = 8529
+DEFAULT_DATABASE_USERNAME = 'root'
+DEFAULT_DATABASE_PASSWORD = 'password'
+# Test database constants
+TEST_DATABASE_NAME = 'entity_resolution_test'
+DEMO_DATABASE_NAME = 'entity_resolution_demo'
+# Service constants
+DEFAULT_FOXX_TIMEOUT = 30
+DEFAULT_SIMILARITY_THRESHOLD = 0.5
+DEFAULT_BLOCKING_THRESHOLD = 0.7
