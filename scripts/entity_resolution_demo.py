@@ -328,7 +328,7 @@ class EntityResolutionDemo:
                         record = collection.get(entity_id)
                         if record:
                             cluster_records.append(record)
-                    except:
+                    except Exception:
                         pass
                 
                 if cluster_records:

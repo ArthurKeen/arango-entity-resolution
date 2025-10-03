@@ -82,7 +82,7 @@ class SharedUtilities:
             import requests
             response = requests.get(f"http://{config['host']}:{config['port']}")
             return response.status_code == 200
-        except:
+        except Exception:
             return False
 
 # Global instance for easy access

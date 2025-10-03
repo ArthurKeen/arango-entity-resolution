@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""
+config.database.password"
 ArangoDB Database Management Script
 Handles database creation, deletion, and initialization for testing
-"""
+config.database.password"
 
 import os
 import sys
@@ -17,10 +17,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 from entity_resolution.utils.database import DatabaseManager, get_database_manager
 from entity_resolution.utils.config import get_config
 from entity_resolution.utils.logging import get_logger
+from entity_resolution.utils.enhanced_config import get_config
 
 
 class ArangoDBManager:
-    """Manages ArangoDB operations for entity resolution testing using centralized database management"""
+    config.database.password"Manages ArangoDB operations for entity resolution testing using centralized database managementconfig.database.password"
     
     def __init__(self):
         self.config = get_config()
@@ -29,7 +30,7 @@ class ArangoDBManager:
         self._sys_db = None
     
     def connect(self) -> bool:
-        """Establish connection to ArangoDB using centralized manager"""
+        config.database.password"Establish connection to ArangoDB using centralized managerconfig.database.password"
         try:
             self._sys_db = self.db_manager.get_database('_system')
             self.logger.info(f"Connected to ArangoDB at {self.config.db.host}:{self.config.db.port}")
@@ -41,23 +42,23 @@ class ArangoDBManager:
             return False
     
     def print_success(self, message: str) -> None:
-        """Print success message with checkmark"""
-        print(f"✓ {message}")
+        config.database.password"Print success message with checkmarkconfig.database.password"
+        self.logger.info(f"✓ {message}")
     
     def print_warning(self, message: str) -> None:
-        """Print warning message with warning symbol"""
-        print(f"⚠ {message}")
+        config.database.password"Print warning message with warning symbolconfig.database.password"
+        self.logger.info(f"⚠ {message}")
     
     def print_error(self, message: str) -> None:
-        """Print error message with X symbol"""
-        print(f"✗ {message}")
+        config.database.password"Print error message with X symbolconfig.database.password"
+        self.logger.info(f"✗ {message}")
     
     def print_info(self, message: str) -> None:
-        """Print info message with icon"""
-        print(f"📋 {message}")
+        config.database.password"Print info message with iconconfig.database.password"
+        self.logger.info(f"📋 {message}")
     
     def create_database(self, db_name: str, users: Optional[List[Dict]] = None) -> bool:
-        """Create a new database"""
+        config.database.password"Create a new databaseconfig.database.password"
         try:
             self._sys_db.create_database(
                 name=db_name,
@@ -73,32 +74,32 @@ class ArangoDBManager:
             return False
     
     def delete_database(self, db_name: str) -> bool:
-        """Delete a database"""
+        config.database.password"Delete a databaseconfig.database.password"
         try:
             self._sys_db.delete_database(db_name)
-            print(f"✓ Deleted database: {db_name}")
+            self.logger.info(f"✓ Deleted database: {db_name}")
             return True
         except DatabaseDeleteError as e:
             if "not found" in str(e).lower():
-                print(f"⚠ Database {db_name} does not exist")
+                self.logger.info(f"⚠ Database {db_name} does not exist")
                 return True
-            print(f"✗ Failed to delete database {db_name}: {e}")
+            self.logger.info(f"✗ Failed to delete database {db_name}: {e}")
             return False
     
     def list_databases(self) -> List[str]:
-        """List all databases"""
+        config.database.password"List all databasesconfig.database.password"
         try:
             databases = self._sys_db.databases()
             self.print_info("Available databases:")
             for db in databases:
-                print(f"  - {db}")
+                self.logger.info(f"  - {db}")
             return databases
         except Exception as e:
             self.print_error(f"Failed to list databases: {e}")
             return []
     
     def initialize_entity_resolution_schema(self, db_name: str) -> bool:
-        """Initialize collections and indexes for entity resolution"""
+        config.database.password"Initialize collections and indexes for entity resolutionconfig.database.password"
         try:
             db = self.client.db(db_name, username=self.username, password=self.password)
             
@@ -165,10 +166,10 @@ class ArangoDBManager:
             for coll_def in collections:
                 if not db.has_collection(coll_def['name']):
                     collection = db.create_collection(coll_def['name'])
-                    print(f"✓ Created collection: {coll_def['name']}")
+                    self.logger.info(f"✓ Created collection: {coll_def['name']}")
                 else:
                     collection = db.collection(coll_def['name'])
-                    print(f"⚠ Collection {coll_def['name']} already exists")
+                    self.logger.info(f"⚠ Collection {coll_def['name']} already exists")
                 
                 # Create indexes
                 self._create_indexes(collection, coll_def['name'])
@@ -177,19 +178,19 @@ class ArangoDBManager:
             for coll_def in edge_collections:
                 if not db.has_collection(coll_def['name']):
                     collection = db.create_collection(coll_def['name'], edge=True)
-                    print(f"✓ Created edge collection: {coll_def['name']}")
+                    self.logger.info(f"✓ Created edge collection: {coll_def['name']}")
                 else:
-                    print(f"⚠ Edge collection {coll_def['name']} already exists")
+                    self.logger.info(f"⚠ Edge collection {coll_def['name']} already exists")
             
-            print(f"✓ Initialized entity resolution schema in database: {db_name}")
+            self.logger.info(f"✓ Initialized entity resolution schema in database: {db_name}")
             return True
             
         except Exception as e:
-            print(f"✗ Failed to initialize schema: {e}")
+            self.logger.info(f"✗ Failed to initialize schema: {e}")
             return False
     
     def _create_indexes(self, collection, collection_name: str):
-        """Create appropriate indexes for collections"""
+        config.database.password"Create appropriate indexes for collectionsconfig.database.password"
         try:
             if collection_name == 'customers':
                 # Hash indexes for exact matches
@@ -204,21 +205,21 @@ class ArangoDBManager:
                 # Fulltext index for address search
                 collection.add_index({'type': 'fulltext', 'fields': ['address']})
                 
-                print(f"  ✓ Created indexes for {collection_name}")
+                self.logger.info(f"  ✓ Created indexes for {collection_name}")
                 
             elif collection_name == 'blocking_keys':
                 collection.add_index({'type': 'hash', 'fields': ['key_value'], 'unique': True})
                 collection.add_index({'type': 'hash', 'fields': ['key_type'], 'unique': False})
-                print(f"  ✓ Created indexes for {collection_name}")
+                self.logger.info(f"  ✓ Created indexes for {collection_name}")
                 
         except Exception as e:
-            print(f"  ⚠ Warning: Could not create some indexes for {collection_name}: {e}")
+            self.logger.info(f"  ⚠ Warning: Could not create some indexes for {collection_name}: {e}")
     
     def load_test_data(self, db_name: str, data_file: str) -> bool:
-        """Load test data from JSON file"""
+        config.database.password"Load test data from JSON fileconfig.database.password"
         try:
             if not os.path.exists(data_file):
-                print(f"✗ Data file not found: {data_file}")
+                self.logger.info(f"✗ Data file not found: {data_file}")
                 return False
             
             db = self.client.db(db_name, username=self.username, password=self.password)
@@ -231,16 +232,16 @@ class ArangoDBManager:
                     collection = db.collection(collection_name)
                     try:
                         collection.insert_many(documents)
-                        print(f"✓ Loaded {len(documents)} documents into {collection_name}")
+                        self.logger.info(f"✓ Loaded {len(documents)} documents into {collection_name}")
                     except DocumentInsertError as e:
-                        print(f"⚠ Some documents in {collection_name} may have been skipped: {e}")
+                        self.logger.info(f"⚠ Some documents in {collection_name} may have been skipped: {e}")
                 else:
-                    print(f"⚠ Collection {collection_name} does not exist, skipping")
+                    self.logger.info(f"⚠ Collection {collection_name} does not exist, skipping")
             
             return True
             
         except Exception as e:
-            print(f"✗ Failed to load test data: {e}")
+            self.logger.info(f"✗ Failed to load test data: {e}")
             return False
 
 
@@ -269,13 +270,13 @@ def main():
     
     if args.action == 'create':
         if not args.database:
-            print("✗ Database name required for create action")
+            self.logger.info("✗ Database name required for create action")
             sys.exit(1)
         success = manager.create_database(args.database)
         
     elif args.action == 'delete':
         if not args.database:
-            print("✗ Database name required for delete action")
+            self.logger.info("✗ Database name required for delete action")
             sys.exit(1)
         success = manager.delete_database(args.database)
         
@@ -284,13 +285,13 @@ def main():
         
     elif args.action == 'init':
         if not args.database:
-            print("✗ Database name required for init action")
+            self.logger.info("✗ Database name required for init action")
             sys.exit(1)
         success = manager.initialize_entity_resolution_schema(args.database)
         
     elif args.action == 'load-data':
         if not args.database or not args.data_file:
-            print("✗ Database name and data file required for load-data action")
+            self.logger.info("✗ Database name and data file required for load-data action")
             sys.exit(1)
         success = manager.load_test_data(args.database, args.data_file)
     

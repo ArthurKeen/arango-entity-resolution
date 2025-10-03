@@ -100,7 +100,7 @@ class FinalCodeQualityCheck:
                     content = f.read()
                 if 'def main():' in content:
                     main_functions.append(str(py_file.relative_to(self.project_root)))
-            except:
+            except Exception:
                 continue
         
         if len(main_functions) > 5:  # Allow some main functions but not too many
@@ -146,7 +146,7 @@ class FinalCodeQualityCheck:
                             "pattern": pattern,
                             "matches": matches
                         })
-            except:
+            except Exception:
                 continue
         
         if hardcoded_found:
@@ -239,7 +239,7 @@ class FinalCodeQualityCheck:
                 # Check for entity_resolution imports
                 if 'from entity_resolution' in content or 'import entity_resolution' in content:
                     import_patterns[str(py_file.relative_to(self.project_root))] = True
-            except:
+            except Exception:
                 continue
         
         if import_patterns:

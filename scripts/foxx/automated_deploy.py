@@ -158,7 +158,7 @@ class FoxxDeploymentManager:
                     try:
                         result = response.json()
                         self.logger.debug(f"Response: {json.dumps(result, indent=2)}")
-                    except:
+                    except Exception:
                         self.logger.debug(f"Response text: {response.text}")
                     return True
                 else:

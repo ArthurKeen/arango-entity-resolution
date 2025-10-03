@@ -278,7 +278,7 @@ class CodeQualityAuditor:
                         if f"import {module}" in content:
                             import_styles.add("direct_import")
                     
-                    except:
+                    except Exception:
                         continue
                 
                 if len(import_styles) > 1:
@@ -325,7 +325,7 @@ class CodeQualityAuditor:
                         elif isinstance(node.func, ast.Attribute):
                             function_calls.add(node.func.attr)
             
-            except:
+            except Exception:
                 continue
         
         # Find unused functions
