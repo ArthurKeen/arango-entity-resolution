@@ -195,21 +195,6 @@ python demo_orchestrator.py --records 25000 --auto
 - **Recall**: 98%+ for obvious duplicates
 - **F1-Score**: 98.7%+ overall performance
 
-## No Neo4j Movie Dataset
-
-**To clarify**: This system does NOT include:
-- Neo4j's movie database
-- Actor/Director relationships
-- Movie ratings or recommendations
-- Film industry data
-- IMDB-style datasets
-
-**Instead, this system provides**:
-- Business-focused customer entity resolution
-- Real-world data quality scenarios
-- Enterprise-scale demonstrations
-- Industry-specific use cases
-
 ## Getting Help
 
 If you need assistance with the available datasets:
