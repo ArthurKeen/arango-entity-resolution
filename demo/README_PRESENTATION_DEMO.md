@@ -12,45 +12,45 @@ The original demo was too fast for presentations - it "whizzed by faster than th
 
 We've built a comprehensive presentation system with **manual control** at every step:
 
-### 🎬 Interactive Presentation Demo
+### Interactive Presentation Demo
 - **File:** `demo/scripts/interactive_presentation_demo.py`
 - **Purpose:** Step-by-step demo with full presenter control
 - **Features:**
-  - Manual pace control (press Enter to continue)
-  - Clear explanations of ER problem with real examples
-  - Before/during/after comparisons
-  - Business impact calculations
-  - Auto mode toggle for testing
+ - Manual pace control (press Enter to continue)
+ - Clear explanations of ER problem with real examples
+ - Before/during/after comparisons
+ - Business impact calculations
+ - Auto mode toggle for testing
 
-### 🔍 Database Inspector
+### Database Inspector
 - **File:** `demo/scripts/database_inspector.py`
 - **Purpose:** Show actual database contents during presentations
 - **Features:**
-  - View raw customer data with duplicates
-  - Show similarity analysis results
-  - Display clustering information
-  - Compare before/after states
-  - Real-time database inspection
+ - View raw customer data with duplicates
+ - Show similarity analysis results
+ - Display clustering information
+ - Compare before/after states
+ - Real-time database inspection
 
-### 📚 Presentation Script
+### Presentation Script
 - **File:** `demo/PRESENTATION_SCRIPT.md`
 - **Purpose:** Complete presentation guide with talking points
 - **Features:**
-  - 3-act demo structure (Problem → Solution → Value)
-  - Audience interaction points
-  - Technical explanations
-  - Business impact talking points
-  - Q&A preparation
+ - 3-act demo structure (Problem → Solution → Value)
+ - Audience interaction points
+ - Technical explanations
+ - Business impact talking points
+ - Q&A preparation
 
-### 🚀 Demo Launcher
+### Demo Launcher
 - **File:** `demo/launch_presentation_demo.py`
 - **Purpose:** Easy access to all demo modes
 - **Features:**
-  - Interactive presentation mode
-  - Database inspector mode
-  - Quick demo (auto-advancing)
-  - Environment check
-  - Help and guidance
+ - Interactive presentation mode
+ - Database inspector mode
+ - Quick demo (auto-advancing)
+ - Environment check
+ - Help and guidance
 
 ## How to Use for Presentations
 
@@ -76,7 +76,7 @@ Choose option 1 for the full interactive presentation demo.
 
 #### Act 2: Demonstrate Solution (20 min)
 1. **AI similarity analysis** - show algorithms in action
-2. **Intelligent clustering** - group duplicates automatically  
+2. **Intelligent clustering** - group duplicates automatically 
 3. **Golden records** - create perfect customer profiles
 
 **Key Talking Points:**
@@ -114,7 +114,7 @@ During the interactive demo:
 - **[Enter]** - Continue to next step
 - **[a]** - Toggle auto mode (3-second delays)
 - **[r]** - Repeat current section
-- **[s]** - Skip to next major section  
+- **[s]** - Skip to next major section 
 - **[q]** - Quit demo
 
 ## Demo Scenarios
@@ -147,7 +147,7 @@ The demo uses carefully crafted examples that are easy to explain:
 - **Record 3:** Johnny Smith, Sales system (nickname)
 - **Evidence:** Same phone, same company, same address
 
-### Sarah Johnson Group (Subtle Duplicates)  
+### Sarah Johnson Group (Subtle Duplicates) 
 - **Record 1:** Sarah Johnson, full name
 - **Record 2:** Sara Johnson, spelling variation
 - **Evidence:** Same phone, same company
@@ -167,7 +167,7 @@ The demo uses carefully crafted examples that are easy to explain:
 
 ### Enterprise (500K customers)
 - 150,000 duplicates (30% rate)
-- $675K annual waste  
+- $675K annual waste 
 - $150K implementation cost
 - **450% ROI, 3-month payback**
 

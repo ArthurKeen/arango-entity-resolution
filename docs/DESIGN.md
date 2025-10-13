@@ -50,38 +50,38 @@ Implement a comprehensive entity resolution system that:
 ### Core Components
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     External Systems                            │
-│  • Data Sources  • REST Clients  • Monitoring  • Analytics     │
-└─────────────────────────────────────────────────────────────────┘
-                                    │
-                              REST API / HTTP
-                                    │
-┌─────────────────────────────────────────────────────────────────┐
-│                   Python Orchestration Layer                    │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────────┐│
-│  │ FastAPI     │ │ Pipeline    │ │ ML Training │ │ Configuration││
-│  │ REST Server │ │ Management  │ │ & Validation│ │ Management   ││
-│  └─────────────┘ └─────────────┘ └─────────────┘ └──────────────┘│
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────────┐│
-│  │ Integration │ │ Testing     │ │ Monitoring  │ │ Data Import  ││
-│  │ Services    │ │ Framework   │ │ & Alerting  │ │ & Export     ││
-│  └─────────────┘ └─────────────┘ └─────────────┘ └──────────────┘│
-└─────────────────────────────────────────────────────────────────┘
-                                    │
-                              HTTP/REST API
-                                    │
-┌─────────────────────────────────────────────────────────────────┐
-│                    ArangoDB + Foxx Services                     │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────────┐│
-│  │ Blocking    │ │ Similarity  │ │ Clustering  │ │ Golden Record││
-│  │ Service     │ │ Computation │ │ Service     │ │ Generation   ││
-│  └─────────────┘ └─────────────┘ └─────────────┘ └──────────────┘│
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────────┐│
-│  │ ArangoSearch│ │ Graph       │ │ Collections │ │ Indexes &    ││
-│  │ Views       │ │ Algorithms  │ │ & Edges     │ │ Optimization ││
-│  └─────────────┘ └─────────────┘ └─────────────┘ └──────────────┘│
-└─────────────────────────────────────────────────────────────────┘
+
+ External Systems 
+ • Data Sources • REST Clients • Monitoring • Analytics 
+
+ 
+ REST API / HTTP
+ 
+
+ Python Orchestration Layer 
+ 
+ FastAPI Pipeline ML Training Configuration
+ REST Server Management & Validation Management 
+ 
+ 
+ Integration Testing Monitoring Data Import 
+ Services Framework & Alerting & Export 
+ 
+
+ 
+ HTTP/REST API
+ 
+
+ ArangoDB + Foxx Services 
+ 
+ Blocking Similarity Clustering Golden Record
+ Service Computation Service Generation 
+ 
+ 
+ ArangoSearch Graph Collections Indexes & 
+ Views Algorithms & Edges Optimization 
+ 
+
 ```
 
 ## Architecture Decisions
@@ -109,39 +109,39 @@ Implement a comprehensive entity resolution system that:
 
 #### Pros
 
-✅ **Performance Benefits**:
+ **Performance Benefits**:
 - Eliminates network latency for database-intensive operations
 - Direct access to AQL, ArangoSearch, and graph algorithms
 - Batch processing capabilities for large datasets
 
-✅ **Scalability**:
+ **Scalability**:
 - Foxx services scale with database cluster
 - Independent scaling of Python orchestration layer
 - Efficient resource utilization
 
-✅ **Development Productivity**:
+ **Development Productivity**:
 - Python's rich ecosystem for testing, ML, and data processing
 - Foxx's direct database integration for performance-critical paths
 - Clear architectural boundaries
 
-✅ **Operational Benefits**:
+ **Operational Benefits**:
 - Fewer network dependencies
 - Built-in Foxx service versioning and deployment
 - Simplified monitoring of database operations
 
 #### Cons
 
-⚠️ **Complexity**:
+ **Complexity**:
 - Mixed codebase requires expertise in both Python and JavaScript
 - More complex deployment and testing strategies
 - Coordination between two different runtime environments
 
-⚠️ **JavaScript Limitations**:
+ **JavaScript Limitations**:
 - Foxx has a restricted JavaScript runtime (no Node.js modules)
 - Limited external library ecosystem compared to Python
 - Different debugging and development tools
 
-⚠️ **Development Overhead**:
+ **Development Overhead**:
 - Need to maintain two different codebases
 - API contracts between Python and Foxx layers
 - Potential code duplication for shared logic
@@ -150,9 +150,9 @@ Implement a comprehensive entity resolution system that:
 
 | Alternative | Pros | Cons | Decision |
 |-------------|------|------|----------|
-| **Pure Python** | Single language, rich ecosystem, easier debugging | Network latency, poor database performance | ❌ Rejected due to performance requirements |
-| **Pure Foxx** | Maximum performance, database-native | Limited ecosystem, complex ML integration | ❌ Rejected due to orchestration complexity |
-| **External Services** | Technology flexibility, microservices benefits | Network overhead, deployment complexity | ❌ Rejected due to latency and operational overhead |
+| **Pure Python** | Single language, rich ecosystem, easier debugging | Network latency, poor database performance | Rejected due to performance requirements |
+| **Pure Foxx** | Maximum performance, database-native | Limited ecosystem, complex ML integration | Rejected due to orchestration complexity |
+| **External Services** | Technology flexibility, microservices benefits | Network overhead, deployment complexity | Rejected due to latency and operational overhead |
 
 ### Decision 2: ArangoDB 3.12 as Core Database
 
@@ -177,29 +177,29 @@ Implement a comprehensive entity resolution system that:
 
 #### Pros
 
-✅ **Unified Data Model**:
+ **Unified Data Model**:
 - Single database for documents, graphs, and search
 - Eliminates data synchronization between different systems
 - Native support for entity relationship modeling
 
-✅ **Performance Optimizations**:
+ **Performance Optimizations**:
 - ArangoSearch for efficient blocking operations
 - Native graph algorithms for clustering
 - Optimized AQL for complex entity resolution queries
 
-✅ **Developer Experience**:
+ **Developer Experience**:
 - Rich query language (AQL) for complex operations
 - Built-in web interface for debugging and monitoring
 - Comprehensive API and driver ecosystem
 
 #### Cons
 
-⚠️ **Vendor Lock-in**:
+ **Vendor Lock-in**:
 - Specialized database with smaller ecosystem than PostgreSQL/MongoDB
 - Migration complexity if requirements change
 - Specific expertise required for optimization
 
-⚠️ **Operational Complexity**:
+ **Operational Complexity**:
 - Cluster management and monitoring requirements
 - Backup and disaster recovery considerations
 - Performance tuning for specific workloads
@@ -234,13 +234,13 @@ Implement a comprehensive entity resolution system that:
 **End-to-End Native ArangoDB Workflow**:
 ```
 Input Data → Data Ingestion → ArangoSearch → Similarity → Graph → WCC → Golden Records
-    │             │             Blocking      Scoring   Building Clustering    │
-    │             │                │           │          │        │           │
+ Blocking Scoring Building Clustering 
+ 
 Raw CSV/JSON → Collections → ArangoSearch → Scored → Similarity → Entity → Unified
-Files        in ArangoDB      Views        Pairs     Graph      Clusters  Entities
-                                 │           │          │         │          │
-                              N-gram    Native AQL   UPSERT    Graph      Source
-                              Analyzers  Functions    Edges   Algorithm  Selection
+Files in ArangoDB Views Pairs Graph Clusters Entities
+ 
+ N-gram Native AQL UPSERT Graph Source
+ Analyzers Functions Edges Algorithm Selection
 ```
 
 **Detailed Processing Pipeline**:
@@ -278,14 +278,14 @@ Files        in ArangoDB      Views        Pairs     Graph      Clusters  Entiti
 
 ```python
 class DataIngestionService:
-    def import_dataset(self, source_path: str, schema_config: Dict) -> str:
-        """Import dataset into ArangoDB with validation"""
-        
-    def validate_schema(self, data: pd.DataFrame, schema: Dict) -> ValidationResult:
-        """Validate data against expected schema"""
-        
-    def normalize_fields(self, data: pd.DataFrame) -> pd.DataFrame:
-        """Apply field normalization rules"""
+ def import_dataset(self, source_path: str, schema_config: Dict) -> str:
+ """Import dataset into ArangoDB with validation"""
+ 
+ def validate_schema(self, data: pd.DataFrame, schema: Dict) -> ValidationResult:
+ """Validate data against expected schema"""
+ 
+ def normalize_fields(self, data: pd.DataFrame) -> pd.DataFrame:
+ """Apply field normalization rules"""
 ```
 
 #### 2. Blocking Service (Foxx)
@@ -309,55 +309,55 @@ const { query } = require('@arangodb');
 const router = require('@arangodb/foxx/router')();
 
 router.post('/generate-candidates', function(req, res) {
-  const { collection, targetDocId, strategies, limit = 100 } = req.body;
-  
-  // Multi-strategy ArangoSearch blocking
-  const candidates = generateCandidatesWithArangoSearch(
-    collection, 
-    targetDocId, 
-    strategies, 
-    limit
-  );
-  
-  res.json({
-    total_candidates: candidates.length,
-    reduction_ratio: calculateReductionRatio(candidates, collection),
-    candidates: candidates,
-    strategies_used: strategies
-  });
+ const { collection, targetDocId, strategies, limit = 100 } = req.body;
+ 
+ // Multi-strategy ArangoSearch blocking
+ const candidates = generateCandidatesWithArangoSearch(
+ collection, 
+ targetDocId, 
+ strategies, 
+ limit
+ );
+ 
+ res.json({
+ total_candidates: candidates.length,
+ reduction_ratio: calculateReductionRatio(candidates, collection),
+ candidates: candidates,
+ strategies_used: strategies
+ });
 });
 
 function generateCandidatesWithArangoSearch(collection, targetDocId, strategies, limit) {
-  const aql = `
-    LET targetDoc = DOCUMENT(@targetDocId)
-    
-    FOR candidate IN ${collection}_blocking_view
-      SEARCH candidate._id != targetDoc._id AND (
-        // N-gram strategy for names and addresses
-        ANALYZER(PHRASE(candidate.first_name, targetDoc.first_name, "ngram_analyzer"), "ngram_analyzer") OR
-        ANALYZER(PHRASE(candidate.last_name, targetDoc.last_name, "ngram_analyzer"), "ngram_analyzer") OR
-        ANALYZER(PHRASE(candidate.address, targetDoc.address, "ngram_analyzer"), "ngram_analyzer") OR
-        
-        // Exact match strategy for structured fields
-        candidate.email == targetDoc.email OR
-        candidate.phone == targetDoc.phone
-      )
-      LIMIT @limit
-      RETURN {
-        candidateId: candidate._id,
-        targetId: targetDoc._id,
-        score: BM25(candidate),
-        matchedFields: [
-          candidate.email == targetDoc.email ? "email" : null,
-          candidate.phone == targetDoc.phone ? "phone" : null
-        ]
-      }
-  `;
-  
-  return query(aql, { 
-    targetDocId: targetDocId,
-    limit: limit 
-  }).toArray();
+ const aql = `
+ LET targetDoc = DOCUMENT(@targetDocId)
+ 
+ FOR candidate IN ${collection}_blocking_view
+ SEARCH candidate._id != targetDoc._id AND (
+ // N-gram strategy for names and addresses
+ ANALYZER(PHRASE(candidate.first_name, targetDoc.first_name, "ngram_analyzer"), "ngram_analyzer") OR
+ ANALYZER(PHRASE(candidate.last_name, targetDoc.last_name, "ngram_analyzer"), "ngram_analyzer") OR
+ ANALYZER(PHRASE(candidate.address, targetDoc.address, "ngram_analyzer"), "ngram_analyzer") OR
+ 
+ // Exact match strategy for structured fields
+ candidate.email == targetDoc.email OR
+ candidate.phone == targetDoc.phone
+ )
+ LIMIT @limit
+ RETURN {
+ candidateId: candidate._id,
+ targetId: targetDoc._id,
+ score: BM25(candidate),
+ matchedFields: [
+ candidate.email == targetDoc.email ? "email" : null,
+ candidate.phone == targetDoc.phone ? "phone" : null
+ ]
+ }
+ `;
+ 
+ return query(aql, { 
+ targetDocId: targetDocId,
+ limit: limit 
+ }).toArray();
 }
 ```
 
@@ -380,56 +380,56 @@ function generateCandidatesWithArangoSearch(collection, targetDocId, strategies,
 const { query } = require('@arangodb');
 
 function computeAggregateScore(docA, docB, fieldWeights) {
-  // Use ArangoDB's native similarity functions for performance
-  const similarities = query(`
-    LET docA = @docA
-    LET docB = @docB
-    
-    RETURN {
-      name_ngram: NGRAM_SIMILARITY(docA.first_name + " " + docA.last_name, 
-                                   docB.first_name + " " + docB.last_name, 3),
-      address_ngram: NGRAM_SIMILARITY(docA.address, docB.address, 3),
-      email_exact: docA.email == docB.email ? 1.0 : 0.0,
-      phone_exact: docA.phone == docB.phone ? 1.0 : 0.0,
-      name_levenshtein: 1 - (LEVENSHTEIN_DISTANCE(docA.last_name, docB.last_name) / 
-                            MAX(LENGTH(docA.last_name), LENGTH(docB.last_name)))
-    }
-  `, { docA, docB }).next();
-  
-  // Apply Fellegi-Sunter framework with field-specific weights
-  return computeFellegiSunterScore(similarities, fieldWeights);
+ // Use ArangoDB's native similarity functions for performance
+ const similarities = query(`
+ LET docA = @docA
+ LET docB = @docB
+ 
+ RETURN {
+ name_ngram: NGRAM_SIMILARITY(docA.first_name + " " + docA.last_name, 
+ docB.first_name + " " + docB.last_name, 3),
+ address_ngram: NGRAM_SIMILARITY(docA.address, docB.address, 3),
+ email_exact: docA.email == docB.email ? 1.0 : 0.0,
+ phone_exact: docA.phone == docB.phone ? 1.0 : 0.0,
+ name_levenshtein: 1 - (LEVENSHTEIN_DISTANCE(docA.last_name, docB.last_name) / 
+ MAX(LENGTH(docA.last_name), LENGTH(docB.last_name)))
+ }
+ `, { docA, docB }).next();
+ 
+ // Apply Fellegi-Sunter framework with field-specific weights
+ return computeFellegiSunterScore(similarities, fieldWeights);
 }
 
 function computeFellegiSunterScore(similarities, fieldWeights) {
-  let totalScore = 0;
-  const fieldScores = {};
-  
-  for (const [field, simValue] of Object.entries(similarities)) {
-    if (fieldWeights[field]) {
-      const weights = fieldWeights[field];
-      const agreement = simValue > weights.threshold;
-      
-      const weight = agreement ? 
-        Math.log(weights.m_prob / weights.u_prob) :
-        Math.log((1 - weights.m_prob) / (1 - weights.u_prob));
-      
-      fieldScores[field] = {
-        similarity: simValue,
-        agreement: agreement,
-        weight: weight
-      };
-      
-      totalScore += weight;
-    }
-  }
-  
-  return {
-    total_score: totalScore,
-    field_scores: fieldScores,
-    is_match: totalScore > fieldWeights.global.upper_threshold,
-    confidence: Math.min(Math.max((totalScore - fieldWeights.global.lower_threshold) / 
-                                 (fieldWeights.global.upper_threshold - fieldWeights.global.lower_threshold), 0), 1)
-  };
+ let totalScore = 0;
+ const fieldScores = {};
+ 
+ for (const [field, simValue] of Object.entries(similarities)) {
+ if (fieldWeights[field]) {
+ const weights = fieldWeights[field];
+ const agreement = simValue > weights.threshold;
+ 
+ const weight = agreement ? 
+ Math.log(weights.m_prob / weights.u_prob) :
+ Math.log((1 - weights.m_prob) / (1 - weights.u_prob));
+ 
+ fieldScores[field] = {
+ similarity: simValue,
+ agreement: agreement,
+ weight: weight
+ };
+ 
+ totalScore += weight;
+ }
+ }
+ 
+ return {
+ total_score: totalScore,
+ field_scores: fieldScores,
+ is_match: totalScore > fieldWeights.global.upper_threshold,
+ confidence: Math.min(Math.max((totalScore - fieldWeights.global.lower_threshold) / 
+ (fieldWeights.global.upper_threshold - fieldWeights.global.lower_threshold), 0), 1)
+ };
 }
 ```
 
@@ -452,90 +452,90 @@ function computeFellegiSunterScore(similarities, fieldWeights) {
 const { query, db } = require('@arangodb');
 
 function buildSimilarityGraph(scoredPairs, threshold) {
-  // Use UPSERT for idempotent edge creation
-  const edgeInserts = scoredPairs
-    .filter(pair => pair.total_score > threshold)
-    .map(pair => {
-      const aql = `
-        UPSERT { _from: @from, _to: @to }
-        INSERT {
-          _from: @from,
-          _to: @to,
-          similarity_score: @score,
-          field_scores: @fieldScores,
-          algorithm: "fellegi_sunter",
-          created_at: DATE_NOW()
-        }
-        UPDATE {
-          similarity_score: AVERAGE([OLD.similarity_score, @score]),
-          updated_at: DATE_NOW(),
-          update_count: (OLD.update_count || 0) + 1
-        }
-        IN similarities
-        RETURN NEW
-      `;
-      
-      return query(aql, {
-        from: pair.docA_id,
-        to: pair.docB_id,
-        score: pair.total_score,
-        fieldScores: pair.field_scores
-      }).next();
-    });
-  
-  return edgeInserts;
+ // Use UPSERT for idempotent edge creation
+ const edgeInserts = scoredPairs
+ .filter(pair => pair.total_score > threshold)
+ .map(pair => {
+ const aql = `
+ UPSERT { _from: @from, _to: @to }
+ INSERT {
+ _from: @from,
+ _to: @to,
+ similarity_score: @score,
+ field_scores: @fieldScores,
+ algorithm: "fellegi_sunter",
+ created_at: DATE_NOW()
+ }
+ UPDATE {
+ similarity_score: AVERAGE([OLD.similarity_score, @score]),
+ updated_at: DATE_NOW(),
+ update_count: (OLD.update_count || 0) + 1
+ }
+ IN similarities
+ RETURN NEW
+ `;
+ 
+ return query(aql, {
+ from: pair.docA_id,
+ to: pair.docB_id,
+ score: pair.total_score,
+ fieldScores: pair.field_scores
+ }).next();
+ });
+ 
+ return edgeInserts;
 }
 
 function clusterEntitiesWithWCC(edgeCollection, threshold) {
-  // Use ArangoDB's native Weakly Connected Components algorithm
-  const aql = `
-    FOR component IN GRAPH_WEAKLY_CONNECTED_COMPONENTS(
-      @edgeCollection,
-      {
-        weightAttribute: "similarity_score",
-        threshold: @threshold
-      }
-    )
-    LET clusterSize = LENGTH(component.vertices)
-    LET avgScore = AVERAGE(
-      FOR edge IN component.edges
-        RETURN edge.similarity_score
-    )
-    
-    RETURN {
-      cluster_id: CONCAT("cluster_", MD5(TO_STRING(component.vertices))),
-      member_ids: component.vertices,
-      cluster_size: clusterSize,
-      average_similarity: avgScore,
-      edges_count: LENGTH(component.edges),
-      confidence_score: avgScore * (clusterSize > 2 ? 0.9 : 1.0),
-      created_at: DATE_NOW()
-    }
-  `;
-  
-  return query(aql, { 
-    edgeCollection: edgeCollection,
-    threshold: threshold 
-  }).toArray();
+ // Use ArangoDB's native Weakly Connected Components algorithm
+ const aql = `
+ FOR component IN GRAPH_WEAKLY_CONNECTED_COMPONENTS(
+ @edgeCollection,
+ {
+ weightAttribute: "similarity_score",
+ threshold: @threshold
+ }
+ )
+ LET clusterSize = LENGTH(component.vertices)
+ LET avgScore = AVERAGE(
+ FOR edge IN component.edges
+ RETURN edge.similarity_score
+ )
+ 
+ RETURN {
+ cluster_id: CONCAT("cluster_", MD5(TO_STRING(component.vertices))),
+ member_ids: component.vertices,
+ cluster_size: clusterSize,
+ average_similarity: avgScore,
+ edges_count: LENGTH(component.edges),
+ confidence_score: avgScore * (clusterSize > 2 ? 0.9 : 1.0),
+ created_at: DATE_NOW()
+ }
+ `;
+ 
+ return query(aql, { 
+ edgeCollection: edgeCollection,
+ threshold: threshold 
+ }).toArray();
 }
 
 function validateClusterQuality(clusters) {
-  // Ensure cluster coherence and detect potential issues
-  return clusters.map(cluster => {
-    const qualityMetrics = {
-      size_appropriate: cluster.cluster_size >= 2 && cluster.cluster_size <= 50,
-      similarity_coherent: cluster.average_similarity > 0.7,
-      density_adequate: cluster.edges_count >= (cluster.cluster_size - 1)
-    };
-    
-    return {
-      ...cluster,
-      quality_score: Object.values(qualityMetrics).filter(Boolean).length / 3,
-      quality_issues: Object.entries(qualityMetrics)
-        .filter(([_, passed]) => !passed)
-        .map(([metric, _]) => metric)
-    };
-  });
+ // Ensure cluster coherence and detect potential issues
+ return clusters.map(cluster => {
+ const qualityMetrics = {
+ size_appropriate: cluster.cluster_size >= 2 && cluster.cluster_size <= 50,
+ similarity_coherent: cluster.average_similarity > 0.7,
+ density_adequate: cluster.edges_count >= (cluster.cluster_size - 1)
+ };
+ 
+ return {
+ ...cluster,
+ quality_score: Object.values(qualityMetrics).filter(Boolean).length / 3,
+ quality_issues: Object.entries(qualityMetrics)
+ .filter(([_, passed]) => !passed)
+ .map(([metric, _]) => metric)
+ };
+ });
 }
 ```
 
@@ -543,7 +543,7 @@ function validateClusterQuality(clusters) {
 
 **Responsibilities**:
 - Synthesize master records from entity clusters using data quality rules
-- Apply source trustworthiness and recency preferences  
+- Apply source trustworthiness and recency preferences 
 - Maintain complete provenance and audit trails
 - Handle conflicting data through configurable resolution strategies
 
@@ -556,143 +556,143 @@ function validateClusterQuality(clusters) {
 **Implementation**:
 ```javascript
 function generateGoldenRecord(cluster, sourcePreferences) {
-  // Retrieve all records in the cluster
-  const memberRecords = query(`
-    FOR memberId IN @memberIds
-      LET record = DOCUMENT(memberId)
-      RETURN {
-        id: record._id,
-        data: record,
-        source: record.source,
-        created_at: record.created_at,
-        quality_score: calculateRecordQuality(record)
-      }
-  `, { memberIds: cluster.member_ids }).toArray();
-  
-  // Apply golden record synthesis logic
-  const goldenRecord = synthesizeGoldenRecord(memberRecords, sourcePreferences);
-  
-  // Store golden record with full provenance
-  const aql = `
-    INSERT {
-      _key: @clusterId,
-      cluster_id: @clusterId,
-      consolidated_data: @goldenData,
-      source_records: @sourceRecords,
-      synthesis_strategy: @strategy,
-      quality_score: @qualityScore,
-      created_at: DATE_NOW(),
-      provenance: @provenance
-    } INTO golden_records
-    RETURN NEW
-  `;
-  
-  return query(aql, {
-    clusterId: cluster.cluster_id,
-    goldenData: goldenRecord.data,
-    sourceRecords: cluster.member_ids,
-    strategy: goldenRecord.strategy,
-    qualityScore: goldenRecord.quality_score,
-    provenance: goldenRecord.provenance
-  }).next();
+ // Retrieve all records in the cluster
+ const memberRecords = query(`
+ FOR memberId IN @memberIds
+ LET record = DOCUMENT(memberId)
+ RETURN {
+ id: record._id,
+ data: record,
+ source: record.source,
+ created_at: record.created_at,
+ quality_score: calculateRecordQuality(record)
+ }
+ `, { memberIds: cluster.member_ids }).toArray();
+ 
+ // Apply golden record synthesis logic
+ const goldenRecord = synthesizeGoldenRecord(memberRecords, sourcePreferences);
+ 
+ // Store golden record with full provenance
+ const aql = `
+ INSERT {
+ _key: @clusterId,
+ cluster_id: @clusterId,
+ consolidated_data: @goldenData,
+ source_records: @sourceRecords,
+ synthesis_strategy: @strategy,
+ quality_score: @qualityScore,
+ created_at: DATE_NOW(),
+ provenance: @provenance
+ } INTO golden_records
+ RETURN NEW
+ `;
+ 
+ return query(aql, {
+ clusterId: cluster.cluster_id,
+ goldenData: goldenRecord.data,
+ sourceRecords: cluster.member_ids,
+ strategy: goldenRecord.strategy,
+ qualityScore: goldenRecord.quality_score,
+ provenance: goldenRecord.provenance
+ }).next();
 }
 
 function synthesizeGoldenRecord(memberRecords, sourcePreferences) {
-  const goldenData = {};
-  const provenance = {};
-  const conflictResolutions = [];
-  
-  // Process each field using preference rules
-  const fieldNames = new Set();
-  memberRecords.forEach(record => 
-    Object.keys(record.data).forEach(field => fieldNames.add(field))
-  );
-  
-  for (const field of fieldNames) {
-    if (field.startsWith('_')) continue; // Skip ArangoDB internal fields
-    
-    const fieldValues = memberRecords
-      .map(record => ({
-        value: record.data[field],
-        source: record.source,
-        quality: record.quality_score,
-        timestamp: record.created_at
-      }))
-      .filter(item => item.value != null);
-    
-    if (fieldValues.length === 0) continue;
-    
-    // Apply field synthesis strategy
-    const synthesis = selectBestFieldValue(fieldValues, sourcePreferences);
-    goldenData[field] = synthesis.value;
-    provenance[field] = synthesis.provenance;
-    
-    if (synthesis.conflicts.length > 0) {
-      conflictResolutions.push({
-        field: field,
-        conflicts: synthesis.conflicts,
-        resolution: synthesis.resolution_strategy
-      });
-    }
-  }
-  
-  return {
-    data: goldenData,
-    strategy: "multi_source_synthesis",
-    quality_score: calculateGoldenRecordQuality(goldenData, memberRecords),
-    provenance: provenance,
-    conflicts: conflictResolutions
-  };
+ const goldenData = {};
+ const provenance = {};
+ const conflictResolutions = [];
+ 
+ // Process each field using preference rules
+ const fieldNames = new Set();
+ memberRecords.forEach(record => 
+ Object.keys(record.data).forEach(field => fieldNames.add(field))
+ );
+ 
+ for (const field of fieldNames) {
+ if (field.startsWith('_')) continue; // Skip ArangoDB internal fields
+ 
+ const fieldValues = memberRecords
+ .map(record => ({
+ value: record.data[field],
+ source: record.source,
+ quality: record.quality_score,
+ timestamp: record.created_at
+ }))
+ .filter(item => item.value != null);
+ 
+ if (fieldValues.length === 0) continue;
+ 
+ // Apply field synthesis strategy
+ const synthesis = selectBestFieldValue(fieldValues, sourcePreferences);
+ goldenData[field] = synthesis.value;
+ provenance[field] = synthesis.provenance;
+ 
+ if (synthesis.conflicts.length > 0) {
+ conflictResolutions.push({
+ field: field,
+ conflicts: synthesis.conflicts,
+ resolution: synthesis.resolution_strategy
+ });
+ }
+ }
+ 
+ return {
+ data: goldenData,
+ strategy: "multi_source_synthesis",
+ quality_score: calculateGoldenRecordQuality(goldenData, memberRecords),
+ provenance: provenance,
+ conflicts: conflictResolutions
+ };
 }
 
 function selectBestFieldValue(fieldValues, sourcePreferences) {
-  // Handle single value case
-  if (fieldValues.length === 1) {
-    return {
-      value: fieldValues[0].value,
-      provenance: { source: fieldValues[0].source, strategy: "single_source" },
-      conflicts: []
-    };
-  }
-  
-  // Detect conflicts
-  const uniqueValues = [...new Set(fieldValues.map(fv => fv.value))];
-  const hasConflicts = uniqueValues.length > 1;
-  
-  if (!hasConflicts) {
-    // All values agree
-    const bestSource = fieldValues.reduce((best, current) => 
-      (sourcePreferences[current.source] || 0) > (sourcePreferences[best.source] || 0) ? 
-        current : best
-    );
-    
-    return {
-      value: bestSource.value,
-      provenance: { source: bestSource.source, strategy: "consensus" },
-      conflicts: []
-    };
-  }
-  
-  // Resolve conflicts using source preferences and quality
-  const bestValue = fieldValues.reduce((best, current) => {
-    const currentScore = (sourcePreferences[current.source] || 0) * 0.7 + 
-                        current.quality * 0.3;
-    const bestScore = (sourcePreferences[best.source] || 0) * 0.7 + 
-                     best.quality * 0.3;
-    
-    return currentScore > bestScore ? current : best;
-  });
-  
-  return {
-    value: bestValue.value,
-    provenance: { 
-      source: bestValue.source, 
-      strategy: "conflict_resolution",
-      alternatives: fieldValues.filter(fv => fv.value !== bestValue.value)
-    },
-    conflicts: uniqueValues.filter(v => v !== bestValue.value),
-    resolution_strategy: "source_preference_with_quality"
-  };
+ // Handle single value case
+ if (fieldValues.length === 1) {
+ return {
+ value: fieldValues[0].value,
+ provenance: { source: fieldValues[0].source, strategy: "single_source" },
+ conflicts: []
+ };
+ }
+ 
+ // Detect conflicts
+ const uniqueValues = [...new Set(fieldValues.map(fv => fv.value))];
+ const hasConflicts = uniqueValues.length > 1;
+ 
+ if (!hasConflicts) {
+ // All values agree
+ const bestSource = fieldValues.reduce((best, current) => 
+ (sourcePreferences[current.source] || 0) > (sourcePreferences[best.source] || 0) ? 
+ current : best
+ );
+ 
+ return {
+ value: bestSource.value,
+ provenance: { source: bestSource.source, strategy: "consensus" },
+ conflicts: []
+ };
+ }
+ 
+ // Resolve conflicts using source preferences and quality
+ const bestValue = fieldValues.reduce((best, current) => {
+ const currentScore = (sourcePreferences[current.source] || 0) * 0.7 + 
+ current.quality * 0.3;
+ const bestScore = (sourcePreferences[best.source] || 0) * 0.7 + 
+ best.quality * 0.3;
+ 
+ return currentScore > bestScore ? current : best;
+ });
+ 
+ return {
+ value: bestValue.value,
+ provenance: { 
+ source: bestValue.source, 
+ strategy: "conflict_resolution",
+ alternatives: fieldValues.filter(fv => fv.value !== bestValue.value)
+ },
+ conflicts: uniqueValues.filter(v => v !== bestValue.value),
+ resolution_strategy: "source_preference_with_quality"
+ };
 }
 ```
 
@@ -703,61 +703,61 @@ function selectBestFieldValue(fieldValues, sourcePreferences) {
 ```javascript
 // Raw entity data
 customers: {
-  _key: "unique_identifier",
-  source: "system_name",
-  first_name: "string",
-  last_name: "string", 
-  email: "string",
-  phone: "string",
-  address: "string",
-  city: "string",
-  state: "string",
-  zip_code: "string",
-  created_at: "iso_date",
-  updated_at: "iso_date"
+ _key: "unique_identifier",
+ source: "system_name",
+ first_name: "string",
+ last_name: "string", 
+ email: "string",
+ phone: "string",
+ address: "string",
+ city: "string",
+ state: "string",
+ zip_code: "string",
+ created_at: "iso_date",
+ updated_at: "iso_date"
 }
 
 // Blocking keys for efficient candidate generation
 blocking_keys: {
-  _key: "unique_key_value",
-  key_type: "strategy_name",
-  key_value: "normalized_value",
-  record_ids: ["customer_id_1", "customer_id_2", ...]
+ _key: "unique_key_value",
+ key_type: "strategy_name",
+ key_value: "normalized_value",
+ record_ids: ["customer_id_1", "customer_id_2", ...]
 }
 
 // Similarity edges between candidate pairs
 similarities: {
-  _from: "customers/id1",
-  _to: "customers/id2",
-  similarity_score: 0.95,
-  field_scores: {
-    "name": 0.92,
-    "address": 0.88,
-    "phone": 1.0
-  },
-  algorithm: "fellegi_sunter",
-  computed_at: "iso_date"
+ _from: "customers/id1",
+ _to: "customers/id2",
+ similarity_score: 0.95,
+ field_scores: {
+ "name": 0.92,
+ "address": 0.88,
+ "phone": 1.0
+ },
+ algorithm: "fellegi_sunter",
+ computed_at: "iso_date"
 }
 
 // Entity clusters
 entity_clusters: {
-  _key: "cluster_id",
-  member_ids: ["customer_id_1", "customer_id_2", ...],
-  confidence_score: 0.93,
-  cluster_algorithm: "weakly_connected_components",
-  created_at: "iso_date"
+ _key: "cluster_id",
+ member_ids: ["customer_id_1", "customer_id_2", ...],
+ confidence_score: 0.93,
+ cluster_algorithm: "weakly_connected_components",
+ created_at: "iso_date"
 }
 
 // Golden records
 golden_records: {
-  _key: "entity_id",
-  cluster_id: "reference_to_cluster",
-  consolidated_data: {
-    // Merged and cleaned entity data
-  },
-  source_records: ["customer_id_1", "customer_id_2", ...],
-  quality_score: 0.97,
-  created_at: "iso_date"
+ _key: "entity_id",
+ cluster_id: "reference_to_cluster",
+ consolidated_data: {
+ // Merged and cleaned entity data
+ },
+ source_records: ["customer_id_1", "customer_id_2", ...],
+ quality_score: 0.97,
+ created_at: "iso_date"
 }
 ```
 
@@ -768,25 +768,25 @@ golden_records: {
 // N-gram analyzer for handling typos and variations
 // Converts "John Doe" -> ["joh", "ohn", "hn ", " do", "doe"]
 db._create("ngram_analyzer", "text", {
-  locale: "en.utf-8",
-  stopwords: [],
-  case: "lower",
-  accent: false,
-  stemming: false,
-  ngram: {
-    min: 3,
-    max: 3,
-    preserveOriginal: true
-  }
+ locale: "en.utf-8",
+ stopwords: [],
+ case: "lower",
+ accent: false,
+ stemming: false,
+ ngram: {
+ min: 3,
+ max: 3,
+ preserveOriginal: true
+ }
 });
 
 // Phonetic analyzer for name variations
 db._create("phonetic_analyzer", "text", {
-  locale: "en.utf-8",
-  case: "lower",
-  accent: false,
-  stemming: false,
-  // Add phonetic algorithms like Soundex, Metaphone
+ locale: "en.utf-8",
+ case: "lower",
+ accent: false,
+ stemming: false,
+ // Add phonetic algorithms like Soundex, Metaphone
 });
 ```
 
@@ -794,33 +794,33 @@ db._create("phonetic_analyzer", "text", {
 ```javascript
 // Primary blocking view using multiple analyzers
 customers_blocking_view: {
-  links: {
-    customers: {
-      analyzers: [
-        "identity",        // Exact matches
-        "ngram_analyzer",  // Typo tolerance
-        "phonetic_analyzer" // Name variations
-      ],
-      includeAllFields: true,
-      fields: {
-        first_name: { 
-          analyzers: ["ngram_analyzer", "phonetic_analyzer"] 
-        },
-        last_name: { 
-          analyzers: ["ngram_analyzer", "phonetic_analyzer"] 
-        },
-        address: { 
-          analyzers: ["ngram_analyzer"] 
-        },
-        email: { 
-          analyzers: ["identity"] 
-        },
-        phone: { 
-          analyzers: ["identity"] 
-        }
-      }
-    }
-  }
+ links: {
+ customers: {
+ analyzers: [
+ "identity", // Exact matches
+ "ngram_analyzer", // Typo tolerance
+ "phonetic_analyzer" // Name variations
+ ],
+ includeAllFields: true,
+ fields: {
+ first_name: { 
+ analyzers: ["ngram_analyzer", "phonetic_analyzer"] 
+ },
+ last_name: { 
+ analyzers: ["ngram_analyzer", "phonetic_analyzer"] 
+ },
+ address: { 
+ analyzers: ["ngram_analyzer"] 
+ },
+ email: { 
+ analyzers: ["identity"] 
+ },
+ phone: { 
+ analyzers: ["identity"] 
+ }
+ }
+ }
+ }
 }
 ```
 
@@ -1020,7 +1020,7 @@ customers_blocking_view: {
 The hybrid Python/Foxx architecture with ArangoDB provides the optimal balance of performance, scalability, and development efficiency for our entity resolution system. While it introduces some complexity through the mixed codebase, the benefits significantly outweigh the costs:
 
 - **Performance**: Database-native processing eliminates network latency
-- **Scalability**: Services scale with data and processing requirements  
+- **Scalability**: Services scale with data and processing requirements 
 - **Flexibility**: Python provides rich ecosystem for orchestration and ML
 - **Future-Proof**: Architecture supports evolution of requirements
 
@@ -1062,6 +1062,6 @@ This implementation strategy provides the technical foundation for building a pr
 
 ---
 
-**Document Version**: 1.1  
-**Last Updated**: 2024-01-25  
+**Document Version**: 1.1 
+**Last Updated**: 2024-01-25 
 **Next Review**: 2024-02-01

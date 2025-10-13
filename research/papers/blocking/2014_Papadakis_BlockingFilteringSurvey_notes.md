@@ -4,7 +4,7 @@
 
 **Publication**: Comprehensive survey paper on blocking techniques
 
-**Relevance to Project**: ⭐⭐⭐⭐⭐ (Core Foundation)
+**Relevance to Project**: (Core Foundation)
 
 ## Abstract Summary
 
@@ -19,19 +19,19 @@ This comprehensive survey categorizes and reviews a wide range of blocking and f
 
 ### Blocking Techniques Covered
 1. **Traditional Blocking**
-   - Standard blocking with exact key matching
-   - Sorted neighborhood method
-   - Canopy clustering
+ - Standard blocking with exact key matching
+ - Sorted neighborhood method
+ - Canopy clustering
 
 2. **Advanced Blocking**
-   - Q-gram based blocking
-   - Suffix array blocking
-   - LSH (Locality Sensitive Hashing)
+ - Q-gram based blocking
+ - Suffix array blocking
+ - LSH (Locality Sensitive Hashing)
 
 3. **Meta-blocking**
-   - Block filtering techniques
-   - Block processing strategies
-   - Redundancy elimination
+ - Block filtering techniques
+ - Block processing strategies
+ - Redundancy elimination
 
 ## Relevant Findings for Our Project
 
@@ -56,9 +56,9 @@ This comprehensive survey categorizes and reviews a wide range of blocking and f
 ```python
 # Example blocking keys from paper concepts:
 blocking_keys = {
-    'phonetic': soundex(last_name) + first_name[0],
-    'geographic': city[:3] + state,
-    'identifier': phone[-4:] if phone else email.split('@')[0][:3]
+ 'phonetic': soundex(last_name) + first_name[0],
+ 'geographic': city[:3] + state,
+ 'identifier': phone[-4:] if phone else email.split('@')[0][:3]
 }
 ```
 
@@ -80,7 +80,7 @@ blocking_keys = {
 
 ### Quality Metrics
 - **Precision**: True matches / All identified matches
-- **Recall**: True matches / All actual matches  
+- **Recall**: True matches / All actual matches 
 - **F1-Score**: Harmonic mean of precision and recall
 
 ### Efficiency Metrics

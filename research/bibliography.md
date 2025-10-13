@@ -5,105 +5,105 @@ This bibliography contains all academic papers and research materials relevant t
 ## Core Foundation Papers (From PRD)
 
 ### 1. Blocking and Filtering Techniques
-**Papadakis, G., Papapetrou, O., Palpanas, T., & Koubarakis, M.**  
-*"A Survey of Blocking and Filtering Techniques for Entity Resolution"*  
-**Status**: Research notes available → [blocking/2014_Papadakis_BlockingFilteringSurvey_notes.md](papers/blocking/2014_Papadakis_BlockingFilteringSurvey_notes.md)  
-**Importance**: ⭐⭐⭐⭐⭐ Core blocking strategy foundation
+**Papadakis, G., Papapetrou, O., Palpanas, T., & Koubarakis, M.** 
+*"A Survey of Blocking and Filtering Techniques for Entity Resolution"* 
+**Status**: Research notes available → [blocking/2014_Papadakis_BlockingFilteringSurvey_notes.md](papers/blocking/2014_Papadakis_BlockingFilteringSurvey_notes.md) 
+**Importance**: Core blocking strategy foundation
 
-### 2. Probabilistic Record Linkage Foundation  
-**Fellegi, I. P., & Sunter, A. B. (1969)**  
-*"A Theory for Record Linkage"*  
-Journal of the American Statistical Association, 64(328), 1183-1210  
-**DOI**: 10.1080/01621459.1969.10501049  
-**Status**: Research notes available → [similarity/1969_Fellegi_ProbabilisticRecordLinkage_notes.md](papers/similarity/1969_Fellegi_ProbabilisticRecordLinkage_notes.md)  
-**Importance**: ⭐⭐⭐⭐⭐ Foundational theoretical framework
+### 2. Probabilistic Record Linkage Foundation 
+**Fellegi, I. P., & Sunter, A. B. (1969)** 
+*"A Theory for Record Linkage"* 
+Journal of the American Statistical Association, 64(328), 1183-1210 
+**DOI**: 10.1080/01621459.1969.10501049 
+**Status**: Research notes available → [similarity/1969_Fellegi_ProbabilisticRecordLinkage_notes.md](papers/similarity/1969_Fellegi_ProbabilisticRecordLinkage_notes.md) 
+**Importance**: Foundational theoretical framework
 
 ### 3. Scalable Entity Resolution Framework
-**Köpcke, H., & Thor, A.**  
-*"The Dedoop Framework for Scalable Entity Resolution"*  
-**Status**: Referenced in PRD, research notes needed  
-**Importance**: ⭐⭐⭐⭐ Scalability considerations
+**Köpcke, H., & Thor, A.** 
+*"The Dedoop Framework for Scalable Entity Resolution"* 
+**Status**: Referenced in PRD, research notes needed 
+**Importance**: Scalability considerations
 
 ### 4. Comparative Blocking Analysis
-**Papadakis, G., et al.**  
-*"A Comparative Analysis of Approximate Blocking Techniques for Entity Resolution"*  
-**Status**: Referenced in PRD, research notes needed  
-**Importance**: ⭐⭐⭐⭐ Practical blocking method comparison
+**Papadakis, G., et al.** 
+*"A Comparative Analysis of Approximate Blocking Techniques for Entity Resolution"* 
+**Status**: Referenced in PRD, research notes needed 
+**Importance**: Practical blocking method comparison
 
 ### 5. End-to-End System Design
-**Doan, A., Ardalan, A., Naughton, J. R., & Ramakrishnan, R. (2016)**  
-*"Magellan: Toward Building Entity Matching Management Systems"*  
-VLDB Endowment  
-**Status**: Research notes available → [systems/2016_Doan_MagellanEntityMatching_notes.md](papers/systems/2016_Doan_MagellanEntityMatching_notes.md)  
-**Importance**: ⭐⭐⭐⭐⭐ Complete system architecture
+**Doan, A., Ardalan, A., Naughton, J. R., & Ramakrishnan, R. (2016)** 
+*"Magellan: Toward Building Entity Matching Management Systems"* 
+VLDB Endowment 
+**Status**: Research notes available → [systems/2016_Doan_MagellanEntityMatching_notes.md](papers/systems/2016_Doan_MagellanEntityMatching_notes.md) 
+**Importance**: Complete system architecture
 
 ## Modern Survey Papers
 
 ### Comprehensive Entity Resolution Overview
-**Christophides, V., Efthymiou, V., Palpanas, T., Papadakis, G., & Stefanidis, K.**  
-*"End-to-End Entity Resolution for Big Data: A Survey"*  
-arXiv:1905.06397  
-**URL**: https://arxiv.org/abs/1905.06397  
-**Status**: Available online, notes needed  
-**Importance**: ⭐⭐⭐⭐ Modern comprehensive overview
+**Christophides, V., Efthymiou, V., Palpanas, T., Papadakis, G., & Stefanidis, K.** 
+*"End-to-End Entity Resolution for Big Data: A Survey"* 
+arXiv:1905.06397 
+**URL**: https://arxiv.org/abs/1905.06397 
+**Status**: Available online, notes needed 
+**Importance**: Modern comprehensive overview
 
 ## Graph-Based Approaches
 
 ### Knowledge Graph Entity Resolution
-**Obraczka, D., Schuchart, J., & Rahm, E.**  
-*"EAGER: Embedding-Assisted Entity Resolution for Knowledge Graphs"*  
-arXiv:2101.06126  
-**URL**: https://arxiv.org/abs/2101.06126  
-**Status**: Available online, notes needed  
-**Importance**: ⭐⭐⭐ Graph embedding techniques
+**Obraczka, D., Schuchart, J., & Rahm, E.** 
+*"EAGER: Embedding-Assisted Entity Resolution for Knowledge Graphs"* 
+arXiv:2101.06126 
+**URL**: https://arxiv.org/abs/2101.06126 
+**Status**: Available online, notes needed 
+**Importance**: Graph embedding techniques
 
 ### Statistical Relational Methods
-**Pujara, J., & Getoor, L.**  
-*"Generic Statistical Relational Entity Resolution in Knowledge Graphs"*  
-arXiv:1607.00992  
-**URL**: https://arxiv.org/abs/1607.00992  
-**Status**: Available online, notes needed  
-**Importance**: ⭐⭐⭐ Statistical graph methods
+**Pujara, J., & Getoor, L.** 
+*"Generic Statistical Relational Entity Resolution in Knowledge Graphs"* 
+arXiv:1607.00992 
+**URL**: https://arxiv.org/abs/1607.00992 
+**Status**: Available online, notes needed 
+**Importance**: Statistical graph methods
 
 ## Specialized Techniques
 
 ### Heterogeneous Data Handling
-**Author information needed**  
-*"Efficient Entity Resolution on Heterogeneous Records"*  
-arXiv:1610.09500  
-**URL**: https://arxiv.org/abs/1610.09500  
-**Status**: Available online, notes needed  
-**Importance**: ⭐⭐⭐ Schema heterogeneity solutions
+**Author information needed** 
+*"Efficient Entity Resolution on Heterogeneous Records"* 
+arXiv:1610.09500 
+**URL**: https://arxiv.org/abs/1610.09500 
+**Status**: Available online, notes needed 
+**Importance**: Schema heterogeneity solutions
 
 ### Multi-Intent Resolution
-**Author information needed**  
-*"FlexER: Flexible Entity Resolution for Multiple Intents"*  
-arXiv:2209.07569  
-**URL**: https://arxiv.org/abs/2209.07569  
-**Status**: Available online, notes needed  
-**Importance**: ⭐⭐ Advanced flexible approaches
+**Author information needed** 
+*"FlexER: Flexible Entity Resolution for Multiple Intents"* 
+arXiv:2209.07569 
+**URL**: https://arxiv.org/abs/2209.07569 
+**Status**: Available online, notes needed 
+**Importance**: Advanced flexible approaches
 
 ## ArangoDB-Specific Resources
 
 ### Official Documentation and Tutorials
-**ArangoDB Inc.**  
-*"Entity Resolution in ArangoDB"*  
-**URL**: https://arangodb.com/entity-resolution/  
-**Status**: Available online  
-**Importance**: ⭐⭐⭐⭐ Platform-specific guidance
+**ArangoDB Inc.** 
+*"Entity Resolution in ArangoDB"* 
+**URL**: https://arangodb.com/entity-resolution/ 
+**Status**: Available online 
+**Importance**: Platform-specific guidance
 
-**ArangoDB Inc.**  
-*"Graph and Entity Resolution Against Cyber Fraud"*  
-**URL**: https://arangodb.com/2023/04/graph-and-entity-resolution-against-cyber-fraud/  
-**Status**: Available online  
-**Importance**: ⭐⭐⭐ Real-world use case examples
+**ArangoDB Inc.** 
+*"Graph and Entity Resolution Against Cyber Fraud"* 
+**URL**: https://arangodb.com/2023/04/graph-and-entity-resolution-against-cyber-fraud/ 
+**Status**: Available online 
+**Importance**: Real-world use case examples
 
 ### Technical Sessions
-**ArangoDB Inc.**  
-*"Graph & Beyond Lunch Break #15: Entity Resolution"*  
-**URL**: https://arangodb.com/resources/lunch-sessions/graph-beyond-lunch-break-15-entity-resolution/  
-**Status**: Video session available  
-**Importance**: ⭐⭐⭐ Practical implementation demo
+**ArangoDB Inc.** 
+*"Graph & Beyond Lunch Break #15: Entity Resolution"* 
+**URL**: https://arangodb.com/resources/lunch-sessions/graph-beyond-lunch-break-15-entity-resolution/ 
+**Status**: Video session available 
+**Importance**: Practical implementation demo
 
 ## Research Gaps and Future Work
 
@@ -138,14 +138,14 @@ When implementing algorithms from papers:
 
 ```python
 def algorithm_implementation():
-    """
-    Implementation based on:
-    Author, A. B. (Year). "Paper Title". Conference/Journal.
-    
-    Original algorithm description on page X.
-    Adapted for ArangoDB with modifications for [specific reasons].
-    """
-    pass
+ """
+ Implementation based on:
+ Author, A. B. (Year). "Paper Title". Conference/Journal.
+ 
+ Original algorithm description on page X.
+ Adapted for ArangoDB with modifications for [specific reasons].
+ """
+ pass
 ```
 
 ## Research Workflow
@@ -176,20 +176,20 @@ For each paper, create notes covering:
 ## Status Summary
 
 ### Completed Research Notes
-- ✅ Papadakis Blocking Survey (core concepts)
-- ✅ Fellegi-Sunter Foundation (theoretical framework)  
-- ✅ Magellan System Design (architecture principles)
+- Papadakis Blocking Survey (core concepts)
+- Fellegi-Sunter Foundation (theoretical framework) 
+- Magellan System Design (architecture principles)
 
 ### Priority Research Needed
-- 🔄 Dedoop Scalability Framework
-- 🔄 Comparative Blocking Analysis
-- 🔄 Modern Big Data Survey (Christophides et al.)
+- Dedoop Scalability Framework
+- Comparative Blocking Analysis
+- Modern Big Data Survey (Christophides et al.)
 
 ### Implementation Ready
-- ✅ Basic blocking key strategies
-- ✅ Fellegi-Sunter similarity scoring
-- ✅ Modular system architecture
-- 🔄 Advanced blocking techniques
-- 🔄 Machine learning integration
+- Basic blocking key strategies
+- Fellegi-Sunter similarity scoring
+- Modular system architecture
+- Advanced blocking techniques
+- Machine learning integration
 
 This bibliography serves as the central hub for all research materials supporting our ArangoDB Entity Resolution project development.

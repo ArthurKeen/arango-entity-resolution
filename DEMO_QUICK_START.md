@@ -1,6 +1,6 @@
 # Entity Resolution Demo - Quick Start Guide
 
-## 🚀 One-Minute Demo Launch
+## One-Minute Demo Launch
 
 ```bash
 # 1. Start ArangoDB (if not running)
@@ -10,12 +10,12 @@
 python demo/launch_presentation_demo.py
 
 # 3. Choose your demo type:
-#    Option 1: Interactive Presentation (45-60 min)
-#    Option 3: Quick Demo (15-20 min)
-#    Option 6: Environment Check
+# Option 1: Interactive Presentation (45-60 min)
+# Option 3: Quick Demo (15-20 min)
+# Option 6: Environment Check
 ```
 
-## 📋 Demo Options
+## Demo Options
 
 | Demo Type | Duration | Use Case | Command |
 |-----------|----------|----------|---------|
@@ -24,7 +24,7 @@ python demo/launch_presentation_demo.py
 | **Quick Demo** | 15-20 min | Time-constrained presentations | Option 3 |
 | **Automated Demo** | 5-10 min | Testing and validation | Option 4 |
 
-## 🎯 What Each Demo Shows
+## What Each Demo Shows
 
 ### Interactive Presentation Demo
 - **Act 1**: Reveal duplicate customer problem (John Smith examples)
@@ -42,7 +42,7 @@ python demo/launch_presentation_demo.py
 - Key highlights only
 - Business impact focus
 
-## 💰 Business Impact Examples
+## Business Impact Examples
 
 | Company Size | Customers | Duplicate Cost | Annual Savings | ROI |
 |--------------|-----------|----------------|----------------|-----|
@@ -50,7 +50,7 @@ python demo/launch_presentation_demo.py
 | Medium | 50,000 | $187,500 | $187,500 | 445% |
 | Enterprise | 500,000 | $675,000 | $675,000 | 782% |
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### If Demo Won't Start
 ```bash
@@ -67,14 +67,14 @@ python demo/launch_presentation_demo.py
 - Focus on business value presentation
 - Use slides and talking points
 
-## 📞 Demo Support
+## Demo Support
 
 - **Presentation Script**: `demo/PRESENTATION_SCRIPT.md`
 - **Technical Guide**: `docs/TESTING_SETUP.md`
 - **Business ROI**: Built into all demos
 - **Industry Examples**: Healthcare, Finance, Retail, B2B
 
-## 🎬 Demo Controls
+## Demo Controls
 
 During interactive demos:
 - **[Enter]** - Continue to next step
@@ -83,14 +83,14 @@ During interactive demos:
 - **[s]** - Skip to next major section
 - **[q]** - Quit demo
 
-## 📊 Success Metrics
+## Success Metrics
 
 Track these during presentations:
-- ✅ Audience engagement level
-- ✅ Questions about their specific challenges  
-- ✅ Interest in technical deep dive
-- ✅ Business pain points identified
-- ✅ Next steps requested
+- Audience engagement level
+- Questions about their specific challenges 
+- Interest in technical deep dive
+- Business pain points identified
+- Next steps requested
 
 ---
 **Ready to demonstrate? Run:** `python demo/launch_presentation_demo.py`

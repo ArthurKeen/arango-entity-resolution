@@ -4,7 +4,7 @@
 
 **Publication**: VLDB 2016
 
-**Relevance to Project**: ⭐⭐⭐⭐⭐ (System Architecture)
+**Relevance to Project**: (System Architecture)
 
 ## Abstract Summary
 
@@ -17,7 +17,7 @@ This paper discusses the challenges and solutions for building end-to-end entity
 
 **Pipeline Components**:
 1. **Data Preparation**: Cleaning, standardization, schema alignment
-2. **Blocking**: Candidate generation with various strategies  
+2. **Blocking**: Candidate generation with various strategies 
 3. **Matching**: Similarity computation and classification
 4. **Evaluation**: Performance assessment and debugging
 5. **Production**: Deployment and monitoring
@@ -42,11 +42,11 @@ This paper discusses the challenges and solutions for building end-to-end entity
 ```python
 # Apply Magellan's modular design to our system
 class EntityResolutionPipeline:
-    def __init__(self):
-        self.data_cleaner = DataCleaner()
-        self.blocker = BlockingManager()
-        self.matcher = SimilarityMatcher() 
-        self.evaluator = PerformanceEvaluator()
+ def __init__(self):
+ self.data_cleaner = DataCleaner()
+ self.blocker = BlockingManager()
+ self.matcher = SimilarityMatcher() 
+ self.evaluator = PerformanceEvaluator()
 ```
 
 #### Configuration Management
@@ -77,10 +77,10 @@ class EntityResolutionPipeline:
 **For Our Customer Data**:
 ```python
 blocking_strategies = [
-    PhoneticBlocking(['last_name']),
-    PrefixBlocking(['email'], prefix_length=3),
-    GeographicBlocking(['city', 'state']),
-    TokenBlocking(['address'])
+ PhoneticBlocking(['last_name']),
+ PrefixBlocking(['email'], prefix_length=3),
+ GeographicBlocking(['city', 'state']),
+ TokenBlocking(['address'])
 ]
 ```
 
@@ -114,25 +114,25 @@ blocking_strategies = [
 ```python
 # ArangoDB-native entity resolution pipeline
 class ArangoEntityResolution:
-    def __init__(self, database):
-        self.db = database
-        self.pipeline_config = self.load_config()
-    
-    def run_pipeline(self, collection_name):
-        # 1. Data preparation
-        self.prepare_data(collection_name)
-        
-        # 2. Blocking
-        candidate_pairs = self.generate_candidates(collection_name)
-        
-        # 3. Matching
-        matches = self.compute_similarities(candidate_pairs)
-        
-        # 4. Clustering
-        clusters = self.build_clusters(matches)
-        
-        # 5. Golden record creation
-        self.create_golden_records(clusters)
+ def __init__(self, database):
+ self.db = database
+ self.pipeline_config = self.load_config()
+ 
+ def run_pipeline(self, collection_name):
+ # 1. Data preparation
+ self.prepare_data(collection_name)
+ 
+ # 2. Blocking
+ candidate_pairs = self.generate_candidates(collection_name)
+ 
+ # 3. Matching
+ matches = self.compute_similarities(candidate_pairs)
+ 
+ # 4. Clustering
+ clusters = self.build_clusters(matches)
+ 
+ # 5. Golden record creation
+ self.create_golden_records(clusters)
 ```
 
 ### Phase 2: Advanced Features
@@ -153,19 +153,19 @@ class ArangoEntityResolution:
 ```javascript
 // Entity Resolution Metadata
 {
-  "pipeline_id": "customer_resolution_v2",
-  "created_at": "2024-01-15T10:30:00Z",
-  "config": {
-    "blocking_strategies": ["phonetic", "geographic"],
-    "similarity_threshold": 0.8,
-    "clustering_method": "connected_components"
-  },
-  "stats": {
-    "records_processed": 100000,
-    "candidate_pairs": 50000,
-    "matches_found": 8500,
-    "clusters_created": 4200
-  }
+ "pipeline_id": "customer_resolution_v2",
+ "created_at": "2024-01-15T10:30:00Z",
+ "config": {
+ "blocking_strategies": ["phonetic", "geographic"],
+ "similarity_threshold": 0.8,
+ "clustering_method": "connected_components"
+ },
+ "stats": {
+ "records_processed": 100000,
+ "candidate_pairs": 50000,
+ "matches_found": 8500,
+ "clusters_created": 4200
+ }
 }
 ```
 

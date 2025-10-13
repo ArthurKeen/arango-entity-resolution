@@ -4,7 +4,7 @@
 
 **Publication**: Journal of the American Statistical Association, 1969
 
-**Relevance to Project**: ⭐⭐⭐⭐⭐ (Foundational Theory)
+**Relevance to Project**: (Foundational Theory)
 
 ## Abstract Summary
 
@@ -18,12 +18,12 @@ This is the foundational paper in probabilistic record linkage that introduces t
 
 **Mathematical Foundation**:
 - **m-probability**: P(agreement | records match)
-- **u-probability**: P(agreement | records don't match)  
+- **u-probability**: P(agreement | records don't match) 
 - **Weight calculation**: log(m/u) for agreement, log((1-m)/(1-u)) for disagreement
 
 ### Decision Rules
 1. **Link**: Total weight > upper threshold
-2. **Non-link**: Total weight < lower threshold  
+2. **Non-link**: Total weight < lower threshold 
 3. **Possible link**: Weight between thresholds (requires manual review)
 
 ## Core Concepts for Implementation
@@ -50,14 +50,14 @@ After blocking reduces candidate pairs, apply Fellegi-Sunter scoring:
 
 ```python
 def fellegi_sunter_score(record1, record2, field_weights):
-    """Calculate Fellegi-Sunter similarity score"""
-    score = 0
-    for field, (m_prob, u_prob) in field_weights.items():
-        if records_agree(record1[field], record2[field]):
-            score += math.log(m_prob / u_prob)
-        else:
-            score += math.log((1 - m_prob) / (1 - u_prob))
-    return score
+ """Calculate Fellegi-Sunter similarity score"""
+ score = 0
+ for field, (m_prob, u_prob) in field_weights.items():
+ if records_agree(record1[field], record2[field]):
+ score += math.log(m_prob / u_prob)
+ else:
+ score += math.log((1 - m_prob) / (1 - u_prob))
+ return score
 ```
 
 ### For Customer Data Fields
@@ -149,18 +149,18 @@ def fellegi_sunter_score(record1, record2, field_weights):
 ```javascript
 // Store match relationships with FS scores
 {
-  "_from": "customers/123",
-  "_to": "customers/456", 
-  "similarity_score": 8.5,
-  "fellegi_sunter_weight": 12.3,
-  "field_agreements": {
-    "email": true,
-    "phone": true,
-    "last_name": false,
-    "address": true
-  },
-  "match_probability": 0.95,
-  "decision": "link"  // link, non-link, or review
+ "_from": "customers/123",
+ "_to": "customers/456", 
+ "similarity_score": 8.5,
+ "fellegi_sunter_weight": 12.3,
+ "field_agreements": {
+ "email": true,
+ "phone": true,
+ "last_name": false,
+ "address": true
+ },
+ "match_probability": 0.95,
+ "decision": "link" // link, non-link, or review
 }
 ```
 
@@ -168,11 +168,11 @@ def fellegi_sunter_score(record1, record2, field_weights):
 ```javascript
 // Store FS parameters
 {
-  "field": "email",
-  "m_probability": 0.95,
-  "u_probability": 0.001,
-  "comparison_type": "exact",
-  "weight": 6.55  // log(m/u)
+ "field": "email",
+ "m_probability": 0.95,
+ "u_probability": 0.001,
+ "comparison_type": "exact",
+ "weight": 6.55 // log(m/u)
 }
 ```
 

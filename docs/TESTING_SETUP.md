@@ -9,21 +9,21 @@ Before setting up the testing environment, ensure you have the following install
 ### Required Software
 
 1. **Docker** (v20.0 or higher)
-   - Download: https://docs.docker.com/get-docker/
-   - Verify installation: `docker --version`
-   - **Note**: ArangoDB 3.12 requires Docker for Windows and macOS users (native support discontinued)
+ - Download: https://docs.docker.com/get-docker/
+ - Verify installation: `docker --version`
+ - **Note**: ArangoDB 3.12 requires Docker for Windows and macOS users (native support discontinued)
 
 2. **Docker Compose** (v2.0 or higher)
-   - Usually included with Docker Desktop
-   - Verify installation: `docker-compose --version`
+ - Usually included with Docker Desktop
+ - Verify installation: `docker-compose --version`
 
 3. **Python 3.8+**
-   - Download: https://www.python.org/downloads/
-   - Verify installation: `python3 --version`
+ - Download: https://www.python.org/downloads/
+ - Verify installation: `python3 --version`
 
 4. **pip (Python package manager)**
-   - Usually included with Python
-   - Verify installation: `pip3 --version`
+ - Usually included with Python
+ - Verify installation: `pip3 --version`
 
 ### System Requirements
 
@@ -47,49 +47,49 @@ cd arango-entity-resolution-record-blocking
 ```
 
 This script will:
-- ✅ Verify all prerequisites
-- 📁 Create the data directory at `~/data`
-- 🔧 Create environment configuration
-- 📦 Install Python dependencies
-- 🐳 Start ArangoDB in Docker
-- 🗄️ Create test database and schema
-- 📊 Load sample data
+- Verify all prerequisites
+- Create the data directory at `~/data`
+- Create environment configuration
+- Install Python dependencies
+- Start ArangoDB in Docker
+- Create test database and schema
+- Load sample data
 
 ### Manual Setup
 
 If you prefer manual setup or need to troubleshoot:
 
 1. **Create Data Directory**
-   ```bash
-   mkdir -p ~/data
-   ```
+ ```bash
+ mkdir -p ~/data
+ ```
 
 2. **Configure Environment**
-   ```bash
-   cp env.example .env
-   # Edit .env if needed
-   ```
+ ```bash
+ cp env.example .env
+ # Edit .env if needed
+ ```
 
 3. **Install Python Dependencies**
-   ```bash
-   pip3 install -r requirements.txt
-   ```
+ ```bash
+ pip3 install -r requirements.txt
+ ```
 
 4. **Start ArangoDB**
-   ```bash
-   docker-compose up -d
-   ```
+ ```bash
+ docker-compose up -d
+ ```
 
 5. **Create Database and Schema**
-   ```bash
-   python3 scripts/database/manage_db.py create --database entity_resolution_test
-   python3 scripts/database/manage_db.py init --database entity_resolution_test
-   ```
+ ```bash
+ python3 scripts/database/manage_db.py create --database entity_resolution_test
+ python3 scripts/database/manage_db.py init --database entity_resolution_test
+ ```
 
 6. **Load Sample Data**
-   ```bash
-   python3 scripts/database/manage_db.py load-data --database entity_resolution_test --data-file data/sample/customers_sample.json
-   ```
+ ```bash
+ python3 scripts/database/manage_db.py load-data --database entity_resolution_test --data-file data/sample/customers_sample.json
+ ```
 
 ## Configuration
 
@@ -99,7 +99,7 @@ The system uses environment variables for configuration. Key settings in `.env`:
 
 ```bash
 # ArangoDB Configuration
-ARANGO_ROOT_PASSWORD=testpassword123  # Change for production
+ARANGO_ROOT_PASSWORD=testpassword123 # Change for production
 ARANGO_NO_AUTH=false
 
 # Database Configuration
@@ -185,53 +185,53 @@ python3 scripts/crud/crud_operations.py clear --collection customers
 ### Basic Testing Workflow
 
 1. **Start Environment**
-   ```bash
-   ./scripts/setup.sh
-   ```
+ ```bash
+ ./scripts/setup.sh
+ ```
 
 2. **Verify Setup**
-   ```bash
-   python3 scripts/crud/crud_operations.py count --collection customers
-   # Should show 10 sample customers
-   ```
+ ```bash
+ python3 scripts/crud/crud_operations.py count --collection customers
+ # Should show 10 sample customers
+ ```
 
 3. **Test CRUD Operations**
-   ```bash
-   # Create a test customer
-   python3 scripts/crud/crud_operations.py create-customer --data '{"first_name": "Test", "last_name": "User", "email": "test@example.com", "city": "TestCity"}'
-   
-   # Search for the customer
-   python3 scripts/crud/crud_operations.py search-customers --query '{"city": "TestCity"}'
-   ```
+ ```bash
+ # Create a test customer
+ python3 scripts/crud/crud_operations.py create-customer --data '{"first_name": "Test", "last_name": "User", "email": "test@example.com", "city": "TestCity"}'
+ 
+ # Search for the customer
+ python3 scripts/crud/crud_operations.py search-customers --query '{"city": "TestCity"}'
+ ```
 
 4. **Test Entity Resolution Features**
-   ```bash
-   # Get potential matches for a record
-   python3 scripts/crud/crud_operations.py get-matches --id customers/1
-   
-   # Check blocking keys
-   python3 scripts/crud/crud_operations.py get-blocking-keys --id customers/1
-   ```
+ ```bash
+ # Get potential matches for a record
+ python3 scripts/crud/crud_operations.py get-matches --id customers/1
+ 
+ # Check blocking keys
+ python3 scripts/crud/crud_operations.py get-blocking-keys --id customers/1
+ ```
 
 ### Advanced Testing
 
 1. **Create Multiple Test Databases**
-   ```bash
-   python3 scripts/database/manage_db.py create --database test_scenario_1
-   python3 scripts/database/manage_db.py create --database test_scenario_2
-   ```
+ ```bash
+ python3 scripts/database/manage_db.py create --database test_scenario_1
+ python3 scripts/database/manage_db.py create --database test_scenario_2
+ ```
 
 2. **Load Different Datasets**
-   ```bash
-   # Create custom test data files in data/sample/
-   python3 scripts/database/manage_db.py load-data --database test_scenario_1 --data-file data/sample/custom_data.json
-   ```
+ ```bash
+ # Create custom test data files in data/sample/
+ python3 scripts/database/manage_db.py load-data --database test_scenario_1 --data-file data/sample/custom_data.json
+ ```
 
 3. **Isolated Testing**
-   ```bash
-   # Use different database for each test
-   python3 scripts/crud/crud_operations.py --database test_scenario_1 count --collection customers
-   ```
+ ```bash
+ # Use different database for each test
+ python3 scripts/crud/crud_operations.py --database test_scenario_1 count --collection customers
+ ```
 
 ## Sample Data Structure
 
@@ -258,65 +258,65 @@ The system includes sample data with the following characteristics:
 ### Common Issues
 
 1. **Docker Not Starting**
-   ```bash
-   # Check Docker status
-   docker info
-   
-   # Restart Docker service
-   sudo systemctl restart docker  # Linux
-   # Or restart Docker Desktop
-   ```
+ ```bash
+ # Check Docker status
+ docker info
+ 
+ # Restart Docker service
+ sudo systemctl restart docker # Linux
+ # Or restart Docker Desktop
+ ```
 
 2. **ArangoDB Connection Failed**
-   ```bash
-   # Check if container is running
-   docker-compose ps
-   
-   # View ArangoDB logs
-   docker-compose logs arangodb
-   
-   # Restart ArangoDB
-   docker-compose restart arangodb
-   ```
+ ```bash
+ # Check if container is running
+ docker-compose ps
+ 
+ # View ArangoDB logs
+ docker-compose logs arangodb
+ 
+ # Restart ArangoDB
+ docker-compose restart arangodb
+ ```
 
 3. **Python Dependencies Issues**
-   ```bash
-   # Upgrade pip
-   pip3 install --upgrade pip
-   
-   # Reinstall dependencies
-   pip3 install -r requirements.txt --force-reinstall
-   ```
+ ```bash
+ # Upgrade pip
+ pip3 install --upgrade pip
+ 
+ # Reinstall dependencies
+ pip3 install -r requirements.txt --force-reinstall
+ ```
 
 4. **Permission Errors**
-   ```bash
-   # Make scripts executable
-   chmod +x scripts/*.sh scripts/*/*.py
-   
-   # Fix data directory permissions
-   sudo chown -R $USER:$USER ~/data
-   ```
+ ```bash
+ # Make scripts executable
+ chmod +x scripts/*.sh scripts/*/*.py
+ 
+ # Fix data directory permissions
+ sudo chown -R $USER:$USER ~/data
+ ```
 
 ### Port Conflicts
 
 If port 8529 is already in use:
 
 1. **Find the conflicting process**
-   ```bash
-   lsof -i :8529
-   ```
+ ```bash
+ lsof -i :8529
+ ```
 
 2. **Change the port in docker-compose.yml**
-   ```yaml
-   ports:
-     - "8530:8529"  # Use port 8530 instead
-   ```
+ ```yaml
+ ports:
+ - "8530:8529" # Use port 8530 instead
+ ```
 
 3. **Update environment variables**
-   ```bash
-   # In .env file
-   ARANGO_PORT=8530
-   ```
+ ```bash
+ # In .env file
+ ARANGO_PORT=8530
+ ```
 
 ## Cleanup
 
@@ -332,8 +332,8 @@ docker-compose down
 ./scripts/teardown.sh
 
 # Or manually:
-docker-compose down -v  # Remove containers and volumes
-rm -rf ~/data           # Remove local data (optional)
+docker-compose down -v # Remove containers and volumes
+rm -rf ~/data # Remove local data (optional)
 ```
 
 ## Security Notes
@@ -360,19 +360,19 @@ Modify `docker-compose.yml` for advanced configurations:
 
 ```yaml
 services:
-  arangodb:
-    image: arangodb:3.12
-    environment:
-      ARANGO_ROOT_PASSWORD: your_secure_password
-      # Add custom configurations
-    volumes:
-      - ${HOME}/data:/data
-      - ./custom-config:/etc/arangodb3  # Custom config files
-    command: >
-      arangod
-      --server.endpoint tcp://0.0.0.0:8529
-      --server.authentication true
-      --log.level debug  # Change log level
+ arangodb:
+ image: arangodb:3.12
+ environment:
+ ARANGO_ROOT_PASSWORD: your_secure_password
+ # Add custom configurations
+ volumes:
+ - ${HOME}/data:/data
+ - ./custom-config:/etc/arangodb3 # Custom config files
+ command: >
+ arangod
+ --server.endpoint tcp://0.0.0.0:8529
+ --server.authentication true
+ --log.level debug # Change log level
 ```
 
 ### Performance Tuning
@@ -382,16 +382,16 @@ For large datasets, consider these optimizations:
 ```yaml
 # In docker-compose.yml
 services:
-  arangodb:
-    environment:
-      # Increase memory
-      ARANGO_STORAGE_ENGINE: rocksdb
-    deploy:
-      resources:
-        limits:
-          memory: 4G
-        reservations:
-          memory: 2G
+ arangodb:
+ environment:
+ # Increase memory
+ ARANGO_STORAGE_ENGINE: rocksdb
+ deploy:
+ resources:
+ limits:
+ memory: 4G
+ reservations:
+ memory: 2G
 ```
 
 ## Integration with CI/CD
@@ -403,26 +403,26 @@ name: Entity Resolution Tests
 on: [push, pull_request]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
-      - name: Start ArangoDB
-        run: |
-          docker-compose up -d
-          sleep 30  # Wait for startup
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Setup test database
-        run: |
-          python3 scripts/database/manage_db.py create --database ci_test
-          python3 scripts/database/manage_db.py init --database ci_test
-      - name: Run tests
-        run: pytest tests/
+ test:
+ runs-on: ubuntu-latest
+ steps:
+ - uses: actions/checkout@v2
+ - name: Setup Python
+ uses: actions/setup-python@v2
+ with:
+ python-version: '3.9'
+ - name: Start ArangoDB
+ run: |
+ docker-compose up -d
+ sleep 30 # Wait for startup
+ - name: Install dependencies
+ run: pip install -r requirements.txt
+ - name: Setup test database
+ run: |
+ python3 scripts/database/manage_db.py create --database ci_test
+ python3 scripts/database/manage_db.py init --database ci_test
+ - name: Run tests
+ run: pytest tests/
 ```
 
 This comprehensive testing setup provides a solid foundation for developing and testing your ArangoDB entity resolution system with full Docker support, automated setup, and extensive documentation for third-party users.
