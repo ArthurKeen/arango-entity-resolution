@@ -196,11 +196,11 @@ The entity resolution process follows a systematic 5-stage pipeline:
 4. **Similarity** → **Clustering**: Scored pairs → Group entities (Connected Components, Validation, Scoring)
 5. **Clustering** → **Golden Records**: Entity groups → Create masters (Best Data, Conflict Resolution, Lineage)
 
-![Complete Pipeline Flow](docs/diagrams/workflow.svg)
+> See the [Entity Resolution Workflow diagram](#entity-resolution-workflow) above for visual representation.
 
 ### **Detailed Workflow Stages**
 
-The entity resolution process consists of five detailed stages:
+The entity resolution process consists of five detailed stages (see [workflow diagram](#entity-resolution-workflow) above):
 
 **Stage 1: Data Ingestion & Preprocessing**
 - Raw data sources → Data quality assessment → Schema normalization → ArangoDB document store
@@ -217,11 +217,9 @@ The entity resolution process consists of five detailed stages:
 **Stage 5: Golden Record Generation**
 - Entity clusters → Source prioritization → Conflict resolution → Master record creation
 
-![Detailed Workflow Stages](docs/diagrams/workflow.svg)
+### **Performance & Scalability**
 
-### **Performance & Scalability Flow**
-
-The system demonstrates exceptional scalability through record blocking:
+The system demonstrates exceptional scalability through record blocking (see [workflow diagram](#entity-resolution-workflow) for the complete pipeline):
 
 **Scale Analysis:**
 - **10K Records**: Naive 50M pairs → Blocked 500K pairs → 2 seconds
@@ -234,8 +232,6 @@ The system demonstrates exceptional scalability through record blocking:
 - **Linear scalability** with record blocking optimization
 - **Sub-second response** for real-time applications
 - **Horizontal scaling** with ArangoDB cluster coordination
-
-![Performance & Scalability](docs/diagrams/workflow.svg)
 
 ### **Competitive Advantages**
 
