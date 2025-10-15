@@ -1,4 +1,4 @@
-# ArangoDB Entity Resolution with Record Blocking
+# ArangoDB Advanced Entity Resolution System
 
 ## Business Value & Impact
 
@@ -22,7 +22,34 @@ Entity resolution is a critical data quality challenge that directly impacts bus
 - **Market Segmentation**: Precise customer profiling for targeted product development
 - **Operational Efficiency**: Streamlined processes through automated data consolidation
 
-## Why ArangoDB for Entity Resolution?
+## Advanced Entity Resolution Techniques
+
+This system implements a comprehensive, multi-stage entity resolution pipeline that combines traditional and cutting-edge AI/ML techniques:
+
+### **1. Record Blocking (Foundation)**
+**Full-Text Search for Candidate Generation** - The essential first step that makes large-scale entity resolution computationally feasible by reducing O(n²) comparisons to O(n).
+
+### **2. Graph Algorithms (Network Analysis)**
+**Weakly Connected Components** - Identify entities connected through shared attributes (phone numbers, emails, addresses) to discover potential aliases and entity networks.
+
+### **3. GraphML & Embeddings (Behavioral Analysis)**
+**Vertex and Edge Embeddings** - Create vector representations of entities and their connections (behavioral patterns) to identify similar entities through geometric proximity in embedding space.
+
+### **4. Vector Search (Semantic Similarity)**
+**ArangoSearch Vector Capabilities** - Use embedding-based similarity to find entities that are semantically related, even without exact attribute matches.
+
+### **5. GraphRAG & LLM Entity Extraction**
+**Generative AI Document Processing** - Extract entities from unstructured documents using LLMs, with embeddings enabling semantic similarity-based entity resolution across document collections.
+
+### **6. Geospatial Analysis (Temporal-Spatial Validation)**
+**Location-Time Verification** - Determine whether similar entities are at the same place at the same time as confirmation for deduplication, or reject matches when proven to be in different locations simultaneously.
+
+### **7. LLM-Based Curation (Intelligent Decision Making)**
+**AI-Powered Match Evaluation** - Use Large Language Models to act as automated curators, evaluating similarity evidence from multiple techniques to make final entity resolution decisions with human-like reasoning.
+
+---
+
+## Why ArangoDB for Advanced Entity Resolution?
 
 ### **The Multi-Model Advantage**
 
@@ -48,6 +75,20 @@ Traditional entity resolution bottleneck: comparing every record with every othe
 - **Custom Analyzers**: Phonetic (Soundex), n-gram, stemming, and text normalization
 - **Real-Time Indexing**: Immediate search availability as data loads
 - **Fuzzy Matching**: Built-in edit distance, token matching, and similarity scoring
+
+#### **Vector Search & Embeddings**
+Modern AI-powered entity resolution through semantic similarity:
+- **Native Vector Support**: Store and search high-dimensional embeddings directly in ArangoDB
+- **GraphML Integration**: Generate node and edge embeddings from graph structure
+- **ANN Search**: Approximate Nearest Neighbor search for fast similarity queries
+- **Multi-Modal Embeddings**: Support for text, behavioral, and structural embeddings
+
+#### **Geospatial Capabilities**
+Location and time-based entity validation:
+- **Native Geospatial Indexes**: GeoJSON support with spatial queries
+- **Distance Calculations**: Determine if entities could be at same location
+- **Temporal Queries**: Time-based filtering and validation
+- **Spatial-Temporal Joins**: Correlate entity movements and interactions
 
 ### **Why Record Blocking as Our Foundation**
 
@@ -182,21 +223,45 @@ The system leverages ArangoDB's unique multi-model capabilities:
 
 ![ArangoDB Multi-Model Integration](docs/diagrams/arango-multimodel.svg)
 
-## Entity Resolution Workflow
+## Advanced Entity Resolution Workflow
 
 ![Entity Resolution Workflow](docs/diagrams/workflow.svg)
 
 ### **Complete Pipeline Flow**
 
-The entity resolution process follows a systematic 5-stage pipeline:
+The entity resolution process follows a comprehensive multi-stage pipeline combining traditional and AI-powered techniques:
 
-1. **Data Sources** → **Ingestion**: Multiple systems (CRM, Marketing, Sales, Support) → Validate & Normalize
-2. **Ingestion** → **Blocking**: Schema normalization → Generate candidates (Exact, Phonetic, N-gram, Sorted)
-3. **Blocking** → **Similarity**: Candidate pairs → Compute scores (Jaro-Winkler, Levenshtein, Jaccard, Custom)
-4. **Similarity** → **Clustering**: Scored pairs → Group entities (Connected Components, Validation, Scoring)
-5. **Clustering** → **Golden Records**: Entity groups → Create masters (Best Data, Conflict Resolution, Lineage)
+**Stage 1: Data Ingestion & Preparation**
+- Multiple data sources (CRM, Marketing, Sales, Support, Documents) → Validate & Normalize → Feature extraction
 
-> See the [Entity Resolution Workflow diagram](#entity-resolution-workflow) above for visual representation.
+**Stage 2: Record Blocking (Foundational Filtering)**
+- Full-text search with ArangoSearch → Generate candidate pairs → 99%+ reduction in comparisons
+- Strategies: Exact matching, Phonetic (Soundex), N-gram, Sorted neighborhood
+
+**Stage 3: Traditional Similarity Computation**
+- Candidate pairs → Field-level similarity (Jaro-Winkler, Levenshtein, Jaccard) → Fellegi-Sunter scoring
+
+**Stage 4: Graph Algorithm Analysis**
+- Build entity graph → Weakly Connected Components → Identify alias networks through shared identifiers (phone, email, address)
+
+**Stage 5: Embedding-Based Similarity**
+- Generate GraphML embeddings (node + edge features) → Vector search → Find semantically similar entities
+
+**Stage 6: Document Entity Extraction (GraphRAG)**
+- LLM-based entity extraction from documents → Generate embeddings → Link to existing entities via semantic similarity
+
+**Stage 7: Geospatial-Temporal Validation**
+- Location-time analysis → Validate or reject matches based on spatial-temporal feasibility
+- Confirm: Same place, same time → Reject: Proven to be in different locations
+
+**Stage 8: LLM-Based Curation**
+- Aggregate evidence from all techniques → LLM evaluation → Final entity resolution decisions
+- Human-like reasoning over similarity scores, graph connections, embeddings, and spatial-temporal data
+
+**Stage 9: Golden Record Generation**
+- Resolved entity clusters → Data fusion → Master record creation with complete lineage
+
+> See the [Entity Resolution Workflow diagram](#entity-resolution-workflow) above for the traditional pipeline. Advanced stages (GraphML, GraphRAG, Geospatial, LLM curation) will be added in future diagram updates.
 
 ### **Detailed Workflow Stages**
 
@@ -291,22 +356,48 @@ The project is organized into logical modules for maintainability and scalabilit
 - `config/` - Configuration files and templates
 - `docker-compose.yml` - ArangoDB container configuration
 
-## Key Features (Implemented)
+## Key Features
 
-### **[IMPLEMENTED] Core Entity Resolution Pipeline**
+### **[IMPLEMENTED] Foundation: Traditional Entity Resolution**
 - **Data Management**: Import and manage customer data from multiple sources
 - **Record Blocking**: Multi-strategy blocking (exact, n-gram, phonetic) with 99%+ efficiency
 - **Similarity Matching**: Fellegi-Sunter probabilistic framework with configurable metrics
-- **Entity Clustering**: Graph-based clustering using Weakly Connected Components
+- **Graph-Based Clustering**: Weakly Connected Components for entity grouping
 - **Golden Record Generation**: Automated master record creation with conflict resolution
 - **Data Quality Scoring**: Comprehensive validation and quality assessment
 
-### **[IMPLEMENTED] Advanced Capabilities** 
+### **[IMPLEMENTED] Core Infrastructure** 
 - **ArangoSearch Integration**: Native full-text search for blocking operations
-- **Graph Algorithms**: Native graph clustering and relationship discovery
+- **Graph Algorithms**: Built-in WCC and relationship discovery
 - **Foxx Microservices**: High-performance ArangoDB-native services
 - **Configuration Management**: Environment-based settings with validation
 - **Performance Optimization**: 1,000+ records/second processing capability
+
+### **[ROADMAP] Advanced AI/ML Capabilities**
+
+**Graph Embeddings & Vector Search**
+- **GraphML Integration**: Generate node and edge embeddings from entity graphs
+- **Behavioral Embeddings**: Capture entity behavior patterns in vector space
+- **Vector Similarity Search**: ArangoSearch vector capabilities for semantic matching
+- **Approximate Nearest Neighbor**: Fast embedding-based similarity queries
+
+**GraphRAG & LLM Integration**
+- **Document Entity Extraction**: Use LLMs to extract entities from unstructured text
+- **Semantic Entity Linking**: Connect extracted entities via embedding similarity
+- **Knowledge Graph Construction**: Build comprehensive entity knowledge graphs
+- **LLM-Powered Curation**: Automated evaluation of entity match evidence
+
+**Geospatial-Temporal Analysis**
+- **Location-Time Validation**: Verify entity co-location for match confirmation
+- **Spatial Impossibility Detection**: Reject matches for entities proven to be in different locations
+- **Movement Pattern Analysis**: Track entity trajectories for behavior-based matching
+- **Temporal Consistency Checks**: Ensure entity timelines are logically consistent
+
+**Advanced Alias Detection**
+- **Shared Identifier Networks**: Graph analysis to find entities sharing phone/email/address
+- **Transitive Alias Resolution**: Multi-hop alias discovery through graph traversal
+- **Confidence Scoring**: Probabilistic scoring of alias relationships
+- **Network Visualization**: Interactive exploration of entity alias networks
 
 ### **[IMPLEMENTED] Demo & Presentation System**
 - **Interactive Presentations**: Step-by-step demos with manual pace control
@@ -330,11 +421,21 @@ The project is organized into logical modules for maintainability and scalabilit
 - **Monitoring**: Performance metrics and health checks
 
 ### **Algorithms & AI**
+
+**Traditional Techniques (Implemented)**
 - **Similarity**: Fellegi-Sunter probabilistic framework
 - **Blocking**: Multi-strategy (exact, n-gram, phonetic, sorted neighborhood)
 - **Clustering**: Graph-based Weakly Connected Components
 - **Search**: ArangoSearch with custom analyzers (Soundex, n-gram)
 - **Quality**: Data quality scoring and validation frameworks
+
+**Advanced AI/ML (Roadmap)**
+- **Embeddings**: GraphML for node/edge embeddings, behavioral pattern vectors
+- **Vector Search**: ArangoSearch vector similarity, ANN (Approximate Nearest Neighbor)
+- **LLM Integration**: Entity extraction, semantic linking, automated curation
+- **GraphRAG**: Document understanding with knowledge graph construction
+- **Geospatial**: GeoJSON support, spatial-temporal validation
+- **Deep Learning**: Graph Neural Networks for entity matching
 
 ### **Development & Testing**
 - **Architecture**: Modular service-oriented design
@@ -508,7 +609,44 @@ The system is fully operational and ready for real-world entity resolution chall
 
 ## Research Foundation
 
-This project is built upon extensive academic research in entity resolution and record blocking. See the [research](research/) directory for relevant papers and notes.
+This project is built upon extensive academic research in entity resolution, spanning traditional techniques to cutting-edge AI/ML approaches.
+
+### **Current Research Base**
+See the [research](research/) directory for papers and notes on:
+- **Record Blocking**: Papadakis et al. surveys on blocking and filtering techniques
+- **Probabilistic Matching**: Fellegi-Sunter framework for record linkage
+- **Entity Matching Systems**: Magellan and other end-to-end systems
+
+### **Planned Research Integration**
+The following areas will be documented with relevant academic papers:
+
+**Graph Embeddings & Network Analysis**
+- Graph embedding techniques (Node2Vec, GraphSAGE, etc.)
+- Community detection algorithms for entity clustering
+- Network-based entity resolution approaches
+
+**Vector Search & Semantic Similarity**
+- Approximate Nearest Neighbor (ANN) algorithms
+- Embedding-based entity matching
+- Multi-modal embedding approaches
+
+**LLM & GraphRAG**
+- Large Language Models for entity extraction
+- Retrieval-Augmented Generation (RAG) for entity resolution
+- Graph-enhanced RAG (GraphRAG) architectures
+- Prompt engineering for entity matching decisions
+
+**Geospatial-Temporal Analysis**
+- Spatial-temporal data mining for entity resolution
+- Location verification and validation techniques
+- Movement pattern analysis for entity tracking
+
+**Hybrid & Ensemble Methods**
+- Combining multiple ER techniques
+- Confidence aggregation across methods
+- Multi-criteria decision making for entity matching
+
+> Note: As new academic papers are identified and reviewed, this section will be expanded with detailed notes and implementation insights.
 
 ## Contributing
 

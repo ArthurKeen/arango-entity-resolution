@@ -1,14 +1,22 @@
-# Entity Resolution with Record Blocking - Product Requirements Document
+# Advanced Entity Resolution System - Product Requirements Document
 
-Entity resolution is a process that identifies and links records from one or more data sources that refer to the same real-world entity (e.g., person, company, product). The record blocking technique is a crucial first step that improves efficiency by reducing the number of record pairs that need to be compared.
+Entity resolution is a process that identifies and links records from one or more data sources that refer to the same real-world entity (e.g., person, company, product). This system implements a comprehensive, multi-stage approach combining traditional techniques with cutting-edge AI/ML methods.
 
-Here is a PRD template for an entity resolution project in ArangoDB using the record blocking technique. 
+This PRD outlines the requirements for an advanced entity resolution system in ArangoDB that leverages multiple techniques: record blocking (foundation), graph algorithms, embeddings, vector search, GraphRAG, geospatial analysis, and LLM-based curation. 
 
 ### 1. Project Overview
 
-* **Project Title:** ArangoDB Entity Resolution with Record Blocking
-* **Problem Statement:** Our organization has multiple data sources with customer information. These sources contain duplicate records for the same customer due to variations in data entry, spelling errors, and missing information. This leads to inaccurate analytics, poor customer service, and inefficient operations.
-* **Project Goal:** Implement an entity resolution system in ArangoDB to deduplicate and link customer records from various sources, providing a single, unified view of each customer. This will improve data quality and enable more accurate reporting and personalized customer interactions.
+* **Project Title:** ArangoDB Advanced Entity Resolution System
+* **Problem Statement:** Our organization has multiple data sources with customer information (structured databases, unstructured documents, and spatial-temporal data). These sources contain duplicate records, hidden aliases, and complex entity relationships that are difficult to identify using traditional methods alone. This leads to inaccurate analytics, poor customer service, missed fraud detection, and inefficient operations.
+* **Project Goal:** Implement a comprehensive entity resolution system in ArangoDB that combines multiple techniques:
+  - **Record Blocking** (foundation): Efficiently reduce comparison space using full-text search
+  - **Graph Algorithms**: Discover entity networks and aliases through shared identifiers
+  - **Embeddings & Vector Search**: Identify semantically similar entities through behavioral patterns
+  - **GraphRAG & LLMs**: Extract and link entities from unstructured documents
+  - **Geospatial Analysis**: Validate or reject matches based on location-time feasibility
+  - **LLM Curation**: Automated evaluation of match evidence with human-like reasoning
+  
+  This multi-faceted approach will provide a single, unified view of each entity with high confidence, improving data quality and enabling more accurate reporting, fraud detection, and personalized interactions.
 
 ### 2. Stakeholders
 
@@ -19,14 +27,53 @@ Here is a PRD template for an entity resolution project in ArangoDB using the re
 
 ### 3. Functional Requirements
 
-* **Data Ingestion:** The system must be able to import customer data from various sources (e.g., CSV files, external APIs) into ArangoDB collections.
-* **Blocking Key Generation:** The system must generate a blocking key for each record. This key will be a combination of one or more attributes (e.g., first letter of the last name and the city) used to group similar records. The logic for key generation should be configurable.
-* **Record Blocking:** The system must use the generated blocking keys to create "blocks" of candidate records. A block is a group of records that share the same blocking key. This is a crucial step to reduce the number of pairwise comparisons.
-* **Pairwise Comparison:** Within each block, the system must compare all records to each other using a configurable similarity metric (e.g., Jaro-Winkler for names, exact match for phone numbers).
-* **Scoring and Matching:** The system must generate a similarity score for each record pair based on the attribute comparisons. Records with a similarity score above a predefined threshold will be considered a match.
-* **Clustering:** The system must group matched records into clusters. Each cluster represents a single, resolved entity.
-* **Golden Record Creation:** The system must be able to create a "golden record" for each cluster, which is the most accurate and complete representation of the entity. This can be done using a configurable rule-based approach (e.g., using the most recent or complete record).
-* **REST API:** The system must expose a REST API to trigger the entity resolution process and retrieve the results.
+#### **3.1 Foundation: Traditional Entity Resolution (Implemented)**
+
+* **Data Ingestion:** Import customer data from various sources (CSV files, JSON, external APIs, databases) into ArangoDB collections
+* **Record Blocking:** Generate blocking keys using multiple strategies (exact, phonetic, n-gram, sorted neighborhood) to create candidate pairs with 99%+ reduction in comparisons
+* **Pairwise Comparison:** Compare records within blocks using configurable similarity metrics (Jaro-Winkler, Levenshtein, Jaccard)
+* **Scoring and Matching:** Generate similarity scores using Fellegi-Sunter probabilistic framework
+* **Graph-Based Clustering:** Use Weakly Connected Components algorithm to group matched records
+* **Golden Record Creation:** Create master records using rule-based data fusion and conflict resolution
+* **REST API:** Expose API endpoints for entity resolution operations
+
+#### **3.2 Advanced Capabilities (Roadmap)**
+
+**Graph Algorithm Analysis**
+* **Shared Identifier Detection:** Identify entities connected through common phone numbers, emails, or addresses
+* **Alias Network Discovery:** Use graph traversal to find transitive aliases (if A→B and B→C, then A→C)
+* **Network Metrics:** Calculate centrality, betweenness, and other graph metrics for entities
+* **Community Detection:** Apply advanced clustering algorithms for entity grouping
+
+**Embedding & Vector Search**
+* **GraphML Integration:** Generate node embeddings capturing structural properties of entity graphs
+* **Behavioral Embeddings:** Create vector representations of entity behavior patterns
+* **Vector Storage:** Store embeddings efficiently in ArangoDB for fast retrieval
+* **Vector Similarity Search:** Implement ANN (Approximate Nearest Neighbor) search for semantic similarity
+* **Multi-Modal Embeddings:** Combine text, graph, and behavioral embeddings
+
+**GraphRAG & LLM Integration**
+* **Document Entity Extraction:** Use LLMs to extract entities from unstructured documents
+* **Entity Embedding Generation:** Create semantic embeddings for extracted entities
+* **Knowledge Graph Construction:** Build entity knowledge graphs from document collections
+* **Semantic Entity Linking:** Link extracted entities to existing records via embedding similarity
+* **LLM-Based Curation:** Use LLMs to evaluate match evidence and make final resolution decisions
+* **Explainable AI:** Provide reasoning for LLM-based entity resolution decisions
+
+**Geospatial-Temporal Analysis**
+* **Location Data Ingestion:** Import and store geospatial data (GeoJSON) for entities
+* **Temporal Data Management:** Track entity locations over time
+* **Co-Location Analysis:** Determine if entities are at same place at same time
+* **Spatial Impossibility Detection:** Reject matches for entities proven to be in different locations simultaneously
+* **Movement Pattern Analysis:** Analyze entity trajectories for behavior-based matching
+* **Geofencing:** Define spatial boundaries for entity validation
+
+**Integrated Evidence Aggregation**
+* **Multi-Technique Scoring:** Aggregate evidence from blocking, graph, embeddings, geospatial, and LLM sources
+* **Confidence Weighting:** Assign confidence scores to each technique's contribution
+* **Ensemble Decision Making:** Combine multiple signals for final entity resolution
+* **Conflict Resolution:** Handle disagreements between different techniques
+* **Audit Trail:** Track which techniques contributed to each resolution decision
 
 ### 4. Non-Functional Requirements
 
@@ -37,12 +84,63 @@ Here is a PRD template for an entity resolution project in ArangoDB using the re
 
 ---
 
-## Best Papers on Entity Resolution and Record Blocking
+## Academic Research Foundation
 
-Academic research in entity resolution is vast, but here are some of the most influential papers and surveys that provide a strong foundation on record blocking and related techniques.
+This project is built upon extensive academic research spanning traditional entity resolution techniques to cutting-edge AI/ML approaches.
 
-1.  **"A Survey of Blocking and Filtering Techniques for Entity Resolution"** by George Papadakis et al.: This is a comprehensive and modern survey that categorizes and reviews a wide range of blocking and filtering methods. It's a great starting point for understanding the different blocking techniques and their trade-offs.
-2.  **"The Dedoop Framework for Scalable Entity Resolution"** by S. E. K. M. A. Köpcke and A. Thor: This paper presents a framework for scalable entity resolution, which includes a detailed discussion of blocking and other techniques in a distributed computing context.
-3.  **"Probabilistic Models of Record Linkage and Deduplication"** by A. E. M. L. Fellegi and A. B. Sunter: Often considered the foundational paper in probabilistic record linkage, this work introduces the Fellegi-Sunter model. While not exclusively about blocking, it provides the theoretical underpinnings for scoring and matching records, which is the subsequent step after blocking.
-4.  **"A Comparative Analysis of Approximate Blocking Techniques for Entity Resolution"** by George Papadakis et al.: This paper provides a practical comparison of various blocking methods, evaluating their performance and scalability on different datasets. It's an excellent resource for anyone looking to implement a blocking strategy.
-5.  **"Magellan: Toward Building Entity Matching Management Systems"** by AnHai Doan et al.: This paper discusses the challenges and solutions for building end-to-end entity matching systems. It emphasizes the importance of a complete pipeline, including data cleaning, blocking, and matching.
+### **Current Research Base (Implemented Techniques)**
+
+**Record Blocking & Traditional Matching**
+1. **"A Survey of Blocking and Filtering Techniques for Entity Resolution"** by George Papadakis et al.: Comprehensive survey categorizing blocking and filtering methods
+2. **"Probabilistic Models of Record Linkage and Deduplication"** by Fellegi and Sunter: Foundational paper on probabilistic record linkage
+3. **"A Comparative Analysis of Approximate Blocking Techniques for Entity Resolution"** by George Papadakis et al.: Practical comparison of blocking methods
+4. **"Magellan: Toward Building Entity Matching Management Systems"** by AnHai Doan et al.: End-to-end entity matching system design
+5. **"The Dedoop Framework for Scalable Entity Resolution"** by Köpcke and Thor: Scalable entity resolution in distributed computing
+
+### **Planned Research Integration (Advanced Techniques)**
+
+The following research areas will be documented as new techniques are implemented:
+
+**Graph Embeddings & Network Analysis**
+- Graph embedding techniques (Node2Vec, GraphSAGE, Graph Convolutional Networks)
+- Community detection algorithms for entity clustering
+- Network-based entity resolution and alias detection
+- Graph Neural Networks for entity matching
+- Message passing algorithms for entity propagation
+
+**Vector Search & Semantic Similarity**
+- Approximate Nearest Neighbor (ANN) algorithms (HNSW, IVF, PQ)
+- Embedding-based entity matching approaches
+- Multi-modal embedding techniques
+- Metric learning for entity similarity
+- Cross-modal retrieval methods
+
+**LLM & GraphRAG**
+- Large Language Models for information extraction
+- Retrieval-Augmented Generation (RAG) architectures
+- Graph-enhanced RAG (GraphRAG) for entity resolution
+- Prompt engineering for entity matching
+- Few-shot learning for entity classification
+- LLM-based reasoning for match evaluation
+
+**Geospatial-Temporal Analysis**
+- Spatial-temporal data mining for entity resolution
+- Location verification and validation techniques
+- Movement pattern analysis and trajectory matching
+- Temporal consistency checking
+- Spatial join algorithms for entity co-location
+
+**Hybrid & Ensemble Methods**
+- Multi-strategy entity resolution
+- Ensemble learning for entity matching
+- Confidence aggregation across techniques
+- Multi-criteria decision making
+- Active learning for entity resolution
+
+**Explainable AI for Entity Resolution**
+- Interpretable machine learning for matching decisions
+- Feature importance analysis
+- Counterfactual explanations for entity pairs
+- Attention mechanisms for match evidence
+
+> Note: As academic papers are identified and reviewed for these advanced techniques, detailed notes will be added to the research/ directory with implementation insights and algorithm explanations.
