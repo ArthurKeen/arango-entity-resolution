@@ -8,7 +8,7 @@ This is a comprehensive presentation script for demonstrating entity resolution 
 ### Pre-Presentation Setup (5 minutes)
 1. **Environment Check**
    ```bash
-   cd /Users/arthurkeen/code/arango-entity-resolution-record-blocking
+   cd /Users/arthurkeen/code/arango-entity-resolution
    python demo/scripts/interactive_presentation_demo.py
    ```
 

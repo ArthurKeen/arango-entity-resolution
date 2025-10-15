@@ -39,8 +39,8 @@ The easiest way to get started is using the automated setup script:
 
 ```bash
 # Clone the repository (if not already done)
-git clone https://github.com/ArthurKeen/arango-entity-resolution-record-blocking.git
-cd arango-entity-resolution-record-blocking
+git clone https://github.com/ArthurKeen/arango-entity-resolution.git
+cd arango-entity-resolution
 
 # Run the setup script
 ./scripts/setup.sh

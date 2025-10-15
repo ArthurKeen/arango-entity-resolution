@@ -1,16 +1,26 @@
 # Changelog
 
-All notable changes to the ArangoDB Entity Resolution project will be documented in this file.
+All notable changes to the ArangoDB Advanced Entity Resolution System will be documented in this file.
 
 ## [Unreleased]
 
 ### Added
+- **Project Scope Expansion**: Evolved from record blocking focus to comprehensive multi-technique platform
+- **Advanced Capabilities Roadmap**: Added 7 new techniques (Graph algorithms, GraphML embeddings, Vector search, GraphRAG, Geospatial-temporal, LLM curation)
+- **Research Foundation**: Documented current research base and planned integration areas
+- **Repository Rename Guide**: Complete guide for transitioning to new repository name
+- **Scope Expansion Summary**: Master reference document for project evolution
 - **Code Quality**: Comprehensive refactoring to eliminate duplicate code
 - **Shared Utilities**: New `scripts/common/` module with reusable ArangoDB connection logic
 - **Environment Variables**: Support for configuration via environment variables
 - **Error Handling**: Improved exception handling with consistent messaging
 
 ### Changed
+- **PROJECT NAME**: From "Entity Resolution with Record Blocking" to "Advanced Entity Resolution System"
+- **Repository Name**: Recommend rename from `arango-entity-resolution-record-blocking` to `arango-entity-resolution`
+- **README.md**: Updated to reflect multi-technique approach with 9-stage pipeline
+- **PRD**: Expanded functional requirements with advanced AI/ML capabilities
+- **Documentation**: Removed emojis for professional appearance and better accessibility
 - **BREAKING**: Upgraded ArangoDB from 3.11 to 3.12 for testing environment
 - Updated Python ArangoDB driver from 7.8.0 to 8.0.0 for compatibility with ArangoDB 3.12
 - Updated Docker Compose configuration to use ArangoDB 3.12 image
@@ -18,6 +28,7 @@ All notable changes to the ArangoDB Entity Resolution project will be documented
 - **Code Refactoring**: Eliminated duplicate code patterns between database and CRUD scripts
 - **Documentation**: Updated project structure and technology stack information
 - **Error Messages**: Standardized success/warning/error message formatting
+- **Path References**: Updated all documentation to use new repository name
 
 ### Fixed
 - **Exception Handling**: Fixed unreachable code in CRUD operations exception handling

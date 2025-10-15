@@ -56,7 +56,7 @@ We've built a comprehensive presentation system with **manual control** at every
 
 ### Quick Start
 ```bash
-cd /Users/arthurkeen/code/arango-entity-resolution-record-blocking
+cd /Users/arthurkeen/code/arango-entity-resolution
 python demo/launch_presentation_demo.py
 ```
 

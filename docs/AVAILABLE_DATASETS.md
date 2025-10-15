@@ -32,7 +32,7 @@
 #### **How to Test/Demo**:
 ```bash
 # Quick test with sample data
-cd /Users/arthurkeen/code/arango-entity-resolution-record-blocking
+cd /Users/arthurkeen/code/arango-entity-resolution
 python examples/complete_entity_resolution_demo.py
 
 # Or use the interactive demo system
@@ -107,7 +107,7 @@ python demo/scripts/interactive_presentation_demo.py
 ### **Method 1: Quick Start Demo**
 ```bash
 # Navigate to project root
-cd /Users/arthurkeen/code/arango-entity-resolution-record-blocking
+cd /Users/arthurkeen/code/arango-entity-resolution
 
 # Run complete pipeline with sample data
 python examples/complete_entity_resolution_demo.py

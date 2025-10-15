@@ -132,7 +132,7 @@ python3 industry_scenarios.py
 ```bash
 # Clone repository
 git clone <repository-url>
-cd arango-entity-resolution-record-blocking
+cd arango-entity-resolution
 
 # Install dependencies
 pip install -r requirements.txt

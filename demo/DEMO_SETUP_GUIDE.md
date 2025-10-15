@@ -203,7 +203,7 @@ use_foxx_services = True  # Enable for maximum performance
 1. **"Module not found" errors**
    ```bash
    # Ensure you're in the project root
-   cd /path/to/arango-entity-resolution-record-blocking
+   cd /path/to/arango-entity-resolution
    
    # Install dependencies
    pip install -r requirements.txt
