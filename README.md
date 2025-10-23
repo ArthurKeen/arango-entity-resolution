@@ -343,7 +343,7 @@ The project is organized into logical modules for maintainability and scalabilit
 
 **Documentation (`docs/`)**:
 - `PRD.md` - Product Requirements Document
-- `TESTING_SETUP.md` - Comprehensive testing setup guide
+- `TESTING.md` - Comprehensive testing guide (setup, strategies, automation)
 - `diagrams/` - Mermaid diagrams for architecture and workflows
 
 **Research & Utilities**:
@@ -458,7 +458,7 @@ The project is organized into logical modules for maintainability and scalabilit
    python3 scripts/crud/crud_operations.py count --collection customers
    ```
 
-For detailed setup instructions, see [Testing Setup Guide](docs/TESTING_SETUP.md).
+For detailed setup instructions, see [Testing Guide](docs/TESTING.md).
 
 ## API Documentation
 
@@ -704,7 +704,7 @@ Please ensure any contributions align with the project requirements outlined in 
    ```bash
    ./scripts/setup-git-hooks.sh
    ```
-2. Review the [Testing Setup Guide](docs/TESTING_SETUP.md)
+2. Review the [Testing Guide](docs/TESTING.md)
 3. Check the [CHANGELOG](CHANGELOG.md) for recent changes
 4. Follow the established patterns in existing scripts
 5. Test changes with the Docker environment
@@ -721,6 +721,6 @@ Please ensure any contributions align with the project requirements outlined in 
 The pre-commit hook runs automatically (~5 seconds) and prevents commits if issues are found. See [docs/GIT_HOOKS.md](docs/GIT_HOOKS.md) for details.
 
 ### Getting Help
-- **Documentation**: Start with `docs/TESTING_SETUP.md`
+- **Documentation**: Start with `docs/TESTING.md`
 - **Issues**: Use GitHub Issues for bugs and feature requests
 - **Research**: Check `research/` directory for academic background
