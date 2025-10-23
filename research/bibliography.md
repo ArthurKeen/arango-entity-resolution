@@ -65,6 +65,35 @@ arXiv:1607.00992
 **Status**: Available online, notes needed 
 **Importance**: Statistical graph methods
 
+## Deep Learning and Embeddings for Entity Resolution
+
+### Deep Learning for Entity Matching
+**Mudgal, S., Li, H., Rekatsinas, T., Doan, A., Park, Y., Krishnan, G., Deep, R., Arcaute, E., & Raghavendra, V. (2018)**
+*"Deep Learning for Entity Matching: A Design Space Exploration"*
+ACM SIGMOD International Conference on Management of Data
+**DOI**: 10.1145/3183713.3196926
+**URL**: https://dl.acm.org/doi/10.1145/3183713.3196926
+**Status**: Research notes available → [embeddings/2018_Mudgal_DeepLearningEntityMatching_notes.md](papers/embeddings/2018_Mudgal_DeepLearningEntityMatching_notes.md)
+**Importance**: Foundational deep learning architectures for ER
+
+### Distributed Tuple Embeddings
+**Ebraheem, M., Thirumuruganathan, S., Joty, S., Ouzzani, M., & Tang, N. (2018)**
+*"Distributed Representations of Tuples for Entity Resolution"*
+Proceedings of the VLDB Endowment, 11(11), 1454-1467
+**DOI**: 10.14778/3236187.3236198
+**URL**: http://www.vldb.org/pvldb/vol11/p1454-ebraheem.pdf
+**Status**: Research notes available → [embeddings/2018_Ebraheem_DistributedEntityMatching_notes.md](papers/embeddings/2018_Ebraheem_DistributedEntityMatching_notes.md)
+**Importance**: Practical tuple embedding methods for structured data
+
+### Deep Learning for Blocking
+**Thirumuruganathan, S., Puthiya Parambath, S. A., Ouzzani, M., Tang, N., & Joty, S. (2021)**
+*"Deep Learning for Blocking in Entity Matching: A Design Space Exploration"*
+IEEE International Conference on Data Engineering (ICDE)
+**DOI**: 10.1109/ICDE51399.2021.00095
+**URL**: https://ieeexplore.ieee.org/document/9458727
+**Status**: Research notes available → [blocking/2021_Thirumuruganathan_LearningBlocking_notes.md](papers/blocking/2021_Thirumuruganathan_LearningBlocking_notes.md)
+**Importance**: Critical for embedding-based blocking strategies
+
 ## Specialized Techniques
 
 ### Heterogeneous Data Handling
@@ -179,17 +208,26 @@ For each paper, create notes covering:
 - Papadakis Blocking Survey (core concepts)
 - Fellegi-Sunter Foundation (theoretical framework) 
 - Magellan System Design (architecture principles)
+- **NEW**: Mudgal et al. Deep Learning for Matching (DL architectures)
+- **NEW**: Ebraheem et al. Tuple Embeddings (embedding methods)
+- **NEW**: Thirumuruganathan et al. DL for Blocking (embedding-based blocking)
 
 ### Priority Research Needed
 - Dedoop Scalability Framework
 - Comparative Blocking Analysis
 - Modern Big Data Survey (Christophides et al.)
+- Graph Neural Networks for entity matching
+- Transfer learning for domain-specific ER
+- Active learning strategies for labeling
 
 ### Implementation Ready
 - Basic blocking key strategies
 - Fellegi-Sunter similarity scoring
 - Modular system architecture
 - Advanced blocking techniques
-- Machine learning integration
+- **NEW**: Deep learning architectures (RNN, Attention)
+- **NEW**: Tuple embedding generation (Siamese networks)
+- **NEW**: Hybrid blocking (traditional + embeddings)
+- **NEW**: LSH and ANN indexing strategies
 
 This bibliography serves as the central hub for all research materials supporting our ArangoDB Entity Resolution project development.
