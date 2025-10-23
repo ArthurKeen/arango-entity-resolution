@@ -460,6 +460,46 @@ The project is organized into logical modules for maintainability and scalabilit
 
 For detailed setup instructions, see [Testing Setup Guide](docs/TESTING_SETUP.md).
 
+## API Documentation
+
+The system provides comprehensive APIs for integration into your applications:
+
+### REST API (Foxx Services)
+High-performance ArangoDB-native REST endpoints for production use:
+- **[API Quick Start](docs/API_QUICKSTART.md)** - Get started in 5 minutes
+- **[API Reference](docs/API_REFERENCE.md)** - Complete endpoint documentation
+- **[OpenAPI Specification](docs/openapi.yaml)** - REST API schema for code generation
+
+### Python API
+Complete SDK for Python applications:
+- **[Python API Guide](docs/API_PYTHON.md)** - Detailed SDK reference with examples
+- **[API Examples](docs/API_EXAMPLES.md)** - Practical usage examples and integration patterns
+
+### Key Features
+- **Dual Interface**: REST API for web integration, Python SDK for application development
+- **Production Ready**: Authentication, error handling, batch operations, performance optimization
+- **Well Documented**: Complete reference docs, usage examples, integration guides
+- **Industry Examples**: Healthcare, finance, e-commerce, and B2B use cases
+
+```python
+# Python Example
+from entity_resolution.core.entity_resolver import EntityResolutionPipeline
+
+pipeline = EntityResolutionPipeline()
+pipeline.connect()
+pipeline.load_data("customers.csv", "customers")
+results = pipeline.run_complete_pipeline(collection_name="customers")
+print(f"Found {results['clustering']['total_clusters']} entity clusters")
+```
+
+```bash
+# REST API Example
+curl -u root:password -X POST \
+  http://localhost:8529/_db/entity_resolution/entity-resolution/blocking/candidates \
+  -H "Content-Type: application/json" \
+  -d '{"collection": "customers", "targetDocId": "customers/12345"}'
+```
+
 ## System Demonstrations
 
 This project includes a comprehensive demonstration system designed for both technical evaluation and business presentations.
@@ -660,11 +700,25 @@ Please ensure any contributions align with the project requirements outlined in 
 - **Environment**: Use environment variables for configuration
 
 ### Development Workflow
-1. Review the [Testing Setup Guide](docs/TESTING_SETUP.md)
-2. Check the [CHANGELOG](CHANGELOG.md) for recent changes
-3. Follow the established patterns in existing scripts
-4. Test changes with the Docker environment
-5. Update documentation if needed
+1. **Install Git Hooks** - Set up pre-commit checks (see [Git Hooks Guide](docs/GIT_HOOKS.md))
+   ```bash
+   ./scripts/setup-git-hooks.sh
+   ```
+2. Review the [Testing Setup Guide](docs/TESTING_SETUP.md)
+3. Check the [CHANGELOG](CHANGELOG.md) for recent changes
+4. Follow the established patterns in existing scripts
+5. Test changes with the Docker environment
+6. Update documentation if needed
+
+### Quality Assurance
+
+**Pre-Commit Checks** - Automated validation before each commit:
+- Python syntax validation in core modules
+- No hardcoded credentials (passwords must use environment variables)
+- ASCII-only code (no emoji characters)
+- Critical module import verification
+
+The pre-commit hook runs automatically (~5 seconds) and prevents commits if issues are found. See [docs/GIT_HOOKS.md](docs/GIT_HOOKS.md) for details.
 
 ### Getting Help
 - **Documentation**: Start with `docs/TESTING_SETUP.md`
