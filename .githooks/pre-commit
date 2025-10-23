@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+#
+# Pre-commit hook for Entity Resolution System
+# Runs smoke tests to verify code quality before commit
+#
+# Install: ./scripts/setup-git-hooks.sh
+# Or manually: cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+set -e
+
+# Colors for output (ASCII only)
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
+echo ""
+echo "=========================================="
+echo " PRE-COMMIT HOOK: Running Tests"
+echo "=========================================="
+echo ""
+
+# Check if we're in the right directory
+if [ ! -f "README.md" ] || [ ! -d "src" ]; then
+    echo "[ERROR] Must be run from project root"
+    exit 1
+fi
+
+# Set Python path
+export PYTHONPATH="${PWD}/src:${PYTHONPATH}"
+
+# Run quick smoke tests
+echo "[1/4] Checking Python syntax..."
+python3 -m py_compile src/entity_resolution/utils/config.py || {
+    echo -e "${RED}[FAIL] Syntax error in config.py${NC}"
+    exit 1
+}
+python3 -m py_compile src/entity_resolution/utils/constants.py || {
+    echo -e "${RED}[FAIL] Syntax error in constants.py${NC}"
+    exit 1
+}
+echo -e "${GREEN}[OK] Python syntax check passed${NC}"
+
+echo ""
+echo "[2/4] Checking for hardcoded credentials..."
+# Look for password assignments with non-empty string literals (not getenv, not empty strings)
+if grep -E "password\s*[=:]\s*['\"][^'\"]+['\"]" src/entity_resolution/utils/*.py 2>/dev/null | \
+   grep -v "getenv" | \
+   grep -v "password.*=.*['\"]['\"]" | \
+   grep -v "#.*password"; then
+    echo -e "${RED}[FAIL] Found hardcoded password in code${NC}"
+    echo "Passwords must be loaded from environment variables"
+    exit 1
+fi
+echo -e "${GREEN}[OK] No hardcoded credentials found${NC}"
+
+echo ""
+echo "[3/4] Checking for emoji characters..."
+# Check Python files only (not JSON data)
+if grep -r "[\x{2713}\x{2714}\x{2715}\x{274C}\x{26A0}\x{1F389}\x{1F44D}]" src/ demo/*.py demo/scripts/*.py 2>/dev/null | grep -v "Binary"; then
+    echo -e "${YELLOW}[WARNING] Found emoji characters (should use ASCII only)${NC}"
+    echo "Consider replacing emojis with [OK], [ERROR], [WARNING] indicators"
+    # Don't fail, just warn
+fi
+echo -e "${GREEN}[OK] Code style check passed${NC}"
+
+echo ""
+echo "[4/4] Running critical module imports..."
+python3 << 'PYTEST'
+import sys
+import os
+
+# Suppress warnings
+import warnings
+warnings.filterwarnings("ignore")
+
+print("[TEST] Importing critical modules...")
+errors = []
+
+try:
+    from entity_resolution.utils.config import Config, get_config
+    print("  [OK] Config module")
+except Exception as e:
+    errors.append(f"Config: {e}")
+    print(f"  [ERROR] Config module: {e}")
+
+try:
+    from entity_resolution.utils.constants import DEFAULT_DATABASE_CONFIG
+    print("  [OK] Constants module")
+except Exception as e:
+    errors.append(f"Constants: {e}")
+    print(f"  [ERROR] Constants module: {e}")
+
+try:
+    from entity_resolution.services.blocking_service import BlockingService
+    from entity_resolution.services.similarity_service import SimilarityService
+    from entity_resolution.services.clustering_service import ClusteringService
+    print("  [OK] Core services")
+except Exception as e:
+    errors.append(f"Services: {e}")
+    print(f"  [ERROR] Core services: {e}")
+
+try:
+    from entity_resolution.core.entity_resolver import EntityResolutionPipeline
+    print("  [OK] Entity resolver")
+except Exception as e:
+    errors.append(f"EntityResolver: {e}")
+    print(f"  [ERROR] Entity resolver: {e}")
+
+if errors:
+    print(f"\n[FAIL] {len(errors)} import errors")
+    for err in errors:
+        print(f"  - {err}")
+    sys.exit(1)
+else:
+    print("\n[SUCCESS] All critical imports passed")
+    
+print("\nSummary: All pre-commit checks passed")
+PYTEST
+
+if [ $? -ne 0 ]; then
+    echo -e "${RED}[FAIL] Import test failed${NC}"
+    exit 1
+fi
+echo -e "${GREEN}[OK] Module import test passed${NC}"
+
+echo ""
+echo "=========================================="
+echo -e "${GREEN} ALL PRE-COMMIT CHECKS PASSED${NC}"
+echo "=========================================="
+echo ""
+echo "Proceeding with commit..."
+echo ""
+
+exit 0
+
