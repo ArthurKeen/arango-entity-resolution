@@ -30,7 +30,13 @@ This PRD outlines the requirements for an advanced entity resolution system in A
 #### **3.1 Foundation: Traditional Entity Resolution (Implemented)**
 
 * **Data Ingestion:** Import customer data from various sources (CSV files, JSON, external APIs, databases) into ArangoDB collections
-* **Record Blocking:** Generate blocking keys using multiple strategies (exact, phonetic, n-gram, sorted neighborhood) to create candidate pairs with 99%+ reduction in comparisons
+* **Traditional Record Blocking:** Generate blocking keys using multiple strategies (exact, phonetic, n-gram, sorted neighborhood) to create candidate pairs with 99%+ reduction in comparisons
+* **Hybrid Blocking (Phase 3):** Combine traditional blocking with embedding-based candidate generation:
+  - **Tier 1**: Exact matching on email/phone (fastest, highest precision)
+  - **Tier 2**: Traditional fuzzy blocking with soundex, n-grams (fast, good recall)
+  - **Tier 3**: Embedding-based semantic blocking with LSH and ANN (comprehensive, handles variations)
+  - **Multi-Resolution Embeddings**: Store both coarse embeddings (64-dim) for fast filtering and fine embeddings (256-dim) for accurate re-ranking
+  - **Recall-Optimized**: Prioritize recall ≥95% at blocking stage, refine precision in later stages
 * **Pairwise Comparison:** Compare records within blocks using configurable similarity metrics (Jaro-Winkler, Levenshtein, Jaccard)
 * **Scoring and Matching:** Generate similarity scores using Fellegi-Sunter probabilistic framework
 * **Graph-Based Clustering:** Use Weakly Connected Components algorithm to group matched records
@@ -46,11 +52,18 @@ This PRD outlines the requirements for an advanced entity resolution system in A
 * **Community Detection:** Apply advanced clustering algorithms for entity grouping
 
 **Embedding & Vector Search**
+* **Tuple Embeddings for Structured Data:** Generate embeddings specifically designed for database records using hybrid architecture (attribute-level + tuple-level)
+* **Deep Learning Architectures:** Implement RNN-based models with attention mechanisms for text-heavy customer data
+* **Siamese Networks:** Train models specifically for similarity learning with contrastive loss
+* **Multi-Resolution Embeddings:** Generate both coarse (64-dim) and fine (256-dim) embeddings for two-stage blocking
+* **LSH Indexing:** Use Locality-Sensitive Hashing for fast coarse filtering of candidates
+* **HNSW/ANN Indexing:** Implement Hierarchical Navigable Small World graphs for accurate fine-grained search
 * **GraphML Integration:** Generate node embeddings capturing structural properties of entity graphs
 * **Behavioral Embeddings:** Create vector representations of entity behavior patterns
-* **Vector Storage:** Store embeddings efficiently in ArangoDB for fast retrieval
-* **Vector Similarity Search:** Implement ANN (Approximate Nearest Neighbor) search for semantic similarity
+* **Vector Storage:** Store embeddings efficiently in ArangoDB with version control
+* **Vector Similarity Search:** ArangoDB native vector search with cosine similarity
 * **Multi-Modal Embeddings:** Combine text, graph, and behavioral embeddings
+* **Transfer Learning:** Pre-train on general ER datasets, fine-tune on domain-specific data
 
 **GraphRAG & LLM Integration**
 * **Document Entity Extraction:** Use LLMs to extract entities from unstructured documents
@@ -97,6 +110,11 @@ This project is built upon extensive academic research spanning traditional enti
 4. **"Magellan: Toward Building Entity Matching Management Systems"** by AnHai Doan et al.: End-to-end entity matching system design
 5. **"The Dedoop Framework for Scalable Entity Resolution"** by Köpcke and Thor: Scalable entity resolution in distributed computing
 
+**Deep Learning & Embeddings for Entity Resolution**
+6. **"Deep Learning for Entity Matching: A Design Space Exploration"** by Mudgal et al. (2018): Systematic exploration of DL architectures (RNN, Attention, Siamese networks) for entity matching with insights on which architectures work best for different data types
+7. **"Distributed Representations of Tuples for Entity Resolution"** by Ebraheem et al. (2018): Practical methods for generating tuple embeddings for structured data using hybrid architecture, with focus on Siamese networks and distributed processing
+8. **"Deep Learning for Blocking in Entity Matching: A Design Space Exploration"** by Thirumuruganathan et al. (2021): **Critical paper** for embedding-based blocking, demonstrating hybrid approach combining traditional and learned blocking with multi-resolution embeddings (coarse + fine), LSH and ANN indexing
+
 ### **Planned Research Integration (Advanced Techniques)**
 
 The following research areas will be documented as new techniques are implemented:
@@ -108,12 +126,20 @@ The following research areas will be documented as new techniques are implemente
 - Graph Neural Networks for entity matching
 - Message passing algorithms for entity propagation
 
-**Vector Search & Semantic Similarity**
+**Vector Search & Semantic Similarity** (Research Complete - Ready for Phase 3 Implementation)
+- **RESEARCH COMPLETE**: Three foundational papers now documented (Mudgal 2018, Ebraheem 2018, Thirumuruganathan 2021)
+- **READY TO IMPLEMENT**: Hybrid blocking (traditional + embeddings)
+- **READY TO IMPLEMENT**: Multi-resolution embeddings (coarse 64-dim + fine 256-dim)
+- **READY TO IMPLEMENT**: LSH indexing for fast candidate generation
+- **READY TO IMPLEMENT**: HNSW/ANN indexing for accurate similarity search
+- **READY TO IMPLEMENT**: Siamese networks for similarity learning
+- **READY TO IMPLEMENT**: Tuple embeddings for structured data
 - Approximate Nearest Neighbor (ANN) algorithms (HNSW, IVF, PQ)
 - Embedding-based entity matching approaches
 - Multi-modal embedding techniques
 - Metric learning for entity similarity
 - Cross-modal retrieval methods
+- Transfer learning and pre-training strategies
 
 **LLM & GraphRAG**
 - Large Language Models for information extraction
