@@ -25,25 +25,79 @@ This PRD outlines the requirements for an advanced entity resolution system in A
 * **Data Analysts:** End-users who will use the unified data for reporting and insights.
 * **Business Leaders:** Benefit from improved data quality and business intelligence.
 
+### 2.1 Development Phases
+
+The system is being developed in three phases with clear separation of concerns:
+
+**Phase 1: Traditional Entity Resolution (COMPLETE)**
+- Status: Production-ready, stable, customer deployments active
+- Core: Record blocking (99%+ reduction), similarity scoring, graph clustering, golden records
+- Risk: Low - Proven, battle-tested implementation
+- Timeline: Complete
+
+**Phase 2: Hybrid Blocking & Embeddings (NEXT)**
+- Status: Research complete, ready for implementation
+- Core: Add embedding-based blocking (Tier 3), LSH/ANN indexing, tuple embeddings
+- Risk: Medium - New ML infrastructure, non-breaking additions to existing system
+- Timeline: 6-8 weeks estimated
+- Value: Improved recall for challenging cases (typos, abbreviations, semantic variations)
+- Strategy: Non-breaking addition, A/B testing, incremental rollout
+
+**Phase 3+: Advanced Capabilities (FUTURE)**
+- Status: Future roadmap
+- Core: GraphRAG, LLM integration, geospatial-temporal analysis, advanced graph algorithms
+- Risk: TBD - Research and planning phase
+- Timeline: Post Phase 2, based on customer feedback and business priorities
+
 ### 3. Functional Requirements
 
-#### **3.1 Foundation: Traditional Entity Resolution (Implemented)**
+#### **3.1 Phase 1: Traditional Entity Resolution (Implemented & Stable)**
+
+**Status**: Production-ready, battle-tested, customer deployments  
+**Risk Level**: Low - Proven implementation with 99%+ comparison reduction  
+**Timeline**: Complete
 
 * **Data Ingestion:** Import customer data from various sources (CSV files, JSON, external APIs, databases) into ArangoDB collections
 * **Traditional Record Blocking:** Generate blocking keys using multiple strategies (exact, phonetic, n-gram, sorted neighborhood) to create candidate pairs with 99%+ reduction in comparisons
-* **Hybrid Blocking (Phase 3):** Combine traditional blocking with embedding-based candidate generation:
-  - **Tier 1**: Exact matching on email/phone (fastest, highest precision)
-  - **Tier 2**: Traditional fuzzy blocking with soundex, n-grams (fast, good recall)
-  - **Tier 3**: Embedding-based semantic blocking with LSH and ANN (comprehensive, handles variations)
-  - **Multi-Resolution Embeddings**: Store both coarse embeddings (64-dim) for fast filtering and fine embeddings (256-dim) for accurate re-ranking
-  - **Recall-Optimized**: Prioritize recall ≥95% at blocking stage, refine precision in later stages
 * **Pairwise Comparison:** Compare records within blocks using configurable similarity metrics (Jaro-Winkler, Levenshtein, Jaccard)
 * **Scoring and Matching:** Generate similarity scores using Fellegi-Sunter probabilistic framework
 * **Graph-Based Clustering:** Use Weakly Connected Components algorithm to group matched records
 * **Golden Record Creation:** Create master records using rule-based data fusion and conflict resolution
 * **REST API:** Expose API endpoints for entity resolution operations
 
-#### **3.2 Advanced Capabilities (Roadmap)**
+#### **3.2 Phase 2: Hybrid Blocking & Embeddings (Next Priority)**
+
+**Status**: Research complete, ready for implementation  
+**Risk Level**: Medium - New ML infrastructure, non-breaking additions  
+**Timeline**: 6-8 weeks estimated  
+**Value Proposition**: Improved recall for challenging cases (typos, abbreviations, semantic variations)
+
+**Hybrid Blocking Architecture**
+* **3-Tier Blocking Strategy:** Combine traditional blocking with embedding-based candidate generation:
+  - **Tier 1**: Exact matching on email/phone (fastest, highest precision) - *already implemented*
+  - **Tier 2**: Traditional fuzzy blocking with soundex, n-grams (fast, good recall) - *already implemented*
+  - **Tier 3**: Embedding-based semantic blocking with LSH and ANN (comprehensive, handles variations) - *Phase 2 addition*
+  - **Multi-Resolution Embeddings**: Store both coarse embeddings (64-dim) for fast filtering and fine embeddings (256-dim) for accurate re-ranking
+  - **Recall-Optimized**: Prioritize recall ≥95% at blocking stage, refine precision in later stages
+
+**Embedding & Vector Search Infrastructure**
+* **Tuple Embeddings for Structured Data:** Generate embeddings specifically designed for database records using hybrid architecture (attribute-level + tuple-level)
+* **Deep Learning Architectures:** Implement RNN-based models with attention mechanisms for text-heavy customer data
+* **Siamese Networks:** Train models specifically for similarity learning with contrastive loss
+* **Multi-Resolution Embeddings:** Generate both coarse (64-dim) and fine (256-dim) embeddings for two-stage blocking
+* **LSH Indexing:** Use Locality-Sensitive Hashing for fast coarse filtering of candidates
+* **HNSW/ANN Indexing:** Implement Hierarchical Navigable Small World graphs for accurate fine-grained search
+* **Vector Storage:** Store embeddings efficiently in ArangoDB with version control
+* **Vector Similarity Search:** ArangoDB native vector search with cosine similarity
+* **Transfer Learning:** Pre-train on general ER datasets, fine-tune on domain-specific data
+
+**Implementation Strategy**
+* Non-breaking: Add as new blocking tier alongside existing strategies
+* A/B Testing: Compare recall improvements vs traditional-only approach
+* Incremental Rollout: Start with small datasets, measure performance gains
+* Fallback Support: Maintain Python fallback for environments without GPU
+
+#### **3.3 Phase 3+: Advanced Capabilities (Future Roadmap)**
 
 **Graph Algorithm Analysis**
 * **Shared Identifier Detection:** Identify entities connected through common phone numbers, emails, or addresses
@@ -51,19 +105,10 @@ This PRD outlines the requirements for an advanced entity resolution system in A
 * **Network Metrics:** Calculate centrality, betweenness, and other graph metrics for entities
 * **Community Detection:** Apply advanced clustering algorithms for entity grouping
 
-**Embedding & Vector Search**
-* **Tuple Embeddings for Structured Data:** Generate embeddings specifically designed for database records using hybrid architecture (attribute-level + tuple-level)
-* **Deep Learning Architectures:** Implement RNN-based models with attention mechanisms for text-heavy customer data
-* **Siamese Networks:** Train models specifically for similarity learning with contrastive loss
-* **Multi-Resolution Embeddings:** Generate both coarse (64-dim) and fine (256-dim) embeddings for two-stage blocking
-* **LSH Indexing:** Use Locality-Sensitive Hashing for fast coarse filtering of candidates
-* **HNSW/ANN Indexing:** Implement Hierarchical Navigable Small World graphs for accurate fine-grained search
+**Advanced Embedding Techniques**
 * **GraphML Integration:** Generate node embeddings capturing structural properties of entity graphs
 * **Behavioral Embeddings:** Create vector representations of entity behavior patterns
-* **Vector Storage:** Store embeddings efficiently in ArangoDB with version control
-* **Vector Similarity Search:** ArangoDB native vector search with cosine similarity
-* **Multi-Modal Embeddings:** Combine text, graph, and behavioral embeddings
-* **Transfer Learning:** Pre-train on general ER datasets, fine-tune on domain-specific data
+* **Multi-Modal Embeddings:** Combine text, graph, and behavioral embeddings for comprehensive similarity
 
 **GraphRAG & LLM Integration**
 * **Document Entity Extraction:** Use LLMs to extract entities from unstructured documents
@@ -115,9 +160,34 @@ This project is built upon extensive academic research spanning traditional enti
 7. **"Distributed Representations of Tuples for Entity Resolution"** by Ebraheem et al. (2018): Practical methods for generating tuple embeddings for structured data using hybrid architecture, with focus on Siamese networks and distributed processing
 8. **"Deep Learning for Blocking in Entity Matching: A Design Space Exploration"** by Thirumuruganathan et al. (2021): **Critical paper** for embedding-based blocking, demonstrating hybrid approach combining traditional and learned blocking with multi-resolution embeddings (coarse + fine), LSH and ANN indexing
 
-### **Planned Research Integration (Advanced Techniques)**
+### **Phase 2 Research (Complete - Ready for Implementation)**
 
-The following research areas will be documented as new techniques are implemented:
+**Hybrid Blocking & Embeddings**
+
+**Status**: Research complete, 3 foundational papers documented, implementation roadmap defined
+
+**Research Papers**:
+- Mudgal et al. (2018): Deep Learning architectures for entity matching
+- Ebraheem et al. (2018): Tuple embeddings for structured data
+- Thirumuruganathan et al. (2021): Deep Learning for blocking with hybrid approach
+
+**Ready to Implement**:
+- ✅ Hybrid blocking (traditional + embeddings)
+- ✅ Multi-resolution embeddings (coarse 64-dim + fine 256-dim)
+- ✅ LSH indexing for fast candidate generation
+- ✅ HNSW/ANN indexing for accurate similarity search
+- ✅ Siamese networks for similarity learning
+- ✅ Tuple embeddings for structured data
+- ✅ Transfer learning and pre-training strategies
+
+**Implementation Strategy**:
+- Non-breaking addition to existing blocking tiers
+- A/B testing framework for measuring recall improvements
+- Incremental rollout with performance validation
+
+### **Phase 3+ Research (Future Advanced Techniques)**
+
+The following research areas will be documented as new techniques are planned:
 
 **Graph Embeddings & Network Analysis**
 - Graph embedding techniques (Node2Vec, GraphSAGE, Graph Convolutional Networks)
@@ -126,20 +196,11 @@ The following research areas will be documented as new techniques are implemente
 - Graph Neural Networks for entity matching
 - Message passing algorithms for entity propagation
 
-**Vector Search & Semantic Similarity** (Research Complete - Ready for Phase 3 Implementation)
-- **RESEARCH COMPLETE**: Three foundational papers now documented (Mudgal 2018, Ebraheem 2018, Thirumuruganathan 2021)
-- **READY TO IMPLEMENT**: Hybrid blocking (traditional + embeddings)
-- **READY TO IMPLEMENT**: Multi-resolution embeddings (coarse 64-dim + fine 256-dim)
-- **READY TO IMPLEMENT**: LSH indexing for fast candidate generation
-- **READY TO IMPLEMENT**: HNSW/ANN indexing for accurate similarity search
-- **READY TO IMPLEMENT**: Siamese networks for similarity learning
-- **READY TO IMPLEMENT**: Tuple embeddings for structured data
-- Approximate Nearest Neighbor (ANN) algorithms (HNSW, IVF, PQ)
-- Embedding-based entity matching approaches
-- Multi-modal embedding techniques
+**Advanced Vector Techniques**
+- Multi-modal embedding techniques (text + graph + behavior)
 - Metric learning for entity similarity
 - Cross-modal retrieval methods
-- Transfer learning and pre-training strategies
+- Behavioral pattern embeddings
 
 **LLM & GraphRAG**
 - Large Language Models for information extraction
