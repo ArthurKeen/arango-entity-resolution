@@ -1,0 +1,937 @@
+openapi: 3.0.3
+info:
+  title: Entity Resolution API
+  description: |
+    High-performance entity resolution system using ArangoDB's multi-model capabilities.
+    
+    Features:
+    - Record blocking with 99%+ comparison reduction
+    - Fellegi-Sunter probabilistic matching
+    - Graph-based clustering with Weakly Connected Components
+    - Multi-strategy blocking (n-gram, exact, phonetic)
+    - Real-time and batch processing
+    
+    For complete documentation, see: https://github.com/yourusername/arango-entity-resolution
+  version: 1.0.0
+  contact:
+    name: Entity Resolution Team
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8529/_db/entity_resolution/entity-resolution
+    description: Local development server
+  - url: https://your-server.com/_db/entity_resolution/entity-resolution
+    description: Production server
+
+security:
+  - basicAuth: []
+
+tags:
+  - name: System
+    description: System health and information endpoints
+  - name: Setup
+    description: Setup and configuration endpoints
+  - name: Blocking
+    description: Record blocking and candidate generation
+  - name: Similarity
+    description: Similarity computation using Fellegi-Sunter
+  - name: Clustering
+    description: Graph-based entity clustering
+
+paths:
+  /health:
+    get:
+      tags:
+        - System
+      summary: Health check
+      description: Returns service health status and version information
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /info:
+    get:
+      tags:
+        - System
+      summary: Service information
+      description: Returns service metadata and available endpoints
+      operationId: getInfo
+      responses:
+        '200':
+          description: Service information retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InfoResponse'
+
+  /setup/analyzers:
+    post:
+      tags:
+        - Setup
+      summary: Create custom analyzers
+      description: Creates n-gram, exact, and phonetic analyzers for entity resolution
+      operationId: createAnalyzers
+      requestBody:
+        description: Optional analyzer configuration overrides
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ngramLength:
+                  type: integer
+                  default: 3
+                enablePhonetic:
+                  type: boolean
+                  default: true
+      responses:
+        '200':
+          description: Analyzers created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzersResponse'
+        '500':
+          description: Failed to create analyzers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /setup/views:
+    post:
+      tags:
+        - Setup
+      summary: Create ArangoSearch views
+      description: Creates optimized ArangoSearch views for blocking operations
+      operationId: createViews
+      requestBody:
+        description: Collections to create views for
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                collections:
+                  type: array
+                  items:
+                    type: string
+                  default: ["customers"]
+      responses:
+        '200':
+          description: Views created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewsResponse'
+        '500':
+          description: Failed to create views
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /setup/status:
+    get:
+      tags:
+        - Setup
+      summary: Check setup status
+      description: Returns current status of analyzers, views, and collections
+      operationId: getSetupStatus
+      responses:
+        '200':
+          description: Setup status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetupStatusResponse'
+
+  /setup/initialize:
+    post:
+      tags:
+        - Setup
+      summary: Initialize complete setup
+      description: Creates all required analyzers and views in one operation
+      operationId: initializeSetup
+      requestBody:
+        description: Initialization configuration
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                collections:
+                  type: array
+                  items:
+                    type: string
+                  default: ["customers"]
+                force:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: Setup initialized successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InitializeResponse'
+
+  /blocking/candidates:
+    post:
+      tags:
+        - Blocking
+      summary: Generate candidate pairs
+      description: Generates candidate record pairs using multi-strategy blocking
+      operationId: generateCandidates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CandidatesRequest'
+      responses:
+        '200':
+          description: Candidates generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidatesResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Collection or view not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /blocking/candidates/batch:
+    post:
+      tags:
+        - Blocking
+      summary: Generate candidates for multiple targets
+      description: Batch candidate generation for multiple target records
+      operationId: generateCandidatesBatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchCandidatesRequest'
+      responses:
+        '200':
+          description: Batch candidates generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchCandidatesResponse'
+
+  /blocking/strategies:
+    get:
+      tags:
+        - Blocking
+      summary: Get available blocking strategies
+      description: Returns information about available blocking strategies and configurations
+      operationId: getBlockingStrategies
+      responses:
+        '200':
+          description: Blocking strategies retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategiesResponse'
+
+  /blocking/stats/{collection}:
+    get:
+      tags:
+        - Blocking
+      summary: Get blocking statistics
+      description: Returns blocking performance statistics for a collection
+      operationId: getBlockingStats
+      parameters:
+        - name: collection
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Collection name
+      responses:
+        '200':
+          description: Statistics retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlockingStatsResponse'
+
+  /similarity/compute:
+    post:
+      tags:
+        - Similarity
+      summary: Compute similarity score
+      description: Computes Fellegi-Sunter similarity between two documents
+      operationId: computeSimilarity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimilarityRequest'
+      responses:
+        '200':
+          description: Similarity computed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimilarityResponse'
+
+  /similarity/batch:
+    post:
+      tags:
+        - Similarity
+      summary: Compute batch similarities
+      description: Computes similarities for multiple document pairs
+      operationId: computeSimilarityBatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchSimilarityRequest'
+      responses:
+        '200':
+          description: Batch similarities computed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchSimilarityResponse'
+
+  /similarity/functions:
+    get:
+      tags:
+        - Similarity
+      summary: Get similarity functions
+      description: Returns available similarity functions and usage strategies
+      operationId: getSimilarityFunctions
+      responses:
+        '200':
+          description: Functions retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FunctionsResponse'
+
+  /clustering/build-graph:
+    post:
+      tags:
+        - Clustering
+      summary: Build similarity graph
+      description: Builds graph from scored document pairs
+      operationId: buildSimilarityGraph
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuildGraphRequest'
+      responses:
+        '200':
+          description: Graph built successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildGraphResponse'
+
+  /clustering/wcc:
+    post:
+      tags:
+        - Clustering
+      summary: Execute WCC clustering
+      description: Performs Weakly Connected Components clustering
+      operationId: executeWCC
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WCCRequest'
+      responses:
+        '200':
+          description: Clustering completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WCCResponse'
+
+  /clustering/validate:
+    post:
+      tags:
+        - Clustering
+      summary: Validate cluster quality
+      description: Validates cluster quality and coherence
+      operationId: validateClusters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateRequest'
+      responses:
+        '200':
+          description: Validation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateResponse'
+
+  /clustering/stats/{edgeCollection}:
+    get:
+      tags:
+        - Clustering
+      summary: Get clustering statistics
+      description: Returns statistics about the similarity graph
+      operationId: getClusteringStats
+      parameters:
+        - name: edgeCollection
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Edge collection name
+      responses:
+        '200':
+          description: Statistics retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusteringStatsResponse'
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: HTTP Basic Authentication using ArangoDB credentials
+
+  schemas:
+    # System schemas
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "healthy"
+        service:
+          type: string
+          example: "entity-resolution"
+        version:
+          type: string
+          example: "1.0.0"
+        timestamp:
+          type: string
+          format: date-time
+        mode:
+          type: string
+          example: "production"
+        active_modules:
+          type: array
+          items:
+            type: string
+
+    InfoResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        version:
+          type: string
+        status:
+          type: string
+        active_endpoints:
+          type: object
+
+    # Setup schemas
+    AnalyzersResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        analyzers:
+          type: object
+        configuration:
+          type: object
+
+    ViewsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        views:
+          type: object
+        collections:
+          type: array
+          items:
+            type: string
+
+    SetupStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        status:
+          type: object
+        readiness:
+          type: object
+        summary:
+          type: object
+
+    InitializeResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        results:
+          type: object
+        configuration:
+          type: object
+
+    # Blocking schemas
+    CandidatesRequest:
+      type: object
+      required:
+        - collection
+        - targetDocId
+      properties:
+        collection:
+          type: string
+          example: "customers"
+        targetDocId:
+          type: string
+          example: "customers/12345"
+        strategies:
+          type: array
+          items:
+            type: string
+            enum: [ngram, exact, phonetic]
+          default: ["ngram", "exact"]
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 100
+        threshold:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0.1
+
+    CandidatesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        collection:
+          type: string
+        targetDocId:
+          type: string
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/Candidate'
+        statistics:
+          $ref: '#/components/schemas/BlockingStatistics'
+        strategies_used:
+          type: array
+          items:
+            type: string
+        parameters:
+          type: object
+
+    Candidate:
+      type: object
+      properties:
+        candidateId:
+          type: string
+        targetId:
+          type: string
+        score:
+          type: number
+        matchedFields:
+          type: array
+          items:
+            type: string
+        candidate:
+          type: object
+
+    BlockingStatistics:
+      type: object
+      properties:
+        candidate_count:
+          type: integer
+        total_possible_pairs:
+          type: integer
+        reduction_ratio:
+          type: number
+        processing_time_ms:
+          type: number
+
+    BatchCandidatesRequest:
+      type: object
+      required:
+        - collection
+        - targetDocIds
+      properties:
+        collection:
+          type: string
+        targetDocIds:
+          type: array
+          items:
+            type: string
+          maxItems: 100
+        strategies:
+          type: array
+          items:
+            type: string
+        limit:
+          type: integer
+        threshold:
+          type: number
+
+    BatchCandidatesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        collection:
+          type: string
+        batch_size:
+          type: integer
+        results:
+          type: array
+          items:
+            type: object
+        statistics:
+          type: object
+
+    StrategiesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        strategies:
+          type: object
+        configuration:
+          type: object
+        recommended_combinations:
+          type: array
+          items:
+            type: object
+
+    BlockingStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        collection:
+          type: string
+        view:
+          type: string
+        statistics:
+          type: object
+        performance_estimates:
+          type: object
+
+    # Similarity schemas
+    SimilarityRequest:
+      type: object
+      required:
+        - docA
+        - docB
+      properties:
+        docA:
+          type: object
+        docB:
+          type: object
+        fieldWeights:
+          type: object
+          nullable: true
+        includeDetails:
+          type: boolean
+          default: false
+
+    SimilarityResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        similarity:
+          $ref: '#/components/schemas/SimilarityResult'
+        processing_time_ms:
+          type: number
+        field_weights_used:
+          type: object
+
+    SimilarityResult:
+      type: object
+      properties:
+        total_score:
+          type: number
+        is_match:
+          type: boolean
+        is_possible_match:
+          type: boolean
+        confidence:
+          type: number
+        decision:
+          type: string
+          enum: [match, possible_match, non_match]
+        field_scores:
+          type: object
+        thresholds:
+          type: object
+
+    BatchSimilarityRequest:
+      type: object
+      required:
+        - pairs
+      properties:
+        pairs:
+          type: array
+          items:
+            type: object
+            properties:
+              docA:
+                type: object
+              docB:
+                type: object
+          maxItems: 1000
+        fieldWeights:
+          type: object
+        includeDetails:
+          type: boolean
+        threshold:
+          type: number
+
+    BatchSimilarityResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        batch_size:
+          type: integer
+        results:
+          type: array
+          items:
+            type: object
+        statistics:
+          type: object
+
+    FunctionsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        similarity_functions:
+          type: object
+        field_strategies:
+          type: object
+        default_configuration:
+          type: object
+        implementation_notes:
+          type: object
+
+    # Clustering schemas
+    BuildGraphRequest:
+      type: object
+      required:
+        - scoredPairs
+      properties:
+        scoredPairs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScoredPair'
+          maxItems: 10000
+        threshold:
+          type: number
+          default: 0.8
+        edgeCollection:
+          type: string
+          default: "similarities"
+        forceUpdate:
+          type: boolean
+          default: false
+
+    ScoredPair:
+      type: object
+      required:
+        - docA_id
+        - docB_id
+        - total_score
+      properties:
+        docA_id:
+          type: string
+        docB_id:
+          type: string
+        total_score:
+          type: number
+        field_scores:
+          type: object
+        is_match:
+          type: boolean
+
+    BuildGraphResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        edge_collection:
+          type: string
+        results:
+          type: object
+        statistics:
+          type: object
+
+    WCCRequest:
+      type: object
+      properties:
+        edgeCollection:
+          type: string
+          default: "similarities"
+        minSimilarity:
+          type: number
+          default: 0.8
+        maxClusterSize:
+          type: integer
+          minimum: 2
+          maximum: 1000
+          default: 100
+        outputCollection:
+          type: string
+          default: "entity_clusters"
+
+    WCCResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        edge_collection:
+          type: string
+        output_collection:
+          type: string
+        clusters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Cluster'
+        storage_results:
+          type: object
+        statistics:
+          type: object
+        parameters:
+          type: object
+
+    Cluster:
+      type: object
+      properties:
+        cluster_id:
+          type: string
+        member_ids:
+          type: array
+          items:
+            type: string
+        cluster_size:
+          type: integer
+        edge_count:
+          type: integer
+        average_similarity:
+          type: number
+        min_similarity:
+          type: number
+        max_similarity:
+          type: number
+        density:
+          type: number
+        created_at:
+          type: integer
+        quality_score:
+          type: number
+        quality_metrics:
+          type: object
+        is_valid:
+          type: boolean
+
+    ValidateRequest:
+      type: object
+      required:
+        - clusters
+      properties:
+        clusters:
+          type: array
+          items:
+            type: object
+        qualityThresholds:
+          type: object
+
+    ValidateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        validation_results:
+          type: array
+          items:
+            type: object
+        statistics:
+          type: object
+        quality_thresholds:
+          type: object
+        recommendations:
+          type: array
+          items:
+            type: object
+
+    ClusteringStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        edge_collection:
+          type: string
+        statistics:
+          type: object
+
+    # Error schema
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+        - code
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "Detailed error message"
+        code:
+          type: string
+          example: "ERROR_CODE"
+

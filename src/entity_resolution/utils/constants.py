@@ -12,7 +12,7 @@ DEFAULT_DATABASE_CONFIG = {
     'host': 'localhost',
     'port': 8529,
     'username': 'root',
-    'password': 'testpassword123',
+    'password': '',  # Must be provided via environment variable
     'database': '_system'
 }
 
@@ -295,7 +295,7 @@ def get_business_impact_estimate(customer_count: int, duplicate_rate: float,
 DEFAULT_DATABASE_HOST = 'localhost'
 DEFAULT_DATABASE_PORT = 8529
 DEFAULT_DATABASE_USERNAME = 'root'
-DEFAULT_DATABASE_PASSWORD = 'password'
+DEFAULT_DATABASE_PASSWORD = ''  # Password must be configured via environment variable
 # Test database constants
 TEST_DATABASE_NAME = 'entity_resolution_test'
 DEMO_DATABASE_NAME = 'entity_resolution_demo'

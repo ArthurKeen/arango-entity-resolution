@@ -15,7 +15,7 @@ class DatabaseConfig:
     host: str = "localhost"
     port: int = 8529
     username: str = "root"
-    password: str = "testpassword123"
+    password: str = ""  # Must be provided via ARANGO_PASSWORD environment variable
     database: str = "_system"
     
     @classmethod

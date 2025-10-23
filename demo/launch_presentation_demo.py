@@ -26,41 +26,41 @@ def print_banner():
     print("ENTITY RESOLUTION DEMO LAUNCHER".center(80))
     print("=" * 80)
     print()
-    print("🎯 Choose your demo experience:")
+    print("[DEMO] Choose your demo experience:")
     print()
 
 
 def print_demo_options():
     """Print available demo options"""
-    print("1. 🎬 Interactive Presentation Demo")
+    print("1. [PRESENTATION] Interactive Presentation Demo")
     print("   Perfect for live presentations with manual control")
     print("   Features: Step-by-step, explanations, before/after views")
     print("   Duration: 45-60 minutes")
     print()
     
-    print("2. 🔍 Database Inspector")
+    print("2. [INSPECT] Database Inspector")
     print("   Show actual database states during presentations")
     print("   Features: Real-time data views, before/after comparisons")
     print("   Duration: As needed")
     print()
     
-    print("3. ⚡ Quick Demo")
+    print("3. [QUICK] Quick Demo")
     print("   Fast-paced demo for time-constrained presentations")
     print("   Features: Key highlights only, auto-advancing")
     print("   Duration: 15-20 minutes")
     print()
     
-    print("4. 🤖 Auto Demo")
+    print("4. [AUTO] Auto Demo")
     print("   Automated demo for testing and practice")
     print("   Features: No manual intervention, full pipeline")
     print("   Duration: 5-10 minutes")
     print()
     
-    print("5. 📚 View Presentation Script")
+    print("5. [DOCS] View Presentation Script")
     print("   Open the comprehensive presentation guide")
     print()
     
-    print("6. 🔧 Environment Check")
+    print("6. [CHECK] Environment Check")
     print("   Verify all demo components are working")
     print()
     
@@ -70,7 +70,7 @@ def print_demo_options():
 
 def launch_interactive_demo():
     """Launch the interactive presentation demo"""
-    print("🎬 Launching Interactive Presentation Demo...")
+    print("[PRESENTATION] Launching Interactive Presentation Demo...")
     print("This demo gives you full control over pacing and explanations.")
     print()
     
@@ -80,13 +80,13 @@ def launch_interactive_demo():
     if demo_script.exists():
         os.system(f"cd {project_root} && python {demo_script}")
     else:
-        print("❌ Interactive demo script not found!")
+        print("[ERROR] Interactive demo script not found!")
         print(f"Expected: {demo_script}")
 
 
 def launch_database_inspector():
     """Launch the database inspector"""
-    print("🔍 Launching Database Inspector...")
+    print("[INSPECT] Launching Database Inspector...")
     print("Use this to show actual database states during your presentation.")
     print()
     
@@ -96,13 +96,13 @@ def launch_database_inspector():
     if inspector_script.exists():
         os.system(f"cd {project_root} && python {inspector_script}")
     else:
-        print("❌ Database inspector script not found!")
+        print("[ERROR] Database inspector script not found!")
         print(f"Expected: {inspector_script}")
 
 
 def launch_quick_demo():
     """Launch quick demo with auto-advance"""
-    print("⚡ Launching Quick Demo...")
+    print("[QUICK] Launching Quick Demo...")
     print("This is a fast-paced version perfect for short presentations.")
     print()
     
@@ -125,15 +125,15 @@ def launch_quick_demo():
             demo.run_presentation_demo()
             
         except ImportError:
-            print("❌ Could not import interactive demo. Running as subprocess...")
+            print("[ERROR] Could not import interactive demo. Running as subprocess...")
             os.system(f"cd {project_root} && python {demo_script}")
     else:
-        print("❌ Demo script not found!")
+        print("[ERROR] Demo script not found!")
 
 
 def launch_auto_demo():
     """Launch the automated demo"""
-    print("🤖 Launching Automated Demo...")
+    print("[AUTO] Launching Automated Demo...")
     print("This runs the complete pipeline automatically for testing.")
     print()
     
@@ -144,12 +144,12 @@ def launch_auto_demo():
     if auto_script.exists():
         os.system(f"cd {project_root} && python {auto_script} --auto --records 1000")
     else:
-        print("❌ Auto demo script not found!")
+        print("[ERROR] Auto demo script not found!")
 
 
 def view_presentation_script():
     """Open the presentation script"""
-    print("📚 Opening Presentation Script...")
+    print("[DOCS] Opening Presentation Script...")
     
     script_file = Path(__file__).parent / "PRESENTATION_SCRIPT.md"
     
@@ -165,12 +165,12 @@ def view_presentation_script():
             print(f"Presentation script location: {script_file}")
             print("Please open this file in your preferred editor.")
     else:
-        print("❌ Presentation script not found!")
+        print("[ERROR] Presentation script not found!")
 
 
 def environment_check():
     """Check if all demo components are available"""
-    print("🔧 Checking Demo Environment...")
+    print("[CHECK] Checking Demo Environment...")
     print()
     
     # Check Python version
@@ -187,53 +187,53 @@ def environment_check():
     
     all_good = True
     
-    print("\n📁 Required Files:")
+    print("\n[FILES] Required Files:")
     for file_path in required_files:
         full_path = project_root / file_path
         if full_path.exists():
-            print(f"  ✅ {file_path}")
+            print(f"  [OK] {file_path}")
         else:
-            print(f"  ❌ {file_path}")
+            print(f"  [MISSING] {file_path}")
             all_good = False
     
     # Check required packages
-    print("\n📦 Required Packages:")
+    print("\n[PACKAGES] Required Packages:")
     required_packages = ["arango"]
     optional_packages = ["tabulate"]
     
     for package in required_packages:
         try:
             __import__(package)
-            print(f"  ✅ {package}")
+            print(f"  [OK] {package}")
         except ImportError:
-            print(f"  ❌ {package} (install with: pip install {package})")
+            print(f"  [MISSING] {package} (install with: pip install {package})")
             all_good = False
     
-    print("\n📦 Optional Packages (for enhanced formatting):")
+    print("\n[PACKAGES] Optional Packages (for enhanced formatting):")
     for package in optional_packages:
         try:
             __import__(package)
-            print(f"  ✅ {package}")
+            print(f"  [OK] {package}")
         except ImportError:
-            print(f"  ⚠️  {package} (install with: pip install {package} for better tables)")
+            print(f"  [OPTIONAL] {package} (install with: pip install {package} for better tables)")
     
     # Check database connection (optional)
-    print("\n🗄️  Database Connection:")
+    print("\n[DATABASE] Database Connection:")
     try:
         from src.entity_resolution.utils.config import get_config
         config = get_config()
-        print(f"  📊 Host: {config.db.host}:{config.db.port}")
-        print(f"  📁 Database: {config.db.database}")
-        print("  ⚠️  Connection test skipped (run demo to verify)")
+        print(f"  [INFO] Host: {config.db.host}:{config.db.port}")
+        print(f"  [INFO] Database: {config.db.database}")
+        print("  [INFO] Connection test skipped (run demo to verify)")
     except Exception as e:
-        print(f"  ❌ Configuration error: {e}")
+        print(f"  [ERROR] Configuration error: {e}")
         all_good = False
     
     print()
     if all_good:
-        print("✅ Environment check passed! All demos should work.")
+        print("[SUCCESS] Environment check passed! All demos should work.")
     else:
-        print("❌ Environment issues detected. Some demos may not work.")
+        print("[WARNING] Environment issues detected. Some demos may not work.")
         print("   Please install missing packages or check file paths.")
 
 
@@ -248,7 +248,7 @@ def main():
         choice = input("Enter your choice (1-6 or q): ").strip().lower()
         
         if choice == 'q':
-            print("Goodbye! Happy presenting! 🎉")
+            print("Goodbye! Happy presenting!")
             break
         elif choice == '1':
             launch_interactive_demo()
@@ -263,7 +263,7 @@ def main():
         elif choice == '6':
             environment_check()
         else:
-            print("❌ Invalid choice. Please enter 1-6 or q.")
+            print("[ERROR] Invalid choice. Please enter 1-6 or q.")
         
         print("\n" + "─" * 80 + "\n")
 

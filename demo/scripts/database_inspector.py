@@ -61,23 +61,23 @@ class DatabaseInspector:
             
             if self.connected:
                 conn_info = self.db_manager.get_connection_info()
-                print(f"✅ Connected to ArangoDB: {conn_info['url']}")
+                print(f"[OK] Connected to ArangoDB: {conn_info['url']}")
                 print(f"   Database: {conn_info['database']}")
             else:
-                print("❌ Failed to connect to database")
+                print("[ERROR] Failed to connect to database")
             
             return self.connected
             
         except Exception as e:
             self.logger.error(f"Database connection failed: {e}")
-            print(f"❌ Failed to connect to database: {e}")
+            print(f"[ERROR] Failed to connect to database: {e}")
             return False
     
     def show_database_overview(self) -> Dict[str, Any]:
         """Show high-level database overview"""
         
         if not self.connected:
-            print("❌ Not connected to database")
+            print("[ERROR] Not connected to database")
             return {}
         
         print("\n" + "=" * 80)
@@ -93,8 +93,8 @@ class DatabaseInspector:
             collections = db.collections()
             
             print(f"📊 Database: {self.config.db.database}")
-            print(f"🏢 Server: {self.config.db.host}:{self.config.db.port}")
-            print(f"📁 Collections: {len(collections)}")
+            print(f"[INFO] Server: {self.config.db.host}:{self.config.db.port}")
+            print(f"[INFO] Collections: {len(collections)}")
             print()
             
             # Show collections and their sizes
@@ -113,7 +113,7 @@ class DatabaseInspector:
                     coll_name,
                     count,
                     collection_info['type'],
-                    "✅" if count > 0 else "⚠️"
+                    "[OK]" if count > 0 else ""
                 ])
             
             if collection_data:
@@ -136,14 +136,14 @@ class DatabaseInspector:
             }
             
         except Exception as e:
-            print(f"❌ Error retrieving database overview: {e}")
+            print(f"[ERROR] Error retrieving database overview: {e}")
             return {}
     
     def show_collection_data(self, collection_name: str, limit: int = None) -> List[Dict[str, Any]]:
         """Show formatted data from a collection"""
         
         if not self.connected:
-            print("❌ Not connected to database")
+            print("[ERROR] Not connected to database")
             return []
         
         limit = limit or self.max_rows
@@ -156,14 +156,14 @@ class DatabaseInspector:
             db = self.db_manager.get_database()
             
             if not db.has_collection(collection_name):
-                print(f"❌ Collection '{collection_name}' does not exist")
+                print(f"[ERROR] Collection '{collection_name}' does not exist")
                 return []
             
             collection = db.collection(collection_name)
             total_count = collection.count()
             
             print(f"📊 Total records: {total_count:,}")
-            print(f"👁️  Showing: {min(limit, total_count)} records")
+            print(f"👁  Showing: {min(limit, total_count)} records")
             print()
             
             # Get sample records
@@ -175,7 +175,7 @@ class DatabaseInspector:
             records = list(cursor)
             
             if not records:
-                print("⚠️ No records found")
+                print(" No records found")
                 return []
             
             # Format records for display
@@ -184,14 +184,14 @@ class DatabaseInspector:
             return records
             
         except Exception as e:
-            print(f"❌ Error retrieving collection data: {e}")
+            print(f"[ERROR] Error retrieving collection data: {e}")
             return []
     
     def show_customer_duplicates(self, collection_name: str = "customers") -> Dict[str, Any]:
         """Show potential customer duplicates for presentation"""
         
         if not self.connected:
-            print("❌ Not connected to database")
+            print("[ERROR] Not connected to database")
             return {}
         
         print(f"\n" + "=" * 80)
@@ -255,14 +255,14 @@ class DatabaseInspector:
             }
             
         except Exception as e:
-            print(f"❌ Error analyzing duplicates: {e}")
+            print(f"[ERROR] Error analyzing duplicates: {e}")
             return {}
     
     def show_similarity_results(self, collection_name: str = "similarity_results") -> Dict[str, Any]:
         """Show similarity analysis results"""
         
         if not self.connected:
-            print("❌ Not connected to database")
+            print("[ERROR] Not connected to database")
             return {}
         
         print(f"\n" + "=" * 80)
@@ -273,7 +273,7 @@ class DatabaseInspector:
             db = self.db_manager.get_database()
             
             if not db.has_collection(collection_name):
-                print(f"⚠️ No similarity results found (collection '{collection_name}' missing)")
+                print(f" No similarity results found (collection '{collection_name}' missing)")
                 return {}
             
             collection = db.collection(collection_name)
@@ -303,7 +303,7 @@ class DatabaseInspector:
                         match.get('record_a_id', '')[:8],
                         match.get('record_b_id', '')[:8],
                         f"{match.get('similarity_score', 0)*100:.1f}%",
-                        "✅" if match.get('is_match', False) else "❌",
+                        "[OK]" if match.get('is_match', False) else "[ERROR]",
                         match.get('confidence', 0)
                     ])
                 
@@ -352,14 +352,14 @@ class DatabaseInspector:
             }
             
         except Exception as e:
-            print(f"❌ Error retrieving similarity results: {e}")
+            print(f"[ERROR] Error retrieving similarity results: {e}")
             return {}
     
     def show_clusters(self, collection_name: str = "entity_clusters") -> Dict[str, Any]:
         """Show entity clusters"""
         
         if not self.connected:
-            print("❌ Not connected to database")
+            print("[ERROR] Not connected to database")
             return {}
         
         print(f"\n" + "=" * 80)
@@ -370,7 +370,7 @@ class DatabaseInspector:
             db = self.db_manager.get_database()
             
             if not db.has_collection(collection_name):
-                print(f"⚠️ No clusters found (collection '{collection_name}' missing)")
+                print(f" No clusters found (collection '{collection_name}' missing)")
                 return {}
             
             collection = db.collection(collection_name)
@@ -443,14 +443,14 @@ class DatabaseInspector:
             }
             
         except Exception as e:
-            print(f"❌ Error retrieving clusters: {e}")
+            print(f"[ERROR] Error retrieving clusters: {e}")
             return {}
     
     def show_golden_records(self, collection_name: str = "golden_records") -> Dict[str, Any]:
         """Show golden records"""
         
         if not self.connected:
-            print("❌ Not connected to database")
+            print("[ERROR] Not connected to database")
             return {}
         
         print(f"\n" + "=" * 80)
@@ -461,7 +461,7 @@ class DatabaseInspector:
             db = self.db_manager.get_database()
             
             if not db.has_collection(collection_name):
-                print(f"⚠️ No golden records found (collection '{collection_name}' missing)")
+                print(f" No golden records found (collection '{collection_name}' missing)")
                 return {}
             
             collection = db.collection(collection_name)
@@ -541,7 +541,7 @@ class DatabaseInspector:
             }
             
         except Exception as e:
-            print(f"❌ Error retrieving golden records: {e}")
+            print(f"[ERROR] Error retrieving golden records: {e}")
             return {}
     
     def compare_before_after(self, original_collection: str = "customers", 
@@ -549,7 +549,7 @@ class DatabaseInspector:
         """Compare original vs golden records"""
         
         if not self.connected:
-            print("❌ Not connected to database")
+            print("[ERROR] Not connected to database")
             return {}
         
         print(f"\n" + "=" * 80)
@@ -597,7 +597,7 @@ class DatabaseInspector:
             }
             
         except Exception as e:
-            print(f"❌ Error comparing before/after: {e}")
+            print(f"[ERROR] Error comparing before/after: {e}")
             return {}
     
     def _display_records_table(self, records: List[Dict[str, Any]]):

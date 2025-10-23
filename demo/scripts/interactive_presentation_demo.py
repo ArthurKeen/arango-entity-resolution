@@ -251,11 +251,11 @@ class InteractivePresentationDemo:
             "created_at": datetime.now().isoformat()
         }
         
-        print(f"✅ Demo data prepared:")
-        print(f"   📊 {len(self.demo_data)} customer records")
-        print(f"   🎯 {self.demo_metadata['duplicate_groups']} duplicate groups")
+        print(f"[OK] Demo data prepared:")
+        print(f"   [INFO] {len(self.demo_data)} customer records")
+        print(f"   [DEMO] {self.demo_metadata['duplicate_groups']} duplicate groups")
         print(f"   📈 {self.demo_metadata['duplication_rate']:.0%} duplication rate")
-        print(f"   📁 {len(self.demo_metadata['data_sources'])} data sources")
+        print(f"   [INFO] {len(self.demo_metadata['data_sources'])} data sources")
         
         self.wait_for_presenter("Ready to start the presentation?")
     
@@ -323,10 +323,10 @@ class InteractivePresentationDemo:
         print("-" * 120)
         print(f"Total Records: {len(self.demo_data)}")
         print()
-        print("📊 WHAT YOUR SYSTEMS REPORT:")
+        print("[INFO] WHAT YOUR SYSTEMS REPORT:")
         print(f"   • Total Customers: {len(self.demo_data):,}")
         print(f"   • Data Sources: {len(self.demo_metadata['data_sources'])}")
-        print(f"   • Database Status: ✅ Healthy")
+        print(f"   • Database Status: [OK] Healthy")
         print()
         print("Everything looks normal, right?")
         print("Your database has 10 customers from various systems.")
@@ -390,10 +390,10 @@ class InteractivePresentationDemo:
             print()
         
         # Highlight the similarities and differences
-        print("🔍 Analysis:")
-        print("  ✅ Same person (look at phone numbers, company, address)")
-        print("  ❌ Different data entry styles")
-        print("  ❌ Multiple records in different systems")
+        print("[INSPECT] Analysis:")
+        print("  [OK] Same person (look at phone numbers, company, address)")
+        print("  [ERROR] Different data entry styles")
+        print("  [ERROR] Multiple records in different systems")
         print("  💰 This is costing you money in:")
         print("     • Duplicate marketing emails")
         print("     • Confused customer service")
@@ -410,7 +410,7 @@ class InteractivePresentationDemo:
         unique_entities = self.demo_metadata['unique_entities']
         duplicate_rate = self.demo_metadata['duplication_rate']
         
-        print("📊 IMPACT ANALYSIS (Based on your data):")
+        print("[INFO] IMPACT ANALYSIS (Based on your data):")
         print()
         print(f"Database Analysis:")
         print(f"  • Records in database: {total_records}")
@@ -445,7 +445,7 @@ class InteractivePresentationDemo:
             print(f"  • TOTAL ANNUAL COST: ${total_annual_waste:,.0f}")
             print()
         
-        print("🎯 OPPORTUNITY:")
+        print("[DEMO] OPPORTUNITY:")
         print("  Entity Resolution can eliminate this waste by")
         print("  automatically identifying and consolidating duplicates!")
     
@@ -459,7 +459,7 @@ class InteractivePresentationDemo:
             print("Now let's solve this problem with AI-powered entity resolution.")
             print()
             print("I'm going to process your customer database and:")
-            print("  1. 🔍 Find all the duplicates automatically")
+            print("  1. [INSPECT] Find all the duplicates automatically")
             print("  2. 🧠 Use AI to match similar records")
             print("  3. 🔗 Group duplicates into entities")
             print("  4. ✨ Create clean 'golden' customer records")
@@ -511,16 +511,16 @@ class InteractivePresentationDemo:
         # Simulate analysis with progress
         print("Processing records:")
         for i, record in enumerate(self.demo_data):
-            print(f"  🔍 Analyzing {record['first_name']} {record['last_name']}...")
+            print(f"  [INSPECT] Analyzing {record['first_name']} {record['last_name']}...")
             if not self.auto_mode:
                 time.sleep(0.5)
         
         print()
-        print("✅ Similarity analysis complete!")
+        print("[OK] Similarity analysis complete!")
         print()
         
         # Show specific matches found
-        print("🎯 MATCHES FOUND:")
+        print("[DEMO] MATCHES FOUND:")
         print()
         
         # John Smith group
@@ -540,7 +540,7 @@ class InteractivePresentationDemo:
         print("  • rec_006 'Robert Wilson' ↔ rec_007 'Bob Wilson' (97% match)")
         print()
         
-        print("📊 SIMILARITY STATISTICS:")
+        print("[INFO] SIMILARITY STATISTICS:")
         print(f"  • Record pairs analyzed: {len(self.demo_data) * (len(self.demo_data) - 1) // 2}")
         print("  • High-confidence matches: 5")
         print("  • Processing time: 0.8 seconds")
@@ -602,7 +602,7 @@ class InteractivePresentationDemo:
         
         for cluster in clusters:
             record_count = len(cluster["records"])
-            print(f"🎯 {cluster['primary_name']} → {record_count} record(s) (confidence: {cluster['confidence']:.1%})")
+            print(f"[DEMO] {cluster['primary_name']} → {record_count} record(s) (confidence: {cluster['confidence']:.1%})")
             for record_id in cluster["records"]:
                 record = next(r for r in self.demo_data if r["id"] == record_id)
                 source = record["source_system"]
@@ -611,9 +611,9 @@ class InteractivePresentationDemo:
         
         self.results["clusters"] = clusters
         
-        print("✅ Clustering complete!")
+        print("[OK] Clustering complete!")
         print()
-        print("📊 CLUSTERING RESULTS:")
+        print("[INFO] CLUSTERING RESULTS:")
         print(f"  • Original records: {len(self.demo_data)}")
         print(f"  • Unique entities found: {len(clusters)}")
         print(f"  • Duplicate records eliminated: {len(self.demo_data) - len(clusters)}")
@@ -685,9 +685,9 @@ class InteractivePresentationDemo:
         
         self.results["golden_records"] = golden_records
         
-        print("✅ Golden records created!")
+        print("[OK] Golden records created!")
         print()
-        print("📊 TRANSFORMATION SUMMARY:")
+        print("[INFO] TRANSFORMATION SUMMARY:")
         print(f"  • Input: {len(self.demo_data)} messy customer records")
         print(f"  • Output: {len(golden_records)} clean customer entities")
         print(f"  • Duplicates eliminated: {len(self.demo_data) - len(golden_records)}")
@@ -727,26 +727,26 @@ class InteractivePresentationDemo:
         
         print("BEFORE Entity Resolution:")
         print("=" * 60)
-        print("❌ 10 customer records (with hidden duplicates)")
-        print("❌ Data scattered across 5 systems")
-        print("❌ Inconsistent data formats")
-        print("❌ 30% duplication rate")
-        print("❌ Fragmented customer view")
-        print("❌ Marketing waste and confusion")
+        print("[ERROR] 10 customer records (with hidden duplicates)")
+        print("[ERROR] Data scattered across 5 systems")
+        print("[ERROR] Inconsistent data formats")
+        print("[ERROR] 30% duplication rate")
+        print("[ERROR] Fragmented customer view")
+        print("[ERROR] Marketing waste and confusion")
         print()
         
         print("AFTER Entity Resolution:")
         print("=" * 60)
-        print("✅ 7 clean customer entities")
-        print("✅ Unified data from all systems")
-        print("✅ Standardized, high-quality data")
-        print("✅ 0% duplication")
-        print("✅ Complete 360° customer view")
-        print("✅ Optimized marketing and operations")
+        print("[OK] 7 clean customer entities")
+        print("[OK] Unified data from all systems")
+        print("[OK] Standardized, high-quality data")
+        print("[OK] 0% duplication")
+        print("[OK] Complete 360° customer view")
+        print("[OK] Optimized marketing and operations")
         print()
         
         # Show specific example transformation
-        print("🔍 EXAMPLE TRANSFORMATION:")
+        print("[INSPECT] EXAMPLE TRANSFORMATION:")
         print()
         print("BEFORE - John Smith (3 separate records):")
         print("  Record 1: John Smith, john.smith@email.com, 555-123-4567")
@@ -761,7 +761,7 @@ class InteractivePresentationDemo:
         print()
         
         # Show database efficiency
-        print("📊 DATABASE EFFICIENCY:")
+        print("[INFO] DATABASE EFFICIENCY:")
         original_count = len(self.demo_data)
         final_count = len(self.results["golden_records"])
         reduction = ((original_count - final_count) / original_count) * 100
@@ -825,7 +825,7 @@ class InteractivePresentationDemo:
             print(f"    • Implementation ROI: {size['roi']}")
             print()
         
-        print("⚡ TECHNICAL ADVANTAGES:")
+        print("[QUICK] TECHNICAL ADVANTAGES:")
         print("  • Processing speed: 250,000+ records/second")
         print("  • Accuracy: 99.5% precision, 98% recall")
         print("  • Real-time processing capability")
@@ -851,13 +851,13 @@ class InteractivePresentationDemo:
             # Conclusion
             self.print_title("DEMO COMPLETE", "Thank You for Your Attention")
             
-            print("🎉 Entity Resolution Demo Complete!")
+            print("[SUCCESS] Entity Resolution Demo Complete!")
             print()
             print("What we've shown you today:")
-            print("  ✅ Hidden duplicate customer problem (30% waste)")
-            print("  ✅ AI-powered entity resolution solution")
-            print("  ✅ Real-time processing and golden records")
-            print("  ✅ Significant ROI and business value")
+            print("  [OK] Hidden duplicate customer problem (30% waste)")
+            print("  [OK] AI-powered entity resolution solution")
+            print("  [OK] Real-time processing and golden records")
+            print("  [OK] Significant ROI and business value")
             print()
             print("Next Steps:")
             print("  📞 Technical deep-dive session")
@@ -880,7 +880,7 @@ class InteractivePresentationDemo:
 def main():
     """Main entry point for presentation demo"""
     
-    print("🎬 Interactive Entity Resolution Presentation Demo")
+    print("[PRESENTATION] Interactive Entity Resolution Presentation Demo")
     print("=" * 60)
     print()
     print("This demo is designed for live presentations.")
