@@ -2,6 +2,13 @@
 
 This document explains the Git hooks configured for this repository to ensure code quality and prevent common issues.
 
+## Overview
+
+Two git hooks are configured:
+
+1. **Pre-Commit Hook** (~5 seconds) - Quick validation before each commit
+2. **Pre-Push Hook** (~2-3 minutes) - Comprehensive tests before pushing to remote
+
 ## Pre-Commit Hook
 
 The pre-commit hook runs automatically before each commit to verify code quality and catch issues early.
@@ -145,12 +152,74 @@ Or to disable temporarily:
 chmod -x .git/hooks/pre-commit
 ```
 
+## Pre-Push Hook
+
+The pre-push hook runs automatically before pushing to the remote repository to ensure all tests pass.
+
+### What It Checks
+
+1. **Core Unit Tests** - Configuration and constants modules
+2. **Service Tests** - Blocking, similarity, and clustering services
+3. **Integration Tests** - End-to-end entity resolution pipeline
+4. **Module Imports** - Verifies all critical modules can be imported
+5. **Code Quality** - Python syntax validation
+
+### Usage
+
+Once installed, the hook runs automatically:
+
+```bash
+git push origin main
+
+# Hook runs automatically:
+# [TEST] Core Unit Tests...        [PASS]
+# [TEST] Service Tests...           [PASS]
+# [TEST] Integration Tests...       [PASS]
+# [TEST] Module Imports...          [PASS]
+# [TEST] Code Quality...            [PASS]
+# [OK] ALL TESTS PASSED
+# [OK] Safe to push to remote repository
+```
+
+### What Happens on Failure
+
+If tests fail, the push is blocked:
+
+```
+[FAIL] Cannot push - 2 test section(s) failed:
+  - Service Tests
+  - Integration Tests
+
+Please fix the failing tests before pushing.
+```
+
+Fix the issues and try pushing again.
+
+### Skipping the Hook
+
+In rare emergency cases where you need to push despite test failures (NOT RECOMMENDED):
+
+```bash
+SKIP_TESTS=1 git push
+```
+
+This should only be used for critical hotfixes or when the CI/CD pipeline can catch the issues.
+
+### Performance
+
+The pre-push hook is designed to be thorough but reasonable:
+- **Target time**: 2-3 minutes
+- **Test coverage**: Core functionality and integration tests
+- **Optimized output**: Only shows summary and last 20 lines of each test section
+
+This is acceptable since pushes happen less frequently than commits.
+
 ## Future Hooks
 
 Additional hooks can be added for:
-- **Pre-Push**: Run full test suite before pushing
 - **Commit-Msg**: Validate commit message format
 - **Post-Commit**: Notify team or update issue trackers
+- **Post-Merge**: Run integration tests after merges
 
 ## Best Practices
 

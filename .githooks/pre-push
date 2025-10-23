@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+#
+# Pre-push hook for Entity Resolution System
+# Runs full system tests before pushing to remote repository
+#
+# Install: ./scripts/setup-git-hooks.sh
+# Or manually: cp .githooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
+
+set -e
+
+# Colors for output (ASCII only)
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo ""
+echo "=========================================="
+echo " PRE-PUSH HOOK: Running System Tests"
+echo "=========================================="
+echo ""
+echo -e "${BLUE}[INFO] This may take 2-3 minutes...${NC}"
+echo ""
+
+# Check if we're in the right directory
+if [ ! -f "README.md" ] || [ ! -d "src" ]; then
+    echo -e "${RED}[ERROR] Must be run from project root${NC}"
+    exit 1
+fi
+
+# Set Python path
+export PYTHONPATH="${PWD}/src:${PYTHONPATH}"
+
+# Check if we should skip tests (for emergency pushes)
+if [ -n "$SKIP_TESTS" ]; then
+    echo -e "${YELLOW}[WARNING] Skipping tests (SKIP_TESTS environment variable set)${NC}"
+    echo "This should only be used in emergencies!"
+    exit 0
+fi
+
+# Function to run a test section
+run_test_section() {
+    local name="$1"
+    local command="$2"
+    
+    echo ""
+    echo -e "${BLUE}[TEST] $name${NC}"
+    echo "----------------------------------------"
+    
+    if eval "$command"; then
+        echo -e "${GREEN}[PASS] $name${NC}"
+        return 0
+    else
+        echo -e "${RED}[FAIL] $name${NC}"
+        return 1
+    fi
+}
+
+# Track failures
+FAILED_TESTS=()
+
+# Test 1: Unit Tests (Core Functionality)
+if ! run_test_section "Core Unit Tests" "python3 -m pytest tests/test_config.py tests/test_constants.py -v --tb=short 2>&1 | tail -20"; then
+    FAILED_TESTS+=("Core Unit Tests")
+fi
+
+# Test 2: Service Tests
+if ! run_test_section "Service Tests" "python3 -m pytest tests/test_blocking_service.py tests/test_similarity_service.py tests/test_clustering_service.py -v --tb=short 2>&1 | tail -20"; then
+    FAILED_TESTS+=("Service Tests")
+fi
+
+# Test 3: Integration Tests
+if ! run_test_section "Integration Tests" "python3 -m pytest tests/test_entity_resolver.py -v --tb=short 2>&1 | tail -20"; then
+    FAILED_TESTS+=("Integration Tests")
+fi
+
+# Test 4: Import Verification
+if ! run_test_section "Module Imports" "python3 << 'PYTEST'
+import sys
+import warnings
+warnings.filterwarnings('ignore')
+
+print('[TEST] Verifying all critical imports...')
+errors = []
+
+try:
+    from entity_resolution.utils.config import Config, get_config
+    from entity_resolution.utils.constants import DEFAULT_DATABASE_CONFIG
+    print('  [OK] Configuration modules')
+except Exception as e:
+    errors.append(f'Config: {e}')
+
+try:
+    from entity_resolution.services.blocking_service import BlockingService
+    from entity_resolution.services.similarity_service import SimilarityService
+    from entity_resolution.services.clustering_service import ClusteringService
+    from entity_resolution.services.golden_record_service import GoldenRecordService
+    print('  [OK] Service modules')
+except Exception as e:
+    errors.append(f'Services: {e}')
+
+try:
+    from entity_resolution.core.entity_resolver import EntityResolutionPipeline
+    from entity_resolution.data.data_manager import DataManager
+    print('  [OK] Core modules')
+except Exception as e:
+    errors.append(f'Core: {e}')
+
+if errors:
+    print(f'[FAIL] Import errors: {len(errors)}')
+    for err in errors:
+        print(f'  - {err}')
+    sys.exit(1)
+else:
+    print('[PASS] All modules imported successfully')
+PYTEST"; then
+    FAILED_TESTS+=("Module Imports")
+fi
+
+# Test 5: Code Quality (Quick Check)
+if ! run_test_section "Code Quality" "python3 -m py_compile src/entity_resolution/utils/config.py src/entity_resolution/utils/constants.py src/entity_resolution/core/entity_resolver.py 2>&1 | head -10"; then
+    FAILED_TESTS+=("Code Quality")
+fi
+
+echo ""
+echo "=========================================="
+
+# Check results
+if [ ${#FAILED_TESTS[@]} -eq 0 ]; then
+    echo -e "${GREEN} ALL TESTS PASSED${NC}"
+    echo "=========================================="
+    echo ""
+    echo -e "${GREEN}[OK] Safe to push to remote repository${NC}"
+    echo ""
+    exit 0
+else
+    echo -e "${RED} TESTS FAILED${NC}"
+    echo "=========================================="
+    echo ""
+    echo -e "${RED}[FAIL] Cannot push - ${#FAILED_TESTS[@]} test section(s) failed:${NC}"
+    for test in "${FAILED_TESTS[@]}"; do
+        echo "  - $test"
+    done
+    echo ""
+    echo "Please fix the failing tests before pushing."
+    echo ""
+    echo "To skip tests in an emergency (NOT RECOMMENDED):"
+    echo "  SKIP_TESTS=1 git push"
+    echo ""
+    exit 1
+fi
+
