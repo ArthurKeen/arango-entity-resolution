@@ -2,16 +2,16 @@
 
 ## Working with Non-Standard Collections
 
-The Entity Resolution framework is designed to work with **any collection structure**, not just the tutorial "customers" collection. This guide shows how to use the framework with custom collections like D&B (Dun & Bradstreet), CRM systems, or your own data models.
+The Entity Resolution framework is designed to work with **any collection structure**, not just the tutorial "customers" collection. This guide shows how to use the framework with custom collections from enterprise systems, CRM platforms, ERP systems, or your own data models.
 
 ---
 
-## Quick Start: D&B Example
+## Quick Start: Enterprise Data Example
 
 ### 1. Create Analyzers (One Time)
 
 ```bash
-curl -X POST "https://your-db.arangodb.cloud:8529/_db/dnb-kg/entity-resolution/setup/analyzers" \
+curl -X POST "https://your-db.arangodb.cloud:8529/_db/your_database/entity-resolution/setup/analyzers" \
   -u root:yourpassword \
   -H "Content-Type: application/json"
 ```
@@ -23,37 +23,37 @@ curl -X POST "https://your-db.arangodb.cloud:8529/_db/dnb-kg/entity-resolution/s
 
 ### 2. Create Views for Your Collections
 
-**D&B Collections Example:**
+**Enterprise Collections Example:**
 
 ```bash
-curl -X POST "https://your-db.arangodb.cloud:8529/_db/dnb-kg/entity-resolution/setup/views" \
+curl -X POST "https://your-db.arangodb.cloud:8529/_db/your_database/entity-resolution/setup/views" \
   -u root:yourpassword \
   -H "Content-Type: application/json" \
   -d '{
-    "collections": ["duns", "regs", "dbanames"],
+    "collections": ["companies", "contacts", "locations"],
     "fields": {
-      "duns": ["DUNS_NAME", "NAME_CHIEF_EXECUTIVE", "NAME_PRIMARY_STATE"],
-      "regs": ["REGISTRATION_NAME", "REGISTRATION_NUMBER"],
-      "dbanames": ["DBA_NAME"]
+      "companies": ["company_name", "ceo_name", "industry"],
+      "contacts": ["first_name", "last_name", "email"],
+      "locations": ["address", "city", "postal_code"]
     }
   }'
 ```
 
 **Result:**
-- `duns_blocking_view` - Indexes DUNS_NAME, NAME_CHIEF_EXECUTIVE, NAME_PRIMARY_STATE
-- `regs_blocking_view` - Indexes REGISTRATION_NAME, REGISTRATION_NUMBER
-- `dbanames_blocking_view` - Indexes DBA_NAME
+- `companies_blocking_view` - Indexes company_name, ceo_name, industry
+- `contacts_blocking_view` - Indexes first_name, last_name, email
+- `locations_blocking_view` - Indexes address, city, postal_code
 
 ### 3. Alternative: Auto-Discovery Mode
 
 Let the system index **all fields** automatically:
 
 ```bash
-curl -X POST "https://your-db.arangodb.cloud:8529/_db/dnb-kg/entity-resolution/setup/views" \
+curl -X POST "https://your-db.arangodb.cloud:8529/_db/your_database/entity-resolution/setup/views" \
   -u root:yourpassword \
   -H "Content-Type: application/json" \
   -d '{
-    "collections": ["duns"]
+    "collections": ["companies"]
   }'
 ```
 
@@ -64,14 +64,14 @@ Auto-discovery is enabled by default (`autoDiscoverFields: true` in service conf
 Create analyzers **and** views in one call:
 
 ```bash
-curl -X POST "https://your-db.arangodb.cloud:8529/_db/dnb-kg/entity-resolution/setup/initialize" \
+curl -X POST "https://your-db.arangodb.cloud:8529/_db/your_database/entity-resolution/setup/initialize" \
   -u root:yourpassword \
   -H "Content-Type: application/json" \
   -d '{
-    "collections": ["duns", "regs"],
+    "collections": ["companies", "contacts"],
     "fields": {
-      "duns": ["DUNS_NAME", "NAME_CHIEF_EXECUTIVE"],
-      "regs": ["REGISTRATION_NAME"]
+      "companies": ["company_name", "industry"],
+      "contacts": ["first_name", "last_name", "email"]
     }
   }'
 ```
@@ -86,24 +86,24 @@ curl -X POST "https://your-db.arangodb.cloud:8529/_db/dnb-kg/entity-resolution/s
 from entity_resolution.services.setup_service import SetupService
 from entity_resolution.utils.config import Config
 
-# Configure for D&B database
+# Configure for your database
 config = Config(
     host="your-db.arangodb.cloud",
     port=8529,
     username="root",
     password="yourpassword",
-    database="dnb-kg"
+    database="your_database"
 )
 
 setup = SetupService(config)
 
-# Initialize for D&B collections
+# Initialize for your collections
 result = setup.initialize(
-    collections=["duns", "regs", "dbanames"],
+    collections=["companies", "contacts", "locations"],
     fields={
-        "duns": ["DUNS_NAME", "NAME_CHIEF_EXECUTIVE", "NAME_PRIMARY_STATE"],
-        "regs": ["REGISTRATION_NAME", "REGISTRATION_NUMBER"],
-        "dbanames": ["DBA_NAME"]
+        "companies": ["company_name", "ceo_name", "industry"],
+        "contacts": ["first_name", "last_name", "email"],
+        "locations": ["address", "city", "postal_code"]
     }
 )
 
@@ -121,7 +121,7 @@ Configure default behavior via ArangoDB web interface or API:
 
 ```json
 {
-  "defaultCollections": "duns,regs",
+  "defaultCollections": "companies,contacts",
   "autoDiscoverFields": true,
   "ngramLength": 3,
   "enablePhoneticMatching": true
@@ -204,11 +204,11 @@ Override defaults for specific operations:
   "success": false,
   "error": "No collections specified",
   "message": "Provide collections in request body or configure defaultCollections",
-  "available_collections": ["duns", "regs", "dbanames", ...],
+  "available_collections": ["companies", "contacts", "locations", ...],
   "example": {
-    "collections": ["duns", "regs"],
+    "collections": ["companies", "contacts"],
     "fields": {
-      "duns": ["field1", "field2"]
+      "companies": ["field1", "field2"]
     }
   }
 }
@@ -224,9 +224,9 @@ Override defaults for specific operations:
 
 ```json
 {
-  "collections": ["duns"],
+  "collections": ["companies"],
   "fields": {
-    "duns": ["DUNS_NAME", "NAME_CHIEF_EXECUTIVE"]
+    "companies": ["company_name", "ceo_name"]
   },
   "force": false
 }
@@ -244,16 +244,16 @@ Override defaults for specific operations:
       "exact_analyzer": {"status": "created"}
     },
     "views": {
-      "duns_blocking_view": {"status": "created"}
+      "companies_blocking_view": {"status": "created"}
     },
     "collections": {
-      "duns": true
+      "companies": true
     },
     "warnings": []
   },
   "configuration": {
     "ngramLength": 3,
-    "collections": ["duns"],
+    "collections": ["companies"],
     "force": false,
     "autoDiscoverFields": true,
     "fieldsConfigured": true
@@ -265,12 +265,12 @@ Override defaults for specific operations:
 
 ## Real-World Examples
 
-### Example 1: D&B Entity Resolution
+### Example 1: Enterprise Master Data
 
 **Collections:**
-- `duns` - Company master records (331K docs)
-- `regs` - Company registrations (335K docs)
-- `dbanames` - "Doing Business As" names (74K docs)
+- `companies` - Company master records
+- `divisions` - Business divisions
+- `subsidiaries` - Subsidiary companies
 
 **Setup:**
 
@@ -279,24 +279,24 @@ curl -X POST "$ARANGO_ENDPOINT/_db/$ARANGO_DATABASE/entity-resolution/setup/init
   -u "$ARANGO_USER:$ARANGO_PASSWORD" \
   -H "Content-Type: application/json" \
   -d '{
-    "collections": ["duns", "regs", "dbanames"],
+    "collections": ["companies", "divisions", "subsidiaries"],
     "fields": {
-      "duns": [
-        "DUNS_NAME",
-        "NAME_CHIEF_EXECUTIVE",
-        "NAME_PRIMARY_STATE",
-        "STREET_ADDRESS",
-        "CITY_NAME",
-        "STATE_PROVINCE_NAME"
+      "companies": [
+        "company_name",
+        "legal_name",
+        "ceo_name",
+        "headquarters_address",
+        "headquarters_city",
+        "headquarters_state"
       ],
-      "regs": [
-        "REGISTRATION_NAME",
-        "REGISTRATION_NUMBER",
-        "REGISTRATION_TYPE"
+      "divisions": [
+        "division_name",
+        "division_number",
+        "division_type"
       ],
-      "dbanames": [
-        "DBA_NAME",
-        "DBA_SEQUENCE_NUMBER"
+      "subsidiaries": [
+        "subsidiary_name",
+        "parent_company"
       ]
     }
   }'
@@ -304,7 +304,7 @@ curl -X POST "$ARANGO_ENDPOINT/_db/$ARANGO_DATABASE/entity-resolution/setup/init
 
 **Result:**
 - 3 views created
-- All D&B name fields indexed with n-gram analyzer
+- All company name fields indexed with n-gram analyzer
 - Ready for blocking and similarity computation
 
 ---
@@ -379,7 +379,7 @@ curl -X POST "$ARANGO_ENDPOINT/_db/my_database/entity-resolution/setup/views" \
 
 ```json
 {
-  "collections": ["duns"]
+  "collections": ["companies"]
 }
 ```
 
@@ -387,7 +387,7 @@ curl -X POST "$ARANGO_ENDPOINT/_db/my_database/entity-resolution/setup/views" \
 
 Configure `defaultCollections` in ArangoDB web interface:
 ```
-Settings → Services → entity-resolution → Configuration → defaultCollections = "duns,regs"
+Settings → Services → entity-resolution → Configuration → defaultCollections = "companies,contacts"
 ```
 
 ---
@@ -400,9 +400,9 @@ Settings → Services → entity-resolution → Configuration → defaultCollect
 
 ```json
 {
-  "collections": ["duns"],
+  "collections": ["companies"],
   "fields": {
-    "duns": ["DUNS_NAME", "YOUR_FIELD_NAME"]
+    "companies": ["your_field_name", "another_field"]
   }
 }
 ```
@@ -411,7 +411,7 @@ Settings → Services → entity-resolution → Configuration → defaultCollect
 
 ```json
 {
-  "collections": ["duns"]
+  "collections": ["companies"]
 }
 ```
 
@@ -435,7 +435,7 @@ Leave `fields` empty and set `autoDiscoverFields: true` in service configuration
 
 2. **Inspect view configuration:**
    ```bash
-   curl "$ARANGO_ENDPOINT/_db/$DB/_api/view/duns_blocking_view/properties" \
+   curl "$ARANGO_ENDPOINT/_db/$DB/_api/view/companies_blocking_view/properties" \
      -u "$USER:$PASS"
    ```
 
@@ -452,9 +452,9 @@ Leave `fields` empty and set `autoDiscoverFields: true` in service configuration
 4. **Recreate with force:**
    ```json
    {
-     "collections": ["duns"],
+     "collections": ["companies"],
      "fields": {
-       "duns": ["CORRECT_FIELD_NAME"]
+       "companies": ["CORRECT_FIELD_NAME"]
      },
      "force": true
    }
@@ -469,9 +469,9 @@ Leave `fields` empty and set `autoDiscoverFields: true` in service configuration
 **Recommended:**
 ```json
 {
-  "collections": ["duns"],
+  "collections": ["companies"],
   "fields": {
-    "duns": ["DUNS_NAME", "STREET_ADDRESS"]
+    "companies": ["company_name", "address"]
   }
 }
 ```
@@ -497,7 +497,7 @@ Leave `fields` empty and set `autoDiscoverFields: true` in service configuration
 **ArangoDB Web UI:**
 ```
 Settings → Services → entity-resolution → Configuration
-→ defaultCollections: "duns,regs,dbanames"
+→ defaultCollections: "companies,contacts,locations"
 ```
 
 ### 4. Test with Small Collections First
@@ -514,7 +514,7 @@ Settings → Services → entity-resolution → Configuration
 
 Check progress:
 ```bash
-curl "$ARANGO_ENDPOINT/_db/$DB/_api/view/duns_blocking_view/properties" \
+curl "$ARANGO_ENDPOINT/_db/$DB/_api/view/companies_blocking_view/properties" \
   -u "$USER:$PASS"
 ```
 
@@ -528,7 +528,7 @@ After setup:
    ```bash
    POST /entity-resolution/blocking/candidates
    {
-     "collection": "duns",
+     "collection": "companies",
      "record_id": "test_record_id"
    }
    ```
@@ -537,7 +537,7 @@ After setup:
    ```bash
    POST /entity-resolution/similarity/compute
    {
-     "collection": "duns",
+     "collection": "companies",
      "record_id_1": "id1",
      "record_id_2": "id2"
    }
@@ -565,4 +565,3 @@ After setup:
 
 **Last Updated:** October 28, 2025  
 **Version:** 1.1.0 (Custom Collections Support)
-

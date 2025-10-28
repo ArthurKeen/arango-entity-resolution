@@ -11,11 +11,11 @@ All notable changes to the ArangoDB Advanced Entity Resolution System will be do
   * Field mapping support via `fields` parameter in API requests
   * Auto-discovery lists available collections when none specified
   * Comprehensive error messages with available collections and examples
-- **Custom Collections Guide**: Complete documentation for D&B and other custom schemas
+- **Custom Collections Guide**: Complete documentation for custom schemas and flexible field mapping
 - **Flexible Field Configuration**: Support for custom field names in views
   * Can specify fields per collection in request body
   * Auto-discovery mode indexes all fields when not specified
-  * Works with D&B fields (DUNS_NAME, etc.), CRM fields, or any schema
+  * Works with any field names - enterprise data, CRM fields, or any schema
 - **Project Scope Expansion**: Evolved from record blocking focus to comprehensive multi-technique platform
 - **Advanced Capabilities Roadmap**: Added 7 new techniques (Graph algorithms, GraphML embeddings, Vector search, GraphRAG, Geospatial-temporal, LLM curation)
 - **Research Foundation**: Documented current research base and planned integration areas

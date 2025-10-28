@@ -231,7 +231,7 @@ router.post('/views', function (req, res) {
   views: joi.object().required()
 }).required(), 'View creation results')
 .summary('Create ArangoSearch views for blocking')
-.description('Creates optimized ArangoSearch views with custom analyzers. Supports custom collections and field mappings. Example: {"collections": ["duns"], "fields": {"duns": ["DUNS_NAME", "NAME_CHIEF_EXECUTIVE"]}}');
+.description('Creates optimized ArangoSearch views with custom analyzers. Supports custom collections and field mappings. Example: {"collections": ["companies"], "fields": {"companies": ["company_name", "ceo_name"]}}');
 
 /**
  * Check setup status
@@ -462,6 +462,6 @@ router.post('/initialize', function (req, res) {
   results: joi.object().required()
 }).required(), 'Initialization results')
 .summary('Initialize complete entity resolution setup')
-.description('Creates all required analyzers and views for entity resolution. Supports custom collections and field mappings. Example: {"collections": ["duns", "regs"], "fields": {"duns": ["DUNS_NAME", "NAME_CHIEF_EXECUTIVE"], "regs": ["REGISTRATION_NAME"]}}');
+.description('Creates all required analyzers and views for entity resolution. Supports custom collections and field mappings. Example: {"collections": ["companies", "locations"], "fields": {"companies": ["company_name", "ceo_name"], "locations": ["address", "city"]}}');
 
 module.exports = router;
