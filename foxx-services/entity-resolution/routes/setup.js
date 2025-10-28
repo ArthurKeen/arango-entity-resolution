@@ -115,7 +115,36 @@ router.post('/analyzers', function (req, res) {
  * Create ArangoSearch views for blocking
  */
 router.post('/views', function (req, res) {
-  const { collections = ['customers'] } = req.body;
+  // Get collections from request body or configuration
+  let collections = req.body.collections;
+  if (!collections || collections.length === 0) {
+    const defaultColl = module.context.configuration.defaultCollections || '';
+    collections = defaultColl ? defaultColl.split(',').map(c => c.trim()).filter(Boolean) : [];
+  }
+  
+  // Validate collections were provided
+  if (!collections || collections.length === 0) {
+    const availableCollections = db._collections()
+      .filter(c => !c.name().startsWith('_'))
+      .map(c => c.name());
+    
+    res.status(400);
+    return res.json({
+      success: false,
+      error: 'No collections specified',
+      message: 'Provide collections in request body or configure defaultCollections service setting',
+      available_collections: availableCollections,
+      example: {
+        collections: availableCollections.slice(0, 3),
+        fields: {
+          [availableCollections[0]]: ['field1', 'field2']
+        }
+      }
+    });
+  }
+  
+  const { fields = {} } = req.body;
+  const autoDiscover = module.context.configuration.autoDiscoverFields !== false;
   
   try {
     const results = {};
@@ -124,8 +153,12 @@ router.post('/views', function (req, res) {
       const viewName = `${collection}_blocking_view`;
       
       // Check if collection exists
-      if (!db._collection(collection)) {
-        throw new Error(`Collection '${collection}' does not exist`);
+      const coll = db._collection(collection);
+      if (!coll) {
+        const availableCollections = db._collections()
+          .filter(c => !c.name().startsWith('_'))
+          .map(c => c.name());
+        throw new Error(`Collection '${collection}' does not exist. Available collections: ${availableCollections.join(', ')}`);
       }
       
       // Define view configuration
@@ -141,34 +174,21 @@ router.post('/views', function (req, res) {
           'ngram_analyzer',  // Typo tolerance
           'exact_analyzer'   // Normalized exact matches
         ],
-        includeAllFields: true,
-        fields: {
-          first_name: { 
-            analyzers: ['ngram_analyzer', 'phonetic_analyzer'] 
-          },
-          last_name: { 
-            analyzers: ['ngram_analyzer', 'phonetic_analyzer'] 
-          },
-          full_name: { 
-            analyzers: ['ngram_analyzer', 'phonetic_analyzer'] 
-          },
-          address: { 
-            analyzers: ['ngram_analyzer'] 
-          },
-          city: { 
-            analyzers: ['ngram_analyzer', 'exact_analyzer'] 
-          },
-          email: { 
-            analyzers: ['exact_analyzer'] 
-          },
-          phone: { 
-            analyzers: ['exact_analyzer'] 
-          },
-          company: { 
-            analyzers: ['ngram_analyzer'] 
-          }
-        }
+        includeAllFields: autoDiscover,
+        fields: {}
       };
+      
+      // Configure specific fields if provided
+      if (fields[collection] && Array.isArray(fields[collection])) {
+        for (const field of fields[collection]) {
+          viewConfig.links[collection].fields[field] = {
+            analyzers: ['ngram_analyzer', 'exact_analyzer']
+          };
+        }
+        logInfo(`Configured ${fields[collection].length} specific fields for ${collection}`);
+      } else if (autoDiscover) {
+        logInfo(`Auto-discovery enabled for ${collection} - all fields will be indexed`);
+      }
       
       // Add phonetic analyzer if enabled
       if (module.context.configuration.enablePhoneticMatching && 
@@ -184,7 +204,11 @@ router.post('/views', function (req, res) {
       success: true,
       message: 'ArangoSearch views created successfully',
       views: results,
-      collections: collections
+      collections: collections,
+      configuration: {
+        autoDiscoverFields: autoDiscover,
+        fieldsConfigured: Object.keys(fields).length > 0
+      }
     });
     
   } catch (error) {
@@ -198,15 +222,16 @@ router.post('/views', function (req, res) {
   }
 })
 .body(joi.object({
-  collections: joi.array().items(joi.string()).optional()
-}).optional(), 'Collections to create views for')
+  collections: joi.array().items(joi.string()).optional(),
+  fields: joi.object().pattern(/.*/, joi.array().items(joi.string())).optional()
+}).optional(), 'Collections and optional field mappings')
 .response(200, joi.object({
   success: joi.boolean().required(),
   message: joi.string().required(),
   views: joi.object().required()
 }).required(), 'View creation results')
 .summary('Create ArangoSearch views for blocking')
-.description('Creates optimized ArangoSearch views with custom analyzers for efficient blocking operations');
+.description('Creates optimized ArangoSearch views with custom analyzers. Supports custom collections and field mappings. Example: {"collections": ["duns"], "fields": {"duns": ["DUNS_NAME", "NAME_CHIEF_EXECUTIVE"]}}');
 
 /**
  * Check setup status
@@ -280,7 +305,15 @@ router.get('/status', function (req, res) {
  * Initialize complete setup
  */
 router.post('/initialize', function (req, res) {
-  const { collections = ['customers'], force = false } = req.body;
+  // Get collections from request body or configuration
+  let collections = req.body.collections;
+  if (!collections || collections.length === 0) {
+    const defaultColl = module.context.configuration.defaultCollections || '';
+    collections = defaultColl ? defaultColl.split(',').map(c => c.trim()).filter(Boolean) : [];
+  }
+  
+  const { force = false, fields = {} } = req.body;
+  const autoDiscover = module.context.configuration.autoDiscoverFields !== false;
   
   try {
     const results = {
@@ -325,9 +358,31 @@ router.post('/initialize', function (req, res) {
     
     // Step 2: Verify collections exist
     logInfo('Checking collections...');
+    if (!collections || collections.length === 0) {
+      const availableCollections = db._collections()
+        .filter(c => !c.name().startsWith('_'))
+        .map(c => c.name());
+      
+      results.warnings.push('No collections specified. Available collections: ' + availableCollections.join(', '));
+      results.warnings.push('Provide collections in request body or configure defaultCollections service setting');
+      
+      return res.json({
+        success: false,
+        message: 'Cannot initialize without collections',
+        results: results,
+        available_collections: availableCollections,
+        example: {
+          collections: availableCollections.slice(0, 2),
+          fields: {
+            [availableCollections[0]]: ['field1', 'field2']
+          }
+        }
+      });
+    }
+    
     for (const collection of collections) {
       if (!db._collection(collection)) {
-        results.warnings.push(`Collection '${collection}' does not exist - you may need to create it`);
+        results.warnings.push(`Collection '${collection}' does not exist - skipping view creation`);
         results.collections[collection] = false;
       } else {
         results.collections[collection] = true;
@@ -348,20 +403,25 @@ router.post('/initialize', function (req, res) {
           
           viewConfig.links[collection] = {
             analyzers: ['identity', 'ngram_analyzer', 'exact_analyzer'],
-            includeAllFields: true,
-            fields: {
-              first_name: { analyzers: ['ngram_analyzer'] },
-              last_name: { analyzers: ['ngram_analyzer'] },
-              full_name: { analyzers: ['ngram_analyzer'] },
-              address: { analyzers: ['ngram_analyzer'] },
-              city: { analyzers: ['ngram_analyzer', 'exact_analyzer'] },
-              email: { analyzers: ['exact_analyzer'] },
-              phone: { analyzers: ['exact_analyzer'] },
-              company: { analyzers: ['ngram_analyzer'] }
-            }
+            includeAllFields: autoDiscover,
+            fields: {}
           };
           
+          // Configure specific fields if provided
+          if (fields[collection] && Array.isArray(fields[collection])) {
+            for (const field of fields[collection]) {
+              viewConfig.links[collection].fields[field] = {
+                analyzers: ['ngram_analyzer', 'exact_analyzer']
+              };
+            }
+            logInfo(`Configured ${fields[collection].length} specific fields for ${collection}`);
+          } else if (autoDiscover) {
+            logInfo(`Auto-discovery enabled for ${collection} - all fields will be indexed`);
+          }
+          
           results.views[viewName] = createView(viewName, viewConfig);
+        } else {
+          results.warnings.push(`View '${viewName}' already exists - use force=true to recreate`);
         }
       }
     }
@@ -375,7 +435,9 @@ router.post('/initialize', function (req, res) {
       configuration: {
         ngramLength: ngramLength,
         collections: collections,
-        force: force
+        force: force,
+        autoDiscoverFields: autoDiscover,
+        fieldsConfigured: Object.keys(fields).length > 0
       }
     });
     
@@ -391,14 +453,15 @@ router.post('/initialize', function (req, res) {
 })
 .body(joi.object({
   collections: joi.array().items(joi.string()).optional(),
+  fields: joi.object().pattern(/.*/, joi.array().items(joi.string())).optional(),
   force: joi.boolean().optional()
-}).optional(), 'Initialization configuration')
+}).optional(), 'Initialization configuration with optional field mappings')
 .response(200, joi.object({
   success: joi.boolean().required(),
   message: joi.string().required(),
   results: joi.object().required()
 }).required(), 'Initialization results')
 .summary('Initialize complete entity resolution setup')
-.description('Creates all required analyzers and views for entity resolution in one operation');
+.description('Creates all required analyzers and views for entity resolution. Supports custom collections and field mappings. Example: {"collections": ["duns", "regs"], "fields": {"duns": ["DUNS_NAME", "NAME_CHIEF_EXECUTIVE"], "regs": ["REGISTRATION_NAME"]}}');
 
 module.exports = router;

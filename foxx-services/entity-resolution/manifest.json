@@ -1,0 +1,49 @@
+{
+  "name": "entity-resolution",
+  "version": "1.0.0",
+  "description": "Entity Resolution Service with Record Blocking for ArangoDB",
+  "author": "Entity Resolution Team",
+  "license": "MIT",
+  "keywords": ["entity-resolution", "record-blocking", "data-matching", "arango"],
+  "engines": {
+    "arangodb": "^3.12.0"
+  },
+  "main": "main.js",
+  "configuration": {
+    "defaultSimilarityThreshold": {
+      "description": "Default similarity threshold for entity matching",
+      "type": "number",
+      "default": 0.8
+    },
+    "maxCandidatesPerRecord": {
+      "description": "Maximum number of candidate pairs to generate per record",
+      "type": "number", 
+      "default": 100
+    },
+    "ngramLength": {
+      "description": "Length of n-grams for blocking keys",
+      "type": "number",
+      "default": 3
+    },
+    "enablePhoneticMatching": {
+      "description": "Enable phonetic matching for names",
+      "type": "boolean",
+      "default": true
+    },
+    "logLevel": {
+      "description": "Logging level for the service",
+      "type": "string",
+      "default": "info"
+    },
+    "defaultCollections": {
+      "description": "Default collections to use for entity resolution (comma-separated). Leave empty to require explicit specification in API calls",
+      "type": "string",
+      "default": ""
+    },
+    "autoDiscoverFields": {
+      "description": "Automatically discover and index all fields in collections when no field mapping is provided",
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

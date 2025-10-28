@@ -5,6 +5,17 @@ All notable changes to the ArangoDB Advanced Entity Resolution System will be do
 ## [Unreleased]
 
 ### Added
+- **Custom Collections Support**: Foxx service now works with any collection schema, not just "customers"
+  * New `defaultCollections` configuration parameter (comma-separated)
+  * New `autoDiscoverFields` configuration for automatic field indexing
+  * Field mapping support via `fields` parameter in API requests
+  * Auto-discovery lists available collections when none specified
+  * Comprehensive error messages with available collections and examples
+- **Custom Collections Guide**: Complete documentation for D&B and other custom schemas
+- **Flexible Field Configuration**: Support for custom field names in views
+  * Can specify fields per collection in request body
+  * Auto-discovery mode indexes all fields when not specified
+  * Works with D&B fields (DUNS_NAME, etc.), CRM fields, or any schema
 - **Project Scope Expansion**: Evolved from record blocking focus to comprehensive multi-technique platform
 - **Advanced Capabilities Roadmap**: Added 7 new techniques (Graph algorithms, GraphML embeddings, Vector search, GraphRAG, Geospatial-temporal, LLM curation)
 - **Research Foundation**: Documented current research base and planned integration areas
