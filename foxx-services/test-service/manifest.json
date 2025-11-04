@@ -1,0 +1,9 @@
+{
+  "name": "test-service",
+  "version": "1.0.0",
+  "description": "Simple test service",
+  "main": "main.js",
+  "engines": {
+    "arangodb": "^3.12.0"
+  }
+}

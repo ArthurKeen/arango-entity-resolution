@@ -5,6 +5,14 @@ All notable changes to the ArangoDB Advanced Entity Resolution System will be do
 ## [Unreleased]
 
 ### Added
+- **Bulk Processing for Large Datasets**: 3-5x faster processing for datasets > 50K records
+  * New Foxx `/bulk/all-pairs` endpoint for set-based candidate generation
+  * New Foxx `/bulk/streaming` endpoint for Server-Sent Events streaming
+  * New `BulkBlockingService` Python class for set-based AQL processing
+  * Single-pass processing eliminates network overhead (1 query vs 3,319+ API calls)
+  * Comprehensive guide: `docs/BATCH_VS_BULK_PROCESSING.md`
+  * Demo script: `examples/bulk_processing_demo.py`
+  * Performance: 331K records in ~2 minutes vs ~6 minutes (3.3x faster)
 - **Custom Collections Support**: Foxx service now works with any collection schema, not just "customers"
   * New `defaultCollections` configuration parameter (comma-separated)
   * New `autoDiscoverFields` configuration for automatic field indexing

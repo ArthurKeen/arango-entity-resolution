@@ -1,0 +1,73 @@
+{
+  "demo_timestamp": "2025-09-09 20:05:16",
+  "configuration": {
+    "database": {
+      "host": "localhost",
+      "port": 8529,
+      "username": "root",
+      "database": "_system"
+    },
+    "entity_resolution": {
+      "similarity_threshold": 0.8,
+      "max_candidates_per_record": 100,
+      "ngram_length": 3,
+      "max_cluster_size": 100,
+      "edge_collection": "similarities",
+      "cluster_collection": "entity_clusters",
+      "log_level": "INFO",
+      "enable_foxx_services": true
+    }
+  },
+  "system_status": {
+    "connected": true,
+    "foxx_services_enabled": true
+  },
+  "pipeline_performance": {
+    "data_loading": {
+      "collection": "customers",
+      "records_loaded": 10,
+      "loading_time": 0.028120756149291992,
+      "quality_score": 100.0
+    },
+    "setup": {
+      "collections": [
+        "customers"
+      ],
+      "setup_time": 0.01784682273864746,
+      "analyzers_created": 1,
+      "views_created": 1
+    },
+    "entity_resolution": {
+      "total_time": 0.0039060115814208984,
+      "blocking_time": 0.00022077560424804688,
+      "similarity_time": 0.00010514259338378906,
+      "clustering_time": 9.107589721679688e-05
+    }
+  },
+  "entity_resolution_results": {
+    "input_records": 10,
+    "candidate_pairs": 2,
+    "scored_pairs": 2,
+    "entity_clusters": 1,
+    "total_processing_time": 0.0039060115814208984,
+    "configuration_used": {
+      "similarity_threshold": 0.7,
+      "max_candidates": 100,
+      "ngram_length": 3
+    }
+  },
+  "cluster_analysis": {
+    "total_clusters": 1,
+    "cluster_size_distribution": {
+      "min": 2,
+      "max": 2,
+      "average": 2.0
+    },
+    "quality_distribution": {
+      "min": 1.0,
+      "max": 1.0,
+      "average": 1.0,
+      "high_quality_clusters": 1
+    }
+  }
+}

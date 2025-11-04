@@ -15,17 +15,24 @@ class DatabaseConfig:
     host: str = "localhost"
     port: int = 8529
     username: str = "root"
-    password: str = ""  # Must be provided via ARANGO_PASSWORD environment variable
-    database: str = "_system"
+    password: str = ""  # SECURITY: Must be provided via ARANGO_ROOT_PASSWORD environment variable
+    database: str = "entity_resolution"
     
     @classmethod
     def from_env(cls) -> 'DatabaseConfig':
         """Create config from environment variables"""
+        # Get password from environment (multiple sources for compatibility)
+        password = os.getenv("ARANGO_PASSWORD", os.getenv("ARANGO_ROOT_PASSWORD", ""))
+        
+        # Fall back to default test password ONLY if explicitly set
+        if not password and os.getenv("USE_DEFAULT_PASSWORD") == "true":
+            password = "testpassword123"  # Development/testing only
+            
         return cls(
             host=os.getenv("ARANGO_HOST", cls.host),
             port=int(os.getenv("ARANGO_PORT", str(cls.port))),
             username=os.getenv("ARANGO_USERNAME", cls.username),
-            password=os.getenv("ARANGO_PASSWORD", os.getenv("ARANGO_ROOT_PASSWORD", cls.password)),
+            password=password,
             database=os.getenv("ARANGO_DATABASE", cls.database)
         )
 

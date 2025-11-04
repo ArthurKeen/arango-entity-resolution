@@ -78,13 +78,18 @@ yarn.lock
 
 # Data files
 *.csv
-*.json
 *.xml
 *.parquet
 data/raw/
 data/processed/
 data/temp/
 data/cache/
+
+# Configuration files with credentials (but allow example configs)
+config.json
+!config.example.json
+!**/manifest.json
+!package.json
 
 # ArangoDB
 *.arangodb/

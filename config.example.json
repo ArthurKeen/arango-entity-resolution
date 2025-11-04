@@ -1,0 +1,33 @@
+{
+  "database": {
+    "host": "localhost",
+    "port": 8529,
+    "username": "root",
+    "password": "",
+    "database_name": "entity_resolution",
+    "timeout": 30,
+    "max_retries": 3,
+    "_comment": "SECURITY: Do NOT put passwords in this file. Set ARANGO_ROOT_PASSWORD environment variable instead."
+  },
+  "service": {
+    "blocking_service_url": "http://localhost:8529/_db/entity_resolution/blocking",
+    "similarity_service_url": "http://localhost:8529/_db/entity_resolution/similarity",
+    "clustering_service_url": "http://localhost:8529/_db/entity_resolution/clustering",
+    "timeout": 30,
+    "max_retries": 3
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    "file_path": "entity_resolution.log",
+    "max_file_size": 10485760,
+    "backup_count": 5
+  },
+  "performance": {
+    "max_workers": 4,
+    "batch_size": 100,
+    "cache_size": 10000,
+    "cache_ttl": 3600
+  }
+}
+

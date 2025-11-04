@@ -9,6 +9,7 @@ const createRouter = require('@arangodb/foxx/router');
 // Import route modules
 const setupRoutes = require('./routes/setup');
 const blockingRoutes = require('./routes/blocking');
+const bulkBlockingRoutes = require('./routes/bulk_blocking');
 const similarityRoutes = require('./routes/similarity');
 const clusteringRoutes = require('./routes/clustering');
 
@@ -20,10 +21,10 @@ router.get('/health', function (req, res) {
     res.json({
       status: 'healthy',
       service: 'entity-resolution',
-      version: '1.0.0',
+      version: '1.1.0',
       timestamp: new Date().toISOString(),
       mode: 'production',
-      active_modules: ['setup', 'blocking', 'similarity', 'clustering']
+      active_modules: ['setup', 'blocking', 'bulk_blocking', 'similarity', 'clustering']
     });
   } catch (error) {
     res.status(500);
@@ -51,9 +52,13 @@ router.get('/info', function (req, res) {
           'POST /setup/initialize - Complete setup automation'
         ],
         blocking: [
-          'POST /blocking/candidates - Generate candidate pairs',
+          'POST /blocking/candidates - Generate candidate pairs (real-time)',
           'POST /blocking/setup - Setup blocking for collections',
           'GET /blocking/stats - Get blocking performance stats'
+        ],
+        bulk_blocking: [
+          'POST /bulk/all-pairs - Generate ALL pairs (batch, 2-3x faster for 50K+ records)',
+          'POST /bulk/streaming - Stream pairs with Server-Sent Events'
         ],
         similarity: [
           'POST /similarity/compute - Compute similarity between documents',
@@ -81,6 +86,7 @@ router.get('/info', function (req, res) {
 try {
   router.use('/setup', setupRoutes);
   router.use('/blocking', blockingRoutes);
+  router.use('/bulk', bulkBlockingRoutes);
   router.use('/similarity', similarityRoutes);
   router.use('/clustering', clusteringRoutes);
   console.log('All routes mounted successfully');

@@ -1,0 +1,91 @@
+{
+  "benchmark_timestamp": "2025-09-18 17:36:45",
+  "test_configuration": {
+    "test_documents": 120,
+    "test_pairs": 25,
+    "foxx_enabled": true
+  },
+  "results": [
+    {
+      "operation": "similarity_computation",
+      "method": "python",
+      "records_processed": 25,
+      "total_time_seconds": 0.0011,
+      "throughput_per_second": 22810.01,
+      "memory_usage_mb": 0.0,
+      "success_rate_percent": 100.0
+    },
+    {
+      "operation": "similarity_computation",
+      "method": "foxx",
+      "records_processed": 25,
+      "total_time_seconds": 0.1369,
+      "throughput_per_second": 182.59,
+      "memory_usage_mb": 0.0,
+      "success_rate_percent": 100.0
+    },
+    {
+      "operation": "blocking_candidates",
+      "method": "python",
+      "records_processed": 20,
+      "total_time_seconds": 0.0565,
+      "throughput_per_second": 353.91,
+      "memory_usage_mb": 0.0,
+      "success_rate_percent": 100.0
+    },
+    {
+      "operation": "blocking_candidates",
+      "method": "foxx",
+      "records_processed": 20,
+      "total_time_seconds": 0.0002,
+      "throughput_per_second": 83055.52,
+      "memory_usage_mb": 0.0,
+      "success_rate_percent": 100.0
+    },
+    {
+      "operation": "entity_clustering",
+      "method": "python",
+      "records_processed": 25,
+      "total_time_seconds": 0.0,
+      "throughput_per_second": 595781.82,
+      "memory_usage_mb": 0.0,
+      "success_rate_percent": 100.0
+    },
+    {
+      "operation": "entity_clustering",
+      "method": "foxx",
+      "records_processed": 25,
+      "total_time_seconds": 0.0001,
+      "throughput_per_second": 409600.0,
+      "memory_usage_mb": 0.0,
+      "success_rate_percent": 0.0
+    }
+  ],
+  "performance_improvements": {
+    "similarity_computation": {
+      "throughput_multiplier": 0.01,
+      "time_speedup": 0.01,
+      "python_throughput": 22810.01,
+      "foxx_throughput": 182.59
+    },
+    "blocking_candidates": {
+      "throughput_multiplier": 234.68,
+      "time_speedup": 234.68,
+      "python_throughput": 353.91,
+      "foxx_throughput": 83055.52
+    },
+    "entity_clustering": {
+      "throughput_multiplier": 0.69,
+      "time_speedup": 0.69,
+      "python_throughput": 595781.82,
+      "foxx_throughput": 409600.0
+    }
+  },
+  "summary": {
+    "operations_tested": 3,
+    "python_avg_throughput": 206315.24,
+    "foxx_avg_throughput": 164279.37,
+    "overall_improvement": 0.8,
+    "foxx_availability": true
+  }
+}

@@ -1,0 +1,225 @@
+{
+  "generation_date": "2025-09-18T19:36:52.055255",
+  "total_records": 96,
+  "unique_entities": 57,
+  "duplicate_groups": 17,
+  "duplicate_rate": 0.40625,
+  "duplicate_group_info": [
+    {
+      "group_id": 0,
+      "profile_key": "Jonathan_Carter_Square Inc",
+      "record_ids": [
+        "8fe6c939-347b-4dbe-9487-d06b7765fb7f",
+        "70f87ff1-daa7-4c95-aa6b-7a7c1a69384a",
+        "ee209522-0e0f-4adf-a375-7a067712b60b"
+      ],
+      "variation_count": 3
+    },
+    {
+      "group_id": 1,
+      "profile_key": "Jeffrey_Carter_Zoom Communications",
+      "record_ids": [
+        "d14fa906-9c52-4fda-a8ec-e126fc3f13f4",
+        "0398a910-ffbc-4990-9450-ccc03bb5bf25",
+        "f861a51d-6ff3-4b10-a606-0e8e966aed9e"
+      ],
+      "variation_count": 3
+    },
+    {
+      "group_id": 2,
+      "profile_key": "Judith_Lopez_Reddit Inc",
+      "record_ids": [
+        "96545c1e-b46d-4788-adc7-412a48e81289",
+        "963790cf-4091-4c91-8ccc-a34c86a4e439",
+        "9107429a-945f-4e25-868e-0cbac5aef260"
+      ],
+      "variation_count": 3
+    },
+    {
+      "group_id": 3,
+      "profile_key": "Anna_Hill_Uber Technologies",
+      "record_ids": [
+        "9e330c96-1c88-40af-8f4b-a8912791ad54",
+        "70e86b7e-8ec3-4f96-812c-b2ee02bde219",
+        "bb694f30-eded-4c77-9786-fe47290ecede"
+      ],
+      "variation_count": 3
+    },
+    {
+      "group_id": 4,
+      "profile_key": "Mason_Walker_Salesforce.com",
+      "record_ids": [
+        "9938f018-7d30-4e90-9c2f-c008c72486fb",
+        "eafeba1b-09f0-4087-ac94-da38055d7960",
+        "0db3497a-1360-47a6-81e7-76cb94d4c844",
+        "f8837432-346f-4d72-9151-7f8b9d9b7772"
+      ],
+      "variation_count": 4
+    },
+    {
+      "group_id": 5,
+      "profile_key": "Rebecca_Hughes_Airbnb Corp",
+      "record_ids": [
+        "8287dc22-ea25-412a-9504-cebe4556bc76",
+        "66dfa691-2354-4e6b-88e8-7994590060cf"
+      ],
+      "variation_count": 2
+    },
+    {
+      "group_id": 6,
+      "profile_key": "Victoria_Cook_Tesla Inc",
+      "record_ids": [
+        "d08d2d6d-8731-4f45-9c32-85fa042dc681",
+        "9b426751-5d1a-4857-a11a-740b34c146b9",
+        "314e1e15-5bb2-4496-ab98-ea894f0618b4",
+        "13ef88b4-cccf-4c71-9d88-d26916e63ccd"
+      ],
+      "variation_count": 4
+    },
+    {
+      "group_id": 7,
+      "profile_key": "Grace_Young_Uber Technologies",
+      "record_ids": [
+        "992a3c32-9718-495b-a510-26c0a697754e",
+        "553d6d2b-ef01-4cc0-83ae-11511385bfa1",
+        "0ca4dc13-d823-4ba2-b54c-dbd7e45b4292"
+      ],
+      "variation_count": 3
+    },
+    {
+      "group_id": 8,
+      "profile_key": "Sandra_Garcia_Netflix Inc",
+      "record_ids": [
+        "85595c3b-544e-45c2-94d9-bdf17c2d3d77",
+        "56265a76-8c6b-474d-9807-d03d50be3dd9"
+      ],
+      "variation_count": 2
+    },
+    {
+      "group_id": 9,
+      "profile_key": "Julia_Nelson_Amazon Web Services",
+      "record_ids": [
+        "8e14c335-259b-49e3-8e96-7a6c20e9cd6d",
+        "364dd64d-add7-476a-9592-c4a4d3d3ee7d",
+        "d267a238-98a3-44c2-b76b-15e509612483",
+        "125ba552-90d4-424a-9a8e-f8e29e5ce86d"
+      ],
+      "variation_count": 4
+    },
+    {
+      "group_id": 10,
+      "profile_key": "Jacqueline_Anderson_GitHub Inc",
+      "record_ids": [
+        "5cb6e958-869a-4cc7-a3a8-2d2051882f60",
+        "778fee5b-9fb5-4158-a766-9b31e3ba42ba",
+        "e2e287bf-0820-4554-b48b-b2b481f4ef98",
+        "41cae1e9-9464-4e88-b1f1-685e5a1d551d"
+      ],
+      "variation_count": 4
+    },
+    {
+      "group_id": 11,
+      "profile_key": "Jordan_Brooks_X Corp",
+      "record_ids": [
+        "6cd29561-fe8e-4fe5-972a-2eedff72c4d0",
+        "c439078c-b86b-4343-a314-96314f1f6382",
+        "fe196628-bbe5-4fc8-939c-c968a434c9a6"
+      ],
+      "variation_count": 3
+    },
+    {
+      "group_id": 12,
+      "profile_key": "Nicole_Roberts_Dropbox Inc",
+      "record_ids": [
+        "276ddc93-0a52-412f-8e1e-68f825dcc9ad",
+        "488a7f4f-4f2f-4585-bc53-5bc71da313dd",
+        "a7ca2877-03dc-4f0a-b9d6-ce41483b37a1"
+      ],
+      "variation_count": 3
+    },
+    {
+      "group_id": 13,
+      "profile_key": "Elizabeth_Baker_Oracle Corporation",
+      "record_ids": [
+        "14dd2c31-67dc-4a5c-8df6-5cd381937a5c",
+        "9962f0a8-61fc-4f74-94a2-659d17f67e45",
+        "008e56cf-f082-44e6-bfb7-18e36065407e",
+        "afdb9246-6969-452e-a969-d8f7a989a587"
+      ],
+      "variation_count": 4
+    },
+    {
+      "group_id": 14,
+      "profile_key": "Ashley_Morales_Twitter Inc",
+      "record_ids": [
+        "6939161c-aa37-408a-b3bd-440a58382b3c",
+        "17a26879-6f89-4a71-8926-89a5685253fc",
+        "15d69064-00e3-4fb1-b6b4-780aa5749c60",
+        "3480fe77-9940-4f20-9860-547e20671c60"
+      ],
+      "variation_count": 4
+    },
+    {
+      "group_id": 15,
+      "profile_key": "Lauren_Wilson_Stripe Corp",
+      "record_ids": [
+        "f08976bf-23bb-4cfe-97b8-f63cf3fd696c",
+        "0fdba97e-dfc1-4cc1-9a9e-4519de2f94a6",
+        "486ec2e7-6c97-4e51-87da-0482c5dc4b92"
+      ],
+      "variation_count": 3
+    },
+    {
+      "group_id": 16,
+      "profile_key": "Zachary_Watson_Oracle Corp",
+      "record_ids": [
+        "221c24a4-d431-49f5-85f8-92bb2a2f8a64",
+        "a94c4016-d801-471b-aa74-e2c46bac3a55",
+        "206c4319-08ae-4d77-8458-d9e6c5e91f14",
+        "254e667b-f769-432d-8ad2-fbf507fd5c75"
+      ],
+      "variation_count": 4
+    }
+  ],
+  "industries": [
+    "Technology",
+    "Healthcare",
+    "Finance",
+    "Retail",
+    "Manufacturing",
+    "Consulting",
+    "Education",
+    "Media",
+    "Real Estate",
+    "Energy"
+  ],
+  "data_sources": [
+    "CRM",
+    "Marketing",
+    "Sales",
+    "Support",
+    "Website"
+  ],
+  "quality_metrics": {
+    "avg_data_quality_score": 79.97916666666667,
+    "records_by_source": {
+      "CRM": 14,
+      "Marketing": 11,
+      "Sales": 25,
+      "Support": 23,
+      "Website": 23
+    },
+    "records_by_industry": {
+      "Technology": 17,
+      "Healthcare": 5,
+      "Finance": 4,
+      "Retail": 10,
+      "Manufacturing": 9,
+      "Consulting": 7,
+      "Education": 14,
+      "Media": 6,
+      "Real Estate": 16,
+      "Energy": 8
+    }
+  }
+}

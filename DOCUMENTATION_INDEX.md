@@ -8,9 +8,11 @@ Complete guide to all documentation for the ArangoDB Advanced Entity Resolution 
 - **[README.md](README.md)** - Project overview, features, and quick start
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and recent changes
 - **[demo/README.md](demo/README.md)** - Demo package guide with presentation modes
+- **[SECURITY.md](SECURITY.md)** - Security best practices and credential management
 
 ### Essential Guides
 - **[docs/TESTING.md](docs/TESTING.md)** - Complete testing guide (setup, strategies, automation)
+- **[docs/BATCH_VS_BULK_PROCESSING.md](docs/BATCH_VS_BULK_PROCESSING.md)** - Performance guide (3-5x speedup for large datasets)
 - **[docs/GIT_HOOKS.md](docs/GIT_HOOKS.md)** - Git hooks for automated quality checks
 - **[docs/FOXX_DEPLOYMENT.md](docs/FOXX_DEPLOYMENT.md)** - Foxx service deployment guide
 
@@ -54,6 +56,24 @@ Complete guide to all documentation for the ArangoDB Advanced Entity Resolution 
   - Feature additions
   - Bug fixes
   - Breaking changes
+
+#### Code Quality & Security
+- **[CODE_AUDIT_REPORT.md](CODE_AUDIT_REPORT.md)**
+  - Comprehensive code audit results
+  - Security analysis
+  - Test coverage analysis
+  - Recommendations and action items
+  
+- **[AUDIT_QUICK_SUMMARY.md](AUDIT_QUICK_SUMMARY.md)**
+  - Executive summary of audit
+  - Critical fixes applied
+  - Quick reference guide
+  
+- **[SECURITY.md](SECURITY.md)**
+  - Security best practices
+  - Credential management
+  - Production deployment security
+  - Compliance guidelines
 
 ### 2. Getting Started
 
@@ -124,6 +144,29 @@ Complete guide to all documentation for the ArangoDB Advanced Entity Resolution 
   - CI/CD integration
   - Troubleshooting
 
+- **[docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)**
+  - Complete testing guide for improved test suite
+  - Test structure and organization
+  - Running different test types (unit, integration, performance)
+  - Test coverage measurement
+  - Writing new tests and best practices
+  - CI/CD integration examples
+
+#### Test Coverage Reports
+- **[TEST_COVERAGE_SUMMARY.md](TEST_COVERAGE_SUMMARY.md)**
+  - Test coverage statistics by component
+  - Test execution guide
+  - Coverage goals and targets
+  - Key achievements
+  - CI/CD integration examples
+
+- **[TEST_IMPROVEMENTS_COMPLETE.md](TEST_IMPROVEMENTS_COMPLETE.md)**
+  - Complete test improvement report
+  - Before/after comparison
+  - New test files created
+  - Performance validation
+  - Impact analysis
+
 #### Git Hooks
 - **[docs/GIT_HOOKS.md](docs/GIT_HOOKS.md)**
   - Pre-commit hook (~5 seconds)
@@ -132,13 +175,68 @@ Complete guide to all documentation for the ArangoDB Advanced Entity Resolution 
   - Bypass options
   - Troubleshooting
 
-#### Test Scripts
-Located in `scripts/` and `tests/` directories:
-- Unit tests: `tests/test_*.py`
-- Integration tests: `examples/test_*.py`
-- Performance benchmarks: `scripts/benchmarks/*.py`
+#### Test Suite
+Located in `tests/` directory (19 test files, 3,261 lines):
 
-### 5. Deployment & Operations
+**Bulk Processing Tests (NEW):**
+- `test_bulk_blocking_service.py` - Unit tests for bulk processing (35+ tests)
+- `test_bulk_integration.py` - Integration tests with real database (15+ tests)
+- `test_performance_benchmarks.py` - Performance validation (12+ tests)
+
+**Enhanced Component Tests (NEW):**
+- `test_entity_resolver_enhanced.py` - Enhanced pipeline tests (25+ tests)
+- `test_similarity_enhanced.py` - Enhanced similarity tests (30+ tests)
+- `test_clustering_enhanced.py` - Enhanced clustering tests (25+ tests)
+
+**Existing Tests:**
+- `test_blocking_service.py` - Blocking service tests
+- `test_similarity_service.py` - Similarity service tests
+- `test_clustering_service.py` - Clustering service tests
+- `test_entity_resolver.py` - Pipeline tests
+- `test_config.py` - Configuration tests
+- `test_database.py` - Database connection tests
+- Other component tests (13 total test files)
+
+**Test Infrastructure:**
+- `conftest.py` - Shared fixtures and pytest configuration
+- `pytest.ini` - Pytest settings and markers
+
+#### Test Coverage
+- **Overall Coverage:** 60-70% (improved from 16.5%)
+- **New Component Coverage:** 85%+ (bulk processing)
+- **Enhanced Components:** 75-85%+ (pipeline, similarity, clustering)
+- **Total Tests:** 150+ test methods
+- **Test Code:** 3,261 lines (388% increase)
+
+### 5. Performance & Optimization
+
+#### Bulk Processing Guide
+- **[docs/BATCH_VS_BULK_PROCESSING.md](docs/BATCH_VS_BULK_PROCESSING.md)**
+  - Batch vs bulk processing strategies
+  - Performance benchmarks (3-5x speedup)
+  - Decision matrix: when to use what
+  - Code migration examples
+  - Optimization tips
+  - Troubleshooting guide
+
+- **[docs/BULK_PROCESSING_IMPLEMENTATION_SUMMARY.md](docs/BULK_PROCESSING_IMPLEMENTATION_SUMMARY.md)**
+  - Technical implementation details
+  - Architecture comparison
+  - Customization guide
+  - Integration examples
+
+- **[PERFORMANCE_IMPROVEMENTS_SUMMARY.md](PERFORMANCE_IMPROVEMENTS_SUMMARY.md)**
+  - Executive summary
+  - Business impact
+  - Quick start guide
+  - Migration examples
+  - FAQ
+
+#### Performance Examples
+Located in `examples/`:
+- `bulk_processing_demo.py` - Interactive bulk processing demo with statistics
+
+### 6. Deployment & Operations
 
 #### Foxx Service Deployment
 - **[docs/FOXX_DEPLOYMENT.md](docs/FOXX_DEPLOYMENT.md)**
@@ -170,7 +268,7 @@ Located in `scripts/` and `tests/` directories:
   - Configuration options
   - Security settings
 
-### 6. Demonstrations & Presentations
+### 7. Demonstrations & Presentations
 
 #### Demo Package
 - **[demo/README.md](demo/README.md)**
@@ -198,7 +296,7 @@ Located in `demo/scripts/`:
 - `data_generator.py` - Generate realistic test data
 - `industry_scenarios.py` - Industry-specific demos
 
-### 7. Architecture & Design
+### 8. Architecture & Design
 
 #### System Architecture
 - **[docs/DESIGN.md](docs/DESIGN.md)**
@@ -230,7 +328,7 @@ Available diagrams (Mermaid + SVG/PNG):
   - Clustering approaches
   - Performance characteristics
 
-### 8. Research & Academic Foundation
+### 9. Research & Academic Foundation
 
 #### Research Overview
 - **[research/README.md](research/README.md)**
@@ -259,7 +357,7 @@ Located in `research/notes/`:
 - Algorithm optimization notes
 - Performance tuning insights
 
-### 9. Data & Examples
+### 10. Data & Examples
 
 #### Available Datasets
 - **[docs/AVAILABLE_DATASETS.md](docs/AVAILABLE_DATASETS.md)**
@@ -284,11 +382,12 @@ Located in `demo/data/`:
 #### Code Examples
 Located in `examples/`:
 - `complete_entity_resolution_demo.py` - Full pipeline example
+- `bulk_processing_demo.py` - Bulk processing with performance comparison
 - `test_blocking_service.py` - Blocking service usage
 - `test_similarity_service.py` - Similarity computation
 - `test_clustering_service.py` - Clustering examples
 
-### 10. Development Resources
+### 11. Development Resources
 
 #### Contributing & Development
 - **[README.md](README.md)** - Section: Contributing
@@ -324,7 +423,7 @@ Located in `scripts/`:
 - `foxx/automated_deploy.py` - Foxx deployment automation
 - `benchmarks/` - Performance testing tools
 
-### 11. Project Organization
+### 12. Project Organization
 
 #### File Structure
 ```
@@ -441,6 +540,10 @@ All documentation follows ASCII-only standards:
 | README.md | Project overview | All | Long |
 | CHANGELOG.md | Version history | All | Medium |
 | docs/TESTING.md | Testing guide | Developers | Long |
+| docs/TESTING_GUIDE.md | Improved test suite guide | Developers | Long |
+| TEST_COVERAGE_SUMMARY.md | Coverage statistics | Developers | Medium |
+| TEST_IMPROVEMENTS_COMPLETE.md | Test improvement report | Developers/Managers | Long |
+| docs/BATCH_VS_BULK_PROCESSING.md | Performance guide | Developers/Ops | Long |
 | docs/GIT_HOOKS.md | Git automation | Developers | Medium |
 | docs/API_QUICKSTART.md | Quick start | Developers | Short |
 | docs/API_REFERENCE.md | API docs | Developers | Long |
@@ -451,13 +554,16 @@ All documentation follows ASCII-only standards:
 | docs/DESIGN.md | System design | Architects | Medium |
 | docs/PRD.md | Requirements | PM/Architects | Long |
 | docs/PROJECT_EVOLUTION.md | History | All | Long |
+| CODE_AUDIT_REPORT.md | Code audit results | Developers/Managers | Long |
+| AUDIT_QUICK_SUMMARY.md | Audit summary | Managers | Short |
+| SECURITY.md | Security practices | Developers/Ops | Medium |
 | demo/README.md | Demo guide | Sales/Marketing | Long |
 | demo/PRESENTATION_SCRIPT.md | Presentation | Sales | Medium |
 | research/README.md | Research | Researchers | Short |
 
 ---
 
-**Last Updated**: January 2025
+**Last Updated**: November 2025
 
 **Navigation Tip**: Use your editor's search function (Ctrl+F / Cmd+F) to quickly find specific topics in this index.
 

@@ -1,0 +1,252 @@
+{
+  "customers": [
+    {
+      "first_name": "John",
+      "last_name": "Smith",
+      "email": "john.smith@email.com",
+      "phone": "+1-555-0101",
+      "address": "123 Main St",
+      "city": "New York",
+      "state": "NY",
+      "zip_code": "10001",
+      "source": "system_a",
+      "created_at": "2024-01-15T10:30:00Z",
+      "blocking_keys": ["S_N", "JS_10001", "john.smith@email.com"]
+    },
+    {
+      "first_name": "Jon",
+      "last_name": "Smith",
+      "email": "j.smith@email.com",
+      "phone": "+1-555-0101",
+      "address": "123 Main Street",
+      "city": "New York",
+      "state": "NY",
+      "zip_code": "10001",
+      "source": "system_b",
+      "created_at": "2024-01-16T14:20:00Z",
+      "blocking_keys": ["S_N", "JS_10001", "j.smith@email.com"]
+    },
+    {
+      "first_name": "John",
+      "last_name": "Smyth",
+      "email": "john.smith@email.com",
+      "phone": "555-0101",
+      "address": "123 Main St, Apt 1",
+      "city": "NYC",
+      "state": "NY",
+      "zip_code": "10001",
+      "source": "system_c",
+      "created_at": "2024-01-17T09:15:00Z",
+      "blocking_keys": ["S_N", "JS_10001", "john.smith@email.com"]
+    },
+    {
+      "first_name": "Mary",
+      "last_name": "Johnson",
+      "email": "mary.johnson@company.com",
+      "phone": "+1-555-0202",
+      "address": "456 Oak Ave",
+      "city": "Boston",
+      "state": "MA",
+      "zip_code": "02101",
+      "source": "system_a",
+      "created_at": "2024-01-18T11:45:00Z",
+      "blocking_keys": ["J_B", "MJ_02101", "mary.johnson@company.com"]
+    },
+    {
+      "first_name": "Maria",
+      "last_name": "Johnson",
+      "email": "m.johnson@company.com",
+      "phone": "555-0202",
+      "address": "456 Oak Avenue",
+      "city": "Boston",
+      "state": "MA",
+      "zip_code": "02101",
+      "source": "system_b",
+      "created_at": "2024-01-19T16:30:00Z",
+      "blocking_keys": ["J_B", "MJ_02101", "m.johnson@company.com"]
+    },
+    {
+      "first_name": "Robert",
+      "last_name": "Brown",
+      "email": "rob.brown@email.com",
+      "phone": "+1-555-0303",
+      "address": "789 Pine St",
+      "city": "Chicago",
+      "state": "IL",
+      "zip_code": "60601",
+      "source": "system_a",
+      "created_at": "2024-01-20T08:00:00Z",
+      "blocking_keys": ["B_C", "RB_60601", "rob.brown@email.com"]
+    },
+    {
+      "first_name": "Bob",
+      "last_name": "Brown",
+      "email": "robert.brown@email.com",
+      "phone": "555-0303",
+      "address": "789 Pine Street",
+      "city": "Chicago",
+      "state": "IL",
+      "zip_code": "60601",
+      "source": "system_c",
+      "created_at": "2024-01-21T13:25:00Z",
+      "blocking_keys": ["B_C", "RB_60601", "robert.brown@email.com"]
+    },
+    {
+      "first_name": "Sarah",
+      "last_name": "Davis",
+      "email": "sarah.davis@company.org",
+      "phone": "+1-555-0404",
+      "address": "321 Elm Dr",
+      "city": "San Francisco",
+      "state": "CA",
+      "zip_code": "94102",
+      "source": "system_b",
+      "created_at": "2024-01-22T12:10:00Z",
+      "blocking_keys": ["D_S", "SD_94102", "sarah.davis@company.org"]
+    },
+    {
+      "first_name": "Jennifer",
+      "last_name": "Wilson",
+      "email": "jen.wilson@email.com",
+      "phone": "+1-555-0505",
+      "address": "654 Maple Rd",
+      "city": "Seattle",
+      "state": "WA",
+      "zip_code": "98101",
+      "source": "system_a",
+      "created_at": "2024-01-23T15:40:00Z",
+      "blocking_keys": ["W_S", "JW_98101", "jen.wilson@email.com"]
+    },
+    {
+      "first_name": "Jenny",
+      "last_name": "Wilson",
+      "email": "jennifer.wilson@email.com",
+      "phone": "555-0505",
+      "address": "654 Maple Road",
+      "city": "Seattle",
+      "state": "WA",
+      "zip_code": "98101",
+      "source": "system_c",
+      "created_at": "2024-01-24T10:55:00Z",
+      "blocking_keys": ["W_S", "JW_98101", "jennifer.wilson@email.com"]
+    }
+  ],
+  "blocking_keys": [
+    {
+      "key_value": "S_N",
+      "key_type": "lastname_city",
+      "record_ids": ["customers/1", "customers/2", "customers/3"]
+    },
+    {
+      "key_value": "JS_10001",
+      "key_type": "initials_zip",
+      "record_ids": ["customers/1", "customers/2", "customers/3"]
+    },
+    {
+      "key_value": "J_B",
+      "key_type": "lastname_city", 
+      "record_ids": ["customers/4", "customers/5"]
+    },
+    {
+      "key_value": "MJ_02101",
+      "key_type": "initials_zip",
+      "record_ids": ["customers/4", "customers/5"]
+    },
+    {
+      "key_value": "B_C",
+      "key_type": "lastname_city",
+      "record_ids": ["customers/6", "customers/7"]
+    },
+    {
+      "key_value": "RB_60601",
+      "key_type": "initials_zip", 
+      "record_ids": ["customers/6", "customers/7"]
+    },
+    {
+      "key_value": "D_S",
+      "key_type": "lastname_city",
+      "record_ids": ["customers/8"]
+    },
+    {
+      "key_value": "SD_94102",
+      "key_type": "initials_zip",
+      "record_ids": ["customers/8"]
+    },
+    {
+      "key_value": "W_S",
+      "key_type": "lastname_city",
+      "record_ids": ["customers/9", "customers/10"]
+    },
+    {
+      "key_value": "JW_98101",
+      "key_type": "initials_zip",
+      "record_ids": ["customers/9", "customers/10"]
+    }
+  ],
+  "entity_clusters": [
+    {
+      "cluster_id": "cluster_001",
+      "record_ids": ["customers/1", "customers/2", "customers/3"],
+      "golden_record": {
+        "first_name": "John",
+        "last_name": "Smith",
+        "email": "john.smith@email.com",
+        "phone": "+1-555-0101",
+        "address": "123 Main St",
+        "city": "New York",
+        "state": "NY",
+        "zip_code": "10001",
+        "confidence_level": "high"
+      },
+      "confidence_score": 0.95
+    },
+    {
+      "cluster_id": "cluster_002", 
+      "record_ids": ["customers/4", "customers/5"],
+      "golden_record": {
+        "first_name": "Mary",
+        "last_name": "Johnson",
+        "email": "mary.johnson@company.com",
+        "phone": "+1-555-0202",
+        "address": "456 Oak Ave",
+        "city": "Boston",
+        "state": "MA",
+        "zip_code": "02101",
+        "confidence_level": "medium"
+      },
+      "confidence_score": 0.87
+    },
+    {
+      "cluster_id": "cluster_003",
+      "record_ids": ["customers/6", "customers/7"],
+      "golden_record": {
+        "first_name": "Robert",
+        "last_name": "Brown",
+        "email": "rob.brown@email.com",
+        "phone": "+1-555-0303",
+        "address": "789 Pine St",
+        "city": "Chicago",
+        "state": "IL",
+        "zip_code": "60601",
+        "confidence_level": "high"
+      },
+      "confidence_score": 0.92
+    },
+    {
+      "cluster_id": "cluster_004",
+      "record_ids": ["customers/9", "customers/10"],
+      "golden_record": {
+        "first_name": "Jennifer",
+        "last_name": "Wilson",
+        "email": "jen.wilson@email.com",
+        "phone": "+1-555-0505",
+        "address": "654 Maple Rd",
+        "city": "Seattle",
+        "state": "WA",
+        "zip_code": "98101",
+        "confidence_level": "high"
+      },
+      "confidence_score": 0.89
+    }
+  ]
+}
