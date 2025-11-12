@@ -194,7 +194,8 @@ class CollectBlockingStrategy(BlockingStrategy):
         
         return normalized_pairs
     
-    def _build_filter_conditions(self, field_filters: Dict[str, Any]) -> List[str]:
+    def _build_filter_conditions(self, field_filters: Dict[str, Any], 
+                                 computed_field_map: Optional[Dict[str, str]] = None) -> List[str]:
         """
         Build AQL filter conditions, handling both document fields and computed fields.
         
@@ -202,19 +203,28 @@ class CollectBlockingStrategy(BlockingStrategy):
         
         Args:
             field_filters: Filter specifications for fields
+            computed_field_map: Mapping of computed field names to their temporary variable names
         
         Returns:
             List of AQL filter condition strings
         """
         conditions = []
+        computed_field_map = computed_field_map or {}
         
         for field_name, filters in field_filters.items():
             if not isinstance(filters, dict):
                 continue
             
-            # Determine if this is a computed field
-            is_computed = field_name in self.computed_fields
-            field_ref = field_name if is_computed else f"d.{field_name}"
+            # Determine if this is a computed field and get the correct reference
+            if field_name in computed_field_map:
+                # Use the temporary variable name for computed fields
+                field_ref = computed_field_map[field_name]
+            elif field_name in self.computed_fields:
+                # Fallback to field name if not in map (shouldn't happen)
+                field_ref = field_name
+            else:
+                # Regular document field
+                field_ref = f"d.{field_name}"
             
             # Not null filter
             if filters.get('not_null'):
@@ -268,13 +278,17 @@ class CollectBlockingStrategy(BlockingStrategy):
         # Start building query
         query_parts = [f"FOR d IN {self.collection}"]
         
-        # Add computed fields
+        # Add computed fields with temporary variable names to avoid COLLECT conflicts
+        # Use _computed_ prefix to create intermediate variables
+        computed_field_map = {}
         for field_name, expression in self.computed_fields.items():
-            query_parts.append(f"    LET {field_name} = {expression}")
+            temp_var = f"_computed_{field_name}"
+            query_parts.append(f"    LET {temp_var} = {expression}")
+            computed_field_map[field_name] = temp_var
         
         # Add filter conditions
         if self.filters:
-            conditions = self._build_filter_conditions(self.filters)
+            conditions = self._build_filter_conditions(self.filters, computed_field_map)
             for condition in conditions:
                 query_parts.append(f"    FILTER {condition}")
         
@@ -283,7 +297,9 @@ class CollectBlockingStrategy(BlockingStrategy):
         for field in self.blocking_fields:
             # Check if it's a computed field
             if field in self.computed_fields:
-                collect_vars.append(f"{field} = {field}")
+                # Reference the temporary computed variable
+                temp_var = computed_field_map[field]
+                collect_vars.append(f"{field} = {temp_var}")
             else:
                 collect_vars.append(f"{field} = d.{field}")
         

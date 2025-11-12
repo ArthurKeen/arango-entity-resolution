@@ -101,8 +101,8 @@ class TestComputedFieldQueryGeneration:
         query = strategy._build_collect_query()
         
         assert "FOR d IN companies" in query
-        assert "LET zip5 = LEFT(d.postal_code, 5)" in query
-        assert "COLLECT address = d.address, zip5 = zip5" in query
+        assert "LET _computed_zip5 = LEFT(d.postal_code, 5)" in query
+        assert "COLLECT address = d.address, zip5 = _computed_zip5" in query
     
     def test_multiple_computed_fields(self, mock_db):
         """Test query generation with multiple computed fields."""
@@ -119,10 +119,10 @@ class TestComputedFieldQueryGeneration:
         
         query = strategy._build_collect_query()
         
-        assert "LET name_norm = UPPER(d.name)" in query
-        assert "LET phone_norm = REGEX_REPLACE(d.phone, '[^0-9]', '')" in query
-        assert "LET zip5 = LEFT(d.postal_code, 5)" in query
-        assert "COLLECT name_norm = name_norm, phone_norm = phone_norm, zip5 = zip5" in query
+        assert "LET _computed_name_norm = UPPER(d.name)" in query
+        assert "LET _computed_phone_norm = REGEX_REPLACE(d.phone, '[^0-9]', '')" in query
+        assert "LET _computed_zip5 = LEFT(d.postal_code, 5)" in query
+        assert "COLLECT name_norm = _computed_name_norm, phone_norm = _computed_phone_norm, zip5 = _computed_zip5" in query
     
     def test_mixed_computed_and_regular_fields(self, mock_db):
         """Test blocking with both computed and regular fields."""
@@ -135,8 +135,8 @@ class TestComputedFieldQueryGeneration:
         
         query = strategy._build_collect_query()
         
-        assert "LET zip5 = LEFT(d.postal_code, 5)" in query
-        assert "COLLECT state = d.state, zip5 = zip5" in query
+        assert "LET _computed_zip5 = LEFT(d.postal_code, 5)" in query
+        assert "COLLECT state = d.state, zip5 = _computed_zip5" in query
     
     def test_complex_computed_expressions(self, mock_db):
         """Test complex AQL expressions in computed fields."""
@@ -151,8 +151,8 @@ class TestComputedFieldQueryGeneration:
         
         query = strategy._build_collect_query()
         
-        assert "LET complex_key = CONCAT(LEFT(UPPER(d.name), 3), '_', LEFT(d.postal_code, 5), '_', d.state)" in query
-        assert "COLLECT complex_key = complex_key" in query
+        assert "LET _computed_complex_key = CONCAT(LEFT(UPPER(d.name), 3), '_', LEFT(d.postal_code, 5), '_', d.state)" in query
+        assert "COLLECT complex_key = _computed_complex_key" in query
 
 
 class TestComputedFieldFiltering:
@@ -173,8 +173,8 @@ class TestComputedFieldFiltering:
         query = strategy._build_collect_query()
         
         # Should filter on "zip5", not "d.zip5"
-        assert "FILTER zip5 != null" in query
-        assert "FILTER LENGTH(zip5) >= 5" in query
+        assert "FILTER _computed_zip5 != null" in query
+        assert "FILTER LENGTH(_computed_zip5) >= 5" in query
         assert "FILTER d.zip5" not in query  # Should NOT use d.zip5
     
     def test_filter_on_regular_field(self, mock_db):
@@ -195,7 +195,7 @@ class TestComputedFieldFiltering:
         # Regular field uses d.field
         assert "FILTER d.state != null" in query
         # Computed field uses variable name
-        assert "FILTER LENGTH(zip5) >= 5" in query
+        assert "FILTER LENGTH(_computed_zip5) >= 5" in query
     
     def test_all_filter_types_on_computed_field(self, mock_db):
         """All filter types should work on computed fields."""
@@ -216,11 +216,11 @@ class TestComputedFieldFiltering:
         
         query = strategy._build_collect_query()
         
-        assert "FILTER phone_norm != null" in query
-        assert "FILTER LENGTH(phone_norm) >= 10" in query
-        assert "FILTER LENGTH(phone_norm) <= 15" in query
-        assert 'FILTER phone_norm != "0000000000"' in query
-        assert 'FILTER phone_norm != "1111111111"' in query
+        assert "FILTER _computed_phone_norm != null" in query
+        assert "FILTER LENGTH(_computed_phone_norm) >= 10" in query
+        assert "FILTER LENGTH(_computed_phone_norm) <= 15" in query
+        assert 'FILTER _computed_phone_norm != "0000000000"' in query
+        assert 'FILTER _computed_phone_norm != "1111111111"' in query
 
 
 class TestComputedFieldBlockingPairs:
@@ -264,7 +264,7 @@ class TestComputedFieldBlockingPairs:
         # Verify query was executed
         mock_db.aql.execute.assert_called_once()
         query = mock_db.aql.execute.call_args[0][0]
-        assert "LET zip5 = LEFT(d.postal_code, 5)" in query
+        assert "LET _computed_zip5 = LEFT(d.postal_code, 5)" in query
     
     def test_statistics_with_computed_fields(self, mock_db):
         """Statistics should include computed field information."""
@@ -327,7 +327,7 @@ class TestComputedFieldEdgeCases:
         query = strategy._build_collect_query()
         
         # Should still generate LET statement (might be used in filters)
-        assert "LET zip5 = LEFT(d.postal_code, 5)" in query
+        assert "LET _computed_zip5 = LEFT(d.postal_code, 5)" in query
         # But not in COLLECT
         assert "COLLECT state = d.state" in query
         assert "zip5 = zip5" not in query.split("COLLECT")[1].split("INTO")[0]
@@ -346,9 +346,9 @@ class TestComputedFieldEdgeCases:
         
         query = strategy._build_collect_query()
         
-        assert "LET zip5 = LEFT(d.postal_code, 5)" in query
-        assert "LET phone_norm = REGEX_REPLACE(d.phone, '[^0-9]', '')" in query
-        assert "COLLECT zip5 = zip5, phone_norm = phone_norm" in query
+        assert "LET _computed_zip5 = LEFT(d.postal_code, 5)" in query
+        assert "LET _computed_phone_norm = REGEX_REPLACE(d.phone, '[^0-9]', '')" in query
+        assert "COLLECT zip5 = _computed_zip5, phone_norm = _computed_phone_norm" in query
         # Should not reference any d.field in COLLECT
         collect_clause = query.split("COLLECT")[1].split("INTO")[0]
         assert "d." not in collect_clause
@@ -366,7 +366,7 @@ class TestComputedFieldEdgeCases:
         
         query = strategy._build_collect_query()
         
-        assert "LET contact_key = d.phone != null ? d.phone : SPLIT(d.email, '@')[1]" in query
+        assert "LET _computed_contact_key = d.phone != null ? d.phone : SPLIT(d.email, '@')[1]" in query
     
     def test_computed_field_with_nested_access(self, mock_db):
         """Computed field accessing nested document fields."""
@@ -381,7 +381,7 @@ class TestComputedFieldEdgeCases:
         
         query = strategy._build_collect_query()
         
-        assert "LET city_state = CONCAT(d.location.city, '_', d.location.state)" in query
+        assert "LET _computed_city_state = CONCAT(d.location.city, '_', d.location.state)" in query
 
 
 class TestComputedFieldRealWorldScenarios:
@@ -408,12 +408,12 @@ class TestComputedFieldRealWorldScenarios:
         
         # Verify correct query structure
         assert "FOR d IN companies" in query
-        assert "LET zip5 = LEFT(d.POSTAL_CODE, 5)" in query
+        assert "LET _computed_zip5 = LEFT(d.POSTAL_CODE, 5)" in query
         assert "FILTER d.address != null" in query
         assert "FILTER LENGTH(d.address) >= 5" in query
-        assert "FILTER zip5 != null" in query
-        assert "FILTER LENGTH(zip5) >= 5" in query
-        assert "COLLECT address = d.address, zip5 = zip5" in query
+        assert "FILTER _computed_zip5 != null" in query
+        assert "FILTER LENGTH(_computed_zip5) >= 5" in query
+        assert "COLLECT address = d.address, zip5 = _computed_zip5" in query
         assert "FILTER LENGTH(doc_keys) >= 2" in query
         assert "FILTER LENGTH(doc_keys) <= 50" in query
     
@@ -440,11 +440,11 @@ class TestComputedFieldRealWorldScenarios:
         
         query = strategy._build_collect_query()
         
-        assert "LET phone_digits = REGEX_REPLACE(d.phone_number, '[^0-9]', '')" in query
-        assert "FILTER phone_digits != null" in query
-        assert "FILTER LENGTH(phone_digits) >= 10" in query
-        assert 'FILTER phone_digits != "0000000000"' in query
-        assert "COLLECT phone_digits = phone_digits, state = d.state" in query
+        assert "LET _computed_phone_digits = REGEX_REPLACE(d.phone_number, '[^0-9]', '')" in query
+        assert "FILTER _computed_phone_digits != null" in query
+        assert "FILTER LENGTH(_computed_phone_digits) >= 10" in query
+        assert 'FILTER _computed_phone_digits != "0000000000"' in query
+        assert "COLLECT phone_digits = _computed_phone_digits, state = d.state" in query
     
     def test_multiple_derived_keys(self, mock_db):
         """Real scenario: Multiple derived blocking keys."""
@@ -467,9 +467,9 @@ class TestComputedFieldRealWorldScenarios:
         
         query = strategy._build_collect_query()
         
-        assert "LET name_key = CONCAT(LEFT(UPPER(d.company_name), 3), '_', LEFT(d.ceo_last_name, 4))" in query
-        assert "LET zip5 = LEFT(d.postal_code, 5)" in query
-        assert "COLLECT name_key = name_key, zip5 = zip5, state = d.state" in query
+        assert "LET _computed_name_key = CONCAT(LEFT(UPPER(d.company_name), 3), '_', LEFT(d.ceo_last_name, 4))" in query
+        assert "LET _computed_zip5 = LEFT(d.postal_code, 5)" in query
+        assert "COLLECT name_key = _computed_name_key, zip5 = _computed_zip5, state = d.state" in query
 
 
 class TestComputedFieldDocumentation:
@@ -493,7 +493,7 @@ class TestComputedFieldDocumentation:
         )
         
         query = strategy._build_collect_query()
-        assert "LET zip5 = LEFT(d.postal_code, 5)" in query
+        assert "LET _computed_zip5 = LEFT(d.postal_code, 5)" in query
         assert strategy.blocking_fields == ["address", "zip5"]
     
     def test_docs_example_phone_normalization(self, mock_db):
@@ -518,7 +518,7 @@ class TestComputedFieldDocumentation:
         )
         
         query = strategy._build_collect_query()
-        assert "LET phone_normalized = REGEX_REPLACE(d.phone, '[^0-9]', '')" in query
+        assert "LET _computed_phone_normalized = REGEX_REPLACE(d.phone, '[^0-9]', '')" in query
     
     def test_docs_example_name_initials(self, mock_db):
         """Example from COMPUTED_FIELDS_GUIDE.md - name initials."""
@@ -538,8 +538,8 @@ class TestComputedFieldDocumentation:
         )
         
         query = strategy._build_collect_query()
-        assert "LET name_key = CONCAT(LEFT(d.first_name, 1), LEFT(d.middle_name, 1), '_', d.last_name)" in query
-        assert "LET zip5 = LEFT(d.postal_code, 5)" in query
+        assert "LET _computed_name_key = CONCAT(LEFT(d.first_name, 1), LEFT(d.middle_name, 1), '_', d.last_name)" in query
+        assert "LET _computed_zip5 = LEFT(d.postal_code, 5)" in query
 
 
 if __name__ == "__main__":
