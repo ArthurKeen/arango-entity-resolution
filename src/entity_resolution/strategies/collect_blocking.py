@@ -58,10 +58,15 @@ class CollectBlockingStrategy(BlockingStrategy):
             min_block_size: Skip blocks smaller than this (no pairs to generate).
                 Default 2.
             computed_fields: Optional computed fields for blocking.
-                Example: {"zip5": "LEFT(postal_code, 5)"}
-                These can be used in blocking_fields.
+                Dictionary mapping computed field names to AQL expressions.
+                Example: {"zip5": "LEFT(d.postal_code, 5)"}
+                These computed field names can then be used in blocking_fields.
+                
+                Note: In expressions, reference document fields as "d.field_name".
+                In blocking_fields and filters, reference computed fields by name only.
         
-        Example:
+        Examples:
+            Basic phone + state blocking:
             ```python
             strategy = CollectBlockingStrategy(
                 db=db,
@@ -80,18 +85,57 @@ class CollectBlockingStrategy(BlockingStrategy):
             )
             pairs = strategy.generate_candidates()
             ```
+            
+            Address + ZIP5 blocking with computed field:
+            ```python
+            strategy = CollectBlockingStrategy(
+                db=db,
+                collection="companies",
+                blocking_fields=["address", "zip5"],  # zip5 is computed
+                computed_fields={
+                    "zip5": "LEFT(d.postal_code, 5)"  # Extract first 5 digits
+                },
+                filters={
+                    "address": {"not_null": True, "min_length": 5},
+                    "zip5": {"not_null": True, "min_length": 5}  # Filter on computed field
+                },
+                max_block_size=50,
+                min_block_size=2
+            )
+            pairs = strategy.generate_candidates()
+            ```
         """
         super().__init__(db, collection, filters)
         
-        # Validate inputs first
+        # Store computed fields first so we can reference them during validation
+        self.computed_fields = computed_fields or {}
+        
+        # Validate inputs
         if not blocking_fields:
             raise ValueError("blocking_fields cannot be empty")
         
         # Validate field names for security (prevent AQL injection)
-        self.blocking_fields = validate_field_names(blocking_fields)
+        # Skip validation for computed field names (they're validated separately)
+        non_computed_fields = [f for f in blocking_fields if f not in self.computed_fields]
+        if non_computed_fields:
+            validate_field_names(non_computed_fields)
+        
+        # Validate computed field names (variable names, not expressions)
+        for computed_field_name in self.computed_fields.keys():
+            if not computed_field_name.replace('_', '').isalnum():
+                raise ValueError(
+                    f"Computed field name '{computed_field_name}' must be alphanumeric "
+                    f"(underscores allowed)"
+                )
+            if computed_field_name[0].isdigit():
+                raise ValueError(
+                    f"Computed field name '{computed_field_name}' cannot start with a digit"
+                )
+        
+        self.blocking_fields = blocking_fields
         self.max_block_size = max_block_size
         self.min_block_size = min_block_size
-        self.computed_fields = computed_fields or {}
+        
         if min_block_size < 2:
             raise ValueError("min_block_size must be at least 2")
         if max_block_size < min_block_size:
@@ -149,6 +193,70 @@ class CollectBlockingStrategy(BlockingStrategy):
         })
         
         return normalized_pairs
+    
+    def _build_filter_conditions(self, field_filters: Dict[str, Any]) -> List[str]:
+        """
+        Build AQL filter conditions, handling both document fields and computed fields.
+        
+        Overrides base implementation to support computed fields.
+        
+        Args:
+            field_filters: Filter specifications for fields
+        
+        Returns:
+            List of AQL filter condition strings
+        """
+        conditions = []
+        
+        for field_name, filters in field_filters.items():
+            if not isinstance(filters, dict):
+                continue
+            
+            # Determine if this is a computed field
+            is_computed = field_name in self.computed_fields
+            field_ref = field_name if is_computed else f"d.{field_name}"
+            
+            # Not null filter
+            if filters.get('not_null'):
+                conditions.append(f"{field_ref} != null")
+            
+            # Not equal filter (list of values to exclude)
+            if 'not_equal' in filters:
+                not_equal_values = filters['not_equal']
+                if isinstance(not_equal_values, list):
+                    for value in not_equal_values:
+                        if isinstance(value, str):
+                            conditions.append(f'{field_ref} != "{value}"')
+                        else:
+                            conditions.append(f'{field_ref} != {value}')
+            
+            # Equals filter
+            if 'equals' in filters:
+                value = filters['equals']
+                if isinstance(value, str):
+                    conditions.append(f'{field_ref} == "{value}"')
+                else:
+                    conditions.append(f'{field_ref} == {value}')
+            
+            # Min length filter
+            if 'min_length' in filters:
+                conditions.append(f"LENGTH({field_ref}) >= {filters['min_length']}")
+            
+            # Max length filter
+            if 'max_length' in filters:
+                conditions.append(f"LENGTH({field_ref}) <= {filters['max_length']}")
+            
+            # Contains filter
+            if 'contains' in filters:
+                value = filters['contains']
+                conditions.append(f'CONTAINS({field_ref}, "{value}")')
+            
+            # Regex filter
+            if 'regex' in filters:
+                pattern = filters['regex']
+                conditions.append(f'REGEX_TEST({field_ref}, "{pattern}")')
+        
+        return conditions
     
     def _build_collect_query(self) -> str:
         """

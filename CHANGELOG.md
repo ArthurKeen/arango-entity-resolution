@@ -15,7 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Supports multi-field blocking (phone+state, address+zip, etc.)
   - Configurable filters per field
   - Block size limits to prevent explosion
-  - Computed field support
+  - **Computed fields support** - Derive blocking keys from existing fields using AQL expressions
+    - Extract ZIP5 from POSTAL_CODE: `LEFT(d.postal_code, 5)`
+    - Normalize phone numbers: `REGEX_REPLACE(d.phone, '[^0-9]', '')`
+    - Combine fields: `CONCAT(d.field1, '_', d.field2)`
+    - Filter on computed fields
+    - No validation conflicts with non-standard field names
   
 - **`BM25BlockingStrategy`** - Fast fuzzy text matching
   - Uses ArangoSearch BM25 scoring
