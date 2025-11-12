@@ -315,6 +315,10 @@ class WCCClusteringService:
         Returns:
             List of clusters (each cluster is a list of document keys)
         """
+        # Determine vertex collection(s) for WITH clause
+        vertex_collections = self._get_vertex_collections()
+        with_clause = f"WITH {', '.join(vertex_collections)}" if vertex_collections else ""
+        
         # Step 1: Get all unique vertices from edges
         vertices_query = f"""
         LET from_vertices = (
@@ -344,7 +348,9 @@ class WCCClusteringService:
                 continue
             
             # Traverse from this vertex to find its component
+            # WITH clause is required for graph traversal to declare collections
             component_query = f"""
+            {with_clause}
             FOR v IN 0..999999 ANY @start_vertex {self.edge_collection_name}
                 RETURN DISTINCT v._id
             """
@@ -377,6 +383,46 @@ class WCCClusteringService:
                 continue
         
         return clusters
+    
+    def _get_vertex_collections(self) -> List[str]:
+        """
+        Determine vertex collection(s) for WITH clause in graph traversal.
+        
+        Returns:
+            List of vertex collection names
+        """
+        # If vertex_collection is explicitly provided, use it
+        if self.vertex_collection:
+            return [self.vertex_collection]
+        
+        # Otherwise, auto-detect from edges
+        try:
+            # Sample a few edges to find vertex collections
+            sample_edges = list(self.edge_collection.all(limit=10))
+            
+            if not sample_edges:
+                self.logger.warning("No edges found to detect vertex collections")
+                return []
+            
+            vertex_collections = set()
+            for edge in sample_edges:
+                # Extract collection names from _from and _to
+                from_id = edge.get('_from', '')
+                to_id = edge.get('_to', '')
+                
+                if '/' in from_id:
+                    from_collection = from_id.split('/')[0]
+                    vertex_collections.add(from_collection)
+                
+                if '/' in to_id:
+                    to_collection = to_id.split('/')[0]
+                    vertex_collections.add(to_collection)
+            
+            return sorted(list(vertex_collections))
+        
+        except Exception as e:
+            self.logger.error(f"Failed to detect vertex collections: {e}", exc_info=True)
+            return []
     
     def _store_clusters(self, clusters: List[List[str]]):
         """

@@ -5,6 +5,15 @@ All notable changes to the arango-entity-resolution library will be documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **WCC Clustering Service** - Added missing `WITH` clause in AQL graph traversal queries
+  - Fixes "collection not known to traversal" error (ArangoDB Error 1521)
+  - Auto-detects vertex collections from edge `_from` and `_to` fields
+  - Supports both explicit and auto-detected vertex collections
+  - Handles multi-collection graphs correctly
+
 ## [2.0.0] - 2025-11-12
 
 ### Added - Enhanced Entity Resolution Components
