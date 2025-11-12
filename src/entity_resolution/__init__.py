@@ -4,7 +4,6 @@ Entity Resolution System for ArangoDB
 A complete entity resolution system that combines:
 - Python orchestration and data processing
 - ArangoDB native storage and querying
-- Foxx microservices for high-performance operations
 - Graph-based clustering algorithms
 - Unified demo and presentation capabilities
 
@@ -31,6 +30,16 @@ from .services.golden_record_service import GoldenRecordService
 from .services.base_service import BaseEntityResolutionService
 from .data.data_manager import DataManager
 
+# New enhanced services (v2.0)
+from .strategies import (
+    BlockingStrategy,
+    CollectBlockingStrategy,
+    BM25BlockingStrategy
+)
+from .services.batch_similarity_service import BatchSimilarityService
+from .services.similarity_edge_service import SimilarityEdgeService
+from .services.wcc_clustering_service import WCCClusteringService
+
 # Configuration and utilities
 from .utils.config import Config
 from .utils.database import DatabaseManager, get_database_manager, get_database
@@ -56,6 +65,14 @@ __all__ = [
     'GoldenRecordService',
     'BaseEntityResolutionService',
     'DataManager',
+    
+    # Enhanced services (v2.0)
+    'BlockingStrategy',
+    'CollectBlockingStrategy',
+    'BM25BlockingStrategy',
+    'BatchSimilarityService',
+    'SimilarityEdgeService',
+    'WCCClusteringService',
     
     # Configuration
     'Config',

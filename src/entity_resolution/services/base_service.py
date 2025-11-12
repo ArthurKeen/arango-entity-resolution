@@ -5,8 +5,9 @@ Provides common functionality for all entity resolution services:
 - Configuration management
 - Logging setup
 - Database connectivity
-- Foxx service connectivity
 - Error handling patterns
+
+Note: v1.x legacy service. v2.0+ uses strategy pattern (see strategies/ directory).
 """
 
 import requests
@@ -31,11 +32,12 @@ class BaseEntityResolutionService(DatabaseMixin, ABC):
     """
     Abstract base class for all entity resolution services
     
+    Legacy v1.x service base class. v2.0+ uses strategy pattern.
+    
     Provides common functionality:
     - Configuration initialization
     - Logging setup
     - Database connectivity (via DatabaseMixin)
-    - Foxx service connectivity testing
     - Standard error handling patterns
     """
     
@@ -44,98 +46,26 @@ class BaseEntityResolutionService(DatabaseMixin, ABC):
         super().__init__()
         self.config = config or get_config()
         self.logger = get_logger(self.__class__.__name__)
-        self.foxx_available = False
         
     def connect(self) -> bool:
         """
-        Test connection to database and Foxx services if enabled
+        Test connection to database
         
         Returns:
-            True if connected or fallback mode available
+            True if connected
         """
-        # Test database connection first
+        # Test database connection
         if not self.test_connection():
             self.logger.error(ERROR_MESSAGES['database_connection'])
             return False
         
         self.logger.info(SUCCESS_MESSAGES['database_connected'])
-        
-        # Test Foxx service connection if enabled
-        if not self.config.er.enable_foxx_services:
-            self.logger.info("Foxx services disabled, using Python fallback")
-            return True
-        
-        try:
-            # Test basic Foxx service availability
-            health_url = self.config.get_foxx_service_url("health")
-            timeout = FOXX_CONFIG['timeout_seconds']
-            response = requests.get(health_url, auth=self.config.get_auth_tuple(), timeout=timeout)
-            
-            if response.status_code == 200:
-                # Test service-specific endpoints
-                service_available = self._test_service_endpoints()
-                
-                if service_available:
-                    self.foxx_available = True
-                    self.logger.info(f"Foxx {self._get_service_name()} service available")
-                else:
-                    self.logger.info(f"Foxx {self._get_service_name()} endpoints not implemented, using Python fallback")
-            else:
-                self.logger.warning("Foxx service not available, using Python fallback")
-                
-        except Exception as e:
-            self.logger.warning(f"Cannot connect to Foxx services: {e}")
-        
         return True
     
     @abstractmethod
     def _get_service_name(self) -> str:
         """Return the name of this service for logging purposes"""
         pass
-    
-    @abstractmethod
-    def _test_service_endpoints(self) -> bool:
-        """Test if service-specific Foxx endpoints are available"""
-        pass
-    
-    def _make_foxx_request(self, endpoint: str, method: str = "GET", 
-                          payload: Optional[Dict[str, Any]] = None,
-                          timeout: Optional[int] = None) -> Dict[str, Any]:
-        """
-        Make a standardized request to Foxx service
-        
-        Args:
-            endpoint: Foxx service endpoint (e.g., "similarity/compute")
-            method: HTTP method (GET, POST, etc.)
-            payload: Request payload for POST requests
-            timeout: Request timeout
-            
-        Returns:
-            Response data or error information
-        """
-        try:
-            url = self.config.get_foxx_service_url(endpoint)
-            timeout = timeout or FOXX_CONFIG['timeout_seconds']
-            auth = self.config.get_auth_tuple()
-            
-            if method.upper() == "GET":
-                response = requests.get(url, auth=auth, timeout=timeout)
-            elif method.upper() == "POST":
-                response = requests.post(url, auth=auth, json=payload, timeout=timeout)
-            else:
-                return {"success": False, "error": f"Unsupported HTTP method: {method}"}
-            
-            if response.status_code == 200:
-                return response.json()
-            else:
-                return {"success": False, "error": f"Foxx service returned {response.status_code}"}
-                
-        except requests.exceptions.Timeout:
-            return {"success": False, "error": "Foxx service request timeout"}
-        except requests.exceptions.ConnectionError:
-            return {"success": False, "error": "Cannot connect to Foxx service"}
-        except Exception as e:
-            return {"success": False, "error": f"Foxx request failed: {str(e)}"}
     
     def _handle_service_error(self, operation: str, error: Exception) -> Dict[str, Any]:
         """

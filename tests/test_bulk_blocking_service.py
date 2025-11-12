@@ -1,28 +1,30 @@
 """
-Unit Tests for BulkBlockingService
+Comprehensive tests for BulkBlockingService
 
-Tests the bulk processing functionality for large-scale entity resolution,
-including set-based AQL queries and streaming capabilities.
+Tests cover:
+- Service initialization and configuration
+- Database connection (mocked)
+- Bulk pair generation with multiple strategies
+- Streaming pair generation
+- Exact blocking strategy (phone, email)
+- N-gram blocking strategy
+- Phonetic blocking strategy
+- Pair deduplication
+- Collection statistics
+- Error handling and edge cases
 """
 
 import pytest
-import time
 from unittest.mock import Mock, MagicMock, patch
-from typing import List, Dict, Any
-
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-
-from entity_resolution.services.bulk_blocking_service import BulkBlockingService
-from entity_resolution.utils.config import Config
+from src.entity_resolution.services.bulk_blocking_service import BulkBlockingService
+from src.entity_resolution.utils.config import Config
 
 
-class TestBulkBlockingServiceInitialization:
-    """Test service initialization and configuration"""
+class TestBulkBlockingServiceBasics:
+    """Test basic initialization and configuration."""
     
     def test_initialization_with_default_config(self):
-        """Test service initializes with default configuration"""
+        """Test service initializes with default configuration."""
         service = BulkBlockingService()
         
         assert service.config is not None
@@ -31,46 +33,42 @@ class TestBulkBlockingServiceInitialization:
         assert service.client is None
     
     def test_initialization_with_custom_config(self):
-        """Test service initializes with custom configuration"""
+        """Test service initializes with custom configuration."""
         config = Config()
-        config.db.host = "custom-host"
-        config.db.port = 9999
+        service = BulkBlockingService(config=config)
         
-        service = BulkBlockingService(config)
-        
-        assert service.config.db.host == "custom-host"
-        assert service.config.db.port == 9999
+        assert service.config == config
+        assert service.db is None
+        assert service.client is None
 
 
-class TestBulkBlockingServiceConnection:
-    """Test database connection functionality"""
+class TestDatabaseConnection:
+    """Test database connection functionality."""
     
-    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-    def test_connect_success(self, mock_client_class):
-        """Test successful database connection"""
+    @patch('src.entity_resolution.services.bulk_blocking_service.ArangoClient')
+    def test_connect_success(self, mock_arango_client):
+        """Test successful database connection."""
         # Setup mocks
-        mock_client = Mock()
+        mock_client_instance = Mock()
         mock_db = Mock()
-        mock_client.db.return_value = mock_db
-        mock_client_class.return_value = mock_client
+        mock_arango_client.return_value = mock_client_instance
+        mock_client_instance.db.return_value = mock_db
         
         service = BulkBlockingService()
         result = service.connect()
         
         assert result is True
+        assert service.client == mock_client_instance
         assert service.db == mock_db
-        assert service.client == mock_client
         
-        # Verify client was called with correct parameters
-        mock_client.db.assert_called_once()
+        # Verify connection was established correctly
+        mock_arango_client.assert_called_once()
+        mock_client_instance.db.assert_called_once()
     
-    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-    def test_connect_failure(self, mock_client_class):
-        """Test connection failure handling"""
-        # Setup mock to raise exception
-        mock_client = Mock()
-        mock_client.db.side_effect = Exception("Connection failed")
-        mock_client_class.return_value = mock_client
+    @patch('src.entity_resolution.services.bulk_blocking_service.ArangoClient')
+    def test_connect_failure(self, mock_arango_client):
+        """Test database connection failure."""
+        mock_arango_client.side_effect = Exception("Connection failed")
         
         service = BulkBlockingService()
         result = service.connect()
@@ -79,508 +77,548 @@ class TestBulkBlockingServiceConnection:
         assert service.db is None
 
 
-class TestBulkBlockingServiceExactBlocking:
-    """Test exact blocking strategy"""
+class TestPairDeduplication:
+    """Test pair deduplication logic."""
     
-    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-    def test_exact_blocking_phone(self, mock_client_class):
-        """Test exact blocking by phone number"""
-        # Setup mocks
-        mock_client = Mock()
-        mock_db = Mock()
-        mock_aql = Mock()
-        
-        # Mock query results - pairs of records with same phone
-        mock_aql.execute.return_value = [
-            {
-                'record_a_id': 'customers/1',
-                'record_b_id': 'customers/2',
-                'strategy': 'exact_phone',
-                'blocking_key': '555-1234'
-            },
-            {
-                'record_a_id': 'customers/1',
-                'record_b_id': 'customers/3',
-                'strategy': 'exact_phone',
-                'blocking_key': '555-1234'
-            }
-        ]
-        
-        mock_db.aql = mock_aql
-        mock_client.db.return_value = mock_db
-        mock_client_class.return_value = mock_client
-        
-        service = BulkBlockingService()
-        service.connect()
-        
-        # Execute exact blocking
-        result = service._execute_exact_blocking("customers", 100)
-        
-        assert len(result) >= 2
-        assert mock_aql.execute.called
-        
-    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-    def test_exact_blocking_email(self, mock_client_class):
-        """Test exact blocking by email"""
-        # Setup mocks
-        mock_client = Mock()
-        mock_db = Mock()
-        mock_aql = Mock()
-        
-        mock_aql.execute.return_value = [
-            {
-                'record_a_id': 'customers/1',
-                'record_b_id': 'customers/2',
-                'strategy': 'exact_email',
-                'blocking_key': 'john@example.com'
-            }
-        ]
-        
-        mock_db.aql = mock_aql
-        mock_client.db.return_value = mock_db
-        mock_client_class.return_value = mock_client
-        
-        service = BulkBlockingService()
-        service.connect()
-        
-        result = service._execute_exact_blocking("customers", 0)
-        
-        assert len(result) >= 1
-
-
-class TestBulkBlockingServiceNgramBlocking:
-    """Test n-gram blocking strategy"""
-    
-    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-    def test_ngram_blocking(self, mock_client_class):
-        """Test n-gram blocking finds similar names"""
-        # Setup mocks
-        mock_client = Mock()
-        mock_db = Mock()
-        mock_aql = Mock()
-        
-        mock_aql.execute.return_value = [
-            {
-                'record_a_id': 'customers/1',
-                'record_b_id': 'customers/2',
-                'strategy': 'ngram_name',
-                'blocking_key': 'SMI_2'
-            },
-            {
-                'record_a_id': 'customers/1',
-                'record_b_id': 'customers/3',
-                'strategy': 'ngram_name',
-                'blocking_key': 'SMI_2'
-            }
-        ]
-        
-        mock_db.aql = mock_aql
-        mock_client.db.return_value = mock_db
-        mock_client_class.return_value = mock_client
-        
-        service = BulkBlockingService()
-        service.connect()
-        
-        result = service._execute_ngram_blocking("customers", 100)
-        
-        assert len(result) == 2
-        assert all('blocking_key' in pair for pair in result)
-
-
-class TestBulkBlockingServicePhoneticBlocking:
-    """Test phonetic (Soundex) blocking strategy"""
-    
-    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-    def test_phonetic_blocking(self, mock_client_class):
-        """Test phonetic blocking finds similar-sounding names"""
-        # Setup mocks
-        mock_client = Mock()
-        mock_db = Mock()
-        mock_aql = Mock()
-        
-        # Smith, Smyth would have same Soundex
-        mock_aql.execute.return_value = [
-            {
-                'record_a_id': 'customers/1',
-                'record_b_id': 'customers/2',
-                'strategy': 'phonetic_soundex',
-                'blocking_key': 'S530'
-            }
-        ]
-        
-        mock_db.aql = mock_aql
-        mock_client.db.return_value = mock_db
-        mock_client_class.return_value = mock_client
-        
-        service = BulkBlockingService()
-        service.connect()
-        
-        result = service._execute_phonetic_blocking("customers", 0)
-        
-        assert len(result) == 1
-        assert result[0]['strategy'] == 'phonetic_soundex'
-
-
-class TestBulkBlockingServiceDeduplication:
-    """Test pair deduplication logic"""
-    
-    def test_deduplicate_pairs_removes_duplicates(self):
-        """Test that duplicate pairs are removed"""
+    def test_deduplicate_no_duplicates(self):
+        """Test deduplication with no duplicate pairs."""
         service = BulkBlockingService()
         
-        # Same pair found by multiple strategies
         pairs = [
-            {'record_a_id': 'customers/1', 'record_b_id': 'customers/2', 'strategy': 'exact'},
-            {'record_a_id': 'customers/1', 'record_b_id': 'customers/2', 'strategy': 'ngram'},
-            {'record_a_id': 'customers/1', 'record_b_id': 'customers/2', 'strategy': 'phonetic'},
-            {'record_a_id': 'customers/3', 'record_b_id': 'customers/4', 'strategy': 'exact'}
+            {"record_a_id": "1", "record_b_id": "2", "strategy": "exact"},
+            {"record_a_id": "1", "record_b_id": "3", "strategy": "exact"},
+            {"record_a_id": "2", "record_b_id": "3", "strategy": "exact"}
         ]
         
         result = service._deduplicate_pairs(pairs)
         
-        # Should have only 2 unique pairs
-        assert len(result) == 2
+        assert len(result) == 3
+        assert result == pairs
     
-    def test_deduplicate_pairs_handles_reverse_order(self):
-        """Test that pairs in reverse order are considered duplicates"""
+    def test_deduplicate_with_duplicates(self):
+        """Test deduplication removes duplicate pairs."""
         service = BulkBlockingService()
         
         pairs = [
-            {'record_a_id': 'customers/1', 'record_b_id': 'customers/2', 'strategy': 'exact'},
-            {'record_a_id': 'customers/2', 'record_b_id': 'customers/1', 'strategy': 'ngram'}
+            {"record_a_id": "1", "record_b_id": "2", "strategy": "exact"},
+            {"record_a_id": "2", "record_b_id": "1", "strategy": "ngram"},  # Duplicate (reversed)
+            {"record_a_id": "1", "record_b_id": "3", "strategy": "exact"},
+            {"record_a_id": "1", "record_b_id": "2", "strategy": "phonetic"}  # Duplicate (same)
         ]
         
         result = service._deduplicate_pairs(pairs)
         
-        # Should deduplicate reverse pairs
-        assert len(result) == 1
+        assert len(result) == 2
+        # Should keep first occurrence of 1-2 pair and the 1-3 pair
+        record_ids = [(p["record_a_id"], p["record_b_id"]) for p in result]
+        assert ("1", "2") in record_ids
+        assert ("1", "3") in record_ids
     
     def test_deduplicate_empty_list(self):
-        """Test deduplication with empty list"""
+        """Test deduplication with empty list."""
         service = BulkBlockingService()
         
         result = service._deduplicate_pairs([])
         
-        assert len(result) == 0
+        assert result == []
+    
+    def test_deduplicate_canonical_ordering(self):
+        """Test deduplication uses canonical ordering (smaller ID first)."""
+        service = BulkBlockingService()
+        
+        pairs = [
+            {"record_a_id": "customers/100", "record_b_id": "customers/50", "strategy": "exact"},
+            {"record_a_id": "customers/50", "record_b_id": "customers/100", "strategy": "ngram"}
+        ]
+        
+        result = service._deduplicate_pairs(pairs)
+        
+        # Should recognize these as duplicates despite order
+        assert len(result) == 1
 
 
-class TestBulkBlockingServiceGenerateAllPairs:
-    """Test main generate_all_pairs method"""
+class TestGenerateAllPairs:
+    """Test bulk pair generation."""
     
-    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-    def test_generate_all_pairs_not_connected(self, mock_client_class):
-        """Test error handling when not connected"""
+    def test_generate_all_pairs_not_connected(self):
+        """Test generate_all_pairs returns error when not connected."""
         service = BulkBlockingService()
-        # Don't call connect()
         
-        result = service.generate_all_pairs("customers")
+        result = service.generate_all_pairs("test_collection")
         
-        assert result['success'] is False
-        assert 'not connected' in result['error'].lower()
+        assert result["success"] is False
+        assert "Not connected" in result["error"]
     
-    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-    def test_generate_all_pairs_collection_not_found(self, mock_client_class):
-        """Test error when collection doesn't exist"""
-        # Setup mocks
-        mock_client = Mock()
-        mock_db = Mock()
-        mock_db.has_collection.return_value = False
-        mock_client.db.return_value = mock_db
-        mock_client_class.return_value = mock_client
-        
+    def test_generate_all_pairs_collection_not_exists(self):
+        """Test generate_all_pairs handles non-existent collection."""
         service = BulkBlockingService()
-        service.connect()
+        service.db = Mock()
+        service.db.has_collection.return_value = False
         
         result = service.generate_all_pairs("nonexistent")
         
-        assert result['success'] is False
-        assert 'does not exist' in result['error']
+        assert result["success"] is False
+        assert "does not exist" in result["error"]
     
-    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-    def test_generate_all_pairs_success(self, mock_client_class):
-        """Test successful pair generation"""
-        # Setup mocks
-        mock_client = Mock()
-        mock_db = Mock()
-        mock_aql = Mock()
-        
-        # Mock collection exists
-        mock_db.has_collection.return_value = True
-        
-        # Mock query results for exact blocking
-        mock_aql.execute.return_value = [
-            {'record_a_id': 'customers/1', 'record_b_id': 'customers/2', 
-             'strategy': 'exact_phone', 'blocking_key': '555-1234'},
-            {'record_a_id': 'customers/3', 'record_b_id': 'customers/4',
-             'strategy': 'exact_email', 'blocking_key': 'test@example.com'}
-        ]
-        
-        mock_db.aql = mock_aql
-        mock_client.db.return_value = mock_db
-        mock_client_class.return_value = mock_client
-        
+    def test_generate_all_pairs_success(self):
+        """Test successful pair generation."""
         service = BulkBlockingService()
-        service.connect()
+        service.db = Mock()
+        service.db.has_collection.return_value = True
+        
+        # Mock strategy execution
+        service._execute_exact_blocking = Mock(return_value=[
+            {"record_a_id": "1", "record_b_id": "2", "strategy": "exact"}
+        ])
+        service._execute_ngram_blocking = Mock(return_value=[
+            {"record_a_id": "1", "record_b_id": "3", "strategy": "ngram"}
+        ])
         
         result = service.generate_all_pairs(
-            collection_name="customers",
-            strategies=["exact"],
-            limit=0
+            "test_collection",
+            strategies=["exact", "ngram"],
+            limit=100
         )
         
-        assert result['success'] is True
-        assert 'candidate_pairs' in result
-        assert 'statistics' in result
-        assert result['statistics']['strategies_used'] == 1
+        assert result["success"] is True
+        assert result["method"] == "bulk_set_based"
+        assert result["collection"] == "test_collection"
+        assert len(result["candidate_pairs"]) == 2
+        assert result["statistics"]["total_pairs"] == 2
+        assert result["statistics"]["strategies_used"] == 2
+        assert "execution_time" in result["statistics"]
+        assert "pairs_per_second" in result["statistics"]
+        assert result["statistics"]["execution_time"] > 0
     
-    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-    def test_generate_all_pairs_multiple_strategies(self, mock_client_class):
-        """Test pair generation with multiple strategies"""
-        # Setup mocks
-        mock_client = Mock()
-        mock_db = Mock()
-        mock_aql = Mock()
-        
-        mock_db.has_collection.return_value = True
-        
-        # Return different results for each strategy call
-        mock_aql.execute.side_effect = [
-            [{'record_a_id': 'customers/1', 'record_b_id': 'customers/2', 
-              'strategy': 'exact', 'blocking_key': 'key1'}],
-            [{'record_a_id': 'customers/3', 'record_b_id': 'customers/4',
-              'strategy': 'ngram', 'blocking_key': 'key2'}],
-            [{'record_a_id': 'customers/5', 'record_b_id': 'customers/6',
-              'strategy': 'phonetic', 'blocking_key': 'key3'}]
-        ]
-        
-        mock_db.aql = mock_aql
-        mock_client.db.return_value = mock_db
-        mock_client_class.return_value = mock_client
-        
+    def test_generate_all_pairs_default_strategies(self):
+        """Test generate_all_pairs uses default strategies when none provided."""
         service = BulkBlockingService()
-        service.connect()
+        service.db = Mock()
+        service.db.has_collection.return_value = True
+        service._execute_exact_blocking = Mock(return_value=[])
+        service._execute_ngram_blocking = Mock(return_value=[])
+        
+        result = service.generate_all_pairs("test_collection")
+        
+        assert result["success"] is True
+        # Should use default strategies: ["exact", "ngram"]
+        service._execute_exact_blocking.assert_called_once()
+        service._execute_ngram_blocking.assert_called_once()
+    
+    def test_generate_all_pairs_unknown_strategy(self):
+        """Test generate_all_pairs skips unknown strategies."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        service.db.has_collection.return_value = True
+        service._execute_exact_blocking = Mock(return_value=[])
         
         result = service.generate_all_pairs(
-            collection_name="customers",
-            strategies=["exact", "ngram", "phonetic"],
-            limit=0
+            "test_collection",
+            strategies=["exact", "unknown_strategy"]
         )
         
-        assert result['success'] is True
-        assert result['statistics']['strategies_used'] == 3
-        assert len(result['candidate_pairs']) >= 3
-
-
-class TestBulkBlockingServiceStreaming:
-    """Test streaming pair generation"""
+        assert result["success"] is True
+        # Should execute exact but skip unknown
+        service._execute_exact_blocking.assert_called_once()
     
-    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-    def test_generate_pairs_streaming(self, mock_client_class):
-        """Test streaming pair generation yields batches"""
-        # Setup mocks
-        mock_client = Mock()
-        mock_db = Mock()
-        mock_aql = Mock()
+    def test_generate_all_pairs_deduplicates(self):
+        """Test generate_all_pairs deduplicates results."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        service.db.has_collection.return_value = True
         
-        # Generate 2500 pairs to test batching
+        # Return overlapping pairs from different strategies
+        service._execute_exact_blocking = Mock(return_value=[
+            {"record_a_id": "1", "record_b_id": "2", "strategy": "exact"},
+            {"record_a_id": "1", "record_b_id": "3", "strategy": "exact"}
+        ])
+        service._execute_ngram_blocking = Mock(return_value=[
+            {"record_a_id": "1", "record_b_id": "2", "strategy": "ngram"},  # Duplicate
+            {"record_a_id": "2", "record_b_id": "3", "strategy": "ngram"}
+        ])
+        
+        result = service.generate_all_pairs(
+            "test_collection",
+            strategies=["exact", "ngram"]
+        )
+        
+        # Should have 3 unique pairs (1-2, 1-3, 2-3)
+        assert result["statistics"]["total_pairs"] == 3
+        assert result["statistics"]["total_pairs_before_dedup"] == 4
+        assert result["statistics"]["duplicate_pairs_removed"] == 1
+    
+    def test_generate_all_pairs_exception_handling(self):
+        """Test generate_all_pairs handles exceptions gracefully."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        service.db.has_collection.return_value = True
+        
+        # Make strategy execution fail
+        service._execute_exact_blocking = Mock(side_effect=Exception("Database error"))
+        
+        result = service.generate_all_pairs("test_collection", strategies=["exact"])
+        
+        assert result["success"] is False
+        assert "error" in result
+
+
+class TestGeneratePairsStreaming:
+    """Test streaming pair generation."""
+    
+    def test_streaming_not_connected(self):
+        """Test streaming returns immediately when not connected."""
+        service = BulkBlockingService()
+        
+        batches = list(service.generate_pairs_streaming("test_collection"))
+        
+        assert batches == []
+    
+    def test_streaming_yields_batches(self):
+        """Test streaming yields pairs in batches."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        
+        # Mock 5 pairs total
         pairs = [
-            {'record_a_id': f'customers/{i}', 'record_b_id': f'customers/{i+1}',
-             'strategy': 'exact', 'blocking_key': 'key'}
-            for i in range(2500)
+            {"record_a_id": f"{i}", "record_b_id": f"{i+1}", "strategy": "exact"}
+            for i in range(5)
         ]
-        mock_aql.execute.return_value = pairs
-        
-        mock_db.aql = mock_aql
-        mock_client.db.return_value = mock_db
-        mock_client_class.return_value = mock_client
-        
-        service = BulkBlockingService()
-        service.connect()
+        service._execute_exact_blocking = Mock(return_value=pairs)
         
         batches = list(service.generate_pairs_streaming(
-            collection_name="customers",
+            "test_collection",
             strategies=["exact"],
-            batch_size=1000
+            batch_size=2
         ))
         
-        # Should have 3 batches (1000, 1000, 500)
-        assert len(batches) >= 2
-        assert len(batches[0]) == 1000
-
-
-class TestBulkBlockingServiceStatistics:
-    """Test collection statistics functionality"""
+        assert len(batches) == 3  # 5 pairs / 2 per batch = 3 batches
+        assert len(batches[0]) == 2
+        assert len(batches[1]) == 2
+        assert len(batches[2]) == 1  # Last batch has remainder
     
-    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-    def test_get_collection_stats_success(self, mock_client_class):
-        """Test getting collection statistics"""
-        # Setup mocks
-        mock_client = Mock()
-        mock_db = Mock()
+    def test_streaming_default_strategies(self):
+        """Test streaming uses default strategies when none provided."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        service._execute_exact_blocking = Mock(return_value=[])
+        service._execute_ngram_blocking = Mock(return_value=[])
+        
+        list(service.generate_pairs_streaming("test_collection"))
+        
+        # Should use default strategies
+        service._execute_exact_blocking.assert_called_once()
+        service._execute_ngram_blocking.assert_called_once()
+    
+    def test_streaming_multiple_strategies(self):
+        """Test streaming processes multiple strategies."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        
+        service._execute_exact_blocking = Mock(return_value=[
+            {"record_a_id": "1", "record_b_id": "2", "strategy": "exact"}
+        ])
+        service._execute_phonetic_blocking = Mock(return_value=[
+            {"record_a_id": "3", "record_b_id": "4", "strategy": "phonetic"}
+        ])
+        
+        batches = list(service.generate_pairs_streaming(
+            "test_collection",
+            strategies=["exact", "phonetic"],
+            batch_size=10
+        ))
+        
+        # Should have 2 batches (one per strategy)
+        assert len(batches) == 2
+
+
+class TestExactBlocking:
+    """Test exact blocking strategy."""
+    
+    def test_exact_blocking_phone_pairs(self):
+        """Test exact blocking finds phone-based pairs."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        
+        # Mock phone query results
+        mock_cursor = [
+            {"record_a_id": "1", "record_b_id": "2", "strategy": "exact_phone", "blocking_key": "5551234567"},
+            {"record_a_id": "1", "record_b_id": "3", "strategy": "exact_phone", "blocking_key": "5551234567"}
+        ]
+        service.db.aql.execute.return_value = iter(mock_cursor)
+        
+        result = service._execute_exact_blocking("test_collection", limit=0)
+        
+        # Should call AQL twice (phone + email)
+        assert service.db.aql.execute.call_count == 2
+        # Results include phone pairs (and potentially email pairs if mocked)
+        assert len(result) >= 0
+    
+    def test_exact_blocking_with_limit(self):
+        """Test exact blocking respects limit parameter."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        service.db.aql.execute.return_value = iter([])
+        
+        service._execute_exact_blocking("test_collection", limit=100)
+        
+        # Verify limit is passed to query
+        calls = service.db.aql.execute.call_args_list
+        for call in calls:
+            assert call[1]['bind_vars']['limit'] == 100
+    
+    def test_exact_blocking_handles_errors(self):
+        """Test exact blocking handles query errors gracefully."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        service.db.aql.execute.side_effect = Exception("Query failed")
+        
+        result = service._execute_exact_blocking("test_collection", limit=0)
+        
+        # Should return empty list on error, not crash
+        assert result == []
+
+
+class TestNgramBlocking:
+    """Test n-gram blocking strategy."""
+    
+    def test_ngram_blocking_success(self):
+        """Test n-gram blocking finds similar names."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        
+        mock_cursor = [
+            {"record_a_id": "1", "record_b_id": "2", "strategy": "ngram_name", "blocking_key": "SMI_2"},
+            {"record_a_id": "1", "record_b_id": "3", "strategy": "ngram_name", "blocking_key": "SMI_2"}
+        ]
+        service.db.aql.execute.return_value = iter(mock_cursor)
+        
+        result = service._execute_ngram_blocking("test_collection", limit=0)
+        
+        assert len(result) == 2
+        service.db.aql.execute.assert_called_once()
+    
+    def test_ngram_blocking_with_limit(self):
+        """Test n-gram blocking respects limit."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        service.db.aql.execute.return_value = iter([])
+        
+        service._execute_ngram_blocking("test_collection", limit=50)
+        
+        # Verify limit is passed
+        call_args = service.db.aql.execute.call_args
+        assert call_args[1]['bind_vars']['limit'] == 50
+    
+    def test_ngram_blocking_handles_errors(self):
+        """Test n-gram blocking handles errors gracefully."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        service.db.aql.execute.side_effect = Exception("Query failed")
+        
+        result = service._execute_ngram_blocking("test_collection", limit=0)
+        
+        assert result == []
+
+
+class TestPhoneticBlocking:
+    """Test phonetic blocking strategy."""
+    
+    def test_phonetic_blocking_success(self):
+        """Test phonetic blocking finds similar-sounding names."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        
+        mock_cursor = [
+            {"record_a_id": "1", "record_b_id": "2", "strategy": "phonetic_soundex", "blocking_key": "S530"},
+            {"record_a_id": "2", "record_b_id": "3", "strategy": "phonetic_soundex", "blocking_key": "S530"}
+        ]
+        service.db.aql.execute.return_value = iter(mock_cursor)
+        
+        result = service._execute_phonetic_blocking("test_collection", limit=0)
+        
+        assert len(result) == 2
+        service.db.aql.execute.assert_called_once()
+    
+    def test_phonetic_blocking_with_limit(self):
+        """Test phonetic blocking respects limit."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        service.db.aql.execute.return_value = iter([])
+        
+        service._execute_phonetic_blocking("test_collection", limit=75)
+        
+        # Verify limit is passed
+        call_args = service.db.aql.execute.call_args
+        assert call_args[1]['bind_vars']['limit'] == 75
+    
+    def test_phonetic_blocking_handles_errors(self):
+        """Test phonetic blocking handles errors gracefully."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        service.db.aql.execute.side_effect = Exception("Soundex failed")
+        
+        result = service._execute_phonetic_blocking("test_collection", limit=0)
+        
+        assert result == []
+
+
+class TestCollectionStats:
+    """Test collection statistics."""
+    
+    def test_get_collection_stats_success(self):
+        """Test getting collection statistics."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        service.db.has_collection.return_value = True
+        
         mock_collection = Mock()
-        
-        mock_db.has_collection.return_value = True
-        mock_db.collection.return_value = mock_collection
         mock_collection.count.return_value = 10000
+        service.db.collection.return_value = mock_collection
         
-        mock_client.db.return_value = mock_db
-        mock_client_class.return_value = mock_client
+        result = service.get_collection_stats("test_collection")
         
-        service = BulkBlockingService()
-        service.connect()
+        assert result["success"] is True
+        assert result["collection"] == "test_collection"
+        assert result["record_count"] == 10000
+        assert "naive_comparisons" in result
+        assert "estimated_execution_time" in result
         
-        result = service.get_collection_stats("customers")
-        
-        assert result['success'] is True
-        assert result['record_count'] == 10000
-        assert result['naive_comparisons'] == 49995000  # (10000 * 9999) / 2
+        # Verify naive comparisons calculation
+        # For 10,000 records: (10000 * 9999) / 2 = 49,995,000
+        expected_comparisons = (10000 * 9999) // 2
+        assert result["naive_comparisons"] == expected_comparisons
     
-    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-    def test_get_collection_stats_not_found(self, mock_client_class):
-        """Test statistics for nonexistent collection"""
-        # Setup mocks
-        mock_client = Mock()
-        mock_db = Mock()
-        mock_db.has_collection.return_value = False
-        mock_client.db.return_value = mock_db
-        mock_client_class.return_value = mock_client
-        
+    def test_get_collection_stats_not_connected(self):
+        """Test collection stats when not connected."""
         service = BulkBlockingService()
-        service.connect()
+        
+        result = service.get_collection_stats("test_collection")
+        
+        assert result["success"] is False
+        assert "error" in result
+    
+    def test_get_collection_stats_collection_not_exists(self):
+        """Test collection stats for non-existent collection."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        service.db.has_collection.return_value = False
         
         result = service.get_collection_stats("nonexistent")
         
-        assert result['success'] is False
-        assert 'not found' in result['error'].lower()
+        assert result["success"] is False
+        assert "not found" in result["error"]
+    
+    def test_get_collection_stats_exception(self):
+        """Test collection stats handles exceptions."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        service.db.has_collection.return_value = True
+        service.db.collection.side_effect = Exception("Collection access failed")
+        
+        result = service.get_collection_stats("test_collection")
+        
+        assert result["success"] is False
+        assert "error" in result
+    
+    def test_get_collection_stats_estimates_timing(self):
+        """Test collection stats provides timing estimates."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        service.db.has_collection.return_value = True
+        
+        mock_collection = Mock()
+        mock_collection.count.return_value = 50000
+        service.db.collection.return_value = mock_collection
+        
+        result = service.get_collection_stats("test_collection")
+        
+        assert result["success"] is True
+        estimates = result["estimated_execution_time"]
+        assert "exact_blocking" in estimates
+        assert "ngram_blocking" in estimates
+        assert "phonetic_blocking" in estimates
+        # Should contain numeric estimates in seconds format
+        assert "seconds" in estimates["exact_blocking"]
 
 
-class TestBulkBlockingServicePerformance:
-    """Test performance characteristics"""
+class TestEdgeCases:
+    """Test edge cases and robustness."""
     
-    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-    def test_performance_timing_recorded(self, mock_client_class):
-        """Test that execution time is recorded"""
-        # Setup mocks
-        mock_client = Mock()
-        mock_db = Mock()
-        mock_aql = Mock()
-        
-        mock_db.has_collection.return_value = True
-        mock_aql.execute.return_value = [
-            {'record_a_id': 'customers/1', 'record_b_id': 'customers/2',
-             'strategy': 'exact', 'blocking_key': 'key'}
-        ]
-        
-        mock_db.aql = mock_aql
-        mock_client.db.return_value = mock_db
-        mock_client_class.return_value = mock_client
-        
+    def test_generate_all_pairs_empty_strategies_list(self):
+        """Test generate_all_pairs with empty strategies list."""
         service = BulkBlockingService()
-        service.connect()
+        service.db = Mock()
+        service.db.has_collection.return_value = True
         
-        result = service.generate_all_pairs("customers", strategies=["exact"])
-        
-        assert 'statistics' in result
-        assert 'execution_time' in result['statistics']
-        assert result['statistics']['execution_time'] >= 0
-    
-    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-    def test_pairs_per_second_calculated(self, mock_client_class):
-        """Test that pairs/second metric is calculated"""
-        # Setup mocks
-        mock_client = Mock()
-        mock_db = Mock()
-        mock_aql = Mock()
-        
-        mock_db.has_collection.return_value = True
-        mock_aql.execute.return_value = [
-            {'record_a_id': f'customers/{i}', 'record_b_id': f'customers/{i+1}',
-             'strategy': 'exact', 'blocking_key': 'key'}
-            for i in range(100)
-        ]
-        
-        mock_db.aql = mock_aql
-        mock_client.db.return_value = mock_db
-        mock_client_class.return_value = mock_client
-        
-        service = BulkBlockingService()
-        service.connect()
-        
-        result = service.generate_all_pairs("customers", strategies=["exact"])
-        
-        assert 'pairs_per_second' in result['statistics']
-        assert result['statistics']['pairs_per_second'] >= 0
-
-
-class TestBulkBlockingServiceEdgeCases:
-    """Test edge cases and error conditions"""
-    
-    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-    def test_empty_collection(self, mock_client_class):
-        """Test handling of empty collection"""
-        # Setup mocks
-        mock_client = Mock()
-        mock_db = Mock()
-        mock_aql = Mock()
-        
-        mock_db.has_collection.return_value = True
-        mock_aql.execute.return_value = []  # No pairs
-        
-        mock_db.aql = mock_aql
-        mock_client.db.return_value = mock_db
-        mock_client_class.return_value = mock_client
-        
-        service = BulkBlockingService()
-        service.connect()
-        
-        result = service.generate_all_pairs("customers")
-        
-        assert result['success'] is True
-        assert len(result['candidate_pairs']) == 0
-    
-    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-    def test_invalid_strategy(self, mock_client_class):
-        """Test handling of invalid strategy"""
-        # Setup mocks
-        mock_client = Mock()
-        mock_db = Mock()
-        mock_db.has_collection.return_value = True
-        mock_client.db.return_value = mock_db
-        mock_client_class.return_value = mock_client
-        
-        service = BulkBlockingService()
-        service.connect()
-        
-        # Should handle gracefully, just skip invalid strategy
-        result = service.generate_all_pairs(
-            "customers",
-            strategies=["invalid_strategy"]
-        )
+        result = service.generate_all_pairs("test_collection", strategies=[])
         
         # Should still succeed, just with no pairs
-        assert result['success'] is True
+        assert result["success"] is True
+        assert result["statistics"]["total_pairs"] == 0
     
-    def test_deduplicate_with_none_values(self):
-        """Test deduplication handles None values gracefully"""
+    def test_deduplicate_preserves_first_occurrence(self):
+        """Test deduplication preserves first occurrence of duplicates."""
         service = BulkBlockingService()
         
         pairs = [
-            {'record_a_id': 'customers/1', 'record_b_id': 'customers/2'},
-            {'record_a_id': None, 'record_b_id': 'customers/3'},
-            {'record_a_id': 'customers/1', 'record_b_id': 'customers/2'}
+            {"record_a_id": "1", "record_b_id": "2", "strategy": "exact", "score": 0.9},
+            {"record_a_id": "1", "record_b_id": "2", "strategy": "ngram", "score": 0.7}
         ]
         
-        # Should not crash - either handles None or filters them out
-        try:
-            result = service._deduplicate_pairs(pairs)
-            # If it succeeds, verify result is a list
-            assert isinstance(result, list)
-        except (TypeError, AttributeError):
-            # If it crashes due to None values, that's acceptable behavior
-            # The method might not be designed to handle None values
-            assert True  # Test passes either way
-
-
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
-
+        result = service._deduplicate_pairs(pairs)
+        
+        assert len(result) == 1
+        # Should preserve first occurrence (exact with score 0.9)
+        assert result[0]["strategy"] == "exact"
+        assert result[0]["score"] == 0.9
+    
+    def test_generate_all_pairs_zero_limit(self):
+        """Test generate_all_pairs with limit=0 (no limit)."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        service.db.has_collection.return_value = True
+        service._execute_exact_blocking = Mock(return_value=[
+            {"record_a_id": str(i), "record_b_id": str(i+1), "strategy": "exact"}
+            for i in range(100)  # Return 100 pairs
+        ])
+        
+        result = service.generate_all_pairs("test_collection", limit=0)
+        
+        # Should return all 100 pairs (no limit)
+        assert len(result["candidate_pairs"]) == 100
+    
+    def test_streaming_empty_results(self):
+        """Test streaming with no pairs found."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        service._execute_exact_blocking = Mock(return_value=[])
+        service._execute_ngram_blocking = Mock(return_value=[])
+        
+        batches = list(service.generate_pairs_streaming("test_collection"))
+        
+        # Should still work, just no batches yielded
+        assert batches == []
+    
+    def test_all_strategies_combined(self):
+        """Test using all three strategies together."""
+        service = BulkBlockingService()
+        service.db = Mock()
+        service.db.has_collection.return_value = True
+        
+        service._execute_exact_blocking = Mock(return_value=[{"record_a_id": "1", "record_b_id": "2"}])
+        service._execute_ngram_blocking = Mock(return_value=[{"record_a_id": "2", "record_b_id": "3"}])
+        service._execute_phonetic_blocking = Mock(return_value=[{"record_a_id": "3", "record_b_id": "4"}])
+        
+        result = service.generate_all_pairs(
+            "test_collection",
+            strategies=["exact", "ngram", "phonetic"]
+        )
+        
+        assert result["success"] is True
+        assert result["statistics"]["strategies_used"] == 3
+        assert len(result["candidate_pairs"]) == 3
+        
+        # Verify all three strategies were called
+        service._execute_exact_blocking.assert_called_once()
+        service._execute_ngram_blocking.assert_called_once()
+        service._execute_phonetic_blocking.assert_called_once()

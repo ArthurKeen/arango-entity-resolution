@@ -247,7 +247,7 @@ INDUSTRY_CONSTANTS = {
 
 # Version Information
 VERSION_INFO = {
-    'major': 1,
+    'major': 2,
     'minor': 0,
     'patch': 0,
     'release': 'stable'

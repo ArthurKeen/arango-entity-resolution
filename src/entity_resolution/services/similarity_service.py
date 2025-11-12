@@ -1,13 +1,19 @@
 """
-Similarity Service for Entity Resolution
+Similarity Service for Entity Resolution (v1.x Legacy)
+
+⚠️  DEPRECATED: This service is deprecated and will be removed in v3.0.
+Use v2.0 BatchSimilarityService instead for better performance.
+
+Note: This is the legacy v1.x SimilarityService. For v2.0+, use:
+- BatchSimilarityService for batch document fetching and similarity computation
 
 Handles similarity computation using:
 - Fellegi-Sunter probabilistic framework
 - ArangoDB native similarity functions
-- Foxx service integration (when available)
-- Fallback to Python implementation
+- Python-based implementation
 """
 
+import warnings
 import math
 from typing import Dict, List, Any, Optional
 from .base_service import BaseEntityResolutionService, Config
@@ -18,12 +24,22 @@ class SimilarityService(BaseEntityResolutionService):
     """
     Similarity computation service using Fellegi-Sunter framework
     
+    ⚠️  DEPRECATED: Use BatchSimilarityService instead.
+    This service will be removed in v3.0.
+    
     Can work in two modes:
     1. Foxx service mode: Uses ArangoDB native similarity functions
     2. Python mode: Fallback implementation with Python similarity functions
     """
     
     def __init__(self, config: Optional[Config] = None):
+        warnings.warn(
+            "SimilarityService is deprecated and will be removed in v3.0. "
+            "Use BatchSimilarityService instead for better performance with batch document fetching. "
+            "See docs/guides/MIGRATION_GUIDE_V2.md for migration instructions.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         super().__init__(config)
         
     def _get_service_name(self) -> str:
@@ -54,10 +70,8 @@ class SimilarityService(BaseEntityResolutionService):
         """
         field_weights = field_weights or self.get_field_weights()
         
-        if self.foxx_available:
-            return self._compute_via_foxx(doc_a, doc_b, field_weights, include_details)
-        else:
-            return self._compute_via_python(doc_a, doc_b, field_weights, include_details)
+        # v2.0: Python-only implementation
+        return self._compute_via_python(doc_a, doc_b, field_weights, include_details)
     
     def compute_batch_similarity(self, pairs: List[Dict[str, Any]],
                                 field_weights: Optional[Dict[str, Any]] = None,
@@ -75,10 +89,8 @@ class SimilarityService(BaseEntityResolutionService):
         """
         field_weights = field_weights or self.get_field_weights()
         
-        if self.foxx_available:
-            return self._compute_batch_via_foxx(pairs, field_weights, include_details)
-        else:
-            return self._compute_batch_via_python(pairs, field_weights, include_details)
+        # v2.0: Python-only implementation
+        return self._compute_batch_via_python(pairs, field_weights, include_details)
     
     def get_default_field_weights(self) -> Dict[str, Any]:
         """Get default Fellegi-Sunter field weights"""

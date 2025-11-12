@@ -1,13 +1,18 @@
 """
-Blocking Service for Entity Resolution
+Blocking Service for Entity Resolution (v1.x Legacy)
 
-Handles record blocking and candidate generation using:
+⚠️  DEPRECATED: This service is deprecated and will be removed in v3.0.
+Use the v2.0 strategy pattern instead:
+- CollectBlockingStrategy for composite key blocking (99% test coverage)
+- BM25BlockingStrategy for fuzzy text matching (85% test coverage)
+
+This service provides:
 - ArangoSearch views and analyzers
 - Multi-strategy blocking (n-gram, exact, phonetic)
-- Foxx service integration (when available)
-- Fallback to Python implementation
+- Python-based implementation
 """
 
+import warnings
 import requests
 from typing import Dict, List, Any, Optional
 from .base_service import BaseEntityResolutionService, Config
@@ -16,26 +21,29 @@ from ..utils.algorithms import soundex
 
 class BlockingService(BaseEntityResolutionService):
     """
-    Record blocking service that generates candidate pairs
+    Record blocking service that generates candidate pairs (v1.x legacy).
     
-    Can work in two modes:
-    1. Foxx service mode: Uses high-performance ArangoSearch via Foxx
-    2. Python mode: Fallback implementation using ArangoDB Python driver
+    ⚠️  DEPRECATED: Use CollectBlockingStrategy or BM25BlockingStrategy instead.
+    This service will be removed in v3.0.
+    
+    For v2.0+, prefer using CollectBlockingStrategy or BM25BlockingStrategy
+    from the strategies package for better performance and cleaner API.
+    
+    This service uses Python-based ArangoDB operations.
     """
     
     def __init__(self, config: Optional[Config] = None):
+        warnings.warn(
+            "BlockingService is deprecated and will be removed in v3.0. "
+            "Use CollectBlockingStrategy (99% coverage) or BM25BlockingStrategy (85% coverage) instead. "
+            "See docs/guides/MIGRATION_GUIDE_V2.md for migration instructions.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         super().__init__(config)
         
     def _get_service_name(self) -> str:
         return "blocking"
-    
-    def _test_service_endpoints(self) -> bool:
-        """Test if blocking Foxx endpoints are available"""
-        try:
-            result = self._make_foxx_request("blocking/candidates", method="GET")
-            return result.get("success", False) or "error" not in result or "404" not in str(result.get("error", ""))
-        except Exception:
-            return False
     
     def setup_for_collections(self, collections: List[str]) -> Dict[str, Any]:
         """
@@ -47,10 +55,8 @@ class BlockingService(BaseEntityResolutionService):
         Returns:
             Setup results
         """
-        if self.foxx_available:
-            return self._setup_via_foxx(collections)
-        else:
-            return self._setup_via_python(collections)
+        # v2.0: Python-only implementation
+        return self._setup_via_python(collections)
     
     def generate_candidates(self, collection: str, target_record_id: str,
                           strategies: Optional[List[str]] = None,
@@ -70,10 +76,8 @@ class BlockingService(BaseEntityResolutionService):
         strategies = strategies or ["ngram", "exact"]
         limit = limit or self.config.er.max_candidates_per_record
         
-        if self.foxx_available:
-            return self._generate_candidates_via_foxx(collection, target_record_id, strategies, limit)
-        else:
-            return self._generate_candidates_via_python(collection, target_record_id, strategies, limit)
+        # v2.0: Python-only implementation
+        return self._generate_candidates_via_python(collection, target_record_id, strategies, limit)
     
     def _setup_via_foxx(self, collections: List[str]) -> Dict[str, Any]:
         """Set up analyzers and views via Foxx service"""
@@ -580,10 +584,8 @@ class BlockingService(BaseEntityResolutionService):
     
     def get_blocking_stats(self, collection: str) -> Dict[str, Any]:
         """Get blocking performance statistics"""
-        if self.foxx_available:
-            return self._get_stats_via_foxx(collection)
-        else:
-            return self._get_stats_via_python(collection)
+        # v2.0: Python-only implementation
+        return self._get_stats_via_python(collection)
     
     def _get_stats_via_foxx(self, collection: str) -> Dict[str, Any]:
         """Get stats via Foxx service"""

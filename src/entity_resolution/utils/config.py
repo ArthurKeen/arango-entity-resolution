@@ -20,13 +20,36 @@ class DatabaseConfig:
     
     @classmethod
     def from_env(cls) -> 'DatabaseConfig':
-        """Create config from environment variables"""
+        """
+        Create config from environment variables.
+        
+        Password is REQUIRED via ARANGO_ROOT_PASSWORD or ARANGO_PASSWORD environment variable.
+        For local docker testing, USE_DEFAULT_PASSWORD=true can be set (development only).
+        
+        Raises:
+            ValueError: If password is not provided and not in test mode
+        """
         # Get password from environment (multiple sources for compatibility)
         password = os.getenv("ARANGO_PASSWORD", os.getenv("ARANGO_ROOT_PASSWORD", ""))
         
-        # Fall back to default test password ONLY if explicitly set
-        if not password and os.getenv("USE_DEFAULT_PASSWORD") == "true":
-            password = "testpassword123"  # Development/testing only
+        # Fall back to default test password ONLY if explicitly set (docker local development)
+        if not password:
+            if os.getenv("USE_DEFAULT_PASSWORD") == "true":
+                password = "testpassword123"  # Development/testing only
+                import warnings
+                warnings.warn(
+                    "Using default test password. This is INSECURE and should only be "
+                    "used for local docker development. Set ARANGO_ROOT_PASSWORD for production.",
+                    SecurityWarning,
+                    stacklevel=2
+                )
+            else:
+                raise ValueError(
+                    "Database password is required. Set one of:\n"
+                    "  - ARANGO_ROOT_PASSWORD environment variable\n"
+                    "  - ARANGO_PASSWORD environment variable\n"
+                    "  - USE_DEFAULT_PASSWORD=true (local docker development only)"
+                )
             
         return cls(
             host=os.getenv("ARANGO_HOST", cls.host),

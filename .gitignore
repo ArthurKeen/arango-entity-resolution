@@ -114,3 +114,18 @@ research/papers/*.pdf
 config/database.yml
 config/secrets.yml
 config/production.yml
+
+# Proprietary customer documentation (DO NOT COMMIT)
+# These files contain customer-specific information and should never be committed
+**/dnb_er/**
+**/DNB_**
+**/*_dnb_*
+**/*_DNB_*
+# If we reference these docs locally, they must remain local only
+docs/private/**
+docs/customer/**
+
+# Legacy code (archived implementations)
+# Foxx services and related code moved to legacy/ for historical reference
+# Not actively maintained or tested in v2.0+
+legacy/

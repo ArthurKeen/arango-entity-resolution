@@ -1,13 +1,19 @@
 """
-Clustering Service for Entity Resolution
+Clustering Service for Entity Resolution (v1.x Legacy)
+
+⚠️  DEPRECATED: This service is deprecated and will be removed in v3.0.
+Use v2.0 WCCClusteringService instead for better performance.
+
+Note: This is the legacy v1.x ClusteringService. For v2.0+, use:
+- WCCClusteringService for Weakly Connected Components clustering
 
 Handles graph-based entity clustering using:
 - Weakly Connected Components (WCC) algorithm
 - Quality validation and coherence checking
-- Foxx service integration (when available)
-- Fallback to Python graph implementation
+- Python-based graph implementation
 """
 
+import warnings
 import requests
 from typing import Dict, List, Any, Optional, Set, Tuple
 from collections import defaultdict
@@ -18,12 +24,22 @@ class ClusteringService(BaseEntityResolutionService):
     """
     Entity clustering service using graph-based algorithms
     
+    ⚠️  DEPRECATED: Use WCCClusteringService instead.
+    This service will be removed in v3.0.
+    
     Can work in two modes:
     1. Foxx service mode: Uses ArangoDB native graph algorithms
     2. Python mode: Fallback implementation with NetworkX-style clustering
     """
     
     def __init__(self, config: Optional[Config] = None):
+        warnings.warn(
+            "ClusteringService is deprecated and will be removed in v3.0. "
+            "Use WCCClusteringService instead for AQL-based server-side graph traversal. "
+            "See docs/guides/MIGRATION_GUIDE_V2.md for migration instructions.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         super().__init__(config)
         
     def _get_service_name(self) -> str:
@@ -53,10 +69,8 @@ class ClusteringService(BaseEntityResolutionService):
         """
         threshold = threshold or self.config.er.similarity_threshold
         
-        if self.foxx_available:
-            return self._build_graph_via_foxx(scored_pairs, threshold, edge_collection)
-        else:
-            return self._build_graph_via_python(scored_pairs, threshold, edge_collection)
+        # v2.0: Python-only implementation
+        return self._build_graph_via_python(scored_pairs, threshold, edge_collection)
     
     def cluster_entities(self, scored_pairs: List[Dict[str, Any]],
                         min_similarity: Optional[float] = None,
@@ -75,10 +89,8 @@ class ClusteringService(BaseEntityResolutionService):
         min_similarity = min_similarity or self.config.er.similarity_threshold
         max_cluster_size = max_cluster_size or self.config.er.max_cluster_size
         
-        if self.foxx_available:
-            return self._cluster_via_foxx(scored_pairs, min_similarity, max_cluster_size)
-        else:
-            return self._cluster_via_python(scored_pairs, min_similarity, max_cluster_size)
+        # v2.0: Python-only implementation
+        return self._cluster_via_python(scored_pairs, min_similarity, max_cluster_size)
     
     def validate_cluster_quality(self, clusters: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
@@ -90,10 +102,8 @@ class ClusteringService(BaseEntityResolutionService):
         Returns:
             Validation results with quality metrics
         """
-        if self.foxx_available:
-            return self._validate_via_foxx(clusters)
-        else:
-            return self._validate_via_python(clusters)
+        # v2.0: Python-only implementation
+        return self._validate_via_python(clusters)
     
     def _build_graph_via_foxx(self, scored_pairs: List[Dict[str, Any]],
                              threshold: float, edge_collection: str) -> Dict[str, Any]:
