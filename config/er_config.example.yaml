@@ -1,0 +1,80 @@
+# Entity Resolution Pipeline Configuration Example
+# 
+# This is an example configuration file for running entity resolution pipelines.
+# Copy this file and customize for your use case.
+
+entity_resolution:
+  # General Configuration
+  entity_type: "address"  # "person", "company", "product", "address", etc.
+  collection_name: "addresses"
+  edge_collection: "address_sameAs"
+  cluster_collection: "address_clusters"
+  
+  # Blocking Configuration
+  blocking:
+    strategy: "arangosearch"  # "exact", "arangosearch", "bm25"
+    max_block_size: 100  # Maximum addresses per block (prevents edge explosion)
+    min_block_size: 2    # Minimum addresses per block
+    
+    # Field-specific blocking configuration
+    fields:
+      - name: "street"
+        source_field: "ADDRESS_LINE_1"
+        analyzer: "address_normalizer"
+        weight: 0.5
+        
+      - name: "city"
+        source_field: "PRIMARY_TOWN"
+        analyzer: "text_normalizer"
+        weight: 0.3
+        
+      - name: "state"
+        source_field: "TERRITORY_CODE"
+        analyzer: "identity"
+        weight: 0.1
+        required: true
+        
+      - name: "postal_code"
+        source_field: "POSTAL_CODE"
+        analyzer: "identity"
+        weight: 0.1
+        extraction: "zip5"  # Extract first 5 digits
+  
+  # Similarity Configuration
+  similarity:
+    algorithm: "jaro_winkler"  # "jaro_winkler", "levenshtein", "jaccard"
+    threshold: 0.75  # Minimum similarity score (0.0-1.0)
+    batch_size: 5000  # Batch size for similarity computation
+    
+    # Field weights for similarity computation
+    field_weights:
+      street: 0.5
+      city: 0.3
+      state: 0.1
+      postal_code: 0.1
+  
+  # Clustering Configuration
+  clustering:
+    algorithm: "wcc"  # "wcc" (Weakly Connected Components)
+    min_cluster_size: 2  # Minimum entities per cluster
+    store_results: true  # Whether to store cluster results in database
+    wcc_algorithm: "python_dfs"  # "python_dfs" or "aql_graph"
+  
+  # Performance Configuration (optional)
+  performance:
+    aql_batch_size: 1000
+    edge_batch_size: 5000
+    parallel_workers: 4
+    memory_limit_mb: 1024
+  
+  # Quality Configuration (optional)
+  quality:
+    require_same_state: true
+    require_same_country: false
+    min_confidence: 0.75
+  
+  # Logging Configuration (optional)
+  logging:
+    level: "INFO"
+    log_progress_every: 1000
+

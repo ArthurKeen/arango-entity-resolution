@@ -36,7 +36,7 @@ class ClusteringService(BaseEntityResolutionService):
         warnings.warn(
             "ClusteringService is deprecated and will be removed in v3.0. "
             "Use WCCClusteringService instead for AQL-based server-side graph traversal. "
-            "See docs/guides/MIGRATION_GUIDE_V2.md for migration instructions.",
+            "See docs/guides/MIGRATION_GUIDE_V3.md for migration instructions.",
             DeprecationWarning,
             stacklevel=2
         )

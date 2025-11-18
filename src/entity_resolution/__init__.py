@@ -23,6 +23,7 @@ __author__ = "Entity Resolution Team"
 
 # Core components
 from .core.entity_resolver import EntityResolver
+from .core.configurable_pipeline import ConfigurableERPipeline
 from .services.blocking_service import BlockingService
 from .services.similarity_service import SimilarityService
 from .services.clustering_service import ClusteringService
@@ -39,9 +40,19 @@ from .strategies import (
 from .services.batch_similarity_service import BatchSimilarityService
 from .services.similarity_edge_service import SimilarityEdgeService
 from .services.wcc_clustering_service import WCCClusteringService
+from .services.address_er_service import AddressERService
+
+# Similarity components (v3.0)
+from .similarity.weighted_field_similarity import WeightedFieldSimilarity
 
 # Configuration and utilities
 from .utils.config import Config
+from .config import (
+    ERPipelineConfig,
+    BlockingConfig,
+    SimilarityConfig,
+    ClusteringConfig
+)
 from .utils.database import DatabaseManager, get_database_manager, get_database
 from .utils.constants import (
     DEFAULT_DATABASE_CONFIG,
@@ -59,6 +70,7 @@ from .demo import (
 __all__ = [
     # Core services
     'EntityResolver',
+    'ConfigurableERPipeline',
     'BlockingService', 
     'SimilarityService',
     'ClusteringService',
@@ -73,9 +85,17 @@ __all__ = [
     'BatchSimilarityService',
     'SimilarityEdgeService',
     'WCCClusteringService',
+    'AddressERService',
+    
+    # Similarity components (v3.0)
+    'WeightedFieldSimilarity',
     
     # Configuration
     'Config',
+    'ERPipelineConfig',
+    'BlockingConfig',
+    'SimilarityConfig',
+    'ClusteringConfig',
     
     # Database utilities
     'DatabaseManager',

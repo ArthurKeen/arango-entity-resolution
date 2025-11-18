@@ -15,18 +15,8 @@ from arango.database import StandardDatabase
 import time
 from datetime import datetime
 
-# Similarity algorithms
-try:
-    import jellyfish
-    JELLYFISH_AVAILABLE = True
-except ImportError:
-    JELLYFISH_AVAILABLE = False
-
-try:
-    import Levenshtein
-    LEVENSHTEIN_AVAILABLE = True
-except ImportError:
-    LEVENSHTEIN_AVAILABLE = False
+from ..similarity.weighted_field_similarity import WeightedFieldSimilarity
+from ..utils.validation import validate_collection_name, validate_field_name
 
 
 class BatchSimilarityService:
@@ -106,7 +96,12 @@ class BatchSimilarityService:
             ImportError: If required algorithm library not available
         """
         self.db = db
-        self.collection = collection
+        # Validate collection name to prevent AQL injection
+        self.collection = validate_collection_name(collection)
+        # Validate all field names to prevent AQL injection
+        for field in field_weights.keys():
+            validate_field_name(field)
+        # Store original weights for reference, but use normalized for computation
         self.field_weights = self._normalize_weights(field_weights)
         self.batch_size = batch_size
         self.progress_callback = progress_callback
@@ -120,8 +115,16 @@ class BatchSimilarityService:
         }
         self.normalization_config = {**default_norm, **(normalization_config or {})}
         
-        # Set up similarity algorithm
-        self.similarity_algorithm = self._setup_algorithm(similarity_algorithm)
+        # Create WeightedFieldSimilarity instance for similarity computation
+        # Note: We normalize weights here, so pass normalize=False to WeightedFieldSimilarity
+        normalized_weights = self._normalize_weights(field_weights)
+        self.similarity_computer = WeightedFieldSimilarity(
+            field_weights=normalized_weights,
+            algorithm=similarity_algorithm,
+            normalize=False,  # Already normalized above
+            handle_nulls='skip',
+            normalization_config=self.normalization_config
+        )
         self.algorithm_name = similarity_algorithm if isinstance(similarity_algorithm, str) else "custom"
         
         # Statistics tracking
@@ -353,6 +356,8 @@ class BatchSimilarityService:
         """
         Compute weighted similarity between two documents.
         
+        Uses WeightedFieldSimilarity internally for consistency and maintainability.
+        
         Args:
             doc1: First document
             doc2: Second document
@@ -360,27 +365,7 @@ class BatchSimilarityService:
         Returns:
             Weighted similarity score (0.0-1.0)
         """
-        total_score = 0.0
-        total_weight = 0.0
-        
-        for field, weight in self.field_weights.items():
-            val1 = doc1.get(field, '') or ''
-            val2 = doc2.get(field, '') or ''
-            
-            if val1 and val2:
-                # Normalize values
-                val1_norm = self._normalize_value(str(val1))
-                val2_norm = self._normalize_value(str(val2))
-                
-                if val1_norm and val2_norm:
-                    # Compute similarity
-                    score = self.similarity_algorithm(val1_norm, val2_norm)
-                    total_score += score * weight
-                    total_weight += weight
-        
-        if total_weight > 0:
-            return round(total_score / total_weight, 4)
-        return 0.0
+        return self.similarity_computer.compute(doc1, doc2)
     
     def _compute_detailed_similarity(
         self,
@@ -390,6 +375,8 @@ class BatchSimilarityService:
         """
         Compute detailed per-field similarities.
         
+        Uses WeightedFieldSimilarity internally for consistency.
+        
         Args:
             doc1: First document
             doc2: Second document
@@ -397,129 +384,14 @@ class BatchSimilarityService:
         Returns:
             Tuple of (field_scores dict, weighted_score)
         """
-        field_scores = {}
-        total_score = 0.0
-        total_weight = 0.0
-        
-        for field, weight in self.field_weights.items():
-            val1 = doc1.get(field, '') or ''
-            val2 = doc2.get(field, '') or ''
-            
-            if val1 and val2:
-                val1_norm = self._normalize_value(str(val1))
-                val2_norm = self._normalize_value(str(val2))
-                
-                if val1_norm and val2_norm:
-                    score = self.similarity_algorithm(val1_norm, val2_norm)
-                    field_scores[field] = round(score, 4)
-                    total_score += score * weight
-                    total_weight += weight
-                else:
-                    field_scores[field] = 0.0
-            else:
-                field_scores[field] = 0.0
-        
-        weighted_score = round(total_score / total_weight, 4) if total_weight > 0 else 0.0
-        
-        return field_scores, weighted_score
+        detailed = self.similarity_computer.compute_detailed(doc1, doc2)
+        # Convert None values to 0.0 for backward compatibility
+        field_scores = {
+            k: (v if v is not None else 0.0)
+            for k, v in detailed['field_scores'].items()
+        }
+        return field_scores, detailed['weighted_score']
     
-    def _normalize_value(self, value: str) -> str:
-        """
-        Normalize a string value according to configuration.
-        
-        Args:
-            value: Input string
-        
-        Returns:
-            Normalized string
-        """
-        if self.normalization_config.get('strip'):
-            value = value.strip()
-        
-        case = self.normalization_config.get('case')
-        if case == 'upper':
-            value = value.upper()
-        elif case == 'lower':
-            value = value.lower()
-        
-        if self.normalization_config.get('remove_extra_whitespace'):
-            value = ' '.join(value.split())
-        
-        if self.normalization_config.get('remove_punctuation'):
-            import string
-            value = value.translate(str.maketrans('', '', string.punctuation))
-        
-        return value
-    
-    def _setup_algorithm(self, algorithm: Union[str, Callable]) -> Callable:
-        """
-        Set up the similarity algorithm function.
-        
-        Args:
-            algorithm: Algorithm name or callable
-        
-        Returns:
-            Callable that computes similarity between two strings
-        
-        Raises:
-            ValueError: If algorithm name is invalid
-            ImportError: If required library not available
-        """
-        if callable(algorithm):
-            return algorithm
-        
-        algorithm = algorithm.lower()
-        
-        if algorithm == "jaro_winkler":
-            if not JELLYFISH_AVAILABLE:
-                raise ImportError(
-                    "jellyfish library required for jaro_winkler algorithm. "
-                    "Install with: pip install jellyfish"
-                )
-            return jellyfish.jaro_winkler_similarity
-        
-        elif algorithm == "levenshtein":
-            if not LEVENSHTEIN_AVAILABLE:
-                raise ImportError(
-                    "python-Levenshtein library required for levenshtein algorithm. "
-                    "Install with: pip install python-Levenshtein"
-                )
-            # Normalize to 0-1 range
-            return lambda s1, s2: 1.0 - (Levenshtein.distance(s1, s2) / max(len(s1), len(s2), 1))
-        
-        elif algorithm == "jaccard":
-            return self._jaccard_similarity
-        
-        else:
-            raise ValueError(
-                f"Unknown algorithm: {algorithm}. "
-                f"Supported: 'jaro_winkler', 'levenshtein', 'jaccard', or custom callable"
-            )
-    
-    @staticmethod
-    def _jaccard_similarity(str1: str, str2: str) -> float:
-        """
-        Compute Jaccard similarity between two strings (word-based).
-        
-        Args:
-            str1: First string
-            str2: Second string
-        
-        Returns:
-            Jaccard similarity (0.0-1.0)
-        """
-        set1 = set(str1.split())
-        set2 = set(str2.split())
-        
-        if not set1 and not set2:
-            return 1.0
-        if not set1 or not set2:
-            return 0.0
-        
-        intersection = len(set1 & set2)
-        union = len(set1 | set2)
-        
-        return intersection / union if union > 0 else 0.0
     
     def _normalize_weights(self, weights: Dict[str, float]) -> Dict[str, float]:
         """

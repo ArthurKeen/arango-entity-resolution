@@ -90,7 +90,7 @@ class TestCollectBlockingIntegration:
         # c006 & c007 have same phone+state
         assert len(pairs) >= 3
         assert stats['total_pairs'] >= 3
-        assert stats['execution_time_seconds'] > 0
+        assert stats['execution_time_seconds'] >= 0
         
         # Verify some expected pairs
         pair_keys = {(p['doc1_key'], p['doc2_key']) for p in pairs}

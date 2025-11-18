@@ -67,6 +67,22 @@ CLUSTERING_CONFIG = {
     'merge_threshold': 0.9
 }
 
+# v3.0 Default Constants (for new components)
+DEFAULT_MAX_BLOCK_SIZE = 100
+DEFAULT_MIN_BLOCK_SIZE = 2
+DEFAULT_SIMILARITY_THRESHOLD = 0.75
+DEFAULT_BATCH_SIZE = 5000
+DEFAULT_EDGE_BATCH_SIZE = 1000
+DEFAULT_MIN_BM25_SCORE = 2.0
+DEFAULT_MIN_CLUSTER_SIZE = 2
+DEFAULT_VIEW_BUILD_WAIT_SECONDS = 10
+DEFAULT_PROGRESS_CALLBACK_INTERVAL = 10000
+
+# Default Collection Names
+DEFAULT_EDGE_COLLECTION = "similarTo"
+DEFAULT_CLUSTER_COLLECTION = "entity_clusters"
+DEFAULT_ADDRESS_EDGE_COLLECTION = "address_sameAs"
+
 # Performance Limits
 PERFORMANCE_LIMITS = {
     'max_records_per_batch': 1000,
@@ -247,7 +263,7 @@ INDUSTRY_CONSTANTS = {
 
 # Version Information
 VERSION_INFO = {
-    'major': 2,
+    'major': 3,
     'minor': 0,
     'patch': 0,
     'release': 'stable'

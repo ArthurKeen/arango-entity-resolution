@@ -419,7 +419,7 @@ Add section: "When to Use GAE"
 
 ## Reference Implementation
 
-See `~/code/dnb_gae` for GAE WCC reference implementation (if available in customer environment).
+See customer environment for GAE WCC reference implementation (if available).
 
 ---
 

@@ -14,7 +14,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 - 📘 [API Reference](api/API_REFERENCE.md) - Complete API documentation for v2.0
 
 ### User Guides
-- 🔄 [Migration Guide v2.0](guides/MIGRATION_GUIDE_V2.md) - Upgrade from v1.x to v2.0
+- 🔄 [Migration Guide v3.0](guides/MIGRATION_GUIDE_V3.md) - Upgrade from v1.x or v2.x
 - 🗂️ [Custom Collections Guide](guides/CUSTOM_COLLECTIONS_GUIDE.md) - Work with your own data
 - 🧪 [Testing Guide](guides/TESTING_GUIDE.md) - Run tests and benchmarks
 
@@ -113,9 +113,9 @@ Historical documentation is preserved in [`archive/`](archive/):
 
 ## 📝 Version Information
 
-- **Current Version:** 2.0.0
-- **API Version:** v2
-- **Last Updated:** November 11, 2025
+- **Current Version:** 3.0.0
+- **API Version:** v3
+- **Last Updated:** November 17, 2025
 
 For version history, see [CHANGELOG.md](../CHANGELOG.md)
 
@@ -125,7 +125,7 @@ For version history, see [CHANGELOG.md](../CHANGELOG.md)
 
 1. **Getting Started:** Read the [Quick Start Guide](../QUICK_START_GUIDE.md)
 2. **API Questions:** Check the [API Reference](api/API_REFERENCE.md)
-3. **Migration:** See the [Migration Guide](guides/MIGRATION_GUIDE_V2.md)
+3. **Migration:** See the [Migration Guide](guides/MIGRATION_GUIDE_V3.md)
 4. **Examples:** Review [examples/enhanced_er_examples.py](../examples/enhanced_er_examples.py)
 5. **Issues:** Check existing documentation or open an issue
 

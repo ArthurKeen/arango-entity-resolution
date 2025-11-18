@@ -11,7 +11,7 @@ from arango.database import StandardDatabase
 import time
 from datetime import datetime
 
-from ..utils.validation import validate_collection_name
+from ..utils.validation import validate_collection_name, validate_field_name
 
 
 class BlockingStrategy(ABC):
@@ -115,6 +115,9 @@ class BlockingStrategy(ABC):
         for field_name, filters in field_filters.items():
             if not isinstance(filters, dict):
                 continue
+            
+            # Validate field name to prevent AQL injection
+            validate_field_name(field_name)
             
             # Not null filter
             if filters.get('not_null'):

@@ -36,7 +36,7 @@ class SimilarityService(BaseEntityResolutionService):
         warnings.warn(
             "SimilarityService is deprecated and will be removed in v3.0. "
             "Use BatchSimilarityService instead for better performance with batch document fetching. "
-            "See docs/guides/MIGRATION_GUIDE_V2.md for migration instructions.",
+            "See docs/guides/MIGRATION_GUIDE_V3.md for migration instructions.",
             DeprecationWarning,
             stacklevel=2
         )

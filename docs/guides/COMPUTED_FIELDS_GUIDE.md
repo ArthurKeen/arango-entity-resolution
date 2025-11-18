@@ -220,12 +220,12 @@ strategy = CollectBlockingStrategy(
 
 ---
 
-## Migration from dnb_er Workarounds
+## Migration from Workarounds
 
-### Before (dnb_er with workaround)
+### Before (with workaround)
 
 ```python
-# ❌ Old workaround in dnb_er
+# ❌ Old workaround
 # Treating POSTAL_CODE as collection (incorrect)
 # Using fallback query directly
 

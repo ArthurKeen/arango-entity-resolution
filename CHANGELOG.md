@@ -7,12 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2025-11-17
+
+### Added - General-Purpose ER Components
+
+#### Core Similarity Component
+- **`WeightedFieldSimilarity`** - Standalone reusable similarity computation
+  - Multiple algorithms (Jaro-Winkler, Levenshtein, Jaccard)
+  - Configurable field weights and null handling
+  - String normalization options
+  - Can be used independently or with batch services
+
+#### Enhanced Clustering
+- **`WCCClusteringService`** - Now supports multiple algorithms:
+  - **Python DFS** - Reliable across all ArangoDB versions, uses bulk edge fetching
+  - **AQL Graph** (default) - Server-side processing for large graphs
+  - Eliminates N+1 query problems with single bulk edge fetch
+
+#### Address Entity Resolution
+- **`AddressERService`** - Complete address deduplication pipeline
+  - Custom analyzer setup for address normalization
+  - ArangoSearch view configuration
+  - Blocking with registered agent handling
+  - Edge creation and optional clustering
+  - Configurable field mapping (works with any address schema)
+
+#### Configuration-Driven ER
+- **`ERPipelineConfig`** - YAML/JSON-based ER pipeline configuration
+- **`ConfigurableERPipeline`** - Run complete ER pipelines from configuration files
+  - Automatic service instantiation
+  - Validation and error handling
+  - Standardized ER patterns
+
 ### Fixed
 - **WCC Clustering Service** - Added missing `WITH` clause in AQL graph traversal queries
   - Fixes "collection not known to traversal" error (ArangoDB Error 1521)
   - Auto-detects vertex collections from edge `_from` and `_to` fields
   - Supports both explicit and auto-detected vertex collections
   - Handles multi-collection graphs correctly
+- **AddressERService** - Fixed logger.success() calls (replaced with logger.info())
+- **Security** - Added field name validation to prevent AQL injection
+- **Test Coverage** - Added comprehensive tests for ConfigurableERPipeline, graph_utils, config, and database modules
+
+### Changed
+- **BatchSimilarityService** - Now uses WeightedFieldSimilarity internally for consistency
+- **Default Constants** - Centralized in constants.py for consistency
 
 ## [2.0.0] - 2025-11-12
 
@@ -129,7 +168,7 @@ New features are additive and don't modify existing functionality.
 Projects can migrate incrementally:
 1. Existing code continues to work without changes
 2. New features can be adopted component by component
-3. See [Migration Guide](docs/MIGRATION_GUIDE_V2.md) for detailed instructions
+3. See [Migration Guide](docs/guides/MIGRATION_GUIDE_V3.md) for detailed instructions
 
 ### Technical Details
 

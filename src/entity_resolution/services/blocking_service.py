@@ -36,7 +36,7 @@ class BlockingService(BaseEntityResolutionService):
         warnings.warn(
             "BlockingService is deprecated and will be removed in v3.0. "
             "Use CollectBlockingStrategy (99% coverage) or BM25BlockingStrategy (85% coverage) instead. "
-            "See docs/guides/MIGRATION_GUIDE_V2.md for migration instructions.",
+            "See docs/guides/MIGRATION_GUIDE_V3.md for migration instructions.",
             DeprecationWarning,
             stacklevel=2
         )
