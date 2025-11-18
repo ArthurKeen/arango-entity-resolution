@@ -15,6 +15,7 @@ import logging
 from collections import defaultdict
 
 from ..utils.graph_utils import format_vertex_id, extract_key_from_vertex_id
+from ..utils.constants import DEFAULT_EDGE_BATCH_SIZE
 
 
 class WCCClusteringService:
@@ -573,7 +574,7 @@ class WCCClusteringService:
         
         if cluster_docs:
             # Insert in batches
-            batch_size = 1000
+            batch_size = DEFAULT_EDGE_BATCH_SIZE
             for i in range(0, len(cluster_docs), batch_size):
                 batch = cluster_docs[i:i + batch_size]
                 self.cluster_collection.insert_many(batch)

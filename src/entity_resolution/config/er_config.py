@@ -62,8 +62,8 @@ class SimilarityConfig:
     def __init__(
         self,
         algorithm: str = "jaro_winkler",
-        threshold: float = 0.75,
-        batch_size: int = 5000,
+        threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
+        batch_size: int = DEFAULT_BATCH_SIZE,
         field_weights: Optional[Dict[str, float]] = None
     ):
         """
@@ -71,8 +71,8 @@ class SimilarityConfig:
         
         Args:
             algorithm: Similarity algorithm ("jaro_winkler", "levenshtein", "jaccard")
-            threshold: Minimum similarity threshold (0.0-1.0)
-            batch_size: Batch size for similarity computation
+            threshold: Minimum similarity threshold (0.0-1.0). Default DEFAULT_SIMILARITY_THRESHOLD (0.75).
+            batch_size: Batch size for similarity computation. Default DEFAULT_BATCH_SIZE (5000).
             field_weights: Dictionary of field names to weights
         """
         self.algorithm = algorithm
@@ -85,8 +85,8 @@ class SimilarityConfig:
         """Create from dictionary."""
         return cls(
             algorithm=config_dict.get('algorithm', 'jaro_winkler'),
-            threshold=config_dict.get('threshold', 0.75),
-            batch_size=config_dict.get('batch_size', 5000),
+            threshold=config_dict.get('threshold', DEFAULT_SIMILARITY_THRESHOLD),
+            batch_size=config_dict.get('batch_size', DEFAULT_BATCH_SIZE),
             field_weights=config_dict.get('field_weights', {})
         )
     
@@ -165,7 +165,7 @@ class ERPipelineConfig:
           
           similarity:
             algorithm: "jaro_winkler"
-            threshold: 0.75
+            threshold: 0.75  # Use DEFAULT_SIMILARITY_THRESHOLD in code
             field_weights:
               street: 0.5
               city: 0.3

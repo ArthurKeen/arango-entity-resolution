@@ -14,6 +14,7 @@ import logging
 
 from .wcc_clustering_service import WCCClusteringService
 from ..utils.validation import validate_collection_name, validate_field_name
+from ..utils.constants import DEFAULT_BATCH_SIZE
 
 
 class AddressERService:
@@ -89,7 +90,7 @@ class AddressERService:
                 {
                     'max_block_size': 100,
                     'min_bm25_score': 2.0,
-                    'batch_size': 5000
+                    'batch_size': DEFAULT_BATCH_SIZE  # Default 5000
                 }
         """
         self.db = db
@@ -114,7 +115,7 @@ class AddressERService:
         self.config = config or {}
         self.max_block_size = self.config.get('max_block_size', 100)
         self.min_bm25_score = self.config.get('min_bm25_score', 2.0)
-        self.batch_size = self.config.get('batch_size', 5000)
+        self.batch_size = self.config.get('batch_size', DEFAULT_BATCH_SIZE)
         
         # Initialize logger
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")

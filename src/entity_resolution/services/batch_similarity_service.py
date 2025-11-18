@@ -17,6 +17,7 @@ from datetime import datetime
 
 from ..similarity.weighted_field_similarity import WeightedFieldSimilarity
 from ..utils.validation import validate_collection_name, validate_field_name
+from ..utils.constants import DEFAULT_SIMILARITY_THRESHOLD, DEFAULT_BATCH_SIZE
 
 
 class BatchSimilarityService:
@@ -62,7 +63,7 @@ class BatchSimilarityService:
         collection: str,
         field_weights: Dict[str, float],
         similarity_algorithm: Union[str, Callable[[str, str], float]] = "jaro_winkler",
-        batch_size: int = 5000,
+        batch_size: int = DEFAULT_BATCH_SIZE,
         normalization_config: Optional[Dict[str, Any]] = None,
         progress_callback: Optional[Callable[[int, int], None]] = None
     ):
@@ -80,7 +81,7 @@ class BatchSimilarityService:
                 - "levenshtein" (requires python-Levenshtein)
                 - "jaccard" (built-in)
                 - Custom callable: (str1, str2) -> float (0.0-1.0)
-            batch_size: Documents to fetch per query. Default 5000.
+            batch_size: Documents to fetch per query. Default DEFAULT_BATCH_SIZE (5000).
             normalization_config: Field normalization options:
                 {
                     "strip": True,           # Remove leading/trailing whitespace
@@ -141,7 +142,7 @@ class BatchSimilarityService:
     def compute_similarities(
         self,
         candidate_pairs: List[Tuple[str, str]],
-        threshold: float = 0.75,
+        threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
         return_all: bool = False
     ) -> List[Tuple[str, str, float]]:
         """
@@ -149,7 +150,8 @@ class BatchSimilarityService:
         
         Args:
             candidate_pairs: List of (doc1_key, doc2_key) tuples
-            threshold: Minimum similarity to include in results (0.0-1.0)
+            threshold: Minimum similarity to include in results (0.0-1.0). 
+                Default DEFAULT_SIMILARITY_THRESHOLD (0.75).
             return_all: If True, return all pairs even below threshold
         
         Returns:
@@ -212,14 +214,15 @@ class BatchSimilarityService:
     def compute_similarities_detailed(
         self,
         candidate_pairs: List[Tuple[str, str]],
-        threshold: float = 0.75
+        threshold: float = DEFAULT_SIMILARITY_THRESHOLD
     ) -> List[Dict[str, Any]]:
         """
         Compute similarities with detailed per-field scores.
         
         Args:
             candidate_pairs: List of (doc1_key, doc2_key) tuples
-            threshold: Minimum similarity to include in results
+            threshold: Minimum similarity to include in results (0.0-1.0). 
+                Default DEFAULT_SIMILARITY_THRESHOLD (0.75).
         
         Returns:
             List of detailed similarity results:

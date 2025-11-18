@@ -13,6 +13,7 @@ from datetime import datetime
 import logging
 
 from ..utils.graph_utils import format_vertex_id
+from ..utils.constants import DEFAULT_EDGE_BATCH_SIZE, DEFAULT_SIMILARITY_THRESHOLD
 
 
 class SimilarityEdgeService:
@@ -62,7 +63,7 @@ class SimilarityEdgeService:
         db: StandardDatabase,
         edge_collection: str = "similarTo",
         vertex_collection: Optional[str] = None,
-        batch_size: int = 1000,
+        batch_size: int = DEFAULT_EDGE_BATCH_SIZE,
         auto_create_collection: bool = True
     ):
         """
@@ -74,7 +75,7 @@ class SimilarityEdgeService:
             vertex_collection: Vertex collection name for _from/_to formatting.
                 If None, will use format "collection/{key}".
                 If provided, will use "{vertex_collection}/{key}".
-            batch_size: Edges to insert per batch. Default 1000.
+            batch_size: Edges to insert per batch. Default DEFAULT_EDGE_BATCH_SIZE (1000).
             auto_create_collection: Create edge collection if it doesn't exist.
                 Default True.
         
@@ -120,7 +121,7 @@ class SimilarityEdgeService:
                 {
                     "method": "hybrid_blocking",
                     "algorithm": "jaro_winkler",
-                    "threshold": 0.75,
+                    "threshold": DEFAULT_SIMILARITY_THRESHOLD,  # Default 0.75
                     "run_id": "run_20251112_143022"
                 }
             bidirectional: If True, create edges in both directions.
