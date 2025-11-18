@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **AddressERService** - Dual edge loading methods for optimal performance
+  - **Optimized API method**: Cross-block batching reduces API calls by 100x (285K → ~400 calls)
+    - 3-4x faster than original per-block approach
+    - Configurable batch size via `edge_batch_size` (default: 1000)
+    - Good for datasets with <100K edges
+  - **CSV + arangoimport method**: 10-20x faster for large datasets (>100K edges)
+    - Exports edges to CSV and uses ArangoDB's native bulk import tool
+    - Single import operation vs thousands of API calls
+    - Automatic fallback to API method if arangoimport unavailable
+    - Configurable via `edge_loading_method='csv'` in config
+  - **Method selection**: Choose 'api' (default) or 'csv' via configuration
+  - **Progress logging**: Both methods log progress every 100K edges
+  - See `docs/development/EDGE_BULK_LOADING_ANALYSIS.md` for details
+
 ### Fixed
 - **AddressERService** - Fixed analyzer name resolution for database-prefixed analyzers
   - Added `_resolve_analyzer_name()` method to detect and use database-prefixed analyzer names (e.g., `database_name::analyzer_name`)

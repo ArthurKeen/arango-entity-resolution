@@ -8,6 +8,8 @@ Note: Some tests require database connection (integration tests).
 import pytest
 import sys
 import os
+import tempfile
+import csv
 from unittest.mock import Mock, MagicMock, patch, call
 
 # Add src to path
@@ -422,6 +424,155 @@ class TestAddressERService:
         assert 'AddressERService' in repr_str
         assert 'test_addresses' in repr_str
         assert 'test_edges' in repr_str
+    
+    def test_create_edges_optimized_batching(self):
+        """Test that optimized batching batches across blocks."""
+        db_mock = Mock()
+        db_mock.has_collection.return_value = True
+        edge_collection_mock = Mock()
+        db_mock.collection.return_value = edge_collection_mock
+        
+        service = AddressERService(
+            db=db_mock, 
+            collection='addresses',
+            config={'edge_loading_method': 'api', 'edge_batch_size': 5}
+        )
+        
+        # Create blocks that will generate more than batch_size edges
+        blocks = {
+            'block1': ['addr1', 'addr2', 'addr3'],  # 3 edges
+            'block2': ['addr4', 'addr5', 'addr6']   # 3 edges
+        }
+        
+        edges_created = service._create_edges(blocks)
+        
+        # Should batch across blocks (6 edges total, batch_size=5, so 2 batches)
+        assert edge_collection_mock.insert_many.call_count == 2
+        assert edges_created == 6
+    
+    @patch('subprocess.run')
+    @patch('tempfile.mktemp')
+    @patch('os.path.exists')
+    @patch('os.remove')
+    def test_create_edges_via_csv_success(self, mock_remove, mock_exists, mock_mktemp, mock_subprocess):
+        """Test CSV-based edge creation with successful arangoimport."""
+        db_mock = Mock()
+        db_mock.has_collection.return_value = True
+        db_mock.name = 'test_db'
+        db_mock.connection = Mock()
+        db_mock.connection.host = 'localhost'
+        db_mock.connection.port = 8529
+        db_mock.connection.username = 'root'
+        db_mock.connection.password = 'test'
+        
+        # Mock subprocess result
+        mock_result = Mock()
+        mock_result.stdout = "created: 6"
+        mock_result.returncode = 0
+        mock_subprocess.return_value = mock_result
+        
+        # Mock tempfile
+        mock_mktemp.return_value = '/tmp/test_edges.csv'
+        mock_exists.return_value = True
+        
+        service = AddressERService(
+            db=db_mock,
+            collection='addresses',
+            config={'edge_loading_method': 'csv'}
+        )
+        
+        blocks = {
+            'block1': ['addr1', 'addr2', 'addr3'],  # 3 edges
+            'block2': ['addr4', 'addr5']            # 1 edge
+        }
+        
+        edges_created = service._create_edges_via_csv(blocks)
+        
+        assert edges_created == 6
+        assert mock_subprocess.called
+        # Verify arangoimport was called with correct arguments
+        call_args = mock_subprocess.call_args
+        assert 'arangoimport' in call_args[0][0]
+        assert 'test_db' in call_args[0][0]
+    
+    @patch('subprocess.run')
+    def test_create_edges_via_csv_fallback_on_file_not_found(self, mock_subprocess):
+        """Test that CSV method falls back to API method if arangoimport not found."""
+        db_mock = Mock()
+        db_mock.has_collection.return_value = True
+        db_mock.name = 'test_db'
+        
+        # Simulate FileNotFoundError
+        mock_subprocess.side_effect = FileNotFoundError("arangoimport not found")
+        
+        service = AddressERService(
+            db=db_mock,
+            collection='addresses',
+            config={'edge_loading_method': 'csv'}
+        )
+        
+        blocks = {
+            'block1': ['addr1', 'addr2']
+        }
+        
+        # Should fall back to API method
+        edge_collection_mock = Mock()
+        db_mock.collection.return_value = edge_collection_mock
+        
+        edges_created = service._create_edges_via_csv(blocks)
+        
+        # Should have used API method (insert_many called)
+        assert edge_collection_mock.insert_many.called
+    
+    def test_run_with_csv_method(self):
+        """Test run() method with CSV edge loading."""
+        db_mock = Mock()
+        
+        # Mock find_duplicate_addresses
+        cursor_mock = Mock()
+        cursor_mock.__iter__ = Mock(return_value=iter([
+            {'block_key': 'block1', 'addresses': ['addr1', 'addr2'], 'size': 2}
+        ]))
+        db_mock.aql.execute.return_value = cursor_mock
+        db_mock.has_collection.return_value = True
+        
+        # Mock CSV method
+        with patch.object(AddressERService, '_create_edges_via_csv', return_value=1) as mock_csv:
+            service = AddressERService(
+                db=db_mock,
+                collection='addresses',
+                config={'edge_loading_method': 'csv'}
+            )
+            
+            results = service.run(create_edges=True, cluster=False)
+            
+            assert mock_csv.called
+            assert results['edges_created'] == 1
+    
+    def test_run_with_api_method(self):
+        """Test run() method with API edge loading (default)."""
+        db_mock = Mock()
+        
+        # Mock find_duplicate_addresses
+        cursor_mock = Mock()
+        cursor_mock.__iter__ = Mock(return_value=iter([
+            {'block_key': 'block1', 'addresses': ['addr1', 'addr2'], 'size': 2}
+        ]))
+        db_mock.aql.execute.return_value = cursor_mock
+        db_mock.has_collection.return_value = True
+        edge_collection_mock = Mock()
+        db_mock.collection.return_value = edge_collection_mock
+        
+        service = AddressERService(
+            db=db_mock,
+            collection='addresses',
+            config={'edge_loading_method': 'api'}
+        )
+        
+        results = service.run(create_edges=True, cluster=False)
+        
+        assert edge_collection_mock.insert_many.called
+        assert 'edges_created' in results
 
 
 if __name__ == '__main__':
