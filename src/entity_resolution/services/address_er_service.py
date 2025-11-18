@@ -321,9 +321,62 @@ class AddressERService:
         
         return created
     
+    def _resolve_analyzer_name(self, analyzer_name: str) -> str:
+        """
+        Resolve analyzer name, checking for database-prefixed versions.
+        
+        In ArangoDB, analyzers may be stored with a database prefix
+        (e.g., 'database_name::analyzer_name'). This method finds the
+        actual analyzer name that exists in the database.
+        
+        Args:
+            analyzer_name: Base analyzer name (e.g., 'address_normalizer')
+        
+        Returns:
+            Actual analyzer name (with prefix if present, otherwise original)
+        """
+        # Get all existing analyzers
+        existing_analyzers = {a['name'] for a in self.db.analyzers()}
+        
+        # Check if analyzer exists as-is (no prefix)
+        if analyzer_name in existing_analyzers:
+            return analyzer_name
+        
+        # Try to get database name and check for prefixed version
+        db_name = None
+        try:
+            # Try to get database name from properties
+            props = self.db.properties()
+            db_name = props.get('name')
+        except (AttributeError, Exception):
+            try:
+                # Try direct attribute access
+                db_name = self.db.name
+            except (AttributeError, Exception):
+                pass
+        
+        # Check if analyzer exists with database prefix
+        if db_name:
+            prefixed_name = f"{db_name}::{analyzer_name}"
+            if prefixed_name in existing_analyzers:
+                self.logger.debug(f"Using database-prefixed analyzer: {prefixed_name}")
+                return prefixed_name
+        
+        # Fallback: search for any analyzer ending with ::analyzer_name
+        for existing_name in existing_analyzers:
+            if existing_name.endswith(f"::{analyzer_name}"):
+                self.logger.debug(f"Found prefixed analyzer: {existing_name}")
+                return existing_name
+        
+        # If not found, return original (will fail during view creation if truly missing)
+        # This allows built-in analyzers like 'text_en' and 'identity' to work
+        return analyzer_name
+    
     def _setup_search_view(self) -> Optional[str]:
         """
         Create ArangoSearch view for address matching.
+        
+        Detects and uses database-prefixed analyzer names when present.
         
         Returns:
             View name if created, None otherwise
@@ -341,6 +394,12 @@ class AddressERService:
             except Exception as e:
                 self.logger.warning(f"  ! Could not delete view: {e}")
         
+        # Resolve analyzer names (check for database prefixes)
+        address_normalizer = self._resolve_analyzer_name('address_normalizer')
+        text_normalizer = self._resolve_analyzer_name('text_normalizer')
+        text_en = self._resolve_analyzer_name('text_en')
+        identity = self._resolve_analyzer_name('identity')
+        
         # Create view
         try:
             self.db.create_arangosearch_view(
@@ -351,16 +410,16 @@ class AddressERService:
                             'includeAllFields': False,
                             'fields': {
                                 self.street_field: {
-                                    'analyzers': ['address_normalizer', 'text_en']
+                                    'analyzers': [address_normalizer, text_en]
                                 },
                                 self.city_field: {
-                                    'analyzers': ['text_normalizer']
+                                    'analyzers': [text_normalizer]
                                 },
                                 self.state_field: {
-                                    'analyzers': ['identity']
+                                    'analyzers': [identity]
                                 },
                                 self.postal_code_field: {
-                                    'analyzers': ['identity']
+                                    'analyzers': [identity]
                                 }
                             }
                         }

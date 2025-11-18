@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **AddressERService** - Fixed analyzer name resolution for database-prefixed analyzers
+  - Added `_resolve_analyzer_name()` method to detect and use database-prefixed analyzer names (e.g., `database_name::analyzer_name`)
+  - `_setup_search_view()` now automatically detects and uses the correct analyzer names whether they're prefixed or not
+  - Fixes address matching issues when analyzers are stored with database prefixes in ArangoDB
+  - Backward compatible: works with both prefixed and non-prefixed analyzer names
+  - Includes fallback logic for built-in analyzers like `text_en` and `identity`
+
 ## [3.0.0] - 2025-11-17
 
 ### Added - General-Purpose ER Components

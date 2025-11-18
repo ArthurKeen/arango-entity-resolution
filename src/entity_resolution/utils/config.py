@@ -5,6 +5,7 @@ Centralized configuration that can work with both Python and Foxx services.
 """
 
 import os
+import warnings
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 
@@ -36,11 +37,10 @@ class DatabaseConfig:
         if not password:
             if os.getenv("USE_DEFAULT_PASSWORD") == "true":
                 password = "testpassword123"  # Development/testing only
-                import warnings
                 warnings.warn(
                     "Using default test password. This is INSECURE and should only be "
                     "used for local docker development. Set ARANGO_ROOT_PASSWORD for production.",
-                    SecurityWarning,
+                    UserWarning,  # Using UserWarning instead of SecurityWarning (not in standard library)
                     stacklevel=2
                 )
             else:

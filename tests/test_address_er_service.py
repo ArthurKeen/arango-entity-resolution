@@ -112,6 +112,15 @@ class TestAddressERService:
         """Test search view setup creates new view."""
         db_mock = Mock()
         db_mock.views.return_value = []  # No existing views
+        # Mock analyzers to return analyzers without prefix
+        db_mock.analyzers.return_value = [
+            {'name': 'address_normalizer'},
+            {'name': 'text_normalizer'},
+            {'name': 'text_en'},
+            {'name': 'identity'}
+        ]
+        # Mock properties to return database info
+        db_mock.properties.return_value = {'name': 'test_db'}
         
         service = AddressERService(db=db_mock, collection='addresses')
         
@@ -124,6 +133,15 @@ class TestAddressERService:
         """Test search view setup replaces existing view."""
         db_mock = Mock()
         db_mock.views.return_value = [{'name': 'addresses_search'}]
+        # Mock analyzers to return analyzers without prefix
+        db_mock.analyzers.return_value = [
+            {'name': 'address_normalizer'},
+            {'name': 'text_normalizer'},
+            {'name': 'text_en'},
+            {'name': 'identity'}
+        ]
+        # Mock properties to return database info
+        db_mock.properties.return_value = {'name': 'test_db'}
         
         service = AddressERService(db=db_mock, collection='addresses')
         
@@ -132,6 +150,87 @@ class TestAddressERService:
         assert view_name == 'addresses_search'
         assert db_mock.delete_view.called
         assert db_mock.create_arangosearch_view.called
+    
+    def test_resolve_analyzer_name_without_prefix(self):
+        """Test analyzer name resolution when analyzer has no prefix."""
+        db_mock = Mock()
+        db_mock.analyzers.return_value = [
+            {'name': 'address_normalizer'},
+            {'name': 'text_normalizer'}
+        ]
+        db_mock.properties.return_value = {'name': 'test_db'}
+        
+        service = AddressERService(db=db_mock, collection='addresses')
+        
+        resolved = service._resolve_analyzer_name('address_normalizer')
+        assert resolved == 'address_normalizer'
+    
+    def test_resolve_analyzer_name_with_database_prefix(self):
+        """Test analyzer name resolution when analyzer has database prefix."""
+        db_mock = Mock()
+        db_mock.analyzers.return_value = [
+            {'name': 'test_db::address_normalizer'},
+            {'name': 'test_db::text_normalizer'}
+        ]
+        db_mock.properties.return_value = {'name': 'test_db'}
+        
+        service = AddressERService(db=db_mock, collection='addresses')
+        
+        resolved = service._resolve_analyzer_name('address_normalizer')
+        assert resolved == 'test_db::address_normalizer'
+    
+    def test_resolve_analyzer_name_fallback_search(self):
+        """Test analyzer name resolution fallback when database name unavailable."""
+        db_mock = Mock()
+        db_mock.analyzers.return_value = [
+            {'name': 'some_db::address_normalizer'},
+            {'name': 'other_db::text_normalizer'}
+        ]
+        # Mock properties to raise exception (simulating unavailable database name)
+        db_mock.properties.side_effect = AttributeError("No properties")
+        db_mock.name = None  # No name attribute
+        
+        service = AddressERService(db=db_mock, collection='addresses')
+        
+        resolved = service._resolve_analyzer_name('address_normalizer')
+        assert resolved == 'some_db::address_normalizer'
+    
+    def test_setup_search_view_uses_prefixed_analyzers(self):
+        """Test that search view setup uses database-prefixed analyzers when present."""
+        db_mock = Mock()
+        db_mock.views.return_value = []
+        # Mock analyzers with database prefix
+        db_mock.analyzers.return_value = [
+            {'name': 'my_db::address_normalizer'},
+            {'name': 'my_db::text_normalizer'},
+            {'name': 'text_en'},  # Built-in analyzer, no prefix
+            {'name': 'identity'}  # Built-in analyzer, no prefix
+        ]
+        db_mock.properties.return_value = {'name': 'my_db'}
+        
+        service = AddressERService(db=db_mock, collection='addresses')
+        
+        view_name = service._setup_search_view()
+        
+        assert view_name == 'addresses_search'
+        assert db_mock.create_arangosearch_view.called
+        
+        # Verify that prefixed analyzer names were used
+        call_args = db_mock.create_arangosearch_view.call_args
+        # Handle both positional and keyword arguments
+        if call_args.kwargs:
+            view_properties = call_args.kwargs.get('properties', {})
+        else:
+            view_properties = call_args[1].get('properties', {})
+        
+        links = view_properties.get('links', {})
+        addresses_config = links.get('addresses', {})
+        fields = addresses_config.get('fields', {})
+        street_analyzers = fields.get('ADDRESS_LINE_1', {}).get('analyzers', [])
+        city_analyzers = fields.get('PRIMARY_TOWN', {}).get('analyzers', [])
+        
+        assert 'my_db::address_normalizer' in street_analyzers
+        assert 'my_db::text_normalizer' in city_analyzers
     
     def test_find_duplicate_addresses_query_structure(self):
         """Test that find_duplicate_addresses generates correct query."""

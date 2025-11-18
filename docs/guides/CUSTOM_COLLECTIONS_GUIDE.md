@@ -425,6 +425,7 @@ Leave `fields` empty and set `autoDiscoverFields: true` in service configuration
 1. Wrong field names in view configuration
 2. Analyzers not applied to the right fields
 3. Data doesn't match blocking strategy
+4. **Database-prefixed analyzer names** (AddressERService only)
 
 **Debug Steps:**
 
@@ -449,7 +450,15 @@ Leave `fields` empty and set `autoDiscoverFields: true` in service configuration
      }'
    ```
 
-4. **Recreate with force:**
+4. **Check for database-prefixed analyzers (AddressERService):**
+   If you're using `AddressERService` and analyzers are stored with database prefixes (e.g., `my_db::address_normalizer`), ensure you're using version 3.0.1+ which automatically detects and uses prefixed analyzer names.
+
+   ```bash
+   # List all analyzers to check for prefixes
+   curl "$ARANGO_ENDPOINT/_db/$DB/_api/analyzer" -u "$USER:$PASS"
+   ```
+
+5. **Recreate with force:**
    ```json
    {
      "collections": ["companies"],
