@@ -11,6 +11,8 @@ import yaml
 import json
 import logging
 
+from ..utils.constants import DEFAULT_SIMILARITY_THRESHOLD, DEFAULT_BATCH_SIZE
+
 
 class BlockingConfig:
     """Blocking configuration."""

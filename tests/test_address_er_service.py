@@ -340,11 +340,16 @@ class TestAddressERService:
         edge_collection_mock = Mock()
         db_mock.collection.return_value = edge_collection_mock
         
-        service = AddressERService(db=db_mock, collection='addresses')
+        # Use small batch size to test batching across blocks
+        service = AddressERService(
+            db=db_mock,
+            collection='addresses',
+            config={'edge_batch_size': 2}  # Small batch to test batching
+        )
         
         # Block 1: 2 addresses = 1 edge
         # Block 2: 3 addresses = 3 edges
-        # Total: 4 edges
+        # Total: 4 edges, batch_size=2, so should be 2 batches
         blocks = {
             'block1': ['addr1', 'addr2'],
             'block2': ['addr3', 'addr4', 'addr5']
@@ -352,6 +357,8 @@ class TestAddressERService:
         edges_created = service._create_edges(blocks)
         
         assert edges_created == 4
+        assert edge_collection_mock.insert_many.called
+        # With batch_size=2, 4 edges should create 2 batches
         assert edge_collection_mock.insert_many.call_count == 2
     
     @patch('entity_resolution.services.address_er_service.WCCClusteringService')
@@ -573,6 +580,175 @@ class TestAddressERService:
         
         assert edge_collection_mock.insert_many.called
         assert 'edges_created' in results
+    
+    def test_max_block_size_filters_large_blocks(self):
+        """Test that max_block_size filters out registered agent blocks."""
+        db_mock = Mock()
+        cursor_mock = Mock()
+        
+        # Mock results with blocks of various sizes
+        # Block 1: 2 addresses (should be included)
+        # Block 2: 5 addresses (should be included if max=10)
+        # Block 3: 15 addresses (should be excluded if max=10)
+        # Block 4: 100 addresses (should be excluded if max=10)
+        mock_results = [
+            {'block_key': 'block1', 'addresses': ['addr1', 'addr2'], 'size': 2},
+            {'block_key': 'block2', 'addresses': ['addr3', 'addr4', 'addr5', 'addr6', 'addr7'], 'size': 5},
+            {'block_key': 'block3', 'addresses': [f'addr{i}' for i in range(8, 23)], 'size': 15},
+            {'block_key': 'block4', 'addresses': [f'addr{i}' for i in range(23, 123)], 'size': 100}
+        ]
+        cursor_mock.__iter__ = Mock(return_value=iter(mock_results))
+        db_mock.aql.execute.return_value = cursor_mock
+        
+        service = AddressERService(
+            db=db_mock,
+            collection='addresses',
+            config={'max_block_size': 10}
+        )
+        
+        blocks, total = service._find_duplicate_addresses(max_block_size=10)
+        
+        # Verify query was called with correct max_block_size
+        call_args = db_mock.aql.execute.call_args
+        assert call_args[1]['bind_vars']['max_block_size'] == 10
+        
+        # Verify query filters blocks correctly
+        query = call_args[0][0]
+        assert 'block_size <= @max_block_size' in query
+        assert 'block_size >= 2' in query
+        
+        # Note: The actual filtering happens in the AQL query, so blocks returned
+        # should only include those <= max_block_size. However, since we're mocking,
+        # we need to verify the query structure is correct.
+        # In a real test with a database, blocks with size > 10 would be filtered out.
+    
+    def test_max_block_size_config_default(self):
+        """Test that max_block_size defaults to 100 if not specified."""
+        db_mock = Mock()
+        service = AddressERService(db=db_mock, collection='addresses')
+        
+        assert service.max_block_size == 100
+    
+    def test_max_block_size_config_custom(self):
+        """Test that max_block_size can be set via config."""
+        db_mock = Mock()
+        service = AddressERService(
+            db=db_mock,
+            collection='addresses',
+            config={'max_block_size': 50}
+        )
+        
+        assert service.max_block_size == 50
+    
+    def test_max_block_size_runtime_override(self):
+        """Test that max_block_size can be overridden at runtime."""
+        db_mock = Mock()
+        cursor_mock = Mock()
+        cursor_mock.__iter__ = Mock(return_value=iter([]))
+        db_mock.aql.execute.return_value = cursor_mock
+        
+        service = AddressERService(
+            db=db_mock,
+            collection='addresses',
+            config={'max_block_size': 100}  # Config default
+        )
+        
+        # Override at runtime
+        blocks, total = service._find_duplicate_addresses(max_block_size=25)
+        
+        # Verify runtime override was used
+        call_args = db_mock.aql.execute.call_args
+        assert call_args[1]['bind_vars']['max_block_size'] == 25
+    
+    def test_max_block_size_in_run_method(self):
+        """Test that run() method uses max_block_size correctly."""
+        db_mock = Mock()
+        cursor_mock = Mock()
+        cursor_mock.__iter__ = Mock(return_value=iter([
+            {'block_key': 'block1', 'addresses': ['addr1', 'addr2'], 'size': 2}
+        ]))
+        db_mock.aql.execute.return_value = cursor_mock
+        db_mock.has_collection.return_value = True
+        edge_collection_mock = Mock()
+        db_mock.collection.return_value = edge_collection_mock
+        
+        service = AddressERService(
+            db=db_mock,
+            collection='addresses',
+            config={'max_block_size': 50}
+        )
+        
+        # Test with config default
+        results1 = service.run(create_edges=True, cluster=False)
+        call_args1 = db_mock.aql.execute.call_args
+        assert call_args1[1]['bind_vars']['max_block_size'] == 50
+        
+        # Test with runtime override
+        results2 = service.run(max_block_size=25, create_edges=True, cluster=False)
+        call_args2 = db_mock.aql.execute.call_args
+        assert call_args2[1]['bind_vars']['max_block_size'] == 25
+    
+    def test_max_block_size_query_structure(self):
+        """Test that the AQL query correctly filters by max_block_size."""
+        db_mock = Mock()
+        cursor_mock = Mock()
+        cursor_mock.__iter__ = Mock(return_value=iter([]))
+        db_mock.aql.execute.return_value = cursor_mock
+        
+        service = AddressERService(db=db_mock, collection='addresses')
+        
+        service._find_duplicate_addresses(max_block_size=30)
+        
+        # Get the query
+        call_args = db_mock.aql.execute.call_args
+        query = call_args[0][0]
+        bind_vars = call_args[1]['bind_vars']
+        
+        # Verify query structure (query may have newlines, so check for key parts)
+        assert 'block_size >= 2' in query
+        assert 'block_size <= @max_block_size' in query
+        assert bind_vars['max_block_size'] == 30
+    
+    def test_max_block_size_registered_agents_scenario(self):
+        """Test scenario: Filter out registered agent addresses (>50 addresses)."""
+        db_mock = Mock()
+        cursor_mock = Mock()
+        
+        # Simulate results:
+        # - Small block (2 addresses) - should be included
+        # - Medium block (10 addresses) - should be included
+        # - Large block (75 addresses) - should be EXCLUDED (registered agent)
+        # - Very large block (200 addresses) - should be EXCLUDED
+        mock_results = [
+            {'block_key': 'normal_block', 'addresses': ['addr1', 'addr2'], 'size': 2},
+            {'block_key': 'medium_block', 'addresses': [f'addr{i}' for i in range(3, 13)], 'size': 10},
+            # Note: In real AQL, blocks with size > max_block_size are filtered out
+            # So these wouldn't appear in results, but we're testing the query structure
+        ]
+        cursor_mock.__iter__ = Mock(return_value=iter(mock_results))
+        db_mock.aql.execute.return_value = cursor_mock
+        
+        service = AddressERService(
+            db=db_mock,
+            collection='addresses',
+            config={'max_block_size': 50}  # Filter out registered agents
+        )
+        
+        blocks, total = service._find_duplicate_addresses(max_block_size=50)
+        
+        # Verify the query filters correctly
+        call_args = db_mock.aql.execute.call_args
+        query = call_args[0][0]
+        bind_vars = call_args[1]['bind_vars']
+        
+        # The query should filter: block_size >= 2 AND block_size <= 50
+        # (query may have newlines, so check for key parts)
+        assert 'block_size >= 2' in query
+        assert 'block_size <= @max_block_size' in query
+        assert bind_vars['max_block_size'] == 50
+        
+        # In a real database, blocks with 75 or 200 addresses would be excluded
+        # by the AQL FILTER clause before being returned
 
 
 if __name__ == '__main__':
