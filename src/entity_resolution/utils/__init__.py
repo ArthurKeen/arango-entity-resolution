@@ -9,6 +9,10 @@ This package contains various utilities used throughout the entity resolution sy
 - Constants and defaults (constants.py)
 - Input validation (validation.py)
 - Graph utilities (graph_utils.py)
+- View utilities (view_utils.py) - ArangoSearch view verification and fixing
+- Pipeline utilities (pipeline_utils.py) - ER pipeline state management
+- Configuration utilities (config_utils.py) - Environment verification
+- Validation utilities (validation_utils.py) - ER result validation
 """
 
 from .config import Config, get_config, DatabaseConfig, EntityResolutionConfig
@@ -28,6 +32,18 @@ from .graph_utils import (
     parse_vertex_id,
     normalize_vertex_ids
 )
+from .view_utils import (
+    resolve_analyzer_name,
+    verify_view_analyzers,
+    fix_view_analyzer_names,
+    verify_and_fix_view_analyzers
+)
+from .pipeline_utils import clean_er_results
+from .config_utils import (
+    verify_arango_environment,
+    get_arango_config_from_env
+)
+from .validation_utils import validate_er_results
 
 __all__ = [
     # Configuration
@@ -56,4 +72,20 @@ __all__ = [
     'extract_key_from_vertex_id',
     'parse_vertex_id',
     'normalize_vertex_ids',
+    
+    # View utilities
+    'resolve_analyzer_name',
+    'verify_view_analyzers',
+    'fix_view_analyzer_names',
+    'verify_and_fix_view_analyzers',
+    
+    # Pipeline utilities
+    'clean_er_results',
+    
+    # Configuration utilities
+    'verify_arango_environment',
+    'get_arango_config_from_env',
+    
+    # Validation utilities
+    'validate_er_results',
 ]

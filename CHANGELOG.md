@@ -8,6 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **New Utility Modules** - Generic ER utilities ported from production implementations
+  - **`view_utils`**: ArangoSearch view analyzer verification and self-healing
+    - `resolve_analyzer_name()`: Automatically detects database-prefixed analyzer names
+    - `verify_view_analyzers()`: Tests view accessibility and detects analyzer issues
+    - `fix_view_analyzer_names()`: Recreates views with correct analyzer names
+    - `verify_and_fix_view_analyzers()`: Combined verification and auto-fix
+    - Prevents common deployment failures from analyzer name mismatches
+  - **`pipeline_utils`**: ER pipeline state management
+    - `clean_er_results()`: Removes previous ER results from collections
+    - Gracefully handles missing collections and errors
+    - Configurable collection list with sensible defaults
+  - **`config_utils`**: Configuration and environment utilities
+    - `verify_arango_environment()`: Validates required ArangoDB environment variables
+    - `get_arango_config_from_env()`: Loads ArangoDB config from environment
+    - Provides user-friendly error messages for missing configuration
+  - **`validation_utils`**: ER result validation
+    - `validate_er_results()`: Compares expected vs actual document counts
+    - Detects data consistency issues early
+    - Configurable validation rules with sensible defaults
+  - All utilities are exported from `entity_resolution.utils` for easy access
+  - Comprehensive test coverage (38 new test cases)
+  - See `docs/development/LIBRARY_PORT_ANALYSIS.md` for details
+
 - **AddressERService** - Dual edge loading methods for optimal performance
   - **Optimized API method**: Cross-block batching reduces API calls by 100x (285K → ~400 calls)
     - 3-4x faster than original per-block approach
