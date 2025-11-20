@@ -79,11 +79,13 @@ class TestSimilarityConfig:
     
     def test_initialization_defaults(self):
         """Test initialization with defaults."""
+        from entity_resolution.utils.constants import DEFAULT_SIMILARITY_THRESHOLD, DEFAULT_BATCH_SIZE
+        
         config = SimilarityConfig()
         
         assert config.algorithm == 'jaro_winkler'
-        assert config.threshold == 0.75
-        assert config.batch_size == 5000
+        assert config.threshold == DEFAULT_SIMILARITY_THRESHOLD  # 0.75
+        assert config.batch_size == DEFAULT_BATCH_SIZE  # 5000
         assert config.field_weights == {}
     
     def test_from_dict(self):
