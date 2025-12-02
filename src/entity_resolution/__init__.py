@@ -35,15 +35,27 @@ from .data.data_manager import DataManager
 from .strategies import (
     BlockingStrategy,
     CollectBlockingStrategy,
-    BM25BlockingStrategy
+    BM25BlockingStrategy,
+    HybridBlockingStrategy,
+    GeographicBlockingStrategy,
+    GraphTraversalBlockingStrategy
 )
 from .services.batch_similarity_service import BatchSimilarityService
 from .services.similarity_edge_service import SimilarityEdgeService
 from .services.wcc_clustering_service import WCCClusteringService
 from .services.address_er_service import AddressERService
+from .services.cross_collection_matching_service import CrossCollectionMatchingService
 
 # Similarity components (v3.0)
 from .similarity.weighted_field_similarity import WeightedFieldSimilarity
+
+# Pipeline utilities
+from .utils.pipeline_utils import (
+    clean_er_results,
+    count_inferred_edges,
+    validate_edge_quality,
+    get_pipeline_statistics
+)
 
 # Configuration and utilities
 from .utils.config import Config
@@ -82,13 +94,23 @@ __all__ = [
     'BlockingStrategy',
     'CollectBlockingStrategy',
     'BM25BlockingStrategy',
+    'HybridBlockingStrategy',
+    'GeographicBlockingStrategy',
+    'GraphTraversalBlockingStrategy',
     'BatchSimilarityService',
     'SimilarityEdgeService',
     'WCCClusteringService',
     'AddressERService',
+    'CrossCollectionMatchingService',
     
     # Similarity components (v3.0)
     'WeightedFieldSimilarity',
+    
+    # Pipeline utilities
+    'clean_er_results',
+    'count_inferred_edges',
+    'validate_edge_quality',
+    'get_pipeline_statistics',
     
     # Configuration
     'Config',

@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  arangodb-test:
+    image: arangodb/arangodb:3.12
+    container_name: arango-entity-resolution-test
+    restart: unless-stopped
+    environment:
+      ARANGO_ROOT_PASSWORD: test_er_password_2025
+      ARANGO_NO_AUTH: false
+    ports:
+      - "8532:8529"
+    volumes:
+      - arango_test_data:/var/lib/arangodb3
+      - arango_test_apps:/var/lib/arangodb3-apps
+    command: >
+      arangod
+      --server.endpoint tcp://0.0.0.0:8529
+      --server.authentication true
+      --log.level info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8529/_api/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  arango_test_data:
+  arango_test_apps:
+

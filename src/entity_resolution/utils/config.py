@@ -10,6 +10,11 @@ from typing import Dict, Any, Optional
 from dataclasses import dataclass
 
 
+class SecurityWarning(UserWarning):
+    """Warning category for security-related issues"""
+    pass
+
+
 @dataclass
 class DatabaseConfig:
     """Database connection configuration"""
@@ -193,14 +198,21 @@ class Config:
         return (self.db.username, self.db.password)
 
 
-# Global default configuration instance
-default_config = Config.from_env()
+# Global default configuration instance (lazy-loaded)
+_default_config: Optional[Config] = None
 
 def get_config() -> Config:
-    """Get the default configuration instance"""
-    return default_config
+    """
+    Get the default configuration instance.
+    
+    Lazily loads configuration on first access to avoid import-time errors.
+    """
+    global _default_config
+    if _default_config is None:
+        _default_config = Config.from_env()
+    return _default_config
 
 def set_config(config: Config):
     """Set the global configuration instance"""
-    global default_config
-    default_config = config
+    global _default_config
+    _default_config = config

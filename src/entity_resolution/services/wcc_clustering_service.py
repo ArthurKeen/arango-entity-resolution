@@ -12,50 +12,36 @@ from arango.collection import EdgeCollection, StandardCollection
 import time
 from datetime import datetime
 import logging
-from collections import defaultdict
 
 from ..utils.graph_utils import format_vertex_id, extract_key_from_vertex_id
-from ..utils.constants import DEFAULT_EDGE_BATCH_SIZE
 
 
 class WCCClusteringService:
     """
-    Weakly Connected Components clustering service.
+    Weakly Connected Components clustering using AQL graph traversal.
     
-    Finds connected components in the similarity graph using either:
-    - AQL graph traversal (default): Server-side, efficient for large graphs
-    - Python DFS: Client-side, reliable across all ArangoDB versions
+    Finds connected components in the similarity graph using server-side
+    AQL graph traversal. This is efficient, works on all modern ArangoDB
+    installations (3.11+), and handles graphs with millions of edges.
     
     Key features:
-    - Multiple algorithm options (AQL graph traversal or Python DFS)
-    - Bulk edge fetching (no N+1 query problems)
+    - Server-side processing (no need to fetch edges to Python)
+    - AQL graph traversal for efficiency
     - Configurable minimum cluster size
     - Cluster storage with metadata
     - Validation and statistics
     - Works with any edge collection
     
-    Algorithm options:
-    - "aql_graph" (default): Server-side AQL graph traversal, efficient for
-      graphs with millions of edges
-    - "python_dfs": Client-side Python DFS with bulk edge fetching, reliable
-      across all ArangoDB versions
+    Future enhancement: GAE (Graph Analytics Engine) support for
+    extremely large graphs (millions of edges).
     
     Example:
         ```python
-        # Using AQL graph traversal (default)
         service = WCCClusteringService(
             db=db,
             edge_collection="similarTo",
             cluster_collection="entity_clusters",
-            algorithm="aql_graph"
-        )
-        
-        # Using Python DFS (more reliable across versions)
-        service = WCCClusteringService(
-            db=db,
-            edge_collection="similarTo",
-            cluster_collection="entity_clusters",
-            algorithm="python_dfs"
+            vertex_collection="companies"
         )
         
         clusters = service.cluster(store_results=True)
@@ -73,8 +59,7 @@ class WCCClusteringService:
         cluster_collection: str = "entity_clusters",
         vertex_collection: Optional[str] = None,
         min_cluster_size: int = 2,
-        graph_name: Optional[str] = None,
-        algorithm: str = "aql_graph"
+        graph_name: Optional[str] = None
     ):
         """
         Initialize WCC clustering service.
@@ -88,28 +73,17 @@ class WCCClusteringService:
             min_cluster_size: Minimum entities per cluster to store. Default 2.
             graph_name: Named graph to use (optional). If None, will use
                 anonymous graph traversal.
-            algorithm: Clustering algorithm to use:
-                - "aql_graph" (default): Server-side AQL graph traversal
-                - "python_dfs": Python-based DFS algorithm (more reliable across
-                  ArangoDB versions, uses bulk edge fetching)
         
         Note:
-            - "aql_graph": Server-side, efficient for large graphs
-            - "python_dfs": Client-side, reliable across all ArangoDB versions,
-              uses single bulk query to fetch all edges
+            Uses AQL graph traversal for clustering. This is server-side,
+            efficient, and works on all modern ArangoDB installations (3.11+).
         """
-        if algorithm not in ('aql_graph', 'python_dfs'):
-            raise ValueError(
-                f"algorithm must be 'aql_graph' or 'python_dfs', got: {algorithm}"
-            )
-        
         self.db = db
         self.edge_collection_name = edge_collection
         self.cluster_collection_name = cluster_collection
         self.vertex_collection = vertex_collection
         self.min_cluster_size = min_cluster_size
         self.graph_name = graph_name
-        self.algorithm = algorithm
         
         # Initialize logger
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
@@ -131,7 +105,7 @@ class WCCClusteringService:
             'max_cluster_size': 0,
             'min_cluster_size': 0,
             'cluster_size_distribution': {},
-            'algorithm_used': algorithm,
+            'algorithm_used': 'aql_graph_traversal',
             'execution_time_seconds': 0.0,
             'timestamp': None
         }
@@ -142,7 +116,7 @@ class WCCClusteringService:
         truncate_existing: bool = True
     ) -> List[List[str]]:
         """
-        Run WCC clustering on similarity edges.
+        Run WCC clustering on similarity edges using AQL graph traversal.
         
         Args:
             store_results: Store clusters in cluster_collection. Default True.
@@ -156,21 +130,13 @@ class WCCClusteringService:
                 ...
             ]
         
-        Performance:
-            - "aql_graph": Server-side processing, efficient for graphs up to
-              millions of edges
-            - "python_dfs": Client-side with bulk edge fetching:
-              - 10K edges: ~0.5s
-              - 100K edges: ~5s
-              - 1M edges: ~50s
+        Performance: Server-side processing, efficient for graphs up to
+        millions of edges.
         """
         start_time = time.time()
         
-        # Find connected components using selected algorithm
-        if self.algorithm == 'python_dfs':
-            clusters = self._cluster_python_dfs()
-        else:  # aql_graph (default)
-            clusters = self._find_connected_components_aql()
+        # Find connected components using AQL
+        clusters = self._find_connected_components_aql()
         
         # Filter by minimum cluster size
         filtered_clusters = [
@@ -458,100 +424,6 @@ class WCCClusteringService:
             self.logger.error(f"Failed to detect vertex collections: {e}", exc_info=True)
             return []
     
-    def _cluster_python_dfs(self) -> List[List[str]]:
-        """
-        Python DFS clustering with bulk edge fetching.
-        
-        This implementation:
-        1. Fetches ALL edges in a single bulk query (no N+1 problem)
-        2. Builds adjacency graph in memory
-        3. Uses Python DFS to find connected components
-        4. Returns clusters as lists of document keys
-        
-        Algorithm: O(V + E) where V=vertices, E=edges
-        - Single DB round-trip for all edges
-        - In-memory graph building
-        - Python DFS traversal
-        
-        Performance:
-        - 10K edges: ~0.5s
-        - 100K edges: ~5s
-        - 1M edges: ~50s
-        
-        Returns:
-            List of clusters, each cluster is a list of document keys
-        """
-        self.logger.info(f"Running WCC clustering (Python DFS) on {self.edge_collection_name}...")
-        
-        # Step 1: Fetch ALL edges in single bulk query
-        edges = self._fetch_edges_bulk()
-        self.logger.info(f"  Fetched {len(edges):,} edges in bulk")
-        
-        if not edges:
-            self.logger.warning("  No edges to cluster")
-            return []
-        
-        # Step 2: Build adjacency graph in memory
-        graph = defaultdict(set)
-        
-        for edge in edges:
-            from_key = self._extract_key_from_vertex_id(edge.get('_from', ''))
-            to_key = self._extract_key_from_vertex_id(edge.get('_to', ''))
-            
-            if from_key and to_key:
-                graph[from_key].add(to_key)
-                graph[to_key].add(from_key)  # Undirected graph
-        
-        self.logger.info(f"  Built graph with {len(graph):,} nodes")
-        
-        # Step 3: Find connected components using DFS
-        visited = set()
-        clusters = []
-        
-        def dfs(node: str, component: List[str]):
-            """Depth-first search to find connected component."""
-            if node in visited:
-                return
-            visited.add(node)
-            component.append(node)
-            for neighbor in graph[node]:
-                dfs(neighbor, component)
-        
-        for node in graph:
-            if node not in visited:
-                component = []
-                dfs(node, component)
-                if len(component) >= self.min_cluster_size:
-                    clusters.append(sorted(component))
-        
-        self.logger.info(f"  Found {len(clusters):,} clusters")
-        
-        return clusters
-    
-    def _fetch_edges_bulk(self) -> List[Dict[str, Any]]:
-        """
-        Fetch all edges in a single bulk query.
-        
-        This eliminates N+1 query problems by fetching all edges at once.
-        
-        Returns:
-            List of edge documents with _from and _to fields
-        """
-        query = f"""
-        FOR edge IN {self.edge_collection_name}
-            RETURN {{
-                _from: edge._from,
-                _to: edge._to
-            }}
-        """
-        
-        try:
-            cursor = self.db.aql.execute(query)
-            return list(cursor)
-        except Exception as e:
-            self.logger.error(f"Failed to fetch edges: {e}", exc_info=True)
-            return []
-    
     def _store_clusters(self, clusters: List[List[str]]):
         """
         Store clusters in the cluster collection.
@@ -569,12 +441,12 @@ class WCCClusteringService:
                 'members': [self._format_vertex_id(k) for k in cluster_members],
                 'member_keys': cluster_members,
                 'timestamp': datetime.now().isoformat(),
-                'method': self.algorithm
+                'method': 'aql_graph_traversal'
             })
         
         if cluster_docs:
             # Insert in batches
-            batch_size = DEFAULT_EDGE_BATCH_SIZE
+            batch_size = 1000
             for i in range(0, len(cluster_docs), batch_size):
                 batch = cluster_docs[i:i + batch_size]
                 self.cluster_collection.insert_many(batch)

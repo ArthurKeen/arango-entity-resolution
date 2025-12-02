@@ -5,8 +5,8 @@ The WCC clustering service was generating AQL graph traversal queries without th
 
 ### Error Message
 ```
-[HTTP 400] [ERR 1521] AQL: collection not known to traversal: 'collection_name'. 
-please add 'WITH collection_name' as the first line in your AQL
+[HTTP 400] [ERR 1521] AQL: collection not known to traversal: 'duns'. 
+please add 'WITH duns' as the first line in your AQL
 ```
 
 ## Root Cause
@@ -37,7 +37,7 @@ Added automatic detection and inclusion of the `WITH` clause in graph traversal 
    - Now generates proper AQL:
 
 ```aql
-WITH collection_name
+WITH duns
 FOR v IN 0..999999 ANY @start_vertex similarTo
     RETURN DISTINCT v._id
 ```
@@ -70,7 +70,7 @@ service = WCCClusteringService(
     db=db,
     edge_collection="similarTo",
     cluster_collection="entity_clusters",
-    vertex_collection="collection_name"  # Explicitly specify
+    vertex_collection="duns"  # Explicitly specify
 )
 
 clusters = service.cluster(store_results=True)
