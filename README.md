@@ -43,6 +43,35 @@ Version 3.0 introduces **general-purpose ER components** extracted from producti
 
 ---
 
+## 🚀 What's New in v2.1 - Phase 2: Vector Search
+
+**NEW** - Tier 3 (vector blocking) for semantic similarity-based entity resolution using vector embeddings:
+
+### Vector Search Components
+- **`EmbeddingService`** - Generate and manage vector embeddings for database records
+  - Pre-trained sentence-transformers models (see [model comparison](config/vector_search_setup.md#recommended-models))
+  - Batch processing (1000+ records/batch)
+  - Automatic storage in ArangoDB with metadata tracking
+  - Coverage statistics and monitoring
+  
+- **`VectorBlockingStrategy`** - Tier 3 (vector blocking) for semantic similarity
+  - Cosine similarity matching with configurable threshold
+  - Finds fuzzy matches that exact/text blocking miss (typos, abbreviations, variations)
+  - Optional geographic/categorical constraints
+  - Similarity distribution analysis for threshold tuning
+  - Integrates seamlessly with existing Tier 1 (exact) and Tier 2 (fuzzy text) blocking
+
+### Key Benefits
+- ✅ **Semantic matching** - Captures meaning beyond text similarity
+- ✅ **Handles variations** - Typos, abbreviations, different phrasings
+- ✅ **Configurable precision** - Tune similarity threshold for your data
+- ✅ **Production ready** - 700+ tests, comprehensive documentation
+- ✅ **Research-based** - Implements Ebraheem et al. (2018) tuple embeddings
+
+[Quick Start](config/vector_search_setup.md) | [Example](examples/vector_blocking_example.py) | [API Reference](docs/api/API_REFERENCE.md#embedding-service)
+
+---
+
 ## 🚀 What's New in v2.0
 
 Version 2.0 introduced **powerful new components** for production-grade entity resolution:

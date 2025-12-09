@@ -38,13 +38,15 @@ from .strategies import (
     BM25BlockingStrategy,
     HybridBlockingStrategy,
     GeographicBlockingStrategy,
-    GraphTraversalBlockingStrategy
+    GraphTraversalBlockingStrategy,
+    VectorBlockingStrategy
 )
 from .services.batch_similarity_service import BatchSimilarityService
 from .services.similarity_edge_service import SimilarityEdgeService
 from .services.wcc_clustering_service import WCCClusteringService
 from .services.address_er_service import AddressERService
 from .services.cross_collection_matching_service import CrossCollectionMatchingService
+from .services.embedding_service import EmbeddingService
 
 # Similarity components (v3.0)
 from .similarity.weighted_field_similarity import WeightedFieldSimilarity
@@ -97,11 +99,13 @@ __all__ = [
     'HybridBlockingStrategy',
     'GeographicBlockingStrategy',
     'GraphTraversalBlockingStrategy',
+    'VectorBlockingStrategy',
     'BatchSimilarityService',
     'SimilarityEdgeService',
     'WCCClusteringService',
     'AddressERService',
     'CrossCollectionMatchingService',
+    'EmbeddingService',
     
     # Similarity components (v3.0)
     'WeightedFieldSimilarity',

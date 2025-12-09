@@ -10,6 +10,9 @@ Complete API reference for enhanced entity resolution components.
   - [BlockingStrategy (Base)](#blockingstrategy-base)
   - [CollectBlockingStrategy](#collectblockingstrategy)
   - [BM25BlockingStrategy](#bm25blockingstrategy)
+  - [VectorBlockingStrategy](#vectorblockingstrategy) **NEW**
+- [Embedding Service](#embedding-service) **NEW**
+  - [EmbeddingService](#embeddingservice)
 - [Similarity Service](#similarity-service)
   - [BatchSimilarityService](#batchsimilarityservice)
 - [Edge Service](#edge-service)
@@ -193,6 +196,327 @@ pairs = strategy.generate_candidates()
 ```
 
 **Performance:** O(n log n), ~400x faster than Levenshtein
+
+---
+
+### VectorBlockingStrategy
+
+**NEW in v2.x** - Semantic similarity blocking using vector embeddings (Phase 2, Tier 3).
+
+**Import:**
+```python
+from entity_resolution import VectorBlockingStrategy
+```
+
+**Description:**
+Uses pre-trained sentence-transformers models to generate vector embeddings and finds
+candidate pairs based on cosine similarity. Captures semantic matches that exact and
+fuzzy text blocking may miss (typos, abbreviations, semantic variations).
+
+**Prerequisites:**
+1. Install dependencies: `pip install sentence-transformers torch`
+2. Generate embeddings first using `EmbeddingService`
+
+**Example:**
+```python
+from entity_resolution import EmbeddingService, VectorBlockingStrategy
+
+# Step 1: Generate embeddings (one-time setup)
+embedding_service = EmbeddingService(model_name='all-MiniLM-L6-v2')
+embedding_service.ensure_embeddings_exist(
+    'customers',
+    text_fields=['name', 'company', 'address']
+)
+
+# Step 2: Use vector blocking
+strategy = VectorBlockingStrategy(
+    db=db,
+    collection='customers',
+    similarity_threshold=0.7,      # 70% similarity minimum
+    limit_per_entity=20,           # Max 20 candidates per document
+    blocking_field='state'         # Optional: only compare within same state
+)
+pairs = strategy.generate_candidates()
+```
+
+#### `__init__(db, collection, embedding_field='embedding_vector', similarity_threshold=0.7, limit_per_entity=20, blocking_field=None, filters=None)`
+
+**Parameters:**
+- `db` (StandardDatabase): ArangoDB database connection
+- `collection` (str): Source collection name
+- `embedding_field` (str): Field containing embeddings (default: DEFAULT_EMBEDDING_FIELD)
+- `similarity_threshold` (float): Minimum cosine similarity 0-1 (default: DEFAULT_SIMILARITY_THRESHOLD)
+  - 0.9-1.0: Very similar (likely duplicates)
+  - 0.8-0.9: Similar (possible duplicates)
+  - 0.7-0.8: Somewhat similar (candidates)
+  - Below 0.7: Low similarity
+- `limit_per_entity` (int): Max candidates per document (default: DEFAULT_LIMIT_PER_ENTITY)
+- `blocking_field` (str, optional): Field for additional blocking (e.g., 'state', 'category')
+- `filters` (dict, optional): Standard filters (see BlockingStrategy)
+
+#### `generate_candidates()` → List[Dict]
+
+Generate candidate pairs using vector similarity.
+
+**Returns:**
+```python
+[
+    {
+        "doc1_key": "doc123",
+        "doc2_key": "doc456",
+        "similarity": 0.85,     # Cosine similarity score
+        "method": "vector"
+    },
+    ...
+]
+```
+
+#### `get_similarity_distribution(sample_size=1000)` → Dict
+
+Analyze similarity score distribution for threshold tuning.
+
+**Parameters:**
+- `sample_size` (int): Number of random pairs to sample (default: 1000)
+
+**Returns:**
+```python
+{
+    "sample_size": 1000,
+    "min_similarity": 0.12,
+    "max_similarity": 0.98,
+    "mean_similarity": 0.45,
+    "median_similarity": 0.42,
+    "std_similarity": 0.18,
+    "distribution": [
+        {"bucket": 0.0, "count": 150},
+        {"bucket": 0.1, "count": 200},
+        ...
+    ],
+    "recommended_thresholds": {
+        "conservative": 0.82,  # Top 10%
+        "balanced": 0.65,      # Top 25%
+        "aggressive": 0.45     # Top 50%
+    }
+}
+```
+
+**Use this to find the right threshold for your data:**
+```python
+stats = strategy.get_similarity_distribution()
+print(f"Recommended threshold: {stats['recommended_thresholds']['balanced']}")
+```
+
+**Performance:** 
+- Embedding generation: ~100-500 docs/second (CPU), ~1000-5000 (GPU)
+- Query time: O(n²) worst case, but limited by `limit_per_entity`
+- Memory: ~1.5 KB per document (384-dim embeddings)
+
+**Best Practices:**
+1. Use `get_similarity_distribution()` to tune threshold
+2. Start with threshold=0.7, adjust based on precision/recall
+3. Use `blocking_field` to reduce search space
+4. Combine with Tier 1 (exact) and Tier 2 (fuzzy) blocking
+5. Consider 384-dim model (faster) vs 768-dim (more accurate)
+
+---
+
+## Embedding Service
+
+### EmbeddingService
+
+**NEW in v2.x** - Generate and manage vector embeddings for entity resolution.
+
+**Import:**
+```python
+from entity_resolution import EmbeddingService
+```
+
+**Description:**
+Generates semantic vector embeddings for database records using pre-trained
+sentence-transformers models. Embeddings enable similarity-based blocking
+that captures semantic meaning beyond text matching.
+
+**Example:**
+```python
+service = EmbeddingService(
+    model_name='all-MiniLM-L6-v2',  # Fast, 384-dim
+    device='cpu'  # or 'cuda' for GPU
+)
+
+# Generate embeddings for all documents
+stats = service.ensure_embeddings_exist(
+    collection_name='customers',
+    text_fields=['name', 'company', 'email', 'address']
+)
+print(f"Generated {stats['generated']} embeddings")
+```
+
+#### `__init__(model_name='all-MiniLM-L6-v2', device='cpu', embedding_field='embedding_vector', db_manager=None)`
+
+**Parameters:**
+- `model_name` (str): Sentence-transformers model name
+  - `'all-MiniLM-L6-v2'` (default): 384-dim, fast, good quality
+  - `'all-mpnet-base-v2'`: 768-dim, slower, excellent quality
+  - `'all-distilroberta-v1'`: 768-dim, balanced
+- `device` (str): 'cpu' or 'cuda' (default: 'cpu')
+- `embedding_field` (str): Field name to store embeddings (default: 'embedding_vector')
+- `db_manager` (DatabaseManager, optional): Database manager instance
+
+**Supported Models:**
+| Model | Dim | Speed | Quality | Use Case |
+|-------|-----|-------|---------|----------|
+| all-MiniLM-L6-v2 | 384 | Fast | Good | General purpose (recommended) |
+| all-mpnet-base-v2 | 768 | Moderate | Excellent | High accuracy needed |
+| all-distilroberta-v1 | 768 | Moderate | Very Good | Balance speed/quality |
+
+#### `generate_embedding(record, text_fields=None)` → np.ndarray
+
+Generate embedding for a single record.
+
+**Parameters:**
+- `record` (dict): Database record
+- `text_fields` (list, optional): Fields to use for embedding
+
+**Returns:** Numpy array of shape `(embedding_dim,)`
+
+**Example:**
+```python
+record = {'name': 'John Smith', 'company': 'Acme Corp'}
+embedding = service.generate_embedding(record, text_fields=['name', 'company'])
+print(embedding.shape)  # (384,)
+```
+
+#### `generate_embeddings_batch(records, text_fields=None, batch_size=32, show_progress=False)` → np.ndarray
+
+Generate embeddings for multiple records (more efficient).
+
+**Parameters:**
+- `records` (list): List of records
+- `text_fields` (list, optional): Fields to use
+- `batch_size` (int): Batch size for processing (default: 32)
+- `show_progress` (bool): Show progress bar (default: False)
+
+**Returns:** Numpy array of shape `(num_records, embedding_dim)`
+
+**Example:**
+```python
+records = [
+    {'name': 'John Smith', 'company': 'Acme'},
+    {'name': 'Jane Doe', 'company': 'TechCo'}
+]
+embeddings = service.generate_embeddings_batch(records, batch_size=32)
+print(embeddings.shape)  # (2, 384)
+```
+
+#### `store_embeddings(collection_name, records, embeddings, database_name=None)` → Dict
+
+Store embeddings in ArangoDB collection.
+
+**Parameters:**
+- `collection_name` (str): Collection name
+- `records` (list): Records (must have `_key` field)
+- `embeddings` (np.ndarray): Embeddings array
+- `database_name` (str, optional): Database name
+
+**Returns:**
+```python
+{
+    "updated": 100,
+    "failed": 0,
+    "total": 100
+}
+```
+
+#### `ensure_embeddings_exist(collection_name, text_fields, database_name=None, batch_size=100, force_regenerate=False)` → Dict
+
+Ensure all documents in collection have embeddings (generates missing ones).
+
+**Parameters:**
+- `collection_name` (str): Collection name
+- `text_fields` (list): Fields to use for embedding generation
+- `database_name` (str, optional): Database name
+- `batch_size` (int): Batch size for processing (default: DEFAULT_EMBEDDING_BATCH_SIZE)
+- `force_regenerate` (bool): Regenerate all embeddings (default: False)
+
+**Returns:**
+```python
+{
+    "total_docs": 1000,
+    "generated": 250,  # Documents that were missing embeddings
+    "updated": 250,
+    "failed": 0
+}
+```
+
+**Example:**
+```python
+# Generate embeddings for documents that don't have them
+stats = service.ensure_embeddings_exist(
+    'customers',
+    text_fields=['name', 'company', 'address', 'email'],
+    batch_size=100
+)
+print(f"Generated {stats['generated']} new embeddings")
+print(f"Coverage: {stats['updated']}/{stats['total_docs']}")
+```
+
+#### `get_embedding_stats(collection_name, database_name=None)` → Dict
+
+Get statistics about embeddings in a collection.
+
+**Returns:**
+```python
+{
+    "collection": "customers",
+    "total_documents": 1000,
+    "with_embeddings": 950,
+    "without_embeddings": 50,
+    "coverage_percent": 95.0,
+    "sample_metadata": {
+        "model": "all-MiniLM-L6-v2",
+        "dim": 384,
+        "timestamp": "2025-12-09T10:30:00Z",
+        "version": "v1.0"
+    }
+}
+```
+
+**Performance:**
+- CPU: ~100-500 documents/second
+- GPU: ~1000-5000 documents/second
+- Memory: Minimal (batch processing)
+- Storage: ~1.5 KB per document (384-dim), ~3 KB (768-dim)
+
+**Document Format:**
+```javascript
+{
+  "_key": "cust_001",
+  "name": "John Smith",
+  "company": "Acme Corp",
+  
+  // Generated by EmbeddingService
+  "embedding_vector": [0.12, -0.45, 0.78, ...],  // 384 or 768 floats
+  "embedding_metadata": {
+    "model": "all-MiniLM-L6-v2",
+    "dim": 384,
+    "timestamp": "2025-12-09T10:30:00Z",
+    "version": "v1.0"
+  }
+}
+```
+
+**Configuration:**
+See `config/vector_search_setup.md` for detailed configuration guide.
+
+**Research:**
+Based on Ebraheem et al. (2018): "Distributed Representations of Tuples for Entity Resolution"
+- See: `research/papers/embeddings/2018_Ebraheem_DistributedEntityMatching_notes.md`
+
+**See Also:**
+- **Configuration Guide**: `config/vector_search_setup.md` - Setup, model selection, threshold tuning
+- **Working Example**: `examples/vector_blocking_example.py` - End-to-end demonstration
+- **Source Code**: `src/entity_resolution/services/embedding_service.py` - Implementation with DEFAULT_* constants
+- **Source Code**: `src/entity_resolution/strategies/vector_blocking.py` - VectorBlockingStrategy implementation
 
 ---
 
