@@ -262,6 +262,13 @@ INDUSTRY_CONSTANTS = {
 }
 
 # Version Information
+# v3.0.0-stable: Current production release
+#   - Includes AddressERService, CrossCollectionMatchingService
+#   - Vector search (EmbeddingService, VectorBlockingStrategy)
+#   - WCC performance optimization (40-100x speedup)
+#   - HybridBlockingStrategy, GeographicBlockingStrategy
+#   - All services extracted from customer projects
+# See VERSION_HISTORY.md for detailed version timeline
 VERSION_INFO = {
     'major': 3,
     'minor': 0,

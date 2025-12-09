@@ -1,5 +1,7 @@
 # ArangoDB Advanced Entity Resolution System
 
+**Current Version**: 3.0.0-stable | [Version History](VERSION_HISTORY.md) | [Changelog](CHANGELOG.md)
+
 ## 🚀 What's New in v3.0
 
 Version 3.0 introduces **general-purpose ER components** extracted from production implementations, enabling configuration-driven ER pipelines:
