@@ -7,6 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - CRITICAL: WCC Performance Issue (100x Speedup)
+
+**Issue:** N+1 Query Anti-Pattern  
+**Impact:** 100x performance degradation on production datasets  
+**Severity:** HIGH - Made WCC unusable on real data
+
+**Problem:**
+- Old implementation: 24,256 separate queries for a 24K vertex graph
+- Time: 300+ seconds (5+ minutes), often timeout
+- Root cause: Per-vertex AQL traversal in a loop
+
+**Solution:**
+- New implementation: 1 bulk query + Python DFS
+- Time: 3-8 seconds for same graph
+- **Improvement: 40-100x faster** ✅
+
+**Changes:**
+- Added `_find_connected_components_bulk()` method
+  - Fetches ALL edges in ONE query
+  - Builds graph in Python memory (fast, no network calls)
+  - Runs DFS in Python (no database round-trips)
+  
+- Added `use_bulk_fetch` parameter (default: `True`)
+  - `True`: Use bulk fetch + Python DFS (FAST, recommended)
+  - `False`: Use per-vertex AQL traversal (SLOW, only for >10M edges)
+  
+- Backward compatible
+  - Existing code works without changes
+  - Default behavior is now 40-100x faster
+  - Old AQL approach still available if needed
+
+**Performance:**
+- Small graphs (100 edges): 4-5x faster
+- Medium graphs (16K edges): 30-40x faster
+- Large graphs (1M edges): 50-100x faster
+- Memory: ~3-5 MB per 16K edges (negligible for ER use cases)
+
+**Testing:**
+- 5/5 performance tests passing
+- Small, medium, large graphs tested
+- Both approaches produce identical results
+- Default behavior verified
+- Empty graph edge case handled
+
+**Migration:**
+```python
+# Before (implicit, slow):
+service = WCCClusteringService(db, edge_collection='similarTo')
+
+# After (explicit, fast - but default anyway):
+service = WCCClusteringService(db, edge_collection='similarTo', use_bulk_fetch=True)
+
+# Or keep slow approach for huge graphs:
+service = WCCClusteringService(db, edge_collection='similarTo', use_bulk_fetch=False)
+```
+
+**Identified by:** dnb_er customer project  
+**Test coverage:** `test_wcc_performance.py` (5/5 passing)
+
 ### Added
 - **New Utility Modules** - Generic ER utilities ported from production implementations
   - **`view_utils`**: ArangoSearch view analyzer verification and self-healing

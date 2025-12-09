@@ -240,7 +240,8 @@ class CrossCollectionMatchingService:
         # Count total source records (for progress tracking)
         total_query = self._build_count_query()
         cursor = self.db.aql.execute(total_query)
-        total_records = list(cursor)[0] if cursor else 0
+        result = list(cursor)
+        total_records = result[0] if result else 0
         
         self.logger.info(f"Starting cross-collection matching: {total_records:,} source records to process")
         
