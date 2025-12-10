@@ -631,7 +631,7 @@ Get computation statistics.
 
 ### SimilarityEdgeService
 
-Bulk creation of similarity edges with metadata.
+Bulk creation of similarity edges with metadata tracking and deterministic key generation for idempotent pipelines.
 
 **Import:**
 ```python
@@ -644,15 +644,25 @@ service = SimilarityEdgeService(
     db=db,
     edge_collection="similarTo",
     vertex_collection="companies",
-    batch_size=1000
+    batch_size=1000,
+    use_deterministic_keys=True  # Default - prevents duplicates
 )
+
+# Safe to run multiple times - no duplicates created
 edges_created = service.create_edges(
     matches=matches,
     metadata={"method": "hybrid", "algorithm": "jaro_winkler"}
 )
 ```
 
-#### `__init__(db, edge_collection="similarTo", vertex_collection=None, batch_size=1000, auto_create_collection=True)`
+**Deterministic Edge Keys** (default: enabled):
+- Same vertex pair always generates same edge key (MD5 hash of `_from + _to`)
+- Order-independent: `(A, B)` and `(B, A)` produce same key
+- Uses `overwriteMode='ignore'` to prevent duplicates
+- Works for both SmartGraph (`"570:12345"`) and non-SmartGraph (`"12345"`) vertex keys
+- No shard prefix in edge key - ArangoDB handles placement via `_from` field
+
+#### `__init__(db, edge_collection="similarTo", vertex_collection=None, batch_size=1000, auto_create_collection=True, use_deterministic_keys=True)`
 
 **Parameters:**
 - `db` (StandardDatabase): Database connection
@@ -660,6 +670,7 @@ edges_created = service.create_edges(
 - `vertex_collection` (str, optional): Vertex collection for _from/_to formatting
 - `batch_size` (int): Edges per batch (default: 1000)
 - `auto_create_collection` (bool): Create collection if missing (default: True)
+- `use_deterministic_keys` (bool): Generate deterministic edge keys to prevent duplicates (default: True). When enabled, the same vertex pair always generates the same edge key, making edge creation idempotent. Works for both SmartGraph and non-SmartGraph deployments.
 
 #### `create_edges(matches, metadata=None, bidirectional=False)` → int
 

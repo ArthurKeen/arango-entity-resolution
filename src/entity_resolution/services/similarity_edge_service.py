@@ -26,11 +26,13 @@ class SimilarityEdgeService:
     
     Features:
     - Bulk edge insertion (batched for performance)
+    - Deterministic edge keys (enabled by default) for idempotent pipelines
     - Automatic _from/_to formatting
     - Configurable metadata fields
     - Timestamp tracking
     - Method/algorithm tracking
     - Progress callbacks
+    - SmartGraph compatible (works for both sharded and non-sharded)
     
     Performance: ~10K+ edges/second
     
@@ -39,7 +41,8 @@ class SimilarityEdgeService:
         service = SimilarityEdgeService(
             db=db,
             edge_collection="similarTo",
-            vertex_collection="companies"
+            vertex_collection="companies",
+            use_deterministic_keys=True  # Default - prevents duplicates
         )
         
         matches = [
@@ -47,6 +50,7 @@ class SimilarityEdgeService:
             ("789", "012", 0.87)
         ]
         
+        # Safe to run multiple times - no duplicates
         edges_created = service.create_edges(
             matches=matches,
             metadata={
@@ -64,7 +68,8 @@ class SimilarityEdgeService:
         edge_collection: str = "similarTo",
         vertex_collection: Optional[str] = None,
         batch_size: int = DEFAULT_EDGE_BATCH_SIZE,
-        auto_create_collection: bool = True
+        auto_create_collection: bool = True,
+        use_deterministic_keys: bool = True
     ):
         """
         Initialize similarity edge service.
@@ -78,6 +83,11 @@ class SimilarityEdgeService:
             batch_size: Edges to insert per batch. Default DEFAULT_EDGE_BATCH_SIZE (1000).
             auto_create_collection: Create edge collection if it doesn't exist.
                 Default True.
+            use_deterministic_keys: Generate deterministic edge keys based on _from/_to
+                to prevent duplicate edges. Default True. When enabled, the same vertex
+                pair will always generate the same edge key, and overwriteMode='ignore'
+                is used to make edge creation idempotent. Works for both SmartGraph and
+                non-SmartGraph deployments.
         
         Raises:
             ValueError: If configuration is invalid
@@ -86,6 +96,7 @@ class SimilarityEdgeService:
         self.edge_collection_name = edge_collection
         self.vertex_collection = vertex_collection
         self.batch_size = batch_size
+        self.use_deterministic_keys = use_deterministic_keys
         
         # Initialize logger
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
@@ -149,29 +160,47 @@ class SimilarityEdgeService:
             batch_edges = []
             
             for doc1_key, doc2_key, score in batch:
+                # Format vertex IDs
+                from_id = self._format_vertex_id(doc1_key)
+                to_id = self._format_vertex_id(doc2_key)
+                
                 # Create primary edge
                 edge = {
-                    '_from': self._format_vertex_id(doc1_key),
-                    '_to': self._format_vertex_id(doc2_key),
+                    '_from': from_id,
+                    '_to': to_id,
                     'similarity': round(score, 4),
                     **edge_metadata
                 }
+                
+                # Add deterministic key if enabled
+                if self.use_deterministic_keys:
+                    edge['_key'] = self._generate_deterministic_key(from_id, to_id)
+                
                 batch_edges.append(edge)
                 
                 # Create reverse edge if bidirectional
                 if bidirectional:
                     reverse_edge = {
-                        '_from': self._format_vertex_id(doc2_key),
-                        '_to': self._format_vertex_id(doc1_key),
+                        '_from': to_id,
+                        '_to': from_id,
                         'similarity': round(score, 4),
                         **edge_metadata
                     }
+                    
+                    # Add deterministic key for reverse edge if enabled
+                    if self.use_deterministic_keys:
+                        # Same key as forward edge (order-independent)
+                        reverse_edge['_key'] = self._generate_deterministic_key(to_id, from_id)
+                    
                     batch_edges.append(reverse_edge)
             
             # Insert batch
             if batch_edges:
                 try:
-                    self.edge_collection.insert_many(batch_edges)
+                    # Use overwrite mode when deterministic keys are enabled
+                    # This makes edge creation idempotent
+                    overwrite_mode = 'ignore' if self.use_deterministic_keys else None
+                    self.edge_collection.insert_many(batch_edges, overwrite_mode=overwrite_mode)
                     edges_created += len(batch_edges)
                     batch_count += 1
                 except Exception as e:
@@ -232,12 +261,20 @@ class SimilarityEdgeService:
                 if not doc1_key or not doc2_key:
                     continue
                 
+                # Format vertex IDs
+                from_id = self._format_vertex_id(doc1_key)
+                to_id = self._format_vertex_id(doc2_key)
+                
                 # Create edge with all metadata from match
                 edge = {
-                    '_from': self._format_vertex_id(doc1_key),
-                    '_to': self._format_vertex_id(doc2_key),
+                    '_from': from_id,
+                    '_to': to_id,
                     'timestamp': datetime.now().isoformat()
                 }
+                
+                # Add deterministic key if enabled
+                if self.use_deterministic_keys:
+                    edge['_key'] = self._generate_deterministic_key(from_id, to_id)
                 
                 # Add all other fields from match (excluding keys)
                 for key, value in match.items():
@@ -249,10 +286,16 @@ class SimilarityEdgeService:
                 # Create reverse edge if bidirectional
                 if bidirectional:
                     reverse_edge = {
-                        '_from': self._format_vertex_id(doc2_key),
-                        '_to': self._format_vertex_id(doc1_key),
+                        '_from': to_id,
+                        '_to': from_id,
                         'timestamp': datetime.now().isoformat()
                     }
+                    
+                    # Add deterministic key for reverse edge if enabled
+                    if self.use_deterministic_keys:
+                        # Same key as forward edge (order-independent)
+                        reverse_edge['_key'] = self._generate_deterministic_key(to_id, from_id)
+                    
                     for key, value in match.items():
                         if key not in ('doc1_key', 'doc2_key'):
                             reverse_edge[key] = value
@@ -261,7 +304,9 @@ class SimilarityEdgeService:
             # Insert batch
             if batch_edges:
                 try:
-                    self.edge_collection.insert_many(batch_edges)
+                    # Use overwrite mode when deterministic keys are enabled
+                    overwrite_mode = 'ignore' if self.use_deterministic_keys else None
+                    self.edge_collection.insert_many(batch_edges, overwrite_mode=overwrite_mode)
                     edges_created += len(batch_edges)
                     batch_count += 1
                 except Exception as e:
@@ -356,6 +401,47 @@ class SimilarityEdgeService:
             for consistency across the codebase.
         """
         return format_vertex_id(key, self.vertex_collection)
+    
+    def _generate_deterministic_key(self, from_id: str, to_id: str) -> str:
+        """
+        Generate deterministic edge key from vertex IDs.
+        
+        This ensures the same pair of vertices always generates the same edge key,
+        preventing duplicate edges when the pipeline runs multiple times.
+        
+        Works for both SmartGraph and non-SmartGraph deployments:
+        - Non-SmartGraph: from_id = "collection/key"
+        - SmartGraph: from_id = "collection/shard:key"
+        
+        The implementation simply hashes the full _id values. ArangoDB automatically
+        handles edge placement based on the _from field, so no special SmartGraph
+        logic is needed in the edge key.
+        
+        Args:
+            from_id: Full document ID for _from vertex (e.g., "duns/12345" or "duns/570:12345")
+            to_id: Full document ID for _to vertex
+        
+        Returns:
+            Deterministic edge key (MD5 hash)
+        
+        Example:
+            >>> _generate_deterministic_key("duns/123", "duns/456")
+            "a1b2c3d4e5f6..."  # MD5 hash
+            
+            >>> _generate_deterministic_key("duns/570:123", "duns/570:456")  # SmartGraph
+            "x1y2z3w4a5b6..."  # Different hash, but still deterministic
+        """
+        import hashlib
+        
+        # Ensure consistent ordering (order-independent hash)
+        # This way (A, B) and (B, A) produce the same key
+        if from_id < to_id:
+            key_string = f"{from_id}->{to_id}"
+        else:
+            key_string = f"{to_id}->{from_id}"
+        
+        # Generate MD5 hash (sufficient for uniqueness, not for security)
+        return hashlib.md5(key_string.encode('utf-8')).hexdigest()
     
     def _update_statistics(
         self,

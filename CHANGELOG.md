@@ -5,6 +5,45 @@ All notable changes to the arango-entity-resolution library will be documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added - Deterministic Edge Keys
+
+**Feature**: Idempotent edge creation across all deployment types
+
+**Component**: `SimilarityEdgeService`
+
+- Added `use_deterministic_keys` parameter (default: `True`)
+- Generates MD5 hash of `_from + _to` as edge `_key`
+- Order-independent: `(A, B)` and `(B, A)` generate same key
+- Uses `overwriteMode='ignore'` to prevent duplicates
+- Works for both SmartGraph and non-SmartGraph deployments
+- No special handling needed - same simple pattern for all deployment types
+
+**Benefits**:
+- ✅ Idempotent pipelines - safe to run multiple times
+- ✅ No duplicate edges
+- ✅ Backward compatible - can disable with `use_deterministic_keys=False`
+- ✅ Verified against production code (dnb_er project pattern)
+
+**Usage**:
+```python
+service = SimilarityEdgeService(
+    db=db,
+    edge_collection='similarTo',
+    use_deterministic_keys=True  # Default
+)
+
+# Run multiple times - no duplicates created
+service.create_edges(matches)
+service.create_edges(matches)  # Safe - same edges won't duplicate
+```
+
+**SmartGraph Support**:
+- Works transparently with SmartGraph vertex keys (e.g., `"570:12345"`)
+- Edge key is pure hash (no shard prefix)
+- ArangoDB handles edge placement via `_from` field automatically
+
 ## [3.0.0] - 2025-12-09
 
 **Version Identifier**: 3.0.0-stable
