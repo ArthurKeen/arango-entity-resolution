@@ -15,6 +15,10 @@ from typing import Dict, List, Any
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
+# Set default password for CI/testing if not set
+if not os.getenv('ARANGO_PASSWORD') and not os.getenv('ARANGO_ROOT_PASSWORD'):
+    os.environ['USE_DEFAULT_PASSWORD'] = 'true'
+
 from entity_resolution.services.similarity_service import SimilarityService
 from entity_resolution.services.blocking_service import BlockingService
 from entity_resolution.services.clustering_service import ClusteringService

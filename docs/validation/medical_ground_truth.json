@@ -1,0 +1,174 @@
+{
+  "metadata": {
+    "domain": "medical",
+    "dataset": "Clinical abbreviations and terminology",
+    "created": "2026-01-02",
+    "source": "Common medical abbreviations and standard terminology",
+    "description": "Ground truth matches between clinical abbreviations and full medical terms"
+  },
+  "ground_truth": [
+    {
+      "source_id": "abbrev_mi_cardio",
+      "source_name": "MI",
+      "source_type": "diagnosis",
+      "source_context": "cardiology department patient with chest pain and elevated troponin",
+      "candidate_id": "term_myocardial_infarction",
+      "candidate_name": "Myocardial Infarction",
+      "candidate_type": "condition",
+      "candidate_description": "Heart attack caused by blocked coronary artery leading to heart muscle damage",
+      "true_match": true,
+      "confidence": "high",
+      "notes": "MI in cardiology context = Myocardial Infarction"
+    },
+    {
+      "source_id": "abbrev_mi_cardio",
+      "source_name": "MI",
+      "source_type": "diagnosis",
+      "source_context": "cardiology department patient with chest pain",
+      "candidate_id": "term_mitral_insufficiency",
+      "candidate_name": "Mitral Insufficiency",
+      "candidate_type": "condition",
+      "candidate_description": "Heart valve defect where mitral valve doesn't close properly",
+      "true_match": false,
+      "confidence": "medium",
+      "notes": "Also valid MI abbreviation but context (chest pain, troponin) suggests infarction"
+    },
+    {
+      "source_id": "abbrev_chf_1",
+      "source_name": "CHF",
+      "source_type": "diagnosis",
+      "source_context": "patient with dyspnea and leg swelling",
+      "candidate_id": "term_congestive_heart_failure",
+      "candidate_name": "Congestive Heart Failure",
+      "candidate_type": "condition",
+      "candidate_description": "Chronic condition where heart cannot pump blood effectively",
+      "true_match": true,
+      "confidence": "high",
+      "notes": "CHF = standard abbreviation"
+    },
+    {
+      "source_id": "abbrev_chf_1",
+      "source_name": "CHF",
+      "source_type": "diagnosis",
+      "source_context": "patient with dyspnea",
+      "candidate_id": "term_chronic_hepatic_failure",
+      "candidate_name": "Chronic Hepatic Failure",
+      "candidate_type": "condition",
+      "candidate_description": "Progressive liver disease",
+      "true_match": false,
+      "confidence": "high",
+      "notes": "Wrong - context is cardiac symptoms not hepatic"
+    },
+    {
+      "source_id": "abbrev_copd_1",
+      "source_name": "COPD",
+      "source_type": "diagnosis",
+      "source_context": "pulmonology patient with chronic cough",
+      "candidate_id": "term_chronic_obstructive_pulmonary",
+      "candidate_name": "Chronic Obstructive Pulmonary Disease",
+      "candidate_type": "condition",
+      "candidate_description": "Progressive lung disease causing breathing difficulty",
+      "true_match": true,
+      "confidence": "high",
+      "notes": "COPD = standard abbreviation"
+    },
+    {
+      "source_id": "abbrev_dm_endo",
+      "source_name": "DM",
+      "source_type": "diagnosis",
+      "source_context": "endocrinology patient with elevated blood glucose",
+      "candidate_id": "term_diabetes_mellitus",
+      "candidate_name": "Diabetes Mellitus",
+      "candidate_type": "condition",
+      "candidate_description": "Metabolic disorder with high blood sugar levels",
+      "true_match": true,
+      "confidence": "high",
+      "notes": "DM in endocrinology = Diabetes Mellitus"
+    },
+    {
+      "source_id": "abbrev_htn_1",
+      "source_name": "HTN",
+      "source_type": "diagnosis",
+      "source_context": "patient with elevated blood pressure",
+      "candidate_id": "term_hypertension",
+      "candidate_name": "Hypertension",
+      "candidate_type": "condition",
+      "candidate_description": "Persistently high blood pressure",
+      "true_match": true,
+      "confidence": "high",
+      "notes": "HTN = standard abbreviation"
+    },
+    {
+      "source_id": "abbrev_htn_1",
+      "source_name": "HTN",
+      "source_type": "diagnosis",
+      "source_context": "patient with elevated blood pressure",
+      "candidate_id": "drug_hydrochlorothiazide",
+      "candidate_name": "Hydrochlorothiazide",
+      "candidate_type": "medication",
+      "candidate_description": "Diuretic medication for treating high blood pressure",
+      "true_match": false,
+      "confidence": "high",
+      "notes": "Type mismatch - HTN is condition not medication (though HCTZ treats HTN)"
+    },
+    {
+      "source_id": "abbrev_ra_rheum",
+      "source_name": "RA",
+      "source_type": "diagnosis",
+      "source_context": "rheumatology patient with joint pain and swelling",
+      "candidate_id": "term_rheumatoid_arthritis",
+      "candidate_name": "Rheumatoid Arthritis",
+      "candidate_type": "condition",
+      "candidate_description": "Autoimmune disease causing joint inflammation",
+      "true_match": true,
+      "confidence": "high",
+      "notes": "RA in rheumatology = Rheumatoid Arthritis"
+    },
+    {
+      "source_id": "abbrev_ra_rheum",
+      "source_name": "RA",
+      "source_type": "diagnosis",
+      "source_context": "rheumatology patient with joint pain",
+      "candidate_id": "anatomy_right_atrium",
+      "candidate_name": "Right Atrium",
+      "candidate_type": "anatomy",
+      "candidate_description": "Upper right chamber of the heart",
+      "true_match": false,
+      "confidence": "high",
+      "notes": "Type and context mismatch - RA in rheum context not cardiac anatomy"
+    },
+    {
+      "source_id": "drug_asa_1",
+      "source_name": "ASA",
+      "source_type": "medication",
+      "source_context": "prescribed for cardiac prophylaxis",
+      "candidate_id": "drug_aspirin",
+      "candidate_name": "Aspirin",
+      "candidate_type": "medication",
+      "candidate_description": "Acetylsalicylic acid antiplatelet agent",
+      "true_match": true,
+      "confidence": "high",
+      "notes": "ASA = Aspirin (acetylsalicylic acid)"
+    },
+    {
+      "source_id": "test_cbc_1",
+      "source_name": "CBC",
+      "source_type": "test",
+      "source_context": "laboratory order for anemia workup",
+      "candidate_id": "test_complete_blood_count",
+      "candidate_name": "Complete Blood Count",
+      "candidate_type": "test",
+      "candidate_description": "Panel measuring red cells white cells and platelets",
+      "true_match": true,
+      "confidence": "high",
+      "notes": "CBC = standard lab test abbreviation"
+    }
+  ],
+  "statistics": {
+    "total_pairs": 12,
+    "true_matches": 8,
+    "false_matches": 4,
+    "match_rate": 0.67
+  }
+}
+
