@@ -20,11 +20,18 @@ def setup_logging(log_level: Optional[str] = None,
     Returns:
         Configured logger instance
     """
-    config = get_config()
+    # Lazy config loading - only get config if needed
+    config = None
+    if log_level is None or enable_debug is None:
+        try:
+            config = get_config()
+        except Exception:
+            # If config fails to load, use defaults
+            config = None
     
-    # Use provided parameters or fall back to config
-    level = log_level or config.er.log_level
-    debug = enable_debug if enable_debug is not None else config.er.enable_debug_logging
+    # Use provided parameters or fall back to config or defaults
+    level = log_level or (config.er.log_level if config else 'INFO')
+    debug = enable_debug if enable_debug is not None else (config.er.enable_debug_logging if config else False)
     
     # Convert string level to logging constant
     numeric_level = getattr(logging, level.upper(), logging.INFO)
@@ -70,5 +77,13 @@ def get_logger(name: str = 'entity_resolution') -> logging.Logger:
     return logging.getLogger(name)
 
 
-# Initialize default logger
-default_logger = setup_logging()
+# Lazy-load default logger (don't trigger config at import time)
+# Usage: call get_default_logger() instead of using default_logger directly
+# _default_logger = None
+#
+# def get_default_logger():
+#     """Get or create the default logger instance"""
+#     global _default_logger
+#     if _default_logger is None:
+#         _default_logger = setup_logging()
+#     return _default_logger
