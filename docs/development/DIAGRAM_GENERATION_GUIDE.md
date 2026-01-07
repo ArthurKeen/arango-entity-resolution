@@ -117,7 +117,7 @@ These diagrams can be embedded directly in GitHub Markdown:
 ```markdown
 ```mermaid
 graph TB
-    [content from .mermaid file]
+[content from .mermaid file]
 ```
 ```
 

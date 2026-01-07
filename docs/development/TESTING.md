@@ -20,22 +20,22 @@ Before setting up the testing environment, ensure you have the following install
 #### Required Software
 
 1. **Docker** (v20.0 or higher)
-   - Download: https://docs.docker.com/get-docker/
-   - Verify installation: `docker --version`
-   - **Note**: ArangoDB 3.12 requires Docker for Windows and macOS users
+- Download: https://docs.docker.com/get-docker/
+- Verify installation: `docker --version`
+- **Note**: ArangoDB 3.12 requires Docker for Windows and macOS users
 
 2. **Docker Compose** (v2.0 or higher)
-   - Usually included with Docker Desktop
-   - Verify installation: `docker-compose --version`
+- Usually included with Docker Desktop
+- Verify installation: `docker-compose --version`
 
 3. **Python 3.8+**
-   - Download: https://www.python.org/downloads/
-   - Verify installation: `python3 --version`
+- Download: https://www.python.org/downloads/
+- Verify installation: `python3 --version`
 
 4. **curl** and **jq** (for API testing)
-   - macOS: `brew install jq`
-   - Linux: `apt-get install jq` or `yum install jq`
-   - Windows: Install via Chocolatey or WSL
+- macOS: `brew install jq`
+- Linux: `apt-get install jq` or `yum install jq`
+- Windows: Install via Chocolatey or WSL
 
 #### System Requirements
 
@@ -104,14 +104,14 @@ Key settings in `.env`:
 
 ```bash
 # ArangoDB Configuration
-ARANGO_ROOT_PASSWORD=testpassword123  # Change for production
+ARANGO_ROOT_PASSWORD=testpassword123 # Change for production
 ARANGO_NO_AUTH=false
 
 # Database Configuration
 ARANGO_HOST=localhost
 ARANGO_PORT=8529
 ARANGO_USERNAME=root
-ARANGO_PASSWORD=testpassword123  # Set via environment variable
+ARANGO_PASSWORD=testpassword123 # Set via environment variable
 
 # Test Database Names
 TEST_DB_NAME=entity_resolution_test
@@ -143,8 +143,8 @@ We use different tools optimized for different purposes. Experience shows **CURL
 
 ### 1. Direct HTTP Testing (Primary Method for Foxx Services)
 
-**Tool**: `curl` + `jq` for JSON parsing  
-**Purpose**: Rapid debugging and endpoint verification  
+**Tool**: `curl` + `jq` for JSON parsing 
+**Purpose**: Rapid debugging and endpoint verification 
 **Effectiveness**: HIGHEST for development
 
 #### Quick Examples
@@ -155,8 +155,8 @@ curl -u root:testpassword123 "http://localhost:8529/_db/_system/entity-resolutio
 
 # Similarity computation test
 curl -u root:testpassword123 -H "Content-Type: application/json" \
-  -d '{"docA":{"first_name":"John","last_name":"Smith"},"docB":{"first_name":"Jon","last_name":"Smith"}}' \
-  "http://localhost:8529/_db/_system/entity-resolution/similarity/compute" | jq .
+-d '{"docA":{"first_name":"John","last_name":"Smith"},"docB":{"first_name":"Jon","last_name":"Smith"}}' \
+"http://localhost:8529/_db/_system/entity-resolution/similarity/compute" | jq .
 
 # Available functions
 curl -u root:testpassword123 "http://localhost:8529/_db/_system/entity-resolution/similarity/functions" | jq .
@@ -181,8 +181,8 @@ curl -u root:testpassword123 "http://localhost:8529/_db/_system/entity-resolutio
 
 # 3. Test specific endpoints
 curl -u root:testpassword123 -H "Content-Type: application/json" \
-  -d '{"docA":{"first_name":"John"},"docB":{"first_name":"Jon"}}' \
-  "http://localhost:8529/_db/_system/entity-resolution/similarity/compute" | jq .
+-d '{"docA":{"first_name":"John"},"docB":{"first_name":"Jon"}}' \
+"http://localhost:8529/_db/_system/entity-resolution/similarity/compute" | jq .
 
 # 4. Debug issues (check error messages in curl response)
 # 5. Fix and redeploy
@@ -197,7 +197,7 @@ curl -u root:testpassword123 -H "Content-Type: application/json" \
 - `scripts/foxx/test_foxx_deployment.py`
 - `scripts/foxx/configure_service_integration.py`
 
-**Purpose**: Comprehensive endpoint testing and service integration  
+**Purpose**: Comprehensive endpoint testing and service integration 
 **Effectiveness**: Good for automated testing
 
 #### Features
@@ -229,7 +229,7 @@ python3 scripts/foxx/test_foxx_deployment.py
 - `scripts/benchmarks/similarity_performance_test.py`
 - `scripts/benchmarks/performance_comparison.py`
 
-**Purpose**: Measure Python vs Foxx performance  
+**Purpose**: Measure Python vs Foxx performance 
 
 #### Capabilities
 
@@ -376,31 +376,31 @@ name: Entity Resolution Tests
 on: [push, pull_request]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
-      
-      - name: Start ArangoDB
-        run: |
-          docker-compose up -d
-          sleep 30  # Wait for startup
-      
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-      
-      - name: Setup test database
-        run: |
-          python3 scripts/database/manage_db.py create --database ci_test
-          python3 scripts/database/manage_db.py init --database ci_test
-      
-      - name: Run tests
-        run: pytest tests/ --cov=src/entity_resolution
+test:
+runs-on: ubuntu-latest
+steps:
+- uses: actions/checkout@v2
+
+- name: Setup Python
+uses: actions/setup-python@v2
+with:
+python-version: '3.9'
+
+- name: Start ArangoDB
+run: |
+docker-compose up -d
+sleep 30 # Wait for startup
+
+- name: Install dependencies
+run: pip install -r requirements.txt
+
+- name: Setup test database
+run: |
+python3 scripts/database/manage_db.py create --database ci_test
+python3 scripts/database/manage_db.py init --database ci_test
+
+- name: Run tests
+run: pytest tests/ --cov=src/entity_resolution
 ```
 
 ---
@@ -416,7 +416,7 @@ jobs:
 docker info
 
 # Restart Docker service
-sudo systemctl restart docker  # Linux
+sudo systemctl restart docker # Linux
 # Or restart Docker Desktop on macOS/Windows
 ```
 
@@ -463,7 +463,7 @@ lsof -i :8529
 
 # 2. Change port in docker-compose.yml
 # ports:
-#   - "8530:8529"  # Use port 8530 instead
+# - "8530:8529" # Use port 8530 instead
 
 # 3. Update .env
 # ARANGO_PORT=8530
@@ -472,16 +472,16 @@ lsof -i :8529
 ### Debugging Success Examples
 
 1. **JavaScript Runtime Errors**:
-   - CURL revealed: "query(...).next is not a function"
-   - Fixed with: `db._query()` instead of `query()`
+- CURL revealed: "query(...).next is not a function"
+- Fixed with: `db._query()` instead of `query()`
 
 2. **AQL Syntax Issues**:
-   - CURL revealed: "invalid number of arguments for function 'MAX()'"
-   - Fixed with: conditional logic instead of MAX()
+- CURL revealed: "invalid number of arguments for function 'MAX()'"
+- Fixed with: conditional logic instead of MAX()
 
 3. **Authentication Problems**:
-   - CURL revealed: HTTP 401 responses
-   - Fixed with: proper authentication headers
+- CURL revealed: HTTP 401 responses
+- Fixed with: proper authentication headers
 
 ### Cleanup
 
@@ -497,8 +497,8 @@ docker-compose down
 ./scripts/teardown.sh
 
 # Or manually
-docker-compose down -v  # Remove containers and volumes
-rm -rf ~/data  # Remove local data (optional)
+docker-compose down -v # Remove containers and volumes
+rm -rf ~/data # Remove local data (optional)
 ```
 
 ---

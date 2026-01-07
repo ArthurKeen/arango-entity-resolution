@@ -1,8 +1,8 @@
 # Final Code Audit Report - v3.0.0
 
-**Date**: November 17, 2025  
-**Version**: 3.0.0  
-**Auditor**: AI Assistant  
+**Date**: November 17, 2025 
+**Version**: 3.0.0 
+**Auditor**: AI Assistant 
 **Scope**: Security, Code Duplication, Hardcoding
 
 ---
@@ -20,7 +20,7 @@
 
 ---
 
-## 🔴 SECURITY ISSUES
+## SECURITY ISSUES
 
 ### 1. **MEDIUM: Test Password Security**
 
@@ -31,31 +31,31 @@
 **Current Code**:
 ```python
 if not password:
-    if os.getenv("USE_DEFAULT_PASSWORD") == "true":
-        password = "testpassword123"  # Development/testing only
+if os.getenv("USE_DEFAULT_PASSWORD") == "true":
+password = "testpassword123" # Development/testing only
 ```
 
-**Risk Level**: 🟠 **MEDIUM**  
+**Risk Level**: 🟠 **MEDIUM** 
 **Impact**: Could allow unauthorized access if environment variable is set in production
 
 **Recommendation**: Only allow in pytest context:
 ```python
 if not password:
-    if os.getenv("PYTEST_CURRENT_TEST") or os.getenv("USE_DEFAULT_PASSWORD") == "true":
-        # Only allow in test environments
-        if not os.getenv("PYTEST_CURRENT_TEST"):
-            import warnings
-            warnings.warn(
-                "USE_DEFAULT_PASSWORD should only be used in test environments",
-                SecurityWarning,
-                stacklevel=2
-            )
-        password = "testpassword123"
-    else:
-        raise ValueError("Database password is required...")
+if os.getenv("PYTEST_CURRENT_TEST") or os.getenv("USE_DEFAULT_PASSWORD") == "true":
+# Only allow in test environments
+if not os.getenv("PYTEST_CURRENT_TEST"):
+import warnings
+warnings.warn(
+"USE_DEFAULT_PASSWORD should only be used in test environments",
+SecurityWarning,
+stacklevel=2
+)
+password = "testpassword123"
+else:
+raise ValueError("Database password is required...")
 ```
 
-**Status**: ⚠️ **NEEDS FIX**
+**Status**: **NEEDS FIX**
 
 ---
 
@@ -67,25 +67,25 @@ if not password:
 
 **Current Code**:
 ```python
-password: str = ""  # SECURITY: Must be provided via ARANGO_ROOT_PASSWORD environment variable
+password: str = "" # SECURITY: Must be provided via ARANGO_ROOT_PASSWORD environment variable
 ```
 
-**Risk Level**: 🟠 **MEDIUM**  
+**Risk Level**: 🟠 **MEDIUM** 
 **Impact**: If validation fails, could connect without password
 
 **Recommendation**: Change default to `None` and require explicit configuration:
 ```python
-password: Optional[str] = None  # Must be provided via environment variable
+password: Optional[str] = None # Must be provided via environment variable
 
 @classmethod
 def from_env(cls) -> 'DatabaseConfig':
-    password = os.getenv("ARANGO_PASSWORD", os.getenv("ARANGO_ROOT_PASSWORD"))
-    if not password:
-        # ... validation logic ...
-    return cls(..., password=password or None)
+password = os.getenv("ARANGO_PASSWORD", os.getenv("ARANGO_ROOT_PASSWORD"))
+if not password:
+# ... validation logic ...
+return cls(..., password=password or None)
 ```
 
-**Status**: ⚠️ **NEEDS FIX**
+**Status**: **NEEDS FIX**
 
 ---
 
@@ -105,34 +105,34 @@ def from_env(cls) -> 'DatabaseConfig':
 ```python
 # weighted_field_similarity.py
 def _normalize_value(self, value: str) -> str:
-    if not value:
-        return ""
-    value = str(value).strip()
-    if self.normalization_config.get("case") == "upper":
-        value = value.upper()
-    # ... more normalization ...
+if not value:
+return ""
+value = str(value).strip()
+if self.normalization_config.get("case") == "upper":
+value = value.upper()
+# ... more normalization ...
 
 # algorithms.py
 def normalize_field_value(field_name: str, value: Any) -> str:
-    if value is None:
-        return ""
-    normalized = str(value).strip().upper()
-    # ... similar normalization ...
+if value is None:
+return ""
+normalized = str(value).strip().upper()
+# ... similar normalization ...
 ```
 
 **Recommendation**: Create shared `StringNormalizer` utility class:
 ```python
 # src/entity_resolution/utils/string_normalizer.py
 class StringNormalizer:
-    """Shared string normalization utilities."""
-    
-    @staticmethod
-    def normalize(value: str, config: Dict[str, Any]) -> str:
-        """Unified normalization logic."""
-        # ... single implementation ...
+"""Shared string normalization utilities."""
+
+@staticmethod
+def normalize(value: str, config: Dict[str, Any]) -> str:
+"""Unified normalization logic."""
+# ... single implementation ...
 ```
 
-**Impact**: Medium - causes inconsistency and maintenance burden  
+**Impact**: Medium - causes inconsistency and maintenance burden 
 **Priority**: Medium
 
 ---
@@ -151,31 +151,31 @@ class StringNormalizer:
 ```python
 # batch_similarity_service.py
 def _normalize_weights(self, weights: Dict[str, float]) -> Dict[str, float]:
-    total = sum(weights.values())
-    if total == 0:
-        raise ValueError("Field weights cannot all be zero")
-    return {field: weight / total for field, weight in weights.items()}
+total = sum(weights.values())
+if total == 0:
+raise ValueError("Field weights cannot all be zero")
+return {field: weight / total for field, weight in weights.items()}
 
 # weighted_field_similarity.py
 if normalize:
-    total = sum(field_weights.values())
-    if total == 0:
-        raise ValueError("Field weights cannot all be zero")
-    self.field_weights = {k: v / total for k, v in field_weights.items()}
+total = sum(field_weights.values())
+if total == 0:
+raise ValueError("Field weights cannot all be zero")
+self.field_weights = {k: v / total for k, v in field_weights.items()}
 ```
 
 **Recommendation**: Extract to utility function:
 ```python
 # src/entity_resolution/utils/algorithms.py
 def normalize_weights(weights: Dict[str, float]) -> Dict[str, float]:
-    """Normalize weights to sum to 1.0."""
-    total = sum(weights.values())
-    if total == 0:
-        raise ValueError("Field weights cannot all be zero")
-    return {field: weight / total for field, weight in weights.items()}
+"""Normalize weights to sum to 1.0."""
+total = sum(weights.values())
+if total == 0:
+raise ValueError("Field weights cannot all be zero")
+return {field: weight / total for field, weight in weights.items()}
 ```
 
-**Impact**: Low - small duplication but should be unified  
+**Impact**: Low - small duplication but should be unified 
 **Priority**: Low-Medium
 
 ---
@@ -193,22 +193,22 @@ def normalize_weights(weights: Dict[str, float]) -> Dict[str, float]:
 ```python
 # src/entity_resolution/services/base_statistics.py
 class StatisticsMixin:
-    """Mixin for statistics tracking."""
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._stats = {
-            'execution_time_seconds': 0.0,
-            'timestamp': None,
-            # ... common stats ...
-        }
-    
-    def get_statistics(self) -> Dict[str, Any]:
-        """Get current statistics."""
-        return self._stats.copy()
+"""Mixin for statistics tracking."""
+
+def __init__(self, *args, **kwargs):
+super().__init__(*args, **kwargs)
+self._stats = {
+'execution_time_seconds': 0.0,
+'timestamp': None,
+# ... common stats ...
+}
+
+def get_statistics(self) -> Dict[str, Any]:
+"""Get current statistics."""
+return self._stats.copy()
 ```
 
-**Impact**: Low - maintenance burden  
+**Impact**: Low - maintenance burden 
 **Priority**: Low
 
 ---
@@ -219,7 +219,7 @@ class StatisticsMixin:
 - `src/entity_resolution/services/wcc_clustering_service.py:615-625` (delegates to graph_utils)
 - `src/entity_resolution/services/similarity_edge_service.py:343` (uses graph_utils)
 
-**Status**: ✅ **FIXED** - Both now use `graph_utils.format_vertex_id()`
+**Status**: **FIXED** - Both now use `graph_utils.format_vertex_id()`
 
 ---
 
@@ -232,10 +232,10 @@ class StatisticsMixin:
 - `er_config.py:65` - `threshold: float = 0.75`
 - `similarity_edge_service.py:54` - `"threshold": 0.75`
 
-**Current**: Hardcoded `0.75`  
+**Current**: Hardcoded `0.75` 
 **Should Use**: `DEFAULT_SIMILARITY_THRESHOLD` from `constants.py`
 
-**Status**: ⚠️ **SHOULD FIX** (8 instances)
+**Status**: **SHOULD FIX** (8 instances)
 
 ---
 
@@ -246,10 +246,10 @@ class StatisticsMixin:
 - `similarity_edge_service.py:65` - `batch_size: int = 1000`
 - `address_er_service.py:55` - `max_block_size=100`
 
-**Current**: Hardcoded values  
+**Current**: Hardcoded values 
 **Should Use**: `DEFAULT_BATCH_SIZE`, `DEFAULT_EDGE_BATCH_SIZE`, `DEFAULT_MAX_BLOCK_SIZE`
 
-**Status**: ⚠️ **SHOULD FIX** (12 instances)
+**Status**: **SHOULD FIX** (12 instances)
 
 ---
 
@@ -262,7 +262,7 @@ if self.progress_callback and processed % 10000 == 0:
 
 **Should Use**: `DEFAULT_PROGRESS_CALLBACK_INTERVAL` from `constants.py`
 
-**Status**: ⚠️ **SHOULD FIX** (2 instances)
+**Status**: **SHOULD FIX** (2 instances)
 
 ---
 
@@ -270,24 +270,24 @@ if self.progress_callback and processed % 10000 == 0:
 
 **Files**: `config.py:15`, `constants.py:12, 311`
 
-**Status**: ✅ **ACCEPTABLE** - Has environment variable override
+**Status**: **ACCEPTABLE** - Has environment variable override
 
 ---
 
-## ✅ SECURITY FIXES ALREADY APPLIED
+## SECURITY FIXES ALREADY APPLIED
 
-### 1. **AQL Injection Prevention** ✅
+### 1. **AQL Injection Prevention** 
 
 **Fixed in**:
 - `src/entity_resolution/services/batch_similarity_service.py` - Field name validation
 - `src/entity_resolution/services/address_er_service.py` - Field name validation
 - `src/entity_resolution/strategies/base_strategy.py` - Field name validation
 
-**Status**: ✅ **FIXED**
+**Status**: **FIXED**
 
 ---
 
-## 📊 SUMMARY
+## SUMMARY
 
 ### Critical Issues (Must Fix)
 - None (all critical security issues fixed)
@@ -308,12 +308,12 @@ if self.progress_callback and processed % 10000 == 0:
 
 ---
 
-## 🎯 RECOMMENDATIONS
+## RECOMMENDATIONS
 
 ### Immediate Actions
-1. ✅ **DONE**: AQL injection prevention
-2. ⚠️ **TODO**: Improve test password security
-3. ⚠️ **TODO**: Change password default to None
+1. **DONE**: AQL injection prevention
+2. **TODO**: Improve test password security
+3. **TODO**: Change password default to None
 
 ### Short Term (This Sprint)
 1. Extract weight normalization to utility function
@@ -327,7 +327,7 @@ if self.progress_callback and processed % 10000 == 0:
 
 ---
 
-## 📈 METRICS
+## METRICS
 
 - **Total Issues Found**: 16
 - **Critical**: 0

@@ -1,7 +1,7 @@
 # Library User Update Guide
 
-**Version:** November 2025 Update  
-**Impact Level:** LOW - Non-breaking improvements  
+**Version:** November 2025 Update 
+**Impact Level:** LOW - Non-breaking improvements 
 **Estimated Update Time:** 15-30 minutes
 
 ---
@@ -49,7 +49,7 @@ git pull origin main
 cd ../..
 
 # Commit the submodule update
-git add arango-entity-resolution  # or libs/arango-entity-resolution
+git add arango-entity-resolution # or libs/arango-entity-resolution
 git commit -m "chore: update entity-resolution library to Nov 2025 version"
 ```
 
@@ -110,7 +110,7 @@ ARANGO_ROOT_PASSWORD=your_production_password_here
 ARANGO_DATABASE=your_database_name
 
 # For local development only (optional)
-# USE_DEFAULT_PASSWORD=true  # Uncomment only for local Docker testing
+# USE_DEFAULT_PASSWORD=true # Uncomment only for local Docker testing
 
 # Entity Resolution Settings (optional)
 ER_SIMILARITY_THRESHOLD=0.8
@@ -138,10 +138,10 @@ echo "config.json" >> .gitignore
 from entity_resolution.core.entity_resolver import EntityResolutionPipeline
 
 pipeline = EntityResolutionPipeline(
-    host="localhost",
-    port=8529,
-    username="root",
-    password="mypassword"  # INSECURE
+host="localhost",
+port=8529,
+username="root",
+password="mypassword" # INSECURE
 )
 ```
 
@@ -153,7 +153,7 @@ from entity_resolution.core.entity_resolver import EntityResolutionPipeline
 from entity_resolution.utils.config import Config
 
 # Option A: Automatic from environment
-pipeline = EntityResolutionPipeline()  # Loads from env vars automatically
+pipeline = EntityResolutionPipeline() # Loads from env vars automatically
 
 # Option B: Explicit environment loading
 config = Config.from_env()
@@ -162,11 +162,11 @@ pipeline = EntityResolutionPipeline(config=config)
 # Option C: Manual override (not recommended for production)
 from entity_resolution.utils.config import DatabaseConfig, EntityResolutionConfig
 db_config = DatabaseConfig(
-    host=os.getenv('ARANGO_HOST', 'localhost'),
-    port=int(os.getenv('ARANGO_PORT', '8529')),
-    username=os.getenv('ARANGO_USERNAME', 'root'),
-    password=os.getenv('ARANGO_ROOT_PASSWORD'),
-    database=os.getenv('ARANGO_DATABASE', 'entity_resolution')
+host=os.getenv('ARANGO_HOST', 'localhost'),
+port=int(os.getenv('ARANGO_PORT', '8529')),
+username=os.getenv('ARANGO_USERNAME', 'root'),
+password=os.getenv('ARANGO_ROOT_PASSWORD'),
+database=os.getenv('ARANGO_DATABASE', 'entity_resolution')
 )
 config = Config(db_config=db_config, er_config=EntityResolutionConfig())
 pipeline = EntityResolutionPipeline(config=config)
@@ -188,7 +188,7 @@ load_dotenv()
 
 # Verify critical variables are set
 if not os.getenv('ARANGO_ROOT_PASSWORD'):
-    raise ValueError("ARANGO_ROOT_PASSWORD environment variable must be set")
+raise ValueError("ARANGO_ROOT_PASSWORD environment variable must be set")
 
 # Now proceed with your application
 from entity_resolution.core.entity_resolver import EntityResolutionPipeline
@@ -219,9 +219,9 @@ bulk_service.connect()
 
 # Process entire collection at once (instead of batches)
 result = bulk_service.generate_all_pairs(
-    collection_name='your_collection',
-    strategies=['exact', 'ngram'],
-    limit=0  # 0 = no limit
+collection_name='your_collection',
+strategies=['exact', 'ngram'],
+limit=0 # 0 = no limit
 )
 
 print(f"Found {result['statistics']['total_pairs']} pairs")
@@ -251,13 +251,13 @@ print(f"Processed in {result['statistics']['execution_time']:.2f} seconds")
 
 # NEW: Single call processes entire collection
 curl -X POST http://localhost:8529/_db/your_database/entity-resolution/bulk/all-pairs \
-  -H "Content-Type: application/json" \
-  -u root:your_password \
-  -d '{
-    "collection": "your_collection",
-    "strategies": ["exact", "ngram"],
-    "limit": 0
-  }'
+-H "Content-Type: application/json" \
+-u root:your_password \
+-d '{
+"collection": "your_collection",
+"strategies": ["exact", "ngram"],
+"limit": 0
+}'
 ```
 
 **Python example using requests:**
@@ -266,13 +266,13 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 response = requests.post(
-    'http://localhost:8529/_db/your_database/entity-resolution/bulk/all-pairs',
-    auth=HTTPBasicAuth('root', os.getenv('ARANGO_ROOT_PASSWORD')),
-    json={
-        'collection': 'your_collection',
-        'strategies': ['exact', 'ngram'],
-        'limit': 0
-    }
+'http://localhost:8529/_db/your_database/entity-resolution/bulk/all-pairs',
+auth=HTTPBasicAuth('root', os.getenv('ARANGO_ROOT_PASSWORD')),
+json={
+'collection': 'your_collection',
+'strategies': ['exact', 'ngram'],
+'limit': 0
+}
 )
 
 result = response.json()
@@ -292,14 +292,14 @@ from entity_resolution.utils.database import test_database_connection
 
 # Test connection with new env-based config
 if test_database_connection():
-    print("✓ Database connection successful")
+print(" Database connection successful")
 else:
-    print("✗ Database connection failed")
-    print("Check your environment variables:")
-    print(f"  ARANGO_HOST: {os.getenv('ARANGO_HOST', 'not set')}")
-    print(f"  ARANGO_PORT: {os.getenv('ARANGO_PORT', 'not set')}")
-    print(f"  ARANGO_DATABASE: {os.getenv('ARANGO_DATABASE', 'not set')}")
-    print(f"  ARANGO_ROOT_PASSWORD: {'set' if os.getenv('ARANGO_ROOT_PASSWORD') else 'NOT SET'}")
+print(" Database connection failed")
+print("Check your environment variables:")
+print(f" ARANGO_HOST: {os.getenv('ARANGO_HOST', 'not set')}")
+print(f" ARANGO_PORT: {os.getenv('ARANGO_PORT', 'not set')}")
+print(f" ARANGO_DATABASE: {os.getenv('ARANGO_DATABASE', 'not set')}")
+print(f" ARANGO_ROOT_PASSWORD: {'set' if os.getenv('ARANGO_ROOT_PASSWORD') else 'NOT SET'}")
 ```
 
 Run it:
@@ -325,19 +325,19 @@ pipeline = EntityResolutionPipeline()
 
 # Use your existing data/workflow
 sample_records = [
-    {'_id': '1', 'name': 'John Smith', 'email': 'john@example.com'},
-    {'_id': '2', 'name': 'Jon Smith', 'email': 'john@example.com'},
-    {'_id': '3', 'name': 'Jane Doe', 'email': 'jane@example.com'}
+{'_id': '1', 'name': 'John Smith', 'email': 'john@example.com'},
+{'_id': '2', 'name': 'Jon Smith', 'email': 'john@example.com'},
+{'_id': '3', 'name': 'Jane Doe', 'email': 'jane@example.com'}
 ]
 
 result = pipeline.resolve_entities(
-    records=sample_records,
-    collection_name='test_collection'
+records=sample_records,
+collection_name='test_collection'
 )
 
-print(f"✓ Workflow test successful")
-print(f"  Clusters found: {len(result.get('clusters', []))}")
-print(f"  Execution time: {result.get('statistics', {}).get('execution_time', 0):.2f}s")
+print(f" Workflow test successful")
+print(f" Clusters found: {len(result.get('clusters', []))}")
+print(f" Execution time: {result.get('statistics', {}).get('execution_time', 0):.2f}s")
 ```
 
 ---
@@ -360,16 +360,16 @@ print(f"Naive comparisons: {stats['naive_comparisons']:,}")
 # Test bulk processing
 start_time = time.time()
 result = service.generate_all_pairs(
-    collection_name='your_collection',
-    strategies=['exact'],
-    limit=10000  # Limit for testing
+collection_name='your_collection',
+strategies=['exact'],
+limit=10000 # Limit for testing
 )
 elapsed = time.time() - start_time
 
 print(f"\nBulk Processing Results:")
-print(f"  Pairs found: {result['statistics']['total_pairs']:,}")
-print(f"  Time: {elapsed:.2f}s")
-print(f"  Rate: {result['statistics']['pairs_per_second']:,.0f} pairs/sec")
+print(f" Pairs found: {result['statistics']['total_pairs']:,}")
+print(f" Time: {elapsed:.2f}s")
+print(f" Rate: {result['statistics']['pairs_per_second']:,.0f} pairs/sec")
 ```
 
 ---
@@ -401,7 +401,7 @@ result = pipeline.resolve_entities(records=data, collection_name='customers')
 ```python
 # Processing 300,000 records in batches (slow)
 for batch in batches:
-    result = pipeline.resolve_entities(batch, 'customers')
+result = pipeline.resolve_entities(batch, 'customers')
 # Total time: ~6-7 minutes
 ```
 
@@ -426,8 +426,8 @@ result = service.generate_all_pairs('customers', strategies=['exact', 'ngram'])
 ```python
 # Old way (still works but not recommended)
 pipeline = EntityResolutionPipeline(
-    similarity_threshold=0.85,
-    max_candidates=150
+similarity_threshold=0.85,
+max_candidates=150
 )
 ```
 
@@ -437,9 +437,9 @@ pipeline = EntityResolutionPipeline(
 from entity_resolution.utils.config import Config, EntityResolutionConfig
 
 er_config = EntityResolutionConfig(
-    similarity_threshold=0.85,
-    max_candidates_per_record=150,
-    ngram_length=3
+similarity_threshold=0.85,
+max_candidates_per_record=150,
+ngram_length=3
 )
 config = Config(er_config=er_config)
 pipeline = EntityResolutionPipeline(config=config)
@@ -449,7 +449,7 @@ pipeline = EntityResolutionPipeline(config=config)
 
 ## Breaking Changes
 
-### None! ✅
+### None! 
 
 This update is **non-breaking**. All existing APIs continue to work.
 
@@ -474,7 +474,7 @@ If you encounter issues, you can easily roll back:
 ```bash
 cd /path/to/your/customer/project
 cd arango-entity-resolution
-git log --oneline -10  # Find previous commit
+git log --oneline -10 # Find previous commit
 git checkout <previous-commit-hash>
 cd ..
 git add arango-entity-resolution
@@ -553,9 +553,9 @@ pip install -e .
 # Run library tests first to ensure it works
 cd arango-entity-resolution
 pytest tests/test_bulk_blocking_service.py \
-       tests/test_blocking_service.py \
-       tests/test_similarity_service.py \
-       tests/test_clustering_service.py -v
+tests/test_blocking_service.py \
+tests/test_similarity_service.py \
+tests/test_clustering_service.py -v
 
 # If library tests pass but your tests fail, check:
 # 1. Environment variables are set
@@ -616,9 +616,9 @@ After updating, verify:
 
 ## Summary
 
-**Update Type:** Non-breaking enhancement  
-**Estimated Time:** 15-30 minutes  
-**Risk Level:** LOW  
+**Update Type:** Non-breaking enhancement 
+**Estimated Time:** 15-30 minutes 
+**Risk Level:** LOW 
 **Rollback:** Easy (Git revert or restore backup)
 
 **Key Actions:**

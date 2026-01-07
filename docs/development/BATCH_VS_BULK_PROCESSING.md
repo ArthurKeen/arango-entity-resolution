@@ -16,22 +16,22 @@ This guide explains the **critical difference** between batch and bulk processin
 
 ```python
 # Processes 331,000 records with 3,319 API calls
-for batch in chunks(records, 100):  # 3,319 iterations
-    api_call(batch)  # Network round trip
-    wait_for_response()
-    
+for batch in chunks(records, 100): # 3,319 iterations
+api_call(batch) # Network round trip
+wait_for_response()
+
 # Time: ~6 minutes (mostly network latency)
-# Network overhead: 3,319  50ms = 166 seconds
+# Network overhead: 3,319 50ms = 166 seconds
 ```
 
 ### [OK] Bulk Approach (Set-Based)
 
 ```python
 # Processes 331,000 records with 1 query
-result = bulk_api_call(all_records)  # Single network round trip
+result = bulk_api_call(all_records) # Single network round trip
 
 # Time: ~2 minutes (pure computation)
-# Network overhead: 1  50ms = 0.05 seconds
+# Network overhead: 1 50ms = 0.05 seconds
 ```
 
 **Performance Difference:** 3-5x faster for large datasets
@@ -64,10 +64,10 @@ result = bulk_api_call(all_records)  # Single network round trip
 ```python
 # Real-time duplicate check at data entry
 foxx_service.generate_candidates(
-    collection="customers",
-    target_record_id="customers/12345",
-    strategies=["exact", "ngram"],
-    limit=100
+collection="customers",
+target_record_id="customers/12345",
+strategies=["exact", "ngram"],
+limit=100
 )
 # Returns in < 100ms
 ```
@@ -89,9 +89,9 @@ bulk_service = BulkBlockingService()
 bulk_service.connect()
 
 result = bulk_service.generate_all_pairs(
-    collection_name="customers",
-    strategies=["exact", "ngram", "phonetic"],
-    limit=0  # No limit, process ALL records
+collection_name="customers",
+strategies=["exact", "ngram", "phonetic"],
+limit=0 # No limit, process ALL records
 )
 
 print(f"Found {result['statistics']['total_pairs']} candidate pairs")
@@ -108,8 +108,8 @@ print(f"Completed in {result['statistics']['execution_time']:.2f} seconds")
 
 **Architecture:**
 ```
-Your Code  3,319 API calls  Foxx Service  ArangoDB
-           (network latency)    (per-record logic)
+Your Code 3,319 API calls Foxx Service ArangoDB
+(network latency) (per-record logic)
 ```
 
 **Performance:**
@@ -128,8 +128,8 @@ Your Code  3,319 API calls  Foxx Service  ArangoDB
 
 **Architecture:**
 ```
-Your Code  1 API call  Foxx Service  Single AQL Query  ArangoDB
-                         (set-based processing, server-side)
+Your Code 1 API call Foxx Service Single AQL Query ArangoDB
+(set-based processing, server-side)
 ```
 
 **Performance:**
@@ -149,8 +149,8 @@ Your Code  1 API call  Foxx Service  Single AQL Query  ArangoDB
 
 **Architecture:**
 ```
-Your Code  Direct AQL Queries  ArangoDB
-           (no Foxx middleware, full control)
+Your Code Direct AQL Queries ArangoDB
+(no Foxx middleware, full control)
 ```
 
 **Performance:**
@@ -173,7 +173,7 @@ Your Code  Direct AQL Queries  ArangoDB
 
 | Approach | Time | Pairs Found | Notes |
 |----------|------|-------------|-------|
-| Foxx Batch | 12 seconds | N/A | 100 API calls  120ms |
+| Foxx Batch | 12 seconds | N/A | 100 API calls 120ms |
 | Foxx Bulk | **2.5 seconds** | ~500-2000 | Single query |
 | Python Bulk | **2.0 seconds** | ~500-2000 | Direct AQL |
 
@@ -218,14 +218,14 @@ service.connect()
 
 # This iterates through ALL records one-by-one
 all_pairs = []
-for record in records:  # 331,000 iterations!
-    result = service.generate_candidates(
-        collection="customers",
-        target_record_id=record["_id"],
-        strategies=["exact", "ngram"],
-        limit=100
-    )
-    all_pairs.extend(result["candidates"])
+for record in records: # 331,000 iterations!
+result = service.generate_candidates(
+collection="customers",
+target_record_id=record["_id"],
+strategies=["exact", "ngram"],
+limit=100
+)
+all_pairs.extend(result["candidates"])
 
 # Time: ~6 minutes for 331K records
 ```
@@ -239,9 +239,9 @@ service.connect()
 
 # Single call processes entire dataset
 result = service.generate_all_pairs(
-    collection_name="customers",
-    strategies=["exact", "ngram"],
-    limit=0  # No limit
+collection_name="customers",
+strategies=["exact", "ngram"],
+limit=0 # No limit
 )
 
 all_pairs = result["candidate_pairs"]
@@ -260,13 +260,13 @@ import requests
 # 3,319 API calls for 331K records
 batch_size = 100
 for i in range(0, len(records), batch_size):
-    batch = records[i:i + batch_size]
-    response = requests.post(
-        "http://localhost:8529/_db/my_db/entity-resolution/blocking/candidates/batch",
-        auth=("root", "password"),
-        json={"targetDocIds": [r["_id"] for r in batch]}
-    )
-    pairs.extend(response.json()["candidates"])
+batch = records[i:i + batch_size]
+response = requests.post(
+"http://localhost:8529/_db/my_db/entity-resolution/blocking/candidates/batch",
+auth=("root", "password"),
+json={"targetDocIds": [r["_id"] for r in batch]}
+)
+pairs.extend(response.json()["candidates"])
 
 # Time: 6+ minutes
 ```
@@ -277,13 +277,13 @@ import requests
 
 # Single API call for entire collection
 response = requests.post(
-    "http://localhost:8529/_db/my_db/entity-resolution/bulk/all-pairs",
-    auth=("root", "password"),
-    json={
-        "collection": "customers",
-        "strategies": ["exact", "ngram"],
-        "limit": 0
-    }
+"http://localhost:8529/_db/my_db/entity-resolution/bulk/all-pairs",
+auth=("root", "password"),
+json={
+"collection": "customers",
+"strategies": ["exact", "ngram"],
+"limit": 0
+}
 )
 
 result = response.json()
@@ -309,15 +309,15 @@ service.connect()
 
 # Process pairs in batches as they're generated
 for batch in service.generate_pairs_streaming(
-    collection_name="customers",
-    strategies=["exact", "ngram"],
-    batch_size=1000
+collection_name="customers",
+strategies=["exact", "ngram"],
+batch_size=1000
 ):
-    # Process this batch while more are being generated
-    process_similarity_scoring(batch)
-    store_results(batch)
-    
-    print(f"Processed batch of {len(batch)} pairs")
+# Process this batch while more are being generated
+process_similarity_scoring(batch)
+store_results(batch)
+
+print(f"Processed batch of {len(batch)} pairs")
 
 # Memory efficient: doesn't load all pairs at once
 # Time efficient: parallel processing while generating pairs
@@ -334,16 +334,16 @@ If you must use the batch API, increase the batch size:
 **Before:**
 ```javascript
 // In foxx-services/entity-resolution/routes/blocking.js
-if (targetDocIds.length > 100) {  // Old limit
+if (targetDocIds.length > 100) { // Old limit
 ```
 
 **After:**
 ```javascript
 // In foxx-services/entity-resolution/routes/blocking.js
-if (targetDocIds.length > 1000) {  // New limit
+if (targetDocIds.length > 1000) { // New limit
 ```
 
-**Result:** 10x fewer API calls (3,319  332 calls)
+**Result:** 10x fewer API calls (3,319 332 calls)
 
 ---
 
@@ -360,13 +360,13 @@ Different strategies have different performance characteristics:
 **Recommendation:**
 ```python
 # For high-quality data (CRM systems)
-strategies = ["exact", "ngram"]  # Fast + good recall
+strategies = ["exact", "ngram"] # Fast + good recall
 
 # For messy data (web scraping, user input)
-strategies = ["exact", "ngram", "phonetic"]  # Comprehensive
+strategies = ["exact", "ngram", "phonetic"] # Comprehensive
 
 # For performance-critical (millions of records)
-strategies = ["exact"]  # Fastest, rely on similarity scoring later
+strategies = ["exact"] # Fastest, rely on similarity scoring later
 ```
 
 ---
@@ -378,9 +378,9 @@ When testing or exploring data, use limits:
 ```python
 # Quick test run
 result = bulk_service.generate_all_pairs(
-    collection_name="customers",
-    strategies=["exact"],
-    limit=10000  # Only generate first 10K pairs for testing
+collection_name="customers",
+strategies=["exact"],
+limit=10000 # Only generate first 10K pairs for testing
 )
 ```
 
@@ -409,28 +409,28 @@ print(f"Estimated time: {stats['estimated_execution_time']}")
 ### Batch Processing (Original)
 
 ```
-          
-  Your Code   Foxx Service  ArangoDB 
-                                             
- For Loop:   3,319 For Loop:    Many  Queries  
- Each Record times Each Target                 
-          
 
-Network: 3,319 round trips  50ms = 166 seconds
+Your Code Foxx Service ArangoDB 
+
+For Loop: 3,319 For Loop: Many Queries 
+Each Record times Each Target 
+
+
+Network: 3,319 round trips 50ms = 166 seconds
 Total Time: ~6 minutes
 ```
 
 ### Bulk Processing (New)
 
 ```
-          
-  Your Code   Bulk Service                  ArangoDB 
-               1                                  1            
- Single Call  API  Single SET-BASED AQL Query   Query Executes 
-                   (Processes entire collection)      In-Memory
-          
 
-Network: 1 round trip  50ms = 0.05 seconds
+Your Code Bulk Service ArangoDB 
+1 1 
+Single Call API Single SET-BASED AQL Query Query Executes 
+(Processes entire collection) In-Memory
+
+
+Network: 1 round trip 50ms = 0.05 seconds
 Total Time: ~2 minutes
 ```
 
@@ -455,13 +455,13 @@ Total Time: ~2 minutes
 
 #### Immediate (Do Now):
 1. **Use `BulkBlockingService` for your large dataset** (331K records)
-   - Expected improvement: 6 minutes  2 minutes (3x faster)
-   
+- Expected improvement: 6 minutes 2 minutes (3x faster)
+
 2. [OK] **Deploy new Foxx bulk endpoint** (if using Foxx)
-   ```bash
-   cd foxx-services/entity-resolution
-   # Redeploy with new bulk routes
-   ```
+```bash
+cd foxx-services/entity-resolution
+# Redeploy with new bulk routes
+```
 
 #### Short-term (This Week):
 3. **Migrate existing batch processing code** to bulk processing

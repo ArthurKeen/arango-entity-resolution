@@ -80,9 +80,9 @@ This catches syntax errors before they reach CI/CD.
 #### 2. Hardcoded Credentials Check
 Searches for patterns like:
 ```python
-password = "secret123"  # BAD - will be caught
-password = os.getenv("ARANGO_PASSWORD")  # GOOD - passes
-password = ""  # GOOD - empty default
+password = "secret123" # BAD - will be caught
+password = os.getenv("ARANGO_PASSWORD") # GOOD - passes
+password = "" # GOOD - empty default
 ```
 
 The check excludes:
@@ -100,10 +100,10 @@ Consider replacing emojis with [OK], [ERROR], [WARNING] indicators
 ```
 
 Replace with ASCII indicators:
-- `[OK]` instead of ✓
-- `[ERROR]` instead of ❌
-- `[WARNING]` instead of ⚠️
-- `[INFO]` instead of ℹ️
+- `[OK]` instead of 
+- `[ERROR]` instead of 
+- `[WARNING]` instead of 
+- `[INFO]` instead of ℹ
 
 #### 4. Module Import Check
 Verifies that core modules can be imported:
@@ -130,13 +130,13 @@ To modify the hook:
 
 1. Edit `.githooks/pre-commit`
 2. Test your changes:
-   ```bash
-   ./.githooks/pre-commit
-   ```
+```bash
+./.githooks/pre-commit
+```
 3. Reinstall for all developers:
-   ```bash
-   ./scripts/setup-git-hooks.sh
-   ```
+```bash
+./scripts/setup-git-hooks.sh
+```
 
 ### Uninstalling
 
@@ -172,11 +172,11 @@ Once installed, the hook runs automatically:
 git push origin main
 
 # Hook runs automatically:
-# [TEST] Core Unit Tests...        [PASS]
-# [TEST] Service Tests...           [PASS]
-# [TEST] Integration Tests...       [PASS]
-# [TEST] Module Imports...          [PASS]
-# [TEST] Code Quality...            [PASS]
+# [TEST] Core Unit Tests... [PASS]
+# [TEST] Service Tests... [PASS]
+# [TEST] Integration Tests... [PASS]
+# [TEST] Module Imports... [PASS]
+# [TEST] Code Quality... [PASS]
 # [OK] ALL TESTS PASSED
 # [OK] Safe to push to remote repository
 ```
@@ -187,8 +187,8 @@ If tests fail, the push is blocked:
 
 ```
 [FAIL] Cannot push - 2 test section(s) failed:
-  - Service Tests
-  - Integration Tests
+- Service Tests
+- Integration Tests
 
 Please fix the failing tests before pushing.
 ```

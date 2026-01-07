@@ -14,13 +14,13 @@ Both APIs provide the same functionality and can be used independently or togeth
 ## Table of Contents
 
 - [REST API](#rest-api)
-  - [Authentication](#authentication)
-  - [Base URL](#base-url)
-  - [Endpoints](#endpoints)
+- [Authentication](#authentication)
+- [Base URL](#base-url)
+- [Endpoints](#endpoints)
 - [Python API](#python-api)
-  - [Installation](#installation)
-  - [Quick Start](#quick-start)
-  - [API Reference](#api-reference)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [API Reference](#api-reference)
 - [Error Handling](#error-handling)
 - [Rate Limits](#rate-limits)
 - [Examples](#examples)
@@ -63,12 +63,12 @@ Health check endpoint.
 **Response:**
 ```json
 {
-  "status": "healthy",
-  "service": "entity-resolution",
-  "version": "1.0.0",
-  "timestamp": "2025-10-23T12:00:00.000Z",
-  "mode": "production",
-  "active_modules": ["setup", "blocking", "similarity", "clustering"]
+"status": "healthy",
+"service": "entity-resolution",
+"version": "1.0.0",
+"timestamp": "2025-10-23T12:00:00.000Z",
+"mode": "production",
+"active_modules": ["setup", "blocking", "similarity", "clustering"]
 }
 ```
 
@@ -79,11 +79,11 @@ Service information and available endpoints.
 **Response:**
 ```json
 {
-  "name": "Entity Resolution Service",
-  "description": "High-performance entity resolution with record blocking",
-  "version": "1.0.0",
-  "status": "production",
-  "active_endpoints": { ... }
+"name": "Entity Resolution Service",
+"description": "High-performance entity resolution with record blocking",
+"version": "1.0.0",
+"status": "production",
+"active_endpoints": { ... }
 }
 ```
 
@@ -103,17 +103,17 @@ Create custom ArangoSearch analyzers for entity resolution.
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "Custom analyzers created successfully",
-  "analyzers": {
-    "ngram_analyzer": "created",
-    "exact_analyzer": "created",
-    "phonetic_analyzer": "created"
-  },
-  "configuration": {
-    "ngramLength": 3,
-    "phoneticEnabled": true
-  }
+"success": true,
+"message": "Custom analyzers created successfully",
+"analyzers": {
+"ngram_analyzer": "created",
+"exact_analyzer": "created",
+"phonetic_analyzer": "created"
+},
+"configuration": {
+"ngramLength": 3,
+"phoneticEnabled": true
+}
 }
 ```
 
@@ -129,20 +129,20 @@ Create ArangoSearch views for blocking operations.
 **Request Body:**
 ```json
 {
-  "collections": ["customers", "entities"]
+"collections": ["customers", "entities"]
 }
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "ArangoSearch views created successfully",
-  "views": {
-    "customers_blocking_view": "created",
-    "entities_blocking_view": "created"
-  },
-  "collections": ["customers", "entities"]
+"success": true,
+"message": "ArangoSearch views created successfully",
+"views": {
+"customers_blocking_view": "created",
+"entities_blocking_view": "created"
+},
+"collections": ["customers", "entities"]
 }
 ```
 
@@ -161,31 +161,31 @@ Check entity resolution setup status.
 **Response:**
 ```json
 {
-  "success": true,
-  "status": {
-    "analyzers": {
-      "ngram_analyzer": true,
-      "phonetic_analyzer": true,
-      "exact_analyzer": true
-    },
-    "views": {
-      "customers_blocking_view": true
-    },
-    "collections": {
-      "customers": true
-    }
-  },
-  "readiness": {
-    "analyzers_ready": true,
-    "views_configured": true,
-    "collections_available": true,
-    "overall_ready": true
-  },
-  "summary": {
-    "analyzers": "3/3 created",
-    "views": "1 configured",
-    "collections": "1 available"
-  }
+"success": true,
+"status": {
+"analyzers": {
+"ngram_analyzer": true,
+"phonetic_analyzer": true,
+"exact_analyzer": true
+},
+"views": {
+"customers_blocking_view": true
+},
+"collections": {
+"customers": true
+}
+},
+"readiness": {
+"analyzers_ready": true,
+"views_configured": true,
+"collections_available": true,
+"overall_ready": true
+},
+"summary": {
+"analyzers": "3/3 created",
+"views": "1 configured",
+"collections": "1 available"
+}
 }
 ```
 
@@ -196,8 +196,8 @@ Initialize complete entity resolution setup (analyzers + views).
 **Request Body:**
 ```json
 {
-  "collections": ["customers"],
-  "force": false
+"collections": ["customers"],
+"force": false
 }
 ```
 
@@ -208,19 +208,19 @@ Initialize complete entity resolution setup (analyzers + views).
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "Entity resolution setup initialized successfully",
-  "results": {
-    "analyzers": { ... },
-    "views": { ... },
-    "collections": { ... },
-    "warnings": []
-  },
-  "configuration": {
-    "ngramLength": 3,
-    "collections": ["customers"],
-    "force": false
-  }
+"success": true,
+"message": "Entity resolution setup initialized successfully",
+"results": {
+"analyzers": { ... },
+"views": { ... },
+"collections": { ... },
+"warnings": []
+},
+"configuration": {
+"ngramLength": 3,
+"collections": ["customers"],
+"force": false
+}
 }
 ```
 
@@ -235,11 +235,11 @@ Generate candidate pairs for a target record using multi-strategy blocking.
 **Request Body:**
 ```json
 {
-  "collection": "customers",
-  "targetDocId": "customers/12345",
-  "strategies": ["ngram", "exact"],
-  "limit": 100,
-  "threshold": 0.1
+"collection": "customers",
+"targetDocId": "customers/12345",
+"strategies": ["ngram", "exact"],
+"limit": 100,
+"threshold": 0.1
 }
 ```
 
@@ -253,35 +253,35 @@ Generate candidate pairs for a target record using multi-strategy blocking.
 **Response:**
 ```json
 {
-  "success": true,
-  "collection": "customers",
-  "targetDocId": "customers/12345",
-  "candidates": [
-    {
-      "candidateId": "customers/67890",
-      "targetId": "customers/12345",
-      "score": 8.5,
-      "matchedFields": ["email", "city"],
-      "candidate": {
-        "first_name": "John",
-        "last_name": "Smith",
-        "email": "john.smith@example.com",
-        "phone": "555-1234",
-        "city": "New York"
-      }
-    }
-  ],
-  "statistics": {
-    "candidate_count": 15,
-    "total_possible_pairs": 9999,
-    "reduction_ratio": 0.9985,
-    "processing_time_ms": 45
-  },
-  "strategies_used": ["ngram", "exact"],
-  "parameters": {
-    "limit": 100,
-    "threshold": 0.1
-  }
+"success": true,
+"collection": "customers",
+"targetDocId": "customers/12345",
+"candidates": [
+{
+"candidateId": "customers/67890",
+"targetId": "customers/12345",
+"score": 8.5,
+"matchedFields": ["email", "city"],
+"candidate": {
+"first_name": "John",
+"last_name": "Smith",
+"email": "john.smith@example.com",
+"phone": "555-1234",
+"city": "New York"
+}
+}
+],
+"statistics": {
+"candidate_count": 15,
+"total_possible_pairs": 9999,
+"reduction_ratio": 0.9985,
+"processing_time_ms": 45
+},
+"strategies_used": ["ngram", "exact"],
+"parameters": {
+"limit": 100,
+"threshold": 0.1
+}
 }
 ```
 
@@ -294,11 +294,11 @@ Generate candidates for multiple target records in batch.
 **Request Body:**
 ```json
 {
-  "collection": "customers",
-  "targetDocIds": ["customers/123", "customers/456"],
-  "strategies": ["ngram", "exact"],
-  "limit": 100,
-  "threshold": 0.1
+"collection": "customers",
+"targetDocIds": ["customers/123", "customers/456"],
+"strategies": ["ngram", "exact"],
+"limit": 100,
+"threshold": 0.1
 }
 ```
 
@@ -312,31 +312,31 @@ Generate candidates for multiple target records in batch.
 **Response:**
 ```json
 {
-  "success": true,
-  "collection": "customers",
-  "batch_size": 2,
-  "results": [
-    {
-      "targetDocId": "customers/123",
-      "candidates": [...],
-      "candidate_count": 15,
-      "success": true
-    },
-    {
-      "targetDocId": "customers/456",
-      "candidates": [...],
-      "candidate_count": 12,
-      "success": true
-    }
-  ],
-  "statistics": {
-    "successful_targets": 2,
-    "failed_targets": 0,
-    "total_candidates": 27,
-    "average_candidates_per_target": 13.5,
-    "reduction_ratio": 0.9987,
-    "processing_time_ms": 78
-  }
+"success": true,
+"collection": "customers",
+"batch_size": 2,
+"results": [
+{
+"targetDocId": "customers/123",
+"candidates": [...],
+"candidate_count": 15,
+"success": true
+},
+{
+"targetDocId": "customers/456",
+"candidates": [...],
+"candidate_count": 12,
+"success": true
+}
+],
+"statistics": {
+"successful_targets": 2,
+"failed_targets": 0,
+"total_candidates": 27,
+"average_candidates_per_target": 13.5,
+"reduction_ratio": 0.9987,
+"processing_time_ms": 78
+}
 }
 ```
 
@@ -347,56 +347,56 @@ Get available blocking strategies and their configurations.
 **Response:**
 ```json
 {
-  "success": true,
-  "strategies": {
-    "ngram": {
-      "name": "N-gram Blocking",
-      "description": "Uses n-gram tokens for typo-tolerant blocking",
-      "analyzer": "ngram_analyzer",
-      "ngram_length": 3,
-      "fields": ["first_name", "last_name", "full_name", "address", "company"],
-      "advantages": ["Typo tolerance", "Character-level matching", "Language independent"],
-      "best_for": "Names and addresses with potential spelling variations"
-    },
-    "exact": {
-      "name": "Exact Blocking",
-      "description": "Uses exact string matching with normalization",
-      "analyzer": "exact_analyzer",
-      "fields": ["email", "phone", "ssn", "id_number"],
-      "advantages": ["High precision", "Fast processing", "No false positives"],
-      "best_for": "Structured fields like emails, phone numbers, IDs"
-    },
-    "phonetic": {
-      "name": "Phonetic Blocking",
-      "description": "Uses phonetic algorithms for name variations",
-      "analyzer": "phonetic_analyzer",
-      "fields": ["first_name", "last_name", "full_name"],
-      "advantages": ["Pronunciation variations", "Cultural name differences", "Nickname matching"],
-      "best_for": "Person names with phonetic variations"
-    }
-  },
-  "configuration": {
-    "ngram_length": 3,
-    "phonetic_enabled": true,
-    "default_limit": 100
-  },
-  "recommended_combinations": [
-    {
-      "name": "Standard Person Matching",
-      "strategies": ["ngram", "exact"],
-      "description": "Good for person records with names and contact info"
-    },
-    {
-      "name": "Enhanced Person Matching",
-      "strategies": ["ngram", "exact", "phonetic"],
-      "description": "Comprehensive matching including phonetic variations"
-    },
-    {
-      "name": "High Precision Matching",
-      "strategies": ["exact"],
-      "description": "Conservative matching for high-quality data"
-    }
-  ]
+"success": true,
+"strategies": {
+"ngram": {
+"name": "N-gram Blocking",
+"description": "Uses n-gram tokens for typo-tolerant blocking",
+"analyzer": "ngram_analyzer",
+"ngram_length": 3,
+"fields": ["first_name", "last_name", "full_name", "address", "company"],
+"advantages": ["Typo tolerance", "Character-level matching", "Language independent"],
+"best_for": "Names and addresses with potential spelling variations"
+},
+"exact": {
+"name": "Exact Blocking",
+"description": "Uses exact string matching with normalization",
+"analyzer": "exact_analyzer",
+"fields": ["email", "phone", "ssn", "id_number"],
+"advantages": ["High precision", "Fast processing", "No false positives"],
+"best_for": "Structured fields like emails, phone numbers, IDs"
+},
+"phonetic": {
+"name": "Phonetic Blocking",
+"description": "Uses phonetic algorithms for name variations",
+"analyzer": "phonetic_analyzer",
+"fields": ["first_name", "last_name", "full_name"],
+"advantages": ["Pronunciation variations", "Cultural name differences", "Nickname matching"],
+"best_for": "Person names with phonetic variations"
+}
+},
+"configuration": {
+"ngram_length": 3,
+"phonetic_enabled": true,
+"default_limit": 100
+},
+"recommended_combinations": [
+{
+"name": "Standard Person Matching",
+"strategies": ["ngram", "exact"],
+"description": "Good for person records with names and contact info"
+},
+{
+"name": "Enhanced Person Matching",
+"strategies": ["ngram", "exact", "phonetic"],
+"description": "Comprehensive matching including phonetic variations"
+},
+{
+"name": "High Precision Matching",
+"strategies": ["exact"],
+"description": "Conservative matching for high-quality data"
+}
+]
 }
 ```
 
@@ -410,21 +410,21 @@ Get blocking performance statistics for a collection.
 **Response:**
 ```json
 {
-  "success": true,
-  "collection": "customers",
-  "view": "customers_blocking_view",
-  "statistics": {
-    "record_count": 10000,
-    "total_possible_pairs": 49995000,
-    "view_properties": { ... },
-    "complexity_note": "Without blocking, 49,995,000 comparisons would be needed",
-    "blocking_benefit": "Reduces comparisons by 90-99% typically"
-  },
-  "performance_estimates": {
-    "pairs_with_10_percent_blocking": 4999500,
-    "pairs_with_5_percent_blocking": 2499750,
-    "pairs_with_1_percent_blocking": 499950
-  }
+"success": true,
+"collection": "customers",
+"view": "customers_blocking_view",
+"statistics": {
+"record_count": 10000,
+"total_possible_pairs": 49995000,
+"view_properties": { ... },
+"complexity_note": "Without blocking, 49,995,000 comparisons would be needed",
+"blocking_benefit": "Reduces comparisons by 90-99% typically"
+},
+"performance_estimates": {
+"pairs_with_10_percent_blocking": 4999500,
+"pairs_with_5_percent_blocking": 2499750,
+"pairs_with_1_percent_blocking": 499950
+}
 }
 ```
 
@@ -439,24 +439,24 @@ Compute similarity score between two documents using Fellegi-Sunter framework.
 **Request Body:**
 ```json
 {
-  "docA": {
-    "first_name": "John",
-    "last_name": "Smith",
-    "email": "john.smith@example.com",
-    "phone": "555-1234",
-    "address": "123 Main St",
-    "city": "New York"
-  },
-  "docB": {
-    "first_name": "Jon",
-    "last_name": "Smith",
-    "email": "j.smith@example.com",
-    "phone": "555-1234",
-    "address": "123 Main Street",
-    "city": "New York"
-  },
-  "fieldWeights": null,
-  "includeDetails": true
+"docA": {
+"first_name": "John",
+"last_name": "Smith",
+"email": "john.smith@example.com",
+"phone": "555-1234",
+"address": "123 Main St",
+"city": "New York"
+},
+"docB": {
+"first_name": "Jon",
+"last_name": "Smith",
+"email": "j.smith@example.com",
+"phone": "555-1234",
+"address": "123 Main Street",
+"city": "New York"
+},
+"fieldWeights": null,
+"includeDetails": true
 }
 ```
 
@@ -469,40 +469,40 @@ Compute similarity score between two documents using Fellegi-Sunter framework.
 **Response:**
 ```json
 {
-  "success": true,
-  "similarity": {
-    "total_score": 3.45,
-    "is_match": true,
-    "is_possible_match": false,
-    "confidence": 0.89,
-    "decision": "match",
-    "field_scores": {
-      "name_ngram": {
-        "similarity": 0.85,
-        "agreement": true,
-        "weight": 2.1,
-        "threshold": 0.7
-      },
-      "email_exact": {
-        "similarity": 0.0,
-        "agreement": false,
-        "weight": -0.8,
-        "threshold": 1.0
-      },
-      "phone_exact": {
-        "similarity": 1.0,
-        "agreement": true,
-        "weight": 2.15,
-        "threshold": 1.0
-      }
-    },
-    "thresholds": {
-      "upper_threshold": 2.0,
-      "lower_threshold": -1.0
-    }
-  },
-  "processing_time_ms": 12,
-  "field_weights_used": { ... }
+"success": true,
+"similarity": {
+"total_score": 3.45,
+"is_match": true,
+"is_possible_match": false,
+"confidence": 0.89,
+"decision": "match",
+"field_scores": {
+"name_ngram": {
+"similarity": 0.85,
+"agreement": true,
+"weight": 2.1,
+"threshold": 0.7
+},
+"email_exact": {
+"similarity": 0.0,
+"agreement": false,
+"weight": -0.8,
+"threshold": 1.0
+},
+"phone_exact": {
+"similarity": 1.0,
+"agreement": true,
+"weight": 2.15,
+"threshold": 1.0
+}
+},
+"thresholds": {
+"upper_threshold": 2.0,
+"lower_threshold": -1.0
+}
+},
+"processing_time_ms": 12,
+"field_weights_used": { ... }
 }
 ```
 
@@ -518,19 +518,19 @@ Compute similarity for multiple document pairs in batch.
 **Request Body:**
 ```json
 {
-  "pairs": [
-    {
-      "docA": { ... },
-      "docB": { ... }
-    },
-    {
-      "docA": { ... },
-      "docB": { ... }
-    }
-  ],
-  "fieldWeights": null,
-  "includeDetails": false,
-  "threshold": 0.8
+"pairs": [
+{
+"docA": { ... },
+"docB": { ... }
+},
+{
+"docA": { ... },
+"docB": { ... }
+}
+],
+"fieldWeights": null,
+"includeDetails": false,
+"threshold": 0.8
 }
 ```
 
@@ -543,27 +543,27 @@ Compute similarity for multiple document pairs in batch.
 **Response:**
 ```json
 {
-  "success": true,
-  "batch_size": 100,
-  "results": [
-    {
-      "index": 0,
-      "success": true,
-      "docA_id": "inline_0_A",
-      "docB_id": "inline_0_B",
-      "similarity": { ... }
-    }
-  ],
-  "statistics": {
-    "successful_computations": 98,
-    "failed_computations": 2,
-    "matches_found": 45,
-    "match_rate": 0.46,
-    "average_score": 1.23,
-    "processing_time_ms": 234
-  },
-  "threshold_used": 0.8,
-  "field_weights_used": { ... }
+"success": true,
+"batch_size": 100,
+"results": [
+{
+"index": 0,
+"success": true,
+"docA_id": "inline_0_A",
+"docB_id": "inline_0_B",
+"similarity": { ... }
+}
+],
+"statistics": {
+"successful_computations": 98,
+"failed_computations": 2,
+"matches_found": 45,
+"match_rate": 0.46,
+"average_score": 1.23,
+"processing_time_ms": 234
+},
+"threshold_used": 0.8,
+"field_weights_used": { ... }
 }
 ```
 
@@ -574,45 +574,45 @@ Get available similarity functions and recommended usage strategies.
 **Response:**
 ```json
 {
-  "success": true,
-  "similarity_functions": {
-    "ngram_similarity": {
-      "name": "N-gram Similarity",
-      "description": "Computes similarity based on n-gram overlap",
-      "function": "NGRAM_SIMILARITY(str1, str2, n)",
-      "parameters": ["string1", "string2", "ngram_length"],
-      "return_type": "number (0.0 to 1.0)",
-      "best_for": "Text fields with potential typos",
-      "example": "NGRAM_SIMILARITY(\"John Smith\", \"Jon Smith\", 3) -> 0.75"
-    },
-    "levenshtein_distance": {
-      "name": "Levenshtein Distance",
-      "description": "Computes edit distance between strings",
-      "function": "LEVENSHTEIN_DISTANCE(str1, str2)",
-      "parameters": ["string1", "string2"],
-      "return_type": "number (0 to max_string_length)",
-      "best_for": "Measuring exact differences between strings",
-      "example": "LEVENSHTEIN_DISTANCE(\"kitten\", \"sitting\") -> 3"
-    }
-  },
-  "field_strategies": {
-    "names": {
-      "recommended_functions": ["ngram_similarity", "normalized_levenshtein"],
-      "typical_threshold": 0.7,
-      "considerations": "Names often have variations, nicknames, and cultural differences"
-    },
-    "emails": {
-      "recommended_functions": ["exact_match"],
-      "typical_threshold": 1.0,
-      "considerations": "Emails should match exactly or not at all"
-    }
-  },
-  "default_configuration": { ... },
-  "implementation_notes": {
-    "performance": "ArangoDB native functions are optimized for large datasets",
-    "accuracy": "Combine multiple functions for robust similarity scoring",
-    "tuning": "Adjust thresholds based on data quality and business requirements"
-  }
+"success": true,
+"similarity_functions": {
+"ngram_similarity": {
+"name": "N-gram Similarity",
+"description": "Computes similarity based on n-gram overlap",
+"function": "NGRAM_SIMILARITY(str1, str2, n)",
+"parameters": ["string1", "string2", "ngram_length"],
+"return_type": "number (0.0 to 1.0)",
+"best_for": "Text fields with potential typos",
+"example": "NGRAM_SIMILARITY(\"John Smith\", \"Jon Smith\", 3) -> 0.75"
+},
+"levenshtein_distance": {
+"name": "Levenshtein Distance",
+"description": "Computes edit distance between strings",
+"function": "LEVENSHTEIN_DISTANCE(str1, str2)",
+"parameters": ["string1", "string2"],
+"return_type": "number (0 to max_string_length)",
+"best_for": "Measuring exact differences between strings",
+"example": "LEVENSHTEIN_DISTANCE(\"kitten\", \"sitting\") -> 3"
+}
+},
+"field_strategies": {
+"names": {
+"recommended_functions": ["ngram_similarity", "normalized_levenshtein"],
+"typical_threshold": 0.7,
+"considerations": "Names often have variations, nicknames, and cultural differences"
+},
+"emails": {
+"recommended_functions": ["exact_match"],
+"typical_threshold": 1.0,
+"considerations": "Emails should match exactly or not at all"
+}
+},
+"default_configuration": { ... },
+"implementation_notes": {
+"performance": "ArangoDB native functions are optimized for large datasets",
+"accuracy": "Combine multiple functions for robust similarity scoring",
+"tuning": "Adjust thresholds based on data quality and business requirements"
+}
 }
 ```
 
@@ -627,18 +627,18 @@ Build a similarity graph from scored document pairs.
 **Request Body:**
 ```json
 {
-  "scoredPairs": [
-    {
-      "docA_id": "customers/123",
-      "docB_id": "customers/456",
-      "total_score": 3.5,
-      "field_scores": { ... },
-      "is_match": true
-    }
-  ],
-  "threshold": 0.8,
-  "edgeCollection": "similarities",
-  "forceUpdate": false
+"scoredPairs": [
+{
+"docA_id": "customers/123",
+"docB_id": "customers/456",
+"total_score": 3.5,
+"field_scores": { ... },
+"is_match": true
+}
+],
+"threshold": 0.8,
+"edgeCollection": "similarities",
+"forceUpdate": false
 }
 ```
 
@@ -651,19 +651,19 @@ Build a similarity graph from scored document pairs.
 **Response:**
 ```json
 {
-  "success": true,
-  "edge_collection": "similarities",
-  "results": {
-    "created_count": 85,
-    "updated_count": 12,
-    "skipped_count": 3,
-    "errors": []
-  },
-  "statistics": {
-    "input_pairs": 100,
-    "threshold_used": 0.8,
-    "processing_time_ms": 145
-  }
+"success": true,
+"edge_collection": "similarities",
+"results": {
+"created_count": 85,
+"updated_count": 12,
+"skipped_count": 3,
+"errors": []
+},
+"statistics": {
+"input_pairs": 100,
+"threshold_used": 0.8,
+"processing_time_ms": 145
+}
 }
 ```
 
@@ -676,10 +676,10 @@ Execute Weakly Connected Components (WCC) clustering on similarity graph.
 **Request Body:**
 ```json
 {
-  "edgeCollection": "similarities",
-  "minSimilarity": 0.8,
-  "maxClusterSize": 100,
-  "outputCollection": "entity_clusters"
+"edgeCollection": "similarities",
+"minSimilarity": 0.8,
+"maxClusterSize": 100,
+"outputCollection": "entity_clusters"
 }
 ```
 
@@ -692,45 +692,45 @@ Execute Weakly Connected Components (WCC) clustering on similarity graph.
 **Response:**
 ```json
 {
-  "success": true,
-  "edge_collection": "similarities",
-  "output_collection": "entity_clusters",
-  "clusters": [
-    {
-      "cluster_id": "cluster_abc123",
-      "member_ids": ["customers/123", "customers/456", "customers/789"],
-      "cluster_size": 3,
-      "edge_count": 3,
-      "average_similarity": 0.92,
-      "min_similarity": 0.85,
-      "max_similarity": 0.98,
-      "density": 1.0,
-      "created_at": 1698067200000,
-      "quality_score": 0.95,
-      "quality_metrics": {
-        "size_appropriate": true,
-        "similarity_coherent": true,
-        "density_adequate": true,
-        "score_range_reasonable": true
-      },
-      "is_valid": true
-    }
-  ],
-  "storage_results": {
-    "stored_count": 45,
-    "errors": []
-  },
-  "statistics": {
-    "total_clusters": 45,
-    "valid_clusters": 43,
-    "average_cluster_size": 2.8,
-    "largest_cluster_size": 12,
-    "processing_time_ms": 567
-  },
-  "parameters": {
-    "min_similarity": 0.8,
-    "max_cluster_size": 100
-  }
+"success": true,
+"edge_collection": "similarities",
+"output_collection": "entity_clusters",
+"clusters": [
+{
+"cluster_id": "cluster_abc123",
+"member_ids": ["customers/123", "customers/456", "customers/789"],
+"cluster_size": 3,
+"edge_count": 3,
+"average_similarity": 0.92,
+"min_similarity": 0.85,
+"max_similarity": 0.98,
+"density": 1.0,
+"created_at": 1698067200000,
+"quality_score": 0.95,
+"quality_metrics": {
+"size_appropriate": true,
+"similarity_coherent": true,
+"density_adequate": true,
+"score_range_reasonable": true
+},
+"is_valid": true
+}
+],
+"storage_results": {
+"stored_count": 45,
+"errors": []
+},
+"statistics": {
+"total_clusters": 45,
+"valid_clusters": 43,
+"average_cluster_size": 2.8,
+"largest_cluster_size": 12,
+"processing_time_ms": 567
+},
+"parameters": {
+"min_similarity": 0.8,
+"max_cluster_size": 100
+}
 }
 ```
 
@@ -746,15 +746,15 @@ Validate cluster quality and coherence.
 **Request Body:**
 ```json
 {
-  "clusters": [ ... ],
-  "qualityThresholds": {
-    "min_cluster_size": 2,
-    "max_cluster_size": 50,
-    "min_avg_similarity": 0.7,
-    "min_density": 0.3,
-    "max_score_range": 0.5,
-    "min_quality_score": 0.6
-  }
+"clusters": [ ... ],
+"qualityThresholds": {
+"min_cluster_size": 2,
+"max_cluster_size": 50,
+"min_avg_similarity": 0.7,
+"min_density": 0.3,
+"max_score_range": 0.5,
+"min_quality_score": 0.6
+}
 }
 ```
 
@@ -765,37 +765,37 @@ Validate cluster quality and coherence.
 **Response:**
 ```json
 {
-  "success": true,
-  "validation_results": [
-    {
-      "cluster_id": "cluster_abc123",
-      "quality_metrics": {
-        "size_appropriate": true,
-        "similarity_coherent": true,
-        "density_adequate": true,
-        "score_range_reasonable": true
-      },
-      "quality_score": 1.0,
-      "quality_issues": [],
-      "is_valid": true
-    }
-  ],
-  "statistics": {
-    "total_clusters": 45,
-    "valid_clusters": 43,
-    "invalid_clusters": 2,
-    "overall_quality_score": 0.87,
-    "validation_pass_rate": 0.96,
-    "processing_time_ms": 89
-  },
-  "quality_thresholds": { ... },
-  "recommendations": [
-    {
-      "type": "quality_improvement",
-      "message": "2 clusters failed quality validation",
-      "suggestion": "Review similarity thresholds and clustering parameters"
-    }
-  ]
+"success": true,
+"validation_results": [
+{
+"cluster_id": "cluster_abc123",
+"quality_metrics": {
+"size_appropriate": true,
+"similarity_coherent": true,
+"density_adequate": true,
+"score_range_reasonable": true
+},
+"quality_score": 1.0,
+"quality_issues": [],
+"is_valid": true
+}
+],
+"statistics": {
+"total_clusters": 45,
+"valid_clusters": 43,
+"invalid_clusters": 2,
+"overall_quality_score": 0.87,
+"validation_pass_rate": 0.96,
+"processing_time_ms": 89
+},
+"quality_thresholds": { ... },
+"recommendations": [
+{
+"type": "quality_improvement",
+"message": "2 clusters failed quality validation",
+"suggestion": "Review similarity thresholds and clustering parameters"
+}
+]
 }
 ```
 
@@ -809,17 +809,17 @@ Get clustering statistics for similarity graph.
 **Response:**
 ```json
 {
-  "success": true,
-  "edge_collection": "similarities",
-  "statistics": {
-    "total_edges": 1234,
-    "average_similarity": 0.87,
-    "min_similarity": 0.70,
-    "max_similarity": 0.99,
-    "unique_vertices": 567,
-    "average_degree": 4.35,
-    "max_degree": 15
-  }
+"success": true,
+"edge_collection": "similarities",
+"statistics": {
+"total_edges": 1234,
+"average_similarity": 0.87,
+"min_similarity": 0.70,
+"max_similarity": 0.99,
+"unique_vertices": 567,
+"average_degree": 4.35,
+"max_degree": 15
+}
 }
 ```
 
@@ -848,8 +848,8 @@ pipeline = EntityResolutionPipeline()
 
 # Connect to ArangoDB
 if not pipeline.connect():
-    print("Failed to connect")
-    exit(1)
+print("Failed to connect")
+exit(1)
 
 # Load data
 result = pipeline.load_data("customers.csv", collection_name="customers")
@@ -857,9 +857,9 @@ print(f"Loaded {result['records_imported']} records")
 
 # Run complete pipeline
 results = pipeline.run_complete_pipeline(
-    collection_name="customers",
-    strategies=["ngram", "exact"],
-    similarity_threshold=0.8
+collection_name="customers",
+strategies=["ngram", "exact"],
+similarity_threshold=0.8
 )
 
 print(f"Found {results['clustering']['total_clusters']} entity clusters")
@@ -888,9 +888,9 @@ All error responses follow this format:
 
 ```json
 {
-  "success": false,
-  "error": "Detailed error message",
-  "code": "ERROR_CODE"
+"success": false,
+"error": "Detailed error message",
+"code": "ERROR_CODE"
 }
 ```
 
@@ -917,19 +917,19 @@ All error responses follow this format:
 **Example:**
 ```python
 try:
-    response = requests.post(url, json=data, auth=auth)
-    result = response.json()
-    
-    if not result.get('success', False):
-        print(f"Error: {result.get('error')} (Code: {result.get('code')})")
-        # Handle error appropriately
-    else:
-        # Process successful result
-        pass
-        
+response = requests.post(url, json=data, auth=auth)
+result = response.json()
+
+if not result.get('success', False):
+print(f"Error: {result.get('error')} (Code: {result.get('code')})")
+# Handle error appropriately
+else:
+# Process successful result
+pass
+
 except requests.RequestException as e:
-    print(f"Network error: {e}")
-    # Implement retry logic
+print(f"Network error: {e}")
+# Implement retry logic
 ```
 
 ---

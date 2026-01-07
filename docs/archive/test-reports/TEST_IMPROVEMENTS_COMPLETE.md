@@ -138,14 +138,14 @@ Test coverage has been **significantly improved** from a critically low **16.5%*
 
 **Key Fixtures:**
 ```python
-test_config              # Test-specific configuration
-db_connection           # Database connection  
-sample_customers        # Sample customer records
-sample_candidate_pairs  # Sample candidate pairs
-bulk_service            # BulkBlockingService instance
-connected_bulk_service  # Connected service
-temp_collection         # Temporary collection
-populated_collection    # Collection with test data
+test_config # Test-specific configuration
+db_connection # Database connection 
+sample_customers # Sample customer records
+sample_candidate_pairs # Sample candidate pairs
+bulk_service # BulkBlockingService instance
+connected_bulk_service # Connected service
+temp_collection # Temporary collection
+populated_collection # Collection with test data
 ```
 
 #### pytest.ini
@@ -358,9 +358,9 @@ export ARANGO_PORT=8529
 export ARANGO_DATABASE=entity_resolution_test
 
 # Test control
-export SKIP_INTEGRATION_TESTS=false  # Run integration tests
-export SKIP_PERFORMANCE_TESTS=true   # Skip slow tests
-export USE_DEFAULT_PASSWORD=true     # Use default test password
+export SKIP_INTEGRATION_TESTS=false # Run integration tests
+export SKIP_PERFORMANCE_TESTS=true # Skip slow tests
+export USE_DEFAULT_PASSWORD=true # Use default test password
 ```
 
 ---
@@ -375,47 +375,47 @@ name: Tests
 on: [push, pull_request]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    
-    services:
-      arangodb:
-        image: arangodb:3.12
-        env:
-          ARANGO_ROOT_PASSWORD: testpassword123
-        ports:
-          - 8529:8529
-    
-    steps:
-    - uses: actions/checkout@v2
-    
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.11
-    
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-        pip install pytest pytest-cov
-    
-    - name: Run unit tests
-      run: pytest -m unit --cov=src
-    
-    - name: Run integration tests
-      env:
-        ARANGO_ROOT_PASSWORD: testpassword123
-      run: pytest -m integration --cov=src --cov-append
-    
-    - name: Generate coverage report
-      run: |
-        pytest --cov=src --cov-report=xml --cov-report=html
-        coverage report
-    
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v2
-      with:
-        file: ./coverage.xml
+test:
+runs-on: ubuntu-latest
+
+services:
+arangodb:
+image: arangodb:3.12
+env:
+ARANGO_ROOT_PASSWORD: testpassword123
+ports:
+- 8529:8529
+
+steps:
+- uses: actions/checkout@v2
+
+- name: Set up Python
+uses: actions/setup-python@v2
+with:
+python-version: 3.11
+
+- name: Install dependencies
+run: |
+pip install -r requirements.txt
+pip install pytest pytest-cov
+
+- name: Run unit tests
+run: pytest -m unit --cov=src
+
+- name: Run integration tests
+env:
+ARANGO_ROOT_PASSWORD: testpassword123
+run: pytest -m integration --cov=src --cov-append
+
+- name: Generate coverage report
+run: |
+pytest --cov=src --cov-report=xml --cov-report=html
+coverage report
+
+- name: Upload coverage to Codecov
+uses: codecov/codecov-action@v2
+with:
+file: ./coverage.xml
 ```
 
 ---
@@ -425,7 +425,7 @@ jobs:
 ### Short-term (Next Sprint)
 1. Run full test suite with real database
 2. Generate actual coverage report with pytest-cov
-3. Fix any failing tests  
+3. Fix any failing tests 
 4. Update CODE_AUDIT_REPORT.md with new coverage metrics
 
 ### Medium-term (Next Month)

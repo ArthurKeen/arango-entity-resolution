@@ -66,7 +66,7 @@ load_dotenv()
 ```bash
 python -c "
 from entity_resolution.utils.database import test_database_connection
-print('✓ Connected' if test_database_connection() else '✗ Failed')
+print(' Connected' if test_database_connection() else ' Failed')
 "
 ```
 
@@ -145,16 +145,16 @@ print('✓ Connected' if test_database_connection() else '✗ Failed')
 
 ## Success Criteria
 
-✓ Application starts without errors  
-✓ Database connection works  
-✓ Existing functionality unchanged  
-✓ Performance improved (if using bulk processing)  
-✓ No security warnings about credentials  
+Application starts without errors 
+Database connection works 
+Existing functionality unchanged 
+Performance improved (if using bulk processing) 
+No security warnings about credentials 
 
 ---
 
-**Total Time:** ~30 minutes  
-**Risk:** LOW (non-breaking update)  
+**Total Time:** ~30 minutes 
+**Risk:** LOW (non-breaking update) 
 **Rollback:** Easy (see above)
 
 **For detailed instructions, see:** `LIB_USER_UPDATE_GUIDE.md`

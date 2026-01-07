@@ -14,14 +14,14 @@ This guide covers the comprehensive test suite for the ArangoDB Entity Resolutio
 
 ```
 tests/
-├── conftest.py                     # Shared fixtures and configuration
-├── test_bulk_blocking_service.py   # Unit tests for bulk processing
-├── test_bulk_integration.py        # Integration tests for bulk features
-├── test_performance_benchmarks.py  # Performance and scalability tests
-├── test_blocking_service.py        # Existing blocking service tests
-├── test_similarity_service.py      # Existing similarity tests
-├── test_clustering_service.py      # Existing clustering tests
-└── ... (other test files)
+conftest.py # Shared fixtures and configuration
+test_bulk_blocking_service.py # Unit tests for bulk processing
+test_bulk_integration.py # Integration tests for bulk features
+test_performance_benchmarks.py # Performance and scalability tests
+test_blocking_service.py # Existing blocking service tests
+test_similarity_service.py # Existing similarity tests
+test_clustering_service.py # Existing clustering tests
+... (other test files)
 ```
 
 ### Test Categories
@@ -152,17 +152,17 @@ open htmlcov/index.html
 **Example:**
 ```python
 def test_exact_blocking_phone(self, mock_client_class):
-    """Test exact blocking by phone number"""
-    # Setup mocks
-    # ... mock configuration ...
-    
-    service = BulkBlockingService()
-    service.connect()
-    
-    result = service._execute_exact_blocking("customers", 100)
-    
-    assert len(result) >= 2
-    assert mock_aql.execute.called
+"""Test exact blocking by phone number"""
+# Setup mocks
+# ... mock configuration ...
+
+service = BulkBlockingService()
+service.connect()
+
+result = service._execute_exact_blocking("customers", 100)
+
+assert len(result) >= 2
+assert mock_aql.execute.called
 ```
 
 ---
@@ -186,17 +186,17 @@ def test_exact_blocking_phone(self, mock_client_class):
 **Example:**
 ```python
 def test_exact_blocking_finds_phone_duplicates(self, bulk_service, test_collection):
-    """Test that exact blocking finds phone number duplicates"""
-    result = bulk_service.generate_all_pairs(
-        collection_name=test_collection,
-        strategies=["exact"],
-        limit=0
-    )
-    
-    assert result['success'] is True
-    phone_pairs = [p for p in result['candidate_pairs'] 
-                   if p['strategy'] == 'exact_phone']
-    assert len(phone_pairs) >= 1
+"""Test that exact blocking finds phone number duplicates"""
+result = bulk_service.generate_all_pairs(
+collection_name=test_collection,
+strategies=["exact"],
+limit=0
+)
+
+assert result['success'] is True
+phone_pairs = [p for p in result['candidate_pairs'] 
+if p['strategy'] == 'exact_phone']
+assert len(phone_pairs) >= 1
 ```
 
 ---
@@ -221,17 +221,17 @@ def test_exact_blocking_finds_phone_duplicates(self, bulk_service, test_collecti
 **Example:**
 ```python
 def test_batch_vs_bulk_comparison(self, performance_collection):
-    """Compare batch vs bulk processing performance"""
-    # Measure bulk processing
-    bulk_start = time.time()
-    bulk_result = bulk_service.generate_all_pairs(...)
-    bulk_time = time.time() - bulk_start
-    
-    # Calculate speedup
-    speedup = estimated_batch_time / bulk_time
-    
-    # Verify speedup claim (should be at least 2x)
-    assert speedup >= 2.0
+"""Compare batch vs bulk processing performance"""
+# Measure bulk processing
+bulk_start = time.time()
+bulk_result = bulk_service.generate_all_pairs(...)
+bulk_time = time.time() - bulk_start
+
+# Calculate speedup
+speedup = estimated_batch_time / bulk_time
+
+# Verify speedup claim (should be at least 2x)
+assert speedup >= 2.0
 ```
 
 ---
@@ -262,10 +262,10 @@ populated_collection - Collection with sample data
 
 ```python
 def test_with_fixtures(bulk_service, sample_customers):
-    """Test using shared fixtures"""
-    # bulk_service and sample_customers are automatically provided
-    result = bulk_service.generate_all_pairs(...)
-    assert result['success'] is True
+"""Test using shared fixtures"""
+# bulk_service and sample_customers are automatically provided
+result = bulk_service.generate_all_pairs(...)
+assert result['success'] is True
 ```
 
 ---
@@ -282,9 +282,9 @@ export ARANGO_PORT=8529
 export ARANGO_DATABASE=entity_resolution_test
 
 # Test control
-export SKIP_INTEGRATION_TESTS=true  # Skip if no database
-export SKIP_PERFORMANCE_TESTS=true  # Skip slow tests
-export USE_DEFAULT_PASSWORD=true     # Use default test password
+export SKIP_INTEGRATION_TESTS=true # Skip if no database
+export SKIP_PERFORMANCE_TESTS=true # Skip slow tests
+export USE_DEFAULT_PASSWORD=true # Use default test password
 ```
 
 ---
@@ -298,32 +298,32 @@ import pytest
 from unittest.mock import Mock, patch
 
 class TestNewFeature:
-    """Test new feature"""
-    
-    def test_basic_functionality(self):
-        """Test basic functionality"""
-        # Arrange
-        service = MyService()
-        
-        # Act
-        result = service.my_method()
-        
-        # Assert
-        assert result is not None
-    
-    @patch('module.ExternalDependency')
-    def test_with_mock(self, mock_dep):
-        """Test with mocked dependency"""
-        # Setup mock
-        mock_dep.return_value = Mock()
-        
-        # Test code
-        service = MyService()
-        result = service.method_using_dependency()
-        
-        # Verify
-        assert result['success'] is True
-        mock_dep.assert_called_once()
+"""Test new feature"""
+
+def test_basic_functionality(self):
+"""Test basic functionality"""
+# Arrange
+service = MyService()
+
+# Act
+result = service.my_method()
+
+# Assert
+assert result is not None
+
+@patch('module.ExternalDependency')
+def test_with_mock(self, mock_dep):
+"""Test with mocked dependency"""
+# Setup mock
+mock_dep.return_value = Mock()
+
+# Test code
+service = MyService()
+result = service.method_using_dependency()
+
+# Verify
+assert result['success'] is True
+mock_dep.assert_called_once()
 ```
 
 ### Integration Test Template
@@ -333,20 +333,20 @@ import pytest
 
 @pytest.mark.integration
 class TestFeatureIntegration:
-    """Integration tests for feature"""
-    
-    def test_end_to_end(self, db_connection, temp_collection):
-        """Test complete workflow"""
-        # Create test data
-        collection = db_connection.collection(temp_collection)
-        collection.insert({"name": "test"})
-        
-        # Run feature
-        result = my_feature.process(temp_collection)
-        
-        # Verify results
-        assert result['success'] is True
-        assert collection.count() > 0
+"""Integration tests for feature"""
+
+def test_end_to_end(self, db_connection, temp_collection):
+"""Test complete workflow"""
+# Create test data
+collection = db_connection.collection(temp_collection)
+collection.insert({"name": "test"})
+
+# Run feature
+result = my_feature.process(temp_collection)
+
+# Verify results
+assert result['success'] is True
+assert collection.count() > 0
 ```
 
 ---
@@ -356,43 +356,43 @@ class TestFeatureIntegration:
 ### General Guidelines
 
 1. **Test Naming**
-   - Use descriptive names: `test_exact_blocking_finds_phone_duplicates`
-   - Not: `test_1`, `test_blocking`
+- Use descriptive names: `test_exact_blocking_finds_phone_duplicates`
+- Not: `test_1`, `test_blocking`
 
 2. **Test Organization**
-   - One test class per feature/component
-   - Group related tests together
-   - Use clear class and method names
+- One test class per feature/component
+- Group related tests together
+- Use clear class and method names
 
 3. **Assertions**
-   - One logical assertion per test
-   - Use descriptive assertion messages
-   - Test both success and failure cases
+- One logical assertion per test
+- Use descriptive assertion messages
+- Test both success and failure cases
 
 4. **Mocking**
-   - Mock external dependencies
-   - Don't mock the code under test
-   - Use realistic mock return values
+- Mock external dependencies
+- Don't mock the code under test
+- Use realistic mock return values
 
 5. **Test Data**
-   - Use fixtures for reusable test data
-   - Keep test data minimal but realistic
-   - Clean up after tests
+- Use fixtures for reusable test data
+- Keep test data minimal but realistic
+- Clean up after tests
 
 ### Code Coverage
 
 ```python
 # GOOD - Tests multiple scenarios
 def test_blocking_strategies():
-    """Test all blocking strategies"""
-    for strategy in ["exact", "ngram", "phonetic"]:
-        result = service.generate_all_pairs(strategies=[strategy])
-        assert result['success'] is True
+"""Test all blocking strategies"""
+for strategy in ["exact", "ngram", "phonetic"]:
+result = service.generate_all_pairs(strategies=[strategy])
+assert result['success'] is True
 
 # BAD - Only tests happy path
 def test_blocking():
-    result = service.generate_all_pairs()
-    assert result is not None
+result = service.generate_all_pairs()
+assert result is not None
 ```
 
 ### Performance Tests
@@ -400,17 +400,17 @@ def test_blocking():
 ```python
 # GOOD - Measures and validates
 def test_performance():
-    start = time.time()
-    result = service.process_large_dataset()
-    execution_time = time.time() - start
-    
-    assert execution_time < 5.0, f"Too slow: {execution_time:.2f}s"
-    print(f"Performance: {execution_time:.3f}s")
+start = time.time()
+result = service.process_large_dataset()
+execution_time = time.time() - start
+
+assert execution_time < 5.0, f"Too slow: {execution_time:.2f}s"
+print(f"Performance: {execution_time:.3f}s")
 
 # BAD - No validation
 def test_performance():
-    result = service.process_large_dataset()
-    assert result is not None
+result = service.process_large_dataset()
+assert result is not None
 ```
 
 ---
@@ -425,43 +425,43 @@ name: Tests
 on: [push, pull_request]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    
-    services:
-      arangodb:
-        image: arangodb:3.12
-        env:
-          ARANGO_ROOT_PASSWORD: testpassword123
-        ports:
-          - 8529:8529
-    
-    steps:
-    - uses: actions/checkout@v2
-    
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.11
-    
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-        pip install pytest pytest-cov
-    
-    - name: Run unit tests
-      run: pytest -m unit
-    
-    - name: Run integration tests
-      env:
-        ARANGO_ROOT_PASSWORD: testpassword123
-      run: pytest -m integration
-    
-    - name: Generate coverage report
-      run: pytest --cov=src --cov-report=xml
-    
-    - name: Upload coverage
-      uses: codecov/codecov-action@v2
+test:
+runs-on: ubuntu-latest
+
+services:
+arangodb:
+image: arangodb:3.12
+env:
+ARANGO_ROOT_PASSWORD: testpassword123
+ports:
+- 8529:8529
+
+steps:
+- uses: actions/checkout@v2
+
+- name: Set up Python
+uses: actions/setup-python@v2
+with:
+python-version: 3.11
+
+- name: Install dependencies
+run: |
+pip install -r requirements.txt
+pip install pytest pytest-cov
+
+- name: Run unit tests
+run: pytest -m unit
+
+- name: Run integration tests
+env:
+ARANGO_ROOT_PASSWORD: testpassword123
+run: pytest -m integration
+
+- name: Generate coverage report
+run: pytest --cov=src --cov-report=xml
+
+- name: Upload coverage
+uses: codecov/codecov-action@v2
 ```
 
 ---
@@ -506,24 +506,24 @@ pip install -e .
 ## Next Steps
 
 1. **Increase Coverage**
-   - Add tests for remaining services
-   - Target 70%+ overall coverage
-   - Focus on edge cases
+- Add tests for remaining services
+- Target 70%+ overall coverage
+- Focus on edge cases
 
 2. **Add More Integration Tests**
-   - Test complete pipelines
-   - Test with various data scenarios
-   - Test error conditions
+- Test complete pipelines
+- Test with various data scenarios
+- Test error conditions
 
 3. **Performance Monitoring**
-   - Add performance regression tests
-   - Track metrics over time
-   - Set performance baselines
+- Add performance regression tests
+- Track metrics over time
+- Set performance baselines
 
 4. **Automated Testing**
-   - Set up CI/CD pipeline
-   - Run tests on every commit
-   - Generate coverage reports
+- Set up CI/CD pipeline
+- Run tests on every commit
+- Generate coverage reports
 
 ---
 

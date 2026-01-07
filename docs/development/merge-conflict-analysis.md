@@ -1,6 +1,6 @@
 # Merge Conflict Analysis
 
-**Date:** December 2, 2025  
+**Date:** December 2, 2025 
 **Context:** v2.x enhancements merged with v3.0 release
 
 ---
@@ -10,23 +10,23 @@
 ### Timeline of Events
 
 1. **You started working** on v2.x enhancements (cross-collection matching)
-   - Base commit: `58b62de` (WCC WITH clause fix)
-   - Local changes: Adding new blocking strategies and services
+- Base commit: `58b62de` (WCC WITH clause fix)
+- Local changes: Adding new blocking strategies and services
 
 2. **Meanwhile, v3.0 was released to remote** (7 new commits)
-   - Commits: `460c6b4` → `0ccee7d`
-   - Added: AddressERService, pipeline_utils, ER config system, extensive tests
-   - Modified: Same files we were working on
+- Commits: `460c6b4` → `0ccee7d`
+- Added: AddressERService, pipeline_utils, ER config system, extensive tests
+- Modified: Same files we were working on
 
 3. **Conflict occurred** when trying to push
-   - Both local and remote modified the same files
-   - Git couldn't auto-merge because changes overlapped
+- Both local and remote modified the same files
+- Git couldn't auto-merge because changes overlapped
 
 ---
 
 ## Conflicting Files (6 files)
 
-### 1. `CHANGELOG.md` ❌ CONFLICT
+### 1. `CHANGELOG.md` CONFLICT
 **Why:**
 - **Our changes:** Added v2.x features (CrossCollection, Hybrid, Geographic, GraphTraversal)
 - **v3.0 changes:** Added v3.0 features (AddressER, ER Config, Validation Utils)
@@ -34,7 +34,7 @@
 
 **Resolution:** Accepted our version (we can manually merge CHANGELOG later if needed)
 
-### 2. `README.md` ❌ CONFLICT
+### 2. `README.md` CONFLICT
 **Why:**
 - **Our changes:** Updated "What's New in v2.x" section with new blocking strategies
 - **v3.0 changes:** Updated same section with v3.0 features
@@ -42,7 +42,7 @@
 
 **Resolution:** Accepted our version (v2.x focused)
 
-### 3. `WCC_WITH_CLAUSE_FIX.md` ❌ CONFLICT (Both Added)
+### 3. `WCC_WITH_CLAUSE_FIX.md` CONFLICT (Both Added)
 **Why:**
 - **Our changes:** We created this file documenting the WCC fix
 - **v3.0 changes:** They created the same file documenting the same fix
@@ -50,33 +50,33 @@
 
 **Resolution:** Accepted their version (v3.0 - more complete)
 
-### 4. `src/entity_resolution/__init__.py` ❌ CONFLICT
+### 4. `src/entity_resolution/__init__.py` CONFLICT
 **Why:**
 - **Our changes:** Added exports for:
-  ```python
-  from .services.cross_collection_matching_service import CrossCollectionMatchingService
-  from .utils.pipeline_utils import clean_er_results, ...
-  ```
+```python
+from .services.cross_collection_matching_service import CrossCollectionMatchingService
+from .utils.pipeline_utils import clean_er_results, ...
+```
 
 - **v3.0 changes:** Added exports for:
-  ```python
-  from .services.address_er_service import AddressERService
-  from .similarity.weighted_field_similarity import WeightedFieldSimilarity
-  from .config import ERPipelineConfig, ...
-  ```
+```python
+from .services.address_er_service import AddressERService
+from .similarity.weighted_field_similarity import WeightedFieldSimilarity
+from .config import ERPipelineConfig, ...
+```
 
 - **Conflict:** Both added new imports and exports in overlapping locations
 
 **Resolution:** Manually merged to include BOTH sets of exports:
 ```python
 # Both v2.x and v3.0 exports now included
-from .services.address_er_service import AddressERService  # v3.0
-from .services.cross_collection_matching_service import CrossCollectionMatchingService  # v2.x
-from .similarity.weighted_field_similarity import WeightedFieldSimilarity  # v3.0
-from .utils.pipeline_utils import clean_er_results, ...  # v2.x
+from .services.address_er_service import AddressERService # v3.0
+from .services.cross_collection_matching_service import CrossCollectionMatchingService # v2.x
+from .similarity.weighted_field_similarity import WeightedFieldSimilarity # v3.0
+from .utils.pipeline_utils import clean_er_results, ... # v2.x
 ```
 
-###5. `src/entity_resolution/services/wcc_clustering_service.py` ❌ CONFLICT  
+###5. `src/entity_resolution/services/wcc_clustering_service.py` CONFLICT 
 **Why:**
 - **Our changes:** Minor (if any - we mostly read this file)
 - **v3.0 changes:** Enhanced WCC service with additional features
@@ -84,17 +84,17 @@ from .utils.pipeline_utils import clean_er_results, ...  # v2.x
 
 **Resolution:** Accepted their version (v3.0 - more complete implementation)
 
-### 6. `src/entity_resolution/utils/pipeline_utils.py` ❌ CONFLICT (Both Added)
+### 6. `src/entity_resolution/utils/pipeline_utils.py` CONFLICT (Both Added)
 **Why:**
 - **Our changes:** Created pipeline_utils with 4 functions:
-  - `clean_er_results()`
-  - `count_inferred_edges()`
-  - `validate_edge_quality()`
-  - `get_pipeline_statistics()`
+- `clean_er_results()`
+- `count_inferred_edges()`
+- `validate_edge_quality()`
+- `get_pipeline_statistics()`
 
 - **v3.0 changes:** Created pipeline_utils with generic ER utilities:
-  - Different functions from production implementations
-  - Focus on validation and configuration
+- Different functions from production implementations
+- Focus on validation and configuration
 
 - **Conflict:** Both created brand new file with same name but different content
 
@@ -141,28 +141,28 @@ from .utils.pipeline_utils import clean_er_results, ...  # v2.x
 ### Strategy Used
 
 1. **Documentation files (README, CHANGELOG):** 
-   - Accepted our version initially
-   - Can manually merge later if needed
-   - Priority: Get our code committed
+- Accepted our version initially
+- Can manually merge later if needed
+- Priority: Get our code committed
 
 2. **Code files with v3.0 improvements:**
-   - Accepted their version (`wcc_clustering_service.py`, `pipeline_utils.py`)
-   - Their implementation is more comprehensive
-   - Our features still work (don't depend on these changes)
+- Accepted their version (`wcc_clustering_service.py`, `pipeline_utils.py`)
+- Their implementation is more comprehensive
+- Our features still work (don't depend on these changes)
 
 3. **Export file (`__init__.py`):**
-   - **Manually merged** to include BOTH sets of exports
-   - Now exports both v2.x AND v3.0 features
-   - Best of both worlds
+- **Manually merged** to include BOTH sets of exports
+- Now exports both v2.x AND v3.0 features
+- Best of both worlds
 
 ### Final State
 
 **After Resolution:**
-- ✅ All v2.x features available (CrossCollection, Hybrid, Geographic, GraphTraversal)
-- ✅ All v3.0 features available (AddressER, WeightedFieldSimilarity, ER Config)
-- ✅ Both sets of exports in `__init__.py`
-- ✅ V3.0's more complete WCC and pipeline_utils
-- ✅ Repository in clean state
+- All v2.x features available (CrossCollection, Hybrid, Geographic, GraphTraversal)
+- All v3.0 features available (AddressER, WeightedFieldSimilarity, ER Config)
+- Both sets of exports in `__init__.py`
+- V3.0's more complete WCC and pipeline_utils
+- Repository in clean state
 
 ---
 
@@ -201,15 +201,15 @@ git push
 
 ## Why It Was Okay
 
-### No Data Loss ✅
+### No Data Loss 
 
 **All work preserved:**
-- ✅ Our v2.x code committed
-- ✅ v3.0 code preserved  
-- ✅ Conflicts resolved intelligently
-- ✅ Both feature sets now available
+- Our v2.x code committed
+- v3.0 code preserved 
+- Conflicts resolved intelligently
+- Both feature sets now available
 
-### Smart Resolutions ✅
+### Smart Resolutions 
 
 **We chose:**
 - v3.0's `pipeline_utils.py` (more comprehensive)
@@ -217,43 +217,43 @@ git push
 - Manual merge for `__init__.py` (both sets of exports)
 - Our version for README/CHANGELOG (can update later)
 
-### Final Result ✅
+### Final Result 
 
 **Repository now has:**
-- ✅ All v2.x features working
-- ✅ All v3.0 features working
-- ✅ Clean commit history
-- ✅ No duplicate code
-- ✅ Both feature sets available to users
+- All v2.x features working
+- All v3.0 features working
+- Clean commit history
+- No duplicate code
+- Both feature sets available to users
 
 ---
 
 ## Impact on Your Code
 
-### Your v2.x Features: **100% Working** ✅
+### Your v2.x Features: **100% Working** 
 
 All your new components are available:
 ```python
 from entity_resolution import (
-    CrossCollectionMatchingService,  # ✅ Your feature
-    HybridBlockingStrategy,           # ✅ Your feature  
-    GeographicBlockingStrategy,       # ✅ Your feature
-    GraphTraversalBlockingStrategy,   # ✅ Your feature
+CrossCollectionMatchingService, # Your feature
+HybridBlockingStrategy, # Your feature 
+GeographicBlockingStrategy, # Your feature
+GraphTraversalBlockingStrategy, # Your feature
 )
 ```
 
-### v3.0 Features: **Also Available** ✅
+### v3.0 Features: **Also Available** 
 
 Plus you now get v3.0 features:
 ```python
 from entity_resolution import (
-    AddressERService,                 # v3.0 feature
-    WeightedFieldSimilarity,          # v3.0 feature
-    ERPipelineConfig,                 # v3.0 feature
+AddressERService, # v3.0 feature
+WeightedFieldSimilarity, # v3.0 feature
+ERPipelineConfig, # v3.0 feature
 )
 ```
 
-### Test Infrastructure: **Unaffected** ✅
+### Test Infrastructure: **Unaffected** 
 
 Your test setup still works:
 - Docker container: `arango-entity-resolution-test`
@@ -279,14 +279,14 @@ Your test setup still works:
 - No code lost, everything works
 
 **Final outcome:**
-- ✅ Repository updated successfully
-- ✅ All v2.x features available
-- ✅ All v3.0 features available
-- ✅ Clean state, ready for use
+- Repository updated successfully
+- All v2.x features available
+- All v3.0 features available
+- Clean state, ready for use
 
 ---
 
-**Analysis Date:** December 2, 2025  
-**Resolution:** ✅ All conflicts resolved successfully  
-**Impact:** ✅ None - all features work
+**Analysis Date:** December 2, 2025 
+**Resolution:** All conflicts resolved successfully 
+**Impact:** None - all features work
 

@@ -9,14 +9,14 @@ This PRD outlines the requirements for an advanced entity resolution system in A
 * **Project Title:** ArangoDB Advanced Entity Resolution System
 * **Problem Statement:** Our organization has multiple data sources with customer information (structured databases, unstructured documents, and spatial-temporal data). These sources contain duplicate records, hidden aliases, and complex entity relationships that are difficult to identify using traditional methods alone. This leads to inaccurate analytics, poor customer service, missed fraud detection, and inefficient operations.
 * **Project Goal:** Implement a comprehensive entity resolution system in ArangoDB that combines multiple techniques:
-  - **Record Blocking** (foundation): Efficiently reduce comparison space using full-text search
-  - **Graph Algorithms**: Discover entity networks and aliases through shared identifiers
-  - **Embeddings & Vector Search**: Identify semantically similar entities through behavioral patterns
-  - **GraphRAG & LLMs**: Extract and link entities from unstructured documents
-  - **Geospatial Analysis**: Validate or reject matches based on location-time feasibility
-  - **LLM Curation**: Automated evaluation of match evidence with human-like reasoning
-  
-  This multi-faceted approach will provide a single, unified view of each entity with high confidence, improving data quality and enabling more accurate reporting, fraud detection, and personalized interactions.
+- **Record Blocking** (foundation): Efficiently reduce comparison space using full-text search
+- **Graph Algorithms**: Discover entity networks and aliases through shared identifiers
+- **Embeddings & Vector Search**: Identify semantically similar entities through behavioral patterns
+- **GraphRAG & LLMs**: Extract and link entities from unstructured documents
+- **Geospatial Analysis**: Validate or reject matches based on location-time feasibility
+- **LLM Curation**: Automated evaluation of match evidence with human-like reasoning
+
+This multi-faceted approach will provide a single, unified view of each entity with high confidence, improving data quality and enabling more accurate reporting, fraud detection, and personalized interactions.
 
 ### 2. Stakeholders
 
@@ -53,8 +53,8 @@ The system is being developed in three phases with clear separation of concerns:
 
 #### **3.1 Phase 1: Traditional Entity Resolution (Implemented & Stable)**
 
-**Status**: Production-ready, battle-tested, customer deployments  
-**Risk Level**: Low - Proven implementation with 99%+ comparison reduction  
+**Status**: Production-ready, battle-tested, customer deployments 
+**Risk Level**: Low - Proven implementation with 99%+ comparison reduction 
 **Timeline**: Complete
 
 * **Data Ingestion:** Import customer data from various sources (CSV files, JSON, external APIs, databases) into ArangoDB collections
@@ -67,18 +67,18 @@ The system is being developed in three phases with clear separation of concerns:
 
 #### **3.2 Phase 2: Hybrid Blocking & Embeddings (Next Priority)**
 
-**Status**: Research complete, ready for implementation  
-**Risk Level**: Medium - New ML infrastructure, non-breaking additions  
-**Timeline**: 6-8 weeks estimated  
+**Status**: Research complete, ready for implementation 
+**Risk Level**: Medium - New ML infrastructure, non-breaking additions 
+**Timeline**: 6-8 weeks estimated 
 **Value Proposition**: Improved recall for challenging cases (typos, abbreviations, semantic variations)
 
 **Hybrid Blocking Architecture**
 * **3-Tier Blocking Strategy:** Combine traditional blocking with embedding-based candidate generation:
-  - **Tier 1**: Exact matching on email/phone (fastest, highest precision) - *already implemented*
-  - **Tier 2**: Traditional fuzzy blocking with soundex, n-grams (fast, good recall) - *already implemented*
-  - **Tier 3**: Embedding-based semantic blocking with LSH and ANN (comprehensive, handles variations) - *Phase 2 addition*
-  - **Multi-Resolution Embeddings**: Store both coarse embeddings (64-dim) for fast filtering and fine embeddings (256-dim) for accurate re-ranking
-  - **Recall-Optimized**: Prioritize recall ≥95% at blocking stage, refine precision in later stages
+- **Tier 1**: Exact matching on email/phone (fastest, highest precision) - *already implemented*
+- **Tier 2**: Traditional fuzzy blocking with soundex, n-grams (fast, good recall) - *already implemented*
+- **Tier 3**: Embedding-based semantic blocking with LSH and ANN (comprehensive, handles variations) - *Phase 2 addition*
+- **Multi-Resolution Embeddings**: Store both coarse embeddings (64-dim) for fast filtering and fine embeddings (256-dim) for accurate re-ranking
+- **Recall-Optimized**: Prioritize recall ≥95% at blocking stage, refine precision in later stages
 
 **Embedding & Vector Search Infrastructure**
 * **Tuple Embeddings for Structured Data:** Generate embeddings specifically designed for database records using hybrid architecture (attribute-level + tuple-level)

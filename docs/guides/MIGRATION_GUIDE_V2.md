@@ -1,21 +1,21 @@
 # Customer Migration Guide: dnb_er Project
 
-**Date:** December 2, 2025  
-**Library Version:** v2.x (with v3.0 integrated)  
+**Date:** December 2, 2025 
+**Library Version:** v2.x (with v3.0 integrated) 
 **Target Project:** `dnb_er` (D&B Entity Resolution PoC)
 
 ---
 
 ## Executive Summary
 
-The `arango-entity-resolution` library now includes the **cross-collection matching** and **advanced blocking strategies** that were extracted from your `dnb_er` implementation! 🎉
+The `arango-entity-resolution` library now includes the **cross-collection matching** and **advanced blocking strategies** that were extracted from your `dnb_er` implementation! 
 
 **What this means for you:**
-- ✅ Replace ~200 lines of custom code with ~20 lines using the library
-- ✅ Get tested, documented implementations of patterns you're already using
-- ✅ Benefit from performance optimizations
-- ✅ Reduce maintenance burden (we maintain it now)
-- ✅ Keep all your existing functionality
+- Replace ~200 lines of custom code with ~20 lines using the library
+- Get tested, documented implementations of patterns you're already using
+- Benefit from performance optimizations
+- Reduce maintenance burden (we maintain it now)
+- Keep all your existing functionality
 
 ---
 
@@ -74,12 +74,12 @@ Bonus feature for your future phone/CEO graph-based matching.
 
 **Current:**
 ```python
-# arango-entity-resolution>=3.0.0  # Not on PyPI - use local path
+# arango-entity-resolution>=3.0.0 # Not on PyPI - use local path
 ```
 
 **Update to:**
 ```python
-# arango-entity-resolution>=3.0.0  # Includes v2.x features + v3.0
+# arango-entity-resolution>=3.0.0 # Includes v2.x features + v3.0
 # Note: Still local path, but now includes CrossCollectionMatchingService
 ```
 
@@ -100,22 +100,22 @@ git log --oneline -1
 
 You already have all required dependencies:
 ```python
-✅ python-arango>=7.9.0      # You have this
-✅ python-Levenshtein>=0.21.0 # You have this  
-✅ jellyfish>=1.0.0           # You have this
+python-arango>=7.9.0 # You have this
+python-Levenshtein>=0.21.0 # You have this 
+jellyfish>=1.0.0 # You have this
 ```
 
-**No additional packages needed!** ✅
+**No additional packages needed!** 
 
 ### Step 3: Update Your Imports
 
 **Add to your imports:**
 ```python
 from entity_resolution import (
-    CrossCollectionMatchingService,
-    HybridBlockingStrategy,
-    GeographicBlockingStrategy,
-    GraphTraversalBlockingStrategy  # Optional, for future use
+CrossCollectionMatchingService,
+HybridBlockingStrategy,
+GeographicBlockingStrategy,
+GraphTraversalBlockingStrategy # Optional, for future use
 )
 ```
 
@@ -126,17 +126,17 @@ from entity_resolution import (
 # match_regs_to_duns.py - Custom implementation
 
 def setup_matching_view(db):
-    # ~50 lines of view setup
-    pass
+# ~50 lines of view setup
+pass
 
 def run_matching_pipeline(batch_size=100, threshold=0.75, limit=None):
-    # ~150 lines of:
-    # - State-based processing
-    # - BM25 search
-    # - Levenshtein verification
-    # - Score calculation
-    # - Edge creation
-    pass
+# ~150 lines of:
+# - State-based processing
+# - BM25 search
+# - Levenshtein verification
+# - Score calculation
+# - Edge creation
+pass
 ```
 
 **AFTER (using library ~50 lines):**
@@ -149,156 +149,156 @@ Simplified version using CrossCollectionMatchingService.
 """
 
 from entity_resolution import (
-    CrossCollectionMatchingService,
-    HybridBlockingStrategy,
-    GeographicBlockingStrategy
+CrossCollectionMatchingService,
+HybridBlockingStrategy,
+GeographicBlockingStrategy
 )
 from entity_resolution.utils.database import get_database
 
 def run_matching_pipeline(
-    threshold=0.75,
-    batch_size=100,
-    limit=None
+threshold=0.75,
+batch_size=100,
+limit=None
 ):
-    """
-    Match registrations to DUNS entities using the library.
-    
-    This replaces the custom implementation with the tested library version.
-    """
-    # Get database connection
-    db = get_database()
-    
-    # Initialize the service
-    service = CrossCollectionMatchingService(
-        db=db,
-        source_collection="regs",
-        target_collection="duns",
-        edge_collection="hasRegistration",
-        search_view="duns_search"  # Your existing view
-    )
-    
-    # Configure matching with your field mappings
-    service.configure_matching(
-        field_mappings={
-            # Source field -> Target field
-            "BR_Name": "DUNS_NAME",
-            "ADDRESS_LINE_1": "ADDR_PRIMARY_STREET",
-            "PRIMARY_TOWN": "NAME_PRIMARY_CITY",
-            "REGISTRATION_NBRFILING_STATE": "NAME_PRIMARY_STATE",
-            "POSTAL_CODE": "NAME_PRIMARY_ZIP"
-        },
-        field_weights={
-            "BR_Name": 0.6,           # Name is most important
-            "ADDRESS_LINE_1": 0.25,   # Address second
-            "PRIMARY_TOWN": 0.1,      # City third
-            "POSTAL_CODE": 0.05       # ZIP least important
-        },
-        blocking_strategy=GeographicBlockingStrategy(
-            db=db,
-            collection="regs",
-            blocking_type="state",
-            geographic_field="REGISTRATION_NBRFILING_STATE",
-            # Special handling for NULL states with SD ZIP codes
-            zip_field="POSTAL_CODE",
-            zip_prefix_length=3
-        ),
-        hybrid_strategy=HybridBlockingStrategy(
-            db=db,
-            collection="regs",
-            search_view="duns_search",
-            search_fields={
-                "BR_Name": 0.7,
-                "ADDRESS_LINE_1": 0.3
-            },
-            bm25_weight=0.2,           # Fast initial filter
-            levenshtein_weight=0.8,    # Accurate verification
-            bm25_threshold=2.0,
-            levenshtein_threshold=0.85
-        )
-    )
-    
-    # Run matching
-    results = service.match_entities(
-        threshold=threshold,
-        batch_size=batch_size,
-        max_records=limit,
-        create_edges=True,
-        edge_metadata={
-            "inferred": True,
-            "method": "hybrid_cross_collection",
-            "confidence_min": threshold
-        },
-        progress_callback=lambda batch, total: 
-            print(f"Processed {batch}/{total} batches...")
-    )
-    
-    # Print results (same format as your current script)
-    print(f"\n{'='*80}")
-    print("MATCHING RESULTS")
-    print(f"{'='*80}")
-    print(f"Edges created: {results['edges_created']}")
-    print(f"Candidates evaluated: {results['candidates_evaluated']}")
-    print(f"Source records processed: {results['source_records_processed']}")
-    print(f"Execution time: {results['execution_time_seconds']:.2f}s")
-    print(f"{'='*80}\n")
-    
-    return results
+"""
+Match registrations to DUNS entities using the library.
+
+This replaces the custom implementation with the tested library version.
+"""
+# Get database connection
+db = get_database()
+
+# Initialize the service
+service = CrossCollectionMatchingService(
+db=db,
+source_collection="regs",
+target_collection="duns",
+edge_collection="hasRegistration",
+search_view="duns_search" # Your existing view
+)
+
+# Configure matching with your field mappings
+service.configure_matching(
+field_mappings={
+# Source field -> Target field
+"BR_Name": "DUNS_NAME",
+"ADDRESS_LINE_1": "ADDR_PRIMARY_STREET",
+"PRIMARY_TOWN": "NAME_PRIMARY_CITY",
+"REGISTRATION_NBRFILING_STATE": "NAME_PRIMARY_STATE",
+"POSTAL_CODE": "NAME_PRIMARY_ZIP"
+},
+field_weights={
+"BR_Name": 0.6, # Name is most important
+"ADDRESS_LINE_1": 0.25, # Address second
+"PRIMARY_TOWN": 0.1, # City third
+"POSTAL_CODE": 0.05 # ZIP least important
+},
+blocking_strategy=GeographicBlockingStrategy(
+db=db,
+collection="regs",
+blocking_type="state",
+geographic_field="REGISTRATION_NBRFILING_STATE",
+# Special handling for NULL states with SD ZIP codes
+zip_field="POSTAL_CODE",
+zip_prefix_length=3
+),
+hybrid_strategy=HybridBlockingStrategy(
+db=db,
+collection="regs",
+search_view="duns_search",
+search_fields={
+"BR_Name": 0.7,
+"ADDRESS_LINE_1": 0.3
+},
+bm25_weight=0.2, # Fast initial filter
+levenshtein_weight=0.8, # Accurate verification
+bm25_threshold=2.0,
+levenshtein_threshold=0.85
+)
+)
+
+# Run matching
+results = service.match_entities(
+threshold=threshold,
+batch_size=batch_size,
+max_records=limit,
+create_edges=True,
+edge_metadata={
+"inferred": True,
+"method": "hybrid_cross_collection",
+"confidence_min": threshold
+},
+progress_callback=lambda batch, total: 
+print(f"Processed {batch}/{total} batches...")
+)
+
+# Print results (same format as your current script)
+print(f"\n{'='*80}")
+print("MATCHING RESULTS")
+print(f"{'='*80}")
+print(f"Edges created: {results['edges_created']}")
+print(f"Candidates evaluated: {results['candidates_evaluated']}")
+print(f"Source records processed: {results['source_records_processed']}")
+print(f"Execution time: {results['execution_time_seconds']:.2f}s")
+print(f"{'='*80}\n")
+
+return results
 
 
 if __name__ == "__main__":
-    import argparse
-    
-    parser = argparse.ArgumentParser(description='Match registrations to DUNS')
-    parser.add_argument('--threshold', type=float, default=0.75,
-                        help='Minimum confidence threshold')
-    parser.add_argument('--batch-size', type=int, default=100,
-                        help='Batch size for processing')
-    parser.add_argument('--limit', type=int, default=None,
-                        help='Limit number of records to process')
-    
-    args = parser.parse_args()
-    
-    results = run_matching_pipeline(
-        threshold=args.threshold,
-        batch_size=args.batch_size,
-        limit=args.limit
-    )
+import argparse
+
+parser = argparse.ArgumentParser(description='Match registrations to DUNS')
+parser.add_argument('--threshold', type=float, default=0.75,
+help='Minimum confidence threshold')
+parser.add_argument('--batch-size', type=int, default=100,
+help='Batch size for processing')
+parser.add_argument('--limit', type=int, default=None,
+help='Limit number of records to process')
+
+args = parser.parse_args()
+
+results = run_matching_pipeline(
+threshold=args.threshold,
+batch_size=args.batch_size,
+limit=args.limit
+)
 ```
 
 **Lines of code:**
 - Before: ~240 lines
 - After: ~50 lines
-- **Reduction: 80% less code to maintain!** ✅
+- **Reduction: 80% less code to maintain!** 
 
 ---
 
 ## What You Get for Free
 
 ### 1. **Tested Code**
-- ✅ 7/7 functional tests passing
-- ✅ Tested against real ArangoDB
-- ✅ Edge cases handled
-- ✅ Error handling included
+- 7/7 functional tests passing
+- Tested against real ArangoDB
+- Edge cases handled
+- Error handling included
 
 ### 2. **Documentation**
-- ✅ Complete API documentation
-- ✅ Usage examples
-- ✅ Performance characteristics
-- ✅ Best practices
+- Complete API documentation
+- Usage examples
+- Performance characteristics
+- Best practices
 
 ### 3. **Features You Might Not Have**
-- ✅ Resume capability (offset-based pagination)
-- ✅ Progress callbacks
-- ✅ Detailed confidence breakdowns
-- ✅ Per-field similarity scores in edge metadata
-- ✅ Automatic batch processing
-- ✅ Memory-efficient streaming
+- Resume capability (offset-based pagination)
+- Progress callbacks
+- Detailed confidence breakdowns
+- Per-field similarity scores in edge metadata
+- Automatic batch processing
+- Memory-efficient streaming
 
 ### 4. **Performance Optimizations**
-- ✅ Optimized AQL queries
-- ✅ Batch document fetching
-- ✅ Configurable batch sizes
-- ✅ Efficient similarity computation
+- Optimized AQL queries
+- Batch document fetching
+- Configurable batch sizes
+- Efficient similarity computation
 
 ### 5. **Future Improvements**
 When we optimize the library, you get the improvements for free!
@@ -313,17 +313,17 @@ When we optimize the library, you get the improvements for free!
 ```python
 # Your current approach (implicit in AQL)
 FOR d IN duns
-    FILTER d.NAME_PRIMARY_STATE == r.REGISTRATION_NBRFILING_STATE
-    LET name_sim = LEVENSHTEIN_DISTANCE(d.DUNS_NAME, r.BR_Name)
-    ...
+FILTER d.NAME_PRIMARY_STATE == r.REGISTRATION_NBRFILING_STATE
+LET name_sim = LEVENSHTEIN_DISTANCE(d.DUNS_NAME, r.BR_Name)
+...
 
 # Library approach (explicit configuration)
 field_mappings={
-    "BR_Name": "DUNS_NAME",
-    "ADDRESS_LINE_1": "ADDR_PRIMARY_STREET",
-    "PRIMARY_TOWN": "NAME_PRIMARY_CITY",
-    "REGISTRATION_NBRFILING_STATE": "NAME_PRIMARY_STATE",
-    "POSTAL_CODE": "NAME_PRIMARY_ZIP"
+"BR_Name": "DUNS_NAME",
+"ADDRESS_LINE_1": "ADDR_PRIMARY_STREET",
+"PRIMARY_TOWN": "NAME_PRIMARY_CITY",
+"REGISTRATION_NBRFILING_STATE": "NAME_PRIMARY_STATE",
+"POSTAL_CODE": "NAME_PRIMARY_ZIP"
 }
 ```
 
@@ -331,17 +331,17 @@ field_mappings={
 ```python
 # Your current approach (in AQL)
 FOR r IN regs
-    FILTER r.REGISTRATION_NBRFILING_STATE != NULL
-    OR (reg_zip3 >= "570" AND reg_zip3 <= "577")
+FILTER r.REGISTRATION_NBRFILING_STATE != NULL
+OR (reg_zip3 >= "570" AND reg_zip3 <= "577")
 
 # Library approach
 GeographicBlockingStrategy(
-    db=db,
-    collection="regs",
-    blocking_type="state",
-    geographic_field="REGISTRATION_NBRFILING_STATE",
-    zip_field="POSTAL_CODE",
-    zip_prefix_length=3
+db=db,
+collection="regs",
+blocking_type="state",
+geographic_field="REGISTRATION_NBRFILING_STATE",
+zip_field="POSTAL_CODE",
+zip_prefix_length=3
 )
 ```
 
@@ -354,10 +354,10 @@ address_weight = 0.25
 
 # Library approach (configurable)
 field_weights={
-    "BR_Name": 0.6,
-    "ADDRESS_LINE_1": 0.25,
-    "PRIMARY_TOWN": 0.1,
-    "POSTAL_CODE": 0.05
+"BR_Name": 0.6,
+"ADDRESS_LINE_1": 0.25,
+"PRIMARY_TOWN": 0.1,
+"POSTAL_CODE": 0.05
 }
 threshold=0.75
 ```
@@ -366,13 +366,13 @@ threshold=0.75
 
 ## Breaking Changes / Considerations
 
-### ⚠️ 1. **ArangoSearch View Names**
+### 1. **ArangoSearch View Names**
 
 **Issue:** You may need to update your view names.
 
 **Your current code:**
 ```python
-view_name = "er_view_regs_duns"  # Your custom name
+view_name = "er_view_regs_duns" # Your custom name
 ```
 
 **Library expects:**
@@ -388,41 +388,41 @@ search_view="er_view_regs_duns"
 
 **Resolution:** Keep your existing view, just pass the name to the service.
 
-### ⚠️ 2. **Edge Collection Metadata**
+### 2. **Edge Collection Metadata**
 
 **Issue:** Edge metadata format may differ slightly.
 
 **Your current edges:**
 ```python
 {
-    "_from": "regs/123",
-    "_to": "duns/456",
-    "inferred": true,
-    "confidence": 0.85,
-    "method": "fuzzy_match"
+"_from": "regs/123",
+"_to": "duns/456",
+"inferred": true,
+"confidence": 0.85,
+"method": "fuzzy_match"
 }
 ```
 
 **Library edges:**
 ```python
 {
-    "_from": "regs/123",
-    "_to": "duns/456",
-    "inferred": true,  # Same
-    "confidence": 0.85,  # Same
-    "method": "hybrid_cross_collection",  # Updated
-    "match_details": {  # NEW: Per-field breakdown
-        "BR_Name": {"score": 0.92, "algorithm": "levenshtein"},
-        "ADDRESS_LINE_1": {"score": 0.78, "algorithm": "levenshtein"}
-    },
-    "timestamp": "2025-12-02T10:30:00Z",  # NEW
-    "processing_batch": 1  # NEW
+"_from": "regs/123",
+"_to": "duns/456",
+"inferred": true, # Same
+"confidence": 0.85, # Same
+"method": "hybrid_cross_collection", # Updated
+"match_details": { # NEW: Per-field breakdown
+"BR_Name": {"score": 0.92, "algorithm": "levenshtein"},
+"ADDRESS_LINE_1": {"score": 0.78, "algorithm": "levenshtein"}
+},
+"timestamp": "2025-12-02T10:30:00Z", # NEW
+"processing_batch": 1 # NEW
 }
 ```
 
 **Impact:** Your existing validation queries should still work, but you get extra metadata for free!
 
-### ⚠️ 3. **NULL State Handling**
+### 3. **NULL State Handling**
 
 **Issue:** Special ZIP code logic for NULL states.
 
@@ -431,7 +431,7 @@ search_view="er_view_regs_duns"
 # Special handling in AQL
 LET reg_zip3 = SUBSTRING(TO_STRING(r.POSTAL_CODE), 0, 3)
 LET is_sd = r.REGISTRATION_NBRFILING_STATE != NULL 
-         OR (reg_zip3 >= "570" AND reg_zip3 <= "577")
+OR (reg_zip3 >= "570" AND reg_zip3 <= "577")
 ```
 
 **Library approach:**
@@ -449,15 +449,15 @@ LET is_sd = r.REGISTRATION_NBRFILING_STATE != NULL
 **Recommendation:** Option 1 (pre-populate) is cleanest. Run once:
 ```python
 db.aql.execute("""
-    FOR r IN regs
-        FILTER r.REGISTRATION_NBRFILING_STATE == NULL
-        LET reg_zip3 = SUBSTRING(TO_STRING(r.POSTAL_CODE), 0, 3)
-        FILTER reg_zip3 >= "570" AND reg_zip3 <= "577"
-        UPDATE r WITH { REGISTRATION_NBRFILING_STATE: "SD" } IN regs
+FOR r IN regs
+FILTER r.REGISTRATION_NBRFILING_STATE == NULL
+LET reg_zip3 = SUBSTRING(TO_STRING(r.POSTAL_CODE), 0, 3)
+FILTER reg_zip3 >= "570" AND reg_zip3 <= "577"
+UPDATE r WITH { REGISTRATION_NBRFILING_STATE: "SD" } IN regs
 """)
 ```
 
-### ✅ 4. **Performance** - Should Be Same or Better
+### 4. **Performance** - Should Be Same or Better
 
 **Your current performance:**
 - ~100-150 records/minute with Levenshtein
@@ -467,9 +467,9 @@ db.aql.execute("""
 - ~100-150 records/minute with Levenshtein (same)
 - BM25 optimized (same or better)
 - Additional optimizations:
-  - Batch document fetching
-  - Optimized AQL queries
-  - Memory-efficient processing
+- Batch document fetching
+- Optimized AQL queries
+- Memory-efficient processing
 
 **Expect:** Same or slightly better performance.
 
@@ -482,9 +482,9 @@ db.aql.execute("""
 ```python
 # Test with 100 records
 results = run_matching_pipeline(
-    threshold=0.75,
-    batch_size=10,
-    limit=100  # Start small!
+threshold=0.75,
+batch_size=10,
+limit=100 # Start small!
 )
 
 # Verify results match your expectations
@@ -508,9 +508,9 @@ from entity_resolution.utils.pipeline_utils import validate_edge_quality
 
 # Validate edges created
 quality_report = validate_edge_quality(
-    db=db,
-    edge_collection="hasRegistration",
-    min_confidence=0.75
+db=db,
+edge_collection="hasRegistration",
+min_confidence=0.75
 )
 
 print(f"Edges with missing scores: {quality_report['missing_scores']}")
@@ -523,9 +523,9 @@ print(f"Quality distribution: {quality_report['distribution']}")
 ```python
 # Once validated, run full pipeline
 results = run_matching_pipeline(
-    threshold=0.75,
-    batch_size=100,
-    limit=None  # Process all
+threshold=0.75,
+batch_size=100,
+limit=None # Process all
 )
 ```
 
@@ -548,12 +548,12 @@ mv scripts/match_regs_to_duns.py scripts/match_regs_to_duns_legacy.py
 ### Option 2: Feature Flag
 
 ```python
-USE_LIBRARY_VERSION = True  # Set to False to use legacy
+USE_LIBRARY_VERSION = True # Set to False to use legacy
 
 if USE_LIBRARY_VERSION:
-    from match_regs_to_duns_v2 import run_matching_pipeline
+from match_regs_to_duns_v2 import run_matching_pipeline
 else:
-    from match_regs_to_duns_legacy import run_matching_pipeline
+from match_regs_to_duns_legacy import run_matching_pipeline
 ```
 
 ### Option 3: Git Branch
@@ -597,8 +597,8 @@ ArangoError: view 'duns_search' not found
 ```python
 # Use your existing view name
 service = CrossCollectionMatchingService(
-    ...
-    search_view="er_view_regs_duns"  # Your current name
+...
+search_view="er_view_regs_duns" # Your current name
 )
 ```
 
@@ -611,14 +611,14 @@ service = CrossCollectionMatchingService(
 ```python
 # Try larger batch size
 service.match_entities(
-    batch_size=500,  # Increase from 100
-    ...
+batch_size=500, # Increase from 100
+...
 )
 
 # Or reduce threshold for fewer Levenshtein calculations
 service.match_entities(
-    threshold=0.80,  # Higher threshold = fewer candidates
-    ...
+threshold=0.80, # Higher threshold = fewer candidates
+...
 )
 ```
 
@@ -641,19 +641,19 @@ service.match_entities(
 
 ### Immediate Benefits
 
-✅ **80% less code to maintain** (240 lines → 50 lines)  
-✅ **Tested implementation** (7/7 tests passing)  
-✅ **Better documentation** (than custom scripts)  
-✅ **Free improvements** (library updates automatically benefit you)  
-✅ **Easier onboarding** (new team members use documented library)
+**80% less code to maintain** (240 lines → 50 lines) 
+**Tested implementation** (7/7 tests passing) 
+**Better documentation** (than custom scripts) 
+**Free improvements** (library updates automatically benefit you) 
+**Easier onboarding** (new team members use documented library)
 
 ### Long-term Benefits
 
-✅ **Reduced technical debt**  
-✅ **Consistent patterns** (across projects)  
-✅ **Community improvements** (if library is shared)  
-✅ **Easier debugging** (documented, tested code)  
-✅ **Performance optimizations** (automatically inherited)
+**Reduced technical debt** 
+**Consistent patterns** (across projects) 
+**Community improvements** (if library is shared) 
+**Easier debugging** (documented, tested code) 
+**Performance optimizations** (automatically inherited)
 
 ---
 
@@ -663,7 +663,7 @@ service.match_entities(
 ```bash
 cd ~/code/arango-entity-resolution
 git pull origin main
-git log --oneline -1  # Verify: 5c89951
+git log --oneline -1 # Verify: 5c89951
 ```
 
 ### 2. **Create Feature Branch** (2 minutes)
@@ -717,18 +717,18 @@ git checkout -b feature/use-library-cross-collection
 
 ## Conclusion
 
-✅ **Ready to migrate:** All dependencies in place  
-✅ **Low risk:** Can keep legacy implementation as backup  
-✅ **High value:** 80% code reduction + tested implementation  
-✅ **Well supported:** Complete documentation and examples  
-✅ **Production ready:** Tested against real ArangoDB
+**Ready to migrate:** All dependencies in place 
+**Low risk:** Can keep legacy implementation as backup 
+**High value:** 80% code reduction + tested implementation 
+**Well supported:** Complete documentation and examples 
+**Production ready:** Tested against real ArangoDB
 
 **Recommendation:** Proceed with migration on a feature branch. The patterns you're using are now generalized and tested in the library!
 
 ---
 
-**Document Version:** 1.0  
-**Date:** December 2, 2025  
-**Library Version:** v2.x (commit 5c89951)  
-**Status:** Ready for customer review ✅
+**Document Version:** 1.0 
+**Date:** December 2, 2025 
+**Library Version:** v2.x (commit 5c89951) 
+**Status:** Ready for customer review 
 

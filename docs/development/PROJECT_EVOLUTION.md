@@ -5,21 +5,21 @@ This document chronicles the evolution of the ArangoDB Entity Resolution System 
 ## Project Timeline
 
 ### Phase 1: Record Blocking Foundation
-**Initial Name**: ArangoDB Entity Resolution with Record Blocking  
-**Focus**: Full-text search-based record blocking for candidate generation  
+**Initial Name**: ArangoDB Entity Resolution with Record Blocking 
+**Focus**: Full-text search-based record blocking for candidate generation 
 **Pipeline**: 5 stages (Ingestion → Blocking → Similarity → Clustering → Golden Records)
 
 ### Phase 2: Scope Expansion
-**Current Name**: ArangoDB Advanced Entity Resolution System  
-**Approach**: Multi-technique entity resolution combining traditional and AI/ML methods  
+**Current Name**: ArangoDB Advanced Entity Resolution System 
+**Approach**: Multi-technique entity resolution combining traditional and AI/ML methods 
 **Pipeline**: Expanded to support 9 stages (Ingestion → Blocking → Similarity → Graph Analysis → Embeddings → GraphRAG → Geospatial → LLM Curation → Golden Records)
 
 ## Implemented Capabilities
 
 ### 1. Record Blocking (Foundation)
-**Status**: Implemented and Operational  
-**Purpose**: Efficient candidate generation using full-text search  
-**Impact**: 99%+ reduction in pairwise comparisons  
+**Status**: Implemented and Operational 
+**Purpose**: Efficient candidate generation using full-text search 
+**Impact**: 99%+ reduction in pairwise comparisons 
 **Key Features**:
 - Multiple blocking strategies (exact, phonetic, n-gram, sorted neighborhood)
 - ArangoSearch integration
@@ -27,9 +27,9 @@ This document chronicles the evolution of the ArangoDB Entity Resolution System 
 - Multi-index approach
 
 ### 2. Similarity Computation
-**Status**: Implemented and Operational  
-**Purpose**: Compute similarity scores between candidate pairs  
-**Impact**: High-precision matching with Fellegi-Sunter framework  
+**Status**: Implemented and Operational 
+**Purpose**: Compute similarity scores between candidate pairs 
+**Impact**: High-precision matching with Fellegi-Sunter framework 
 **Key Features**:
 - Probabilistic record linkage
 - Configurable similarity functions
@@ -37,9 +37,9 @@ This document chronicles the evolution of the ArangoDB Entity Resolution System 
 - Threshold tuning
 
 ### 3. Graph-Based Clustering
-**Status**: Implemented and Operational  
-**Purpose**: Group similar entities using graph algorithms  
-**Impact**: Efficient clustering of related records  
+**Status**: Implemented and Operational 
+**Purpose**: Group similar entities using graph algorithms 
+**Impact**: Efficient clustering of related records 
 **Key Features**:
 - Weakly Connected Components (WCC)
 - Similarity graph construction
@@ -47,9 +47,9 @@ This document chronicles the evolution of the ArangoDB Entity Resolution System 
 - Scalable to millions of records
 
 ### 4. Golden Record Generation
-**Status**: Implemented and Operational  
-**Purpose**: Create authoritative entity records  
-**Impact**: Single source of truth per entity  
+**Status**: Implemented and Operational 
+**Purpose**: Create authoritative entity records 
+**Impact**: Single source of truth per entity 
 **Key Features**:
 - Intelligent attribute selection
 - Conflict resolution
@@ -59,8 +59,8 @@ This document chronicles the evolution of the ArangoDB Entity Resolution System 
 ## Roadmap Capabilities
 
 ### 1. Advanced Graph Algorithms (Network Analysis)
-**Status**: Roadmap  
-**Purpose**: Identify entity networks and aliases through shared identifiers  
+**Status**: Roadmap 
+**Purpose**: Identify entity networks and aliases through shared identifiers 
 **Planned Features**:
 - Shared identifier detection (phone, email, address)
 - Transitive alias resolution
@@ -68,8 +68,8 @@ This document chronicles the evolution of the ArangoDB Entity Resolution System 
 - Community detection algorithms
 
 ### 2. GraphML & Embeddings (Behavioral Analysis)
-**Status**: Roadmap  
-**Purpose**: Create vector representations of entities and connections  
+**Status**: Roadmap 
+**Purpose**: Create vector representations of entities and connections 
 **Planned Features**:
 - Node and edge embeddings (Node2Vec, GraphSAGE)
 - Behavioral pattern capture
@@ -77,8 +77,8 @@ This document chronicles the evolution of the ArangoDB Entity Resolution System 
 - Geometric similarity computation
 
 ### 3. Vector Search (Semantic Similarity)
-**Status**: Roadmap  
-**Purpose**: Find semantically similar entities through embedding proximity  
+**Status**: Roadmap 
+**Purpose**: Find semantically similar entities through embedding proximity 
 **Planned Features**:
 - ANN (Approximate Nearest Neighbor) search
 - Native ArangoDB vector support
@@ -86,8 +86,8 @@ This document chronicles the evolution of the ArangoDB Entity Resolution System 
 - Fast similarity queries at scale
 
 ### 4. GraphRAG & LLM Entity Extraction
-**Status**: Roadmap  
-**Purpose**: Extract entities from unstructured documents using LLMs  
+**Status**: Roadmap 
+**Purpose**: Extract entities from unstructured documents using LLMs 
 **Planned Features**:
 - Document entity extraction with LLMs
 - Knowledge graph construction
@@ -95,8 +95,8 @@ This document chronicles the evolution of the ArangoDB Entity Resolution System 
 - Graph-enhanced RAG architectures
 
 ### 5. Geospatial-Temporal Analysis
-**Status**: Roadmap  
-**Purpose**: Validate or reject matches based on location-time feasibility  
+**Status**: Roadmap 
+**Purpose**: Validate or reject matches based on location-time feasibility 
 **Planned Features**:
 - Co-location analysis
 - Spatial impossibility detection
@@ -104,8 +104,8 @@ This document chronicles the evolution of the ArangoDB Entity Resolution System 
 - Trajectory matching
 
 ### 6. LLM-Based Curation (Intelligent Decision Making)
-**Status**: Roadmap  
-**Purpose**: Automated evaluation of match evidence with human-like reasoning  
+**Status**: Roadmap 
+**Purpose**: Automated evaluation of match evidence with human-like reasoning 
 **Planned Features**:
 - Multi-technique evidence aggregation
 - Explainable AI decisions
@@ -151,7 +151,7 @@ This document chronicles the evolution of the ArangoDB Entity Resolution System 
 ## Repository Evolution
 
 ### Repository Rename
-**From**: `arango-entity-resolution-record-blocking`  
+**From**: `arango-entity-resolution-record-blocking` 
 **To**: `arango-entity-resolution`
 
 **Rationale**:
@@ -172,61 +172,61 @@ This document chronicles the evolution of the ArangoDB Entity Resolution System 
 ### Implemented Techniques (Based on Academic Research)
 
 1. **Blocking and Filtering**
-   - Papadakis et al. - Comprehensive survey
-   - Multiple blocking strategies
-   - Efficiency optimization
+- Papadakis et al. - Comprehensive survey
+- Multiple blocking strategies
+- Efficiency optimization
 
 2. **Probabilistic Record Linkage**
-   - Fellegi & Sunter framework
-   - m-probability and u-probability
-   - Optimal threshold determination
+- Fellegi & Sunter framework
+- m-probability and u-probability
+- Optimal threshold determination
 
 3. **Graph-Based Clustering**
-   - Weakly Connected Components
-   - Similarity graph construction
-   - Community detection principles
+- Weakly Connected Components
+- Similarity graph construction
+- Community detection principles
 
 4. **Entity Matching Systems**
-   - Doan et al. - Magellan system concepts
-   - End-to-end pipeline design
-   - Quality assessment methods
+- Doan et al. - Magellan system concepts
+- End-to-end pipeline design
+- Quality assessment methods
 
 5. **Deduplication Frameworks**
-   - Köpcke & Thor - Dedoop concepts
-   - Scalable processing patterns
-   - Performance optimization
+- Köpcke & Thor - Dedoop concepts
+- Scalable processing patterns
+- Performance optimization
 
 ### Planned Research Areas
 
 1. **Graph Embeddings & Network Analysis**
-   - Node2Vec, GraphSAGE, GCN
-   - Community detection algorithms
-   - Network-based entity resolution
+- Node2Vec, GraphSAGE, GCN
+- Community detection algorithms
+- Network-based entity resolution
 
 2. **Vector Search & Semantic Similarity**
-   - ANN algorithms (HNSW, IVF, PQ)
-   - Embedding-based matching
-   - Multi-modal embeddings
+- ANN algorithms (HNSW, IVF, PQ)
+- Embedding-based matching
+- Multi-modal embeddings
 
 3. **LLM & GraphRAG**
-   - Information extraction with LLMs
-   - RAG architectures
-   - Graph-enhanced retrieval
+- Information extraction with LLMs
+- RAG architectures
+- Graph-enhanced retrieval
 
 4. **Geospatial-Temporal Analysis**
-   - Spatial-temporal data mining
-   - Location verification algorithms
-   - Trajectory matching
+- Spatial-temporal data mining
+- Location verification algorithms
+- Trajectory matching
 
 5. **Hybrid & Ensemble Methods**
-   - Multi-strategy resolution
-   - Ensemble learning approaches
-   - Confidence aggregation
+- Multi-strategy resolution
+- Ensemble learning approaches
+- Confidence aggregation
 
 6. **Explainable AI**
-   - Interpretable machine learning
-   - Feature importance analysis
-   - Counterfactual explanations
+- Interpretable machine learning
+- Feature importance analysis
+- Counterfactual explanations
 
 ## Technical Architecture Evolution
 

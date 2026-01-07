@@ -1,8 +1,8 @@
 # ArangoER Library Enhancement Plan
 ## Adding Advanced Entity Resolution Capabilities
 
-**Date:** November 12, 2025  
-**Status:** Planning Phase  
+**Date:** November 12, 2025 
+**Status:** Planning Phase 
 **Goal:** Enhance arango-entity-resolution library with production-proven ER features
 
 ---
@@ -72,82 +72,82 @@ The following operations are commonly implemented directly in projects but shoul
 
 ```python
 class CollectBlockingStrategy:
-    """
-    COLLECT-based blocking for efficient composite key matching.
-    
-    Uses ArangoDB's COLLECT operation to group documents by blocking keys,
-    then generates candidate pairs only within small blocks. Avoids
-    expensive cartesian products.
-    
-    Performance: O(n) where n = number of documents
-    """
-    
-    def __init__(
-        self,
-        db: StandardDatabase,
-        collection: str,
-        blocking_fields: List[str],
-        filters: Optional[Dict[str, Dict[str, Any]]] = None,
-        max_block_size: int = 100,
-        min_block_size: int = 2,
-        computed_fields: Optional[Dict[str, str]] = None
-    ):
-        """
-        Initialize COLLECT-based blocking strategy.
-        
-        Args:
-            db: ArangoDB database connection
-            collection: Source collection name
-            blocking_fields: List of fields to use as composite blocking key
-            filters: Optional filters per field, e.g.:
-                {
-                    "phone": {
-                        "not_null": True,
-                        "not_equal": ["0", "00000000000"],
-                        "min_length": 10
-                    },
-                    "state": {"not_null": True}
-                }
-            max_block_size: Skip blocks larger than this (likely bad data)
-            min_block_size: Skip blocks smaller than this (no pairs to generate)
-            computed_fields: Optional computed fields, e.g.:
-                {"zip5": "LEFT(postal_code, 5)"}
-        """
-        pass
-    
-    def generate_candidates(self) -> List[Dict[str, Any]]:
-        """
-        Generate candidate pairs using COLLECT-based blocking.
-        
-        Returns:
-            List of candidate pairs with metadata:
-            [
-                {
-                    "doc1_key": "123",
-                    "doc2_key": "456",
-                    "blocking_keys": {"phone": "5551234567", "state": "CA"},
-                    "block_size": 3
-                },
-                ...
-            ]
-        """
-        pass
-    
-    def get_statistics(self) -> Dict[str, Any]:
-        """
-        Get blocking statistics.
-        
-        Returns:
-            {
-                "total_blocks": 1234,
-                "total_pairs": 45678,
-                "avg_block_size": 3.2,
-                "max_block_size": 15,
-                "skipped_blocks": 5,
-                "execution_time_seconds": 2.3
-            }
-        """
-        pass
+"""
+COLLECT-based blocking for efficient composite key matching.
+
+Uses ArangoDB's COLLECT operation to group documents by blocking keys,
+then generates candidate pairs only within small blocks. Avoids
+expensive cartesian products.
+
+Performance: O(n) where n = number of documents
+"""
+
+def __init__(
+self,
+db: StandardDatabase,
+collection: str,
+blocking_fields: List[str],
+filters: Optional[Dict[str, Dict[str, Any]]] = None,
+max_block_size: int = 100,
+min_block_size: int = 2,
+computed_fields: Optional[Dict[str, str]] = None
+):
+"""
+Initialize COLLECT-based blocking strategy.
+
+Args:
+db: ArangoDB database connection
+collection: Source collection name
+blocking_fields: List of fields to use as composite blocking key
+filters: Optional filters per field, e.g.:
+{
+"phone": {
+"not_null": True,
+"not_equal": ["0", "00000000000"],
+"min_length": 10
+},
+"state": {"not_null": True}
+}
+max_block_size: Skip blocks larger than this (likely bad data)
+min_block_size: Skip blocks smaller than this (no pairs to generate)
+computed_fields: Optional computed fields, e.g.:
+{"zip5": "LEFT(postal_code, 5)"}
+"""
+pass
+
+def generate_candidates(self) -> List[Dict[str, Any]]:
+"""
+Generate candidate pairs using COLLECT-based blocking.
+
+Returns:
+List of candidate pairs with metadata:
+[
+{
+"doc1_key": "123",
+"doc2_key": "456",
+"blocking_keys": {"phone": "5551234567", "state": "CA"},
+"block_size": 3
+},
+...
+]
+"""
+pass
+
+def get_statistics(self) -> Dict[str, Any]:
+"""
+Get blocking statistics.
+
+Returns:
+{
+"total_blocks": 1234,
+"total_pairs": 45678,
+"avg_block_size": 3.2,
+"max_block_size": 15,
+"skipped_blocks": 5,
+"execution_time_seconds": 2.3
+}
+"""
+pass
 ```
 
 **Implementation Notes:**
@@ -174,77 +174,77 @@ class CollectBlockingStrategy:
 
 ```python
 class BM25BlockingStrategy:
-    """
-    BM25-based fuzzy blocking using ArangoSearch.
-    
-    Uses ArangoDB's BM25 scoring for fast text similarity matching.
-    Much faster than Levenshtein for initial candidate generation,
-    particularly effective for name matching.
-    
-    Performance: O(n log n) where n = number of documents
-    """
-    
-    def __init__(
-        self,
-        db: StandardDatabase,
-        collection: str,
-        search_view: str,
-        search_field: str,
-        bm25_threshold: float = 2.0,
-        limit_per_entity: int = 20,
-        blocking_field: Optional[str] = None,
-        filters: Optional[Dict[str, Dict[str, Any]]] = None,
-        analyzer: str = "text_en"
-    ):
-        """
-        Initialize BM25-based blocking strategy.
-        
-        Args:
-            db: ArangoDB database connection
-            collection: Source collection name
-            search_view: ArangoSearch view name
-            search_field: Field to perform BM25 search on
-            bm25_threshold: Minimum BM25 score to include
-            limit_per_entity: Max candidates per source entity
-            blocking_field: Optional field to constrain matches (e.g., state)
-            filters: Optional filters per field
-            analyzer: ArangoSearch analyzer to use
-        """
-        pass
-    
-    def generate_candidates(self) -> List[Dict[str, Any]]:
-        """
-        Generate candidate pairs using BM25 fuzzy matching.
-        
-        Returns:
-            List of candidate pairs with BM25 scores:
-            [
-                {
-                    "doc1_key": "123",
-                    "doc2_key": "456",
-                    "bm25_score": 5.2,
-                    "search_field": "company_name",
-                    "blocking_field_value": "CA"
-                },
-                ...
-            ]
-        """
-        pass
-    
-    def get_statistics(self) -> Dict[str, Any]:
-        """
-        Get blocking statistics including BM25 score distribution.
-        
-        Returns:
-            {
-                "total_pairs": 12345,
-                "avg_bm25_score": 3.8,
-                "max_bm25_score": 12.4,
-                "min_bm25_score": 2.0,
-                "execution_time_seconds": 5.7
-            }
-        """
-        pass
+"""
+BM25-based fuzzy blocking using ArangoSearch.
+
+Uses ArangoDB's BM25 scoring for fast text similarity matching.
+Much faster than Levenshtein for initial candidate generation,
+particularly effective for name matching.
+
+Performance: O(n log n) where n = number of documents
+"""
+
+def __init__(
+self,
+db: StandardDatabase,
+collection: str,
+search_view: str,
+search_field: str,
+bm25_threshold: float = 2.0,
+limit_per_entity: int = 20,
+blocking_field: Optional[str] = None,
+filters: Optional[Dict[str, Dict[str, Any]]] = None,
+analyzer: str = "text_en"
+):
+"""
+Initialize BM25-based blocking strategy.
+
+Args:
+db: ArangoDB database connection
+collection: Source collection name
+search_view: ArangoSearch view name
+search_field: Field to perform BM25 search on
+bm25_threshold: Minimum BM25 score to include
+limit_per_entity: Max candidates per source entity
+blocking_field: Optional field to constrain matches (e.g., state)
+filters: Optional filters per field
+analyzer: ArangoSearch analyzer to use
+"""
+pass
+
+def generate_candidates(self) -> List[Dict[str, Any]]:
+"""
+Generate candidate pairs using BM25 fuzzy matching.
+
+Returns:
+List of candidate pairs with BM25 scores:
+[
+{
+"doc1_key": "123",
+"doc2_key": "456",
+"bm25_score": 5.2,
+"search_field": "company_name",
+"blocking_field_value": "CA"
+},
+...
+]
+"""
+pass
+
+def get_statistics(self) -> Dict[str, Any]:
+"""
+Get blocking statistics including BM25 score distribution.
+
+Returns:
+{
+"total_pairs": 12345,
+"avg_bm25_score": 3.8,
+"max_bm25_score": 12.4,
+"min_bm25_score": 2.0,
+"execution_time_seconds": 5.7
+}
+"""
+pass
 ```
 
 **Implementation Notes:**
@@ -272,118 +272,118 @@ class BM25BlockingStrategy:
 
 ```python
 class BatchSimilarityService:
-    """
-    Batch similarity computation with optimized document fetching.
-    
-    Fetches all required documents in batches, then computes similarities
-    in-memory. Dramatically reduces network overhead compared to
-    per-pair queries.
-    
-    Performance: ~100K+ pairs/second for Jaro-Winkler
-    """
-    
-    def __init__(
-        self,
-        db: StandardDatabase,
-        collection: str,
-        field_weights: Dict[str, float],
-        similarity_algorithm: Union[str, Callable] = "jaro_winkler",
-        batch_size: int = 5000,
-        normalization_config: Optional[Dict[str, Any]] = None,
-        progress_callback: Optional[Callable[[int, int], None]] = None
-    ):
-        """
-        Initialize batch similarity service.
-        
-        Args:
-            db: ArangoDB database connection
-            collection: Source collection name
-            field_weights: Field names and their weights, e.g.:
-                {
-                    "company_name": 0.4,
-                    "ceo_name": 0.3,
-                    "address": 0.2,
-                    "city": 0.1
-                }
-            similarity_algorithm: Algorithm name or callable:
-                - "jaro_winkler" (default)
-                - "levenshtein"
-                - "jaccard"
-                - Custom callable: (str1, str2) -> float
-            batch_size: Documents to fetch per query
-            normalization_config: Field normalization options:
-                {
-                    "strip": True,
-                    "lowercase": True,  # or "uppercase": True
-                    "remove_punctuation": False,
-                    "remove_extra_whitespace": True
-                }
-            progress_callback: Optional callback(current, total)
-        """
-        pass
-    
-    def compute_similarities(
-        self,
-        candidate_pairs: List[Tuple[str, str]],
-        threshold: float = 0.75,
-        return_all: bool = False
-    ) -> List[Tuple[str, str, float]]:
-        """
-        Compute similarities for candidate pairs.
-        
-        Args:
-            candidate_pairs: List of (doc1_key, doc2_key) tuples
-            threshold: Minimum similarity to include in results
-            return_all: If True, return all pairs (even below threshold)
-        
-        Returns:
-            List of (doc1_key, doc2_key, similarity_score) tuples
-        """
-        pass
-    
-    def compute_similarities_detailed(
-        self,
-        candidate_pairs: List[Tuple[str, str]],
-        threshold: float = 0.75
-    ) -> List[Dict[str, Any]]:
-        """
-        Compute similarities with detailed per-field scores.
-        
-        Returns:
-            List of detailed similarity results:
-            [
-                {
-                    "doc1_key": "123",
-                    "doc2_key": "456",
-                    "overall_score": 0.87,
-                    "field_scores": {
-                        "company_name": 0.95,
-                        "ceo_name": 0.82,
-                        "address": 0.78,
-                        "city": 0.92
-                    },
-                    "weighted_score": 0.87
-                },
-                ...
-            ]
-        """
-        pass
-    
-    def get_statistics(self) -> Dict[str, Any]:
-        """
-        Get computation statistics.
-        
-        Returns:
-            {
-                "pairs_processed": 50000,
-                "pairs_above_threshold": 3421,
-                "documents_cached": 15234,
-                "batch_count": 4,
-                "execution_time_seconds": 12.8,
-                "pairs_per_second": 3906
-            }
-        """
-        pass
+"""
+Batch similarity computation with optimized document fetching.
+
+Fetches all required documents in batches, then computes similarities
+in-memory. Dramatically reduces network overhead compared to
+per-pair queries.
+
+Performance: ~100K+ pairs/second for Jaro-Winkler
+"""
+
+def __init__(
+self,
+db: StandardDatabase,
+collection: str,
+field_weights: Dict[str, float],
+similarity_algorithm: Union[str, Callable] = "jaro_winkler",
+batch_size: int = 5000,
+normalization_config: Optional[Dict[str, Any]] = None,
+progress_callback: Optional[Callable[[int, int], None]] = None
+):
+"""
+Initialize batch similarity service.
+
+Args:
+db: ArangoDB database connection
+collection: Source collection name
+field_weights: Field names and their weights, e.g.:
+{
+"company_name": 0.4,
+"ceo_name": 0.3,
+"address": 0.2,
+"city": 0.1
+}
+similarity_algorithm: Algorithm name or callable:
+- "jaro_winkler" (default)
+- "levenshtein"
+- "jaccard"
+- Custom callable: (str1, str2) -> float
+batch_size: Documents to fetch per query
+normalization_config: Field normalization options:
+{
+"strip": True,
+"lowercase": True, # or "uppercase": True
+"remove_punctuation": False,
+"remove_extra_whitespace": True
+}
+progress_callback: Optional callback(current, total)
+"""
+pass
+
+def compute_similarities(
+self,
+candidate_pairs: List[Tuple[str, str]],
+threshold: float = 0.75,
+return_all: bool = False
+) -> List[Tuple[str, str, float]]:
+"""
+Compute similarities for candidate pairs.
+
+Args:
+candidate_pairs: List of (doc1_key, doc2_key) tuples
+threshold: Minimum similarity to include in results
+return_all: If True, return all pairs (even below threshold)
+
+Returns:
+List of (doc1_key, doc2_key, similarity_score) tuples
+"""
+pass
+
+def compute_similarities_detailed(
+self,
+candidate_pairs: List[Tuple[str, str]],
+threshold: float = 0.75
+) -> List[Dict[str, Any]]:
+"""
+Compute similarities with detailed per-field scores.
+
+Returns:
+List of detailed similarity results:
+[
+{
+"doc1_key": "123",
+"doc2_key": "456",
+"overall_score": 0.87,
+"field_scores": {
+"company_name": 0.95,
+"ceo_name": 0.82,
+"address": 0.78,
+"city": 0.92
+},
+"weighted_score": 0.87
+},
+...
+]
+"""
+pass
+
+def get_statistics(self) -> Dict[str, Any]:
+"""
+Get computation statistics.
+
+Returns:
+{
+"pairs_processed": 50000,
+"pairs_above_threshold": 3421,
+"documents_cached": 15234,
+"batch_count": 4,
+"execution_time_seconds": 12.8,
+"pairs_per_second": 3906
+}
+"""
+pass
 ```
 
 **Implementation Notes:**
@@ -412,118 +412,118 @@ class BatchSimilarityService:
 
 ```python
 class SimilarityEdgeService:
-    """
-    Bulk creation of similarity edges with metadata.
-    
-    Creates edges between similar entities in batches, with
-    comprehensive metadata for tracking and analysis.
-    
-    Performance: ~10K+ edges/second
-    """
-    
-    def __init__(
-        self,
-        db: StandardDatabase,
-        edge_collection: str = "similarTo",
-        vertex_collection: Optional[str] = None,
-        batch_size: int = 1000,
-        auto_create_collection: bool = True
-    ):
-        """
-        Initialize similarity edge service.
-        
-        Args:
-            db: ArangoDB database connection
-            edge_collection: Edge collection name
-            vertex_collection: Vertex collection name (for _from/_to formatting)
-            batch_size: Edges to insert per batch
-            auto_create_collection: Create edge collection if it doesn't exist
-        """
-        pass
-    
-    def create_edges(
-        self,
-        matches: List[Tuple[str, str, float]],
-        metadata: Optional[Dict[str, Any]] = None,
-        bidirectional: bool = False
-    ) -> int:
-        """
-        Create similarity edges in bulk.
-        
-        Args:
-            matches: List of (doc1_key, doc2_key, score) tuples
-            metadata: Additional metadata to include in all edges:
-                {
-                    "method": "hybrid_blocking",
-                    "algorithm": "jaro_winkler",
-                    "threshold": 0.75,
-                    "run_id": "run_20251112_143022"
-                }
-            bidirectional: If True, create edges in both directions
-        
-        Returns:
-            Number of edges created
-        """
-        pass
-    
-    def create_edges_detailed(
-        self,
-        matches: List[Dict[str, Any]],
-        bidirectional: bool = False
-    ) -> int:
-        """
-        Create edges with per-edge metadata.
-        
-        Args:
-            matches: List of detailed match records:
-                [
-                    {
-                        "doc1_key": "123",
-                        "doc2_key": "456",
-                        "similarity": 0.87,
-                        "field_scores": {...},
-                        "blocking_method": "phone_state"
-                    },
-                    ...
-                ]
-            bidirectional: If True, create edges in both directions
-        
-        Returns:
-            Number of edges created
-        """
-        pass
-    
-    def clear_edges(
-        self,
-        method: Optional[str] = None,
-        older_than: Optional[str] = None
-    ) -> int:
-        """
-        Clear similarity edges.
-        
-        Args:
-            method: Only clear edges with this method (optional)
-            older_than: Only clear edges older than this ISO timestamp (optional)
-        
-        Returns:
-            Number of edges removed
-        """
-        pass
-    
-    def get_statistics(self) -> Dict[str, Any]:
-        """
-        Get edge creation statistics.
-        
-        Returns:
-            {
-                "edges_created": 12345,
-                "batches_processed": 13,
-                "avg_batch_size": 949,
-                "execution_time_seconds": 1.2,
-                "edges_per_second": 10287
-            }
-        """
-        pass
+"""
+Bulk creation of similarity edges with metadata.
+
+Creates edges between similar entities in batches, with
+comprehensive metadata for tracking and analysis.
+
+Performance: ~10K+ edges/second
+"""
+
+def __init__(
+self,
+db: StandardDatabase,
+edge_collection: str = "similarTo",
+vertex_collection: Optional[str] = None,
+batch_size: int = 1000,
+auto_create_collection: bool = True
+):
+"""
+Initialize similarity edge service.
+
+Args:
+db: ArangoDB database connection
+edge_collection: Edge collection name
+vertex_collection: Vertex collection name (for _from/_to formatting)
+batch_size: Edges to insert per batch
+auto_create_collection: Create edge collection if it doesn't exist
+"""
+pass
+
+def create_edges(
+self,
+matches: List[Tuple[str, str, float]],
+metadata: Optional[Dict[str, Any]] = None,
+bidirectional: bool = False
+) -> int:
+"""
+Create similarity edges in bulk.
+
+Args:
+matches: List of (doc1_key, doc2_key, score) tuples
+metadata: Additional metadata to include in all edges:
+{
+"method": "hybrid_blocking",
+"algorithm": "jaro_winkler",
+"threshold": 0.75,
+"run_id": "run_20251112_143022"
+}
+bidirectional: If True, create edges in both directions
+
+Returns:
+Number of edges created
+"""
+pass
+
+def create_edges_detailed(
+self,
+matches: List[Dict[str, Any]],
+bidirectional: bool = False
+) -> int:
+"""
+Create edges with per-edge metadata.
+
+Args:
+matches: List of detailed match records:
+[
+{
+"doc1_key": "123",
+"doc2_key": "456",
+"similarity": 0.87,
+"field_scores": {...},
+"blocking_method": "phone_state"
+},
+...
+]
+bidirectional: If True, create edges in both directions
+
+Returns:
+Number of edges created
+"""
+pass
+
+def clear_edges(
+self,
+method: Optional[str] = None,
+older_than: Optional[str] = None
+) -> int:
+"""
+Clear similarity edges.
+
+Args:
+method: Only clear edges with this method (optional)
+older_than: Only clear edges older than this ISO timestamp (optional)
+
+Returns:
+Number of edges removed
+"""
+pass
+
+def get_statistics(self) -> Dict[str, Any]:
+"""
+Get edge creation statistics.
+
+Returns:
+{
+"edges_created": 12345,
+"batches_processed": 13,
+"avg_batch_size": 949,
+"execution_time_seconds": 1.2,
+"edges_per_second": 10287
+}
+"""
+pass
 ```
 
 **Implementation Notes:**
@@ -550,129 +550,129 @@ class SimilarityEdgeService:
 
 ```python
 class WCCClusteringService:
-    """
-    Weakly Connected Components clustering.
-    
-    Finds connected components in the similarity graph using
-    AQL graph traversal (server-side, efficient, works everywhere).
-    
-    Future enhancement: GAE (Graph Analytics Engine) support for
-    extremely large graphs requiring additional backend capabilities.
-    """
-    
-    def __init__(
-        self,
-        db: StandardDatabase,
-        edge_collection: str = "similarTo",
-        cluster_collection: str = "entity_clusters",
-        vertex_collection: Optional[str] = None,
-        min_cluster_size: int = 2,
-        graph_name: Optional[str] = None
-    ):
-        """
-        Initialize WCC clustering service.
-        
-        Args:
-            db: ArangoDB database connection
-            edge_collection: Edge collection containing similarity edges
-            cluster_collection: Collection to store cluster results
-            vertex_collection: Vertex collection name
-            min_cluster_size: Minimum entities per cluster to store
-            graph_name: Named graph to use (optional, can be created on-the-fly)
-        
-        Note:
-            Uses AQL graph traversal for clustering. This is server-side,
-            efficient, and works on all modern ArangoDB installations (3.9+).
-        """
-        pass
-    
-    def cluster(
-        self,
-        store_results: bool = True,
-        truncate_existing: bool = True
-    ) -> List[List[str]]:
-        """
-        Run WCC clustering on similarity edges using AQL graph traversal.
-        
-        Args:
-            store_results: Store clusters in cluster_collection
-            truncate_existing: Clear existing clusters before storing
-        
-        Returns:
-            List of clusters, each cluster is a list of document keys:
-            [
-                ["doc1", "doc2", "doc3"],  # Cluster 1
-                ["doc4", "doc5"],          # Cluster 2
-                ...
-            ]
-        """
-        pass
-    
-    def _find_connected_components_aql(self) -> List[List[str]]:
-        """
-        Use AQL graph traversal to find connected components.
-        
-        Implementation approach:
-        1. Get all unique vertices from edges
-        2. For each unvisited vertex, traverse to find its component
-        3. Use AQL graph traversal (FOR v, e, p IN 0..999999 ANY ...)
-        4. Mark visited vertices to avoid duplicates
-        
-        This is server-side and efficient for graphs up to millions of edges.
-        """
-        pass
-    
-    def get_cluster_by_member(self, member_key: str) -> Optional[Dict[str, Any]]:
-        """
-        Find cluster containing a specific member.
-        
-        Args:
-            member_key: Document key to search for
-        
-        Returns:
-            Cluster record or None if not found
-        """
-        pass
-    
-    def get_statistics(self) -> Dict[str, Any]:
-        """
-        Get clustering statistics.
-        
-        Returns:
-            {
-                "total_clusters": 234,
-                "total_entities_clustered": 1523,
-                "avg_cluster_size": 6.5,
-                "max_cluster_size": 45,
-                "min_cluster_size": 2,
-                "cluster_size_distribution": {
-                    "2": 120,
-                    "3": 56,
-                    "4-10": 45,
-                    "11-50": 13
-                },
-                "algorithm_used": "aql_graph",
-                "execution_time_seconds": 3.4
-            }
-        """
-        pass
-    
-    def validate_clusters(self) -> Dict[str, Any]:
-        """
-        Validate cluster quality and consistency.
-        
-        Returns:
-            {
-                "valid": True,
-                "issues": [],
-                "checks_performed": [
-                    "no_overlapping_clusters",
-                    "all_edges_respected",
-                    "min_size_requirement"
-                ]
-            }
-        """
-        pass
+"""
+Weakly Connected Components clustering.
+
+Finds connected components in the similarity graph using
+AQL graph traversal (server-side, efficient, works everywhere).
+
+Future enhancement: GAE (Graph Analytics Engine) support for
+extremely large graphs requiring additional backend capabilities.
+"""
+
+def __init__(
+self,
+db: StandardDatabase,
+edge_collection: str = "similarTo",
+cluster_collection: str = "entity_clusters",
+vertex_collection: Optional[str] = None,
+min_cluster_size: int = 2,
+graph_name: Optional[str] = None
+):
+"""
+Initialize WCC clustering service.
+
+Args:
+db: ArangoDB database connection
+edge_collection: Edge collection containing similarity edges
+cluster_collection: Collection to store cluster results
+vertex_collection: Vertex collection name
+min_cluster_size: Minimum entities per cluster to store
+graph_name: Named graph to use (optional, can be created on-the-fly)
+
+Note:
+Uses AQL graph traversal for clustering. This is server-side,
+efficient, and works on all modern ArangoDB installations (3.9+).
+"""
+pass
+
+def cluster(
+self,
+store_results: bool = True,
+truncate_existing: bool = True
+) -> List[List[str]]:
+"""
+Run WCC clustering on similarity edges using AQL graph traversal.
+
+Args:
+store_results: Store clusters in cluster_collection
+truncate_existing: Clear existing clusters before storing
+
+Returns:
+List of clusters, each cluster is a list of document keys:
+[
+["doc1", "doc2", "doc3"], # Cluster 1
+["doc4", "doc5"], # Cluster 2
+...
+]
+"""
+pass
+
+def _find_connected_components_aql(self) -> List[List[str]]:
+"""
+Use AQL graph traversal to find connected components.
+
+Implementation approach:
+1. Get all unique vertices from edges
+2. For each unvisited vertex, traverse to find its component
+3. Use AQL graph traversal (FOR v, e, p IN 0..999999 ANY ...)
+4. Mark visited vertices to avoid duplicates
+
+This is server-side and efficient for graphs up to millions of edges.
+"""
+pass
+
+def get_cluster_by_member(self, member_key: str) -> Optional[Dict[str, Any]]:
+"""
+Find cluster containing a specific member.
+
+Args:
+member_key: Document key to search for
+
+Returns:
+Cluster record or None if not found
+"""
+pass
+
+def get_statistics(self) -> Dict[str, Any]:
+"""
+Get clustering statistics.
+
+Returns:
+{
+"total_clusters": 234,
+"total_entities_clustered": 1523,
+"avg_cluster_size": 6.5,
+"max_cluster_size": 45,
+"min_cluster_size": 2,
+"cluster_size_distribution": {
+"2": 120,
+"3": 56,
+"4-10": 45,
+"11-50": 13
+},
+"algorithm_used": "aql_graph",
+"execution_time_seconds": 3.4
+}
+"""
+pass
+
+def validate_clusters(self) -> Dict[str, Any]:
+"""
+Validate cluster quality and consistency.
+
+Returns:
+{
+"valid": True,
+"issues": [],
+"checks_performed": [
+"no_overlapping_clusters",
+"all_edges_respected",
+"min_size_requirement"
+]
+}
+"""
+pass
 ```
 
 **Implementation Notes:**
@@ -1022,7 +1022,7 @@ If any existing APIs need changes:
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** November 12, 2025  
+**Document Version:** 1.0 
+**Last Updated:** November 12, 2025 
 **Next Review:** Start of each phase
 

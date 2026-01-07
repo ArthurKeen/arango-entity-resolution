@@ -12,8 +12,8 @@ The Entity Resolution framework is designed to work with **any collection struct
 
 ```bash
 curl -X POST "https://your-db.arangodb.cloud:8529/_db/your_database/entity-resolution/setup/analyzers" \
-  -u root:yourpassword \
-  -H "Content-Type: application/json"
+-u root:yourpassword \
+-H "Content-Type: application/json"
 ```
 
 **Result:**
@@ -27,16 +27,16 @@ curl -X POST "https://your-db.arangodb.cloud:8529/_db/your_database/entity-resol
 
 ```bash
 curl -X POST "https://your-db.arangodb.cloud:8529/_db/your_database/entity-resolution/setup/views" \
-  -u root:yourpassword \
-  -H "Content-Type: application/json" \
-  -d '{
-    "collections": ["companies", "contacts", "locations"],
-    "fields": {
-      "companies": ["company_name", "ceo_name", "industry"],
-      "contacts": ["first_name", "last_name", "email"],
-      "locations": ["address", "city", "postal_code"]
-    }
-  }'
+-u root:yourpassword \
+-H "Content-Type: application/json" \
+-d '{
+"collections": ["companies", "contacts", "locations"],
+"fields": {
+"companies": ["company_name", "ceo_name", "industry"],
+"contacts": ["first_name", "last_name", "email"],
+"locations": ["address", "city", "postal_code"]
+}
+}'
 ```
 
 **Result:**
@@ -50,11 +50,11 @@ Let the system index **all fields** automatically:
 
 ```bash
 curl -X POST "https://your-db.arangodb.cloud:8529/_db/your_database/entity-resolution/setup/views" \
-  -u root:yourpassword \
-  -H "Content-Type: application/json" \
-  -d '{
-    "collections": ["companies"]
-  }'
+-u root:yourpassword \
+-H "Content-Type: application/json" \
+-d '{
+"collections": ["companies"]
+}'
 ```
 
 Auto-discovery is enabled by default (`autoDiscoverFields: true` in service configuration).
@@ -65,15 +65,15 @@ Create analyzers **and** views in one call:
 
 ```bash
 curl -X POST "https://your-db.arangodb.cloud:8529/_db/your_database/entity-resolution/setup/initialize" \
-  -u root:yourpassword \
-  -H "Content-Type: application/json" \
-  -d '{
-    "collections": ["companies", "contacts"],
-    "fields": {
-      "companies": ["company_name", "industry"],
-      "contacts": ["first_name", "last_name", "email"]
-    }
-  }'
+-u root:yourpassword \
+-H "Content-Type: application/json" \
+-d '{
+"collections": ["companies", "contacts"],
+"fields": {
+"companies": ["company_name", "industry"],
+"contacts": ["first_name", "last_name", "email"]
+}
+}'
 ```
 
 ---
@@ -88,23 +88,23 @@ from entity_resolution.utils.config import Config
 
 # Configure for your database
 config = Config(
-    host="your-db.arangodb.cloud",
-    port=8529,
-    username="root",
-    password="yourpassword",
-    database="your_database"
+host="your-db.arangodb.cloud",
+port=8529,
+username="root",
+password="yourpassword",
+database="your_database"
 )
 
 setup = SetupService(config)
 
 # Initialize for your collections
 result = setup.initialize(
-    collections=["companies", "contacts", "locations"],
-    fields={
-        "companies": ["company_name", "ceo_name", "industry"],
-        "contacts": ["first_name", "last_name", "email"],
-        "locations": ["address", "city", "postal_code"]
-    }
+collections=["companies", "contacts", "locations"],
+fields={
+"companies": ["company_name", "ceo_name", "industry"],
+"contacts": ["first_name", "last_name", "email"],
+"locations": ["address", "city", "postal_code"]
+}
 )
 
 print(f"Setup complete: {result['success']}")
@@ -121,10 +121,10 @@ Configure default behavior via ArangoDB web interface or API:
 
 ```json
 {
-  "defaultCollections": "companies,contacts",
-  "autoDiscoverFields": true,
-  "ngramLength": 3,
-  "enablePhoneticMatching": true
+"defaultCollections": "companies,contacts",
+"autoDiscoverFields": true,
+"ngramLength": 3,
+"enablePhoneticMatching": true
 }
 ```
 
@@ -139,11 +139,11 @@ Override defaults for specific operations:
 
 ```json
 {
-  "collections": ["custom_collection"],
-  "fields": {
-    "custom_collection": ["specific_field1", "specific_field2"]
-  },
-  "force": true
+"collections": ["custom_collection"],
+"fields": {
+"custom_collection": ["specific_field1", "specific_field2"]
+},
+"force": true
 }
 ```
 
@@ -164,11 +164,11 @@ Override defaults for specific operations:
 
 ```json
 {
-  "collections": ["collection1", "collection2"],
-  "fields": {
-    "collection1": ["field_a", "field_b"],
-    "collection2": ["field_x", "field_y"]
-  }
+"collections": ["collection1", "collection2"],
+"fields": {
+"collection1": ["field_a", "field_b"],
+"collection2": ["field_x", "field_y"]
+}
 }
 ```
 
@@ -181,19 +181,19 @@ Override defaults for specific operations:
 
 ```json
 {
-  "success": true,
-  "message": "ArangoSearch views created successfully",
-  "views": {
-    "collection1_blocking_view": {
-      "name": "collection1_blocking_view",
-      "status": "created"
-    }
-  },
-  "collections": ["collection1", "collection2"],
-  "configuration": {
-    "autoDiscoverFields": true,
-    "fieldsConfigured": true
-  }
+"success": true,
+"message": "ArangoSearch views created successfully",
+"views": {
+"collection1_blocking_view": {
+"name": "collection1_blocking_view",
+"status": "created"
+}
+},
+"collections": ["collection1", "collection2"],
+"configuration": {
+"autoDiscoverFields": true,
+"fieldsConfigured": true
+}
 }
 ```
 
@@ -201,16 +201,16 @@ Override defaults for specific operations:
 
 ```json
 {
-  "success": false,
-  "error": "No collections specified",
-  "message": "Provide collections in request body or configure defaultCollections",
-  "available_collections": ["companies", "contacts", "locations", ...],
-  "example": {
-    "collections": ["companies", "contacts"],
-    "fields": {
-      "companies": ["field1", "field2"]
-    }
-  }
+"success": false,
+"error": "No collections specified",
+"message": "Provide collections in request body or configure defaultCollections",
+"available_collections": ["companies", "contacts", "locations", ...],
+"example": {
+"collections": ["companies", "contacts"],
+"fields": {
+"companies": ["field1", "field2"]
+}
+}
 }
 ```
 
@@ -224,11 +224,11 @@ Override defaults for specific operations:
 
 ```json
 {
-  "collections": ["companies"],
-  "fields": {
-    "companies": ["company_name", "ceo_name"]
-  },
-  "force": false
+"collections": ["companies"],
+"fields": {
+"companies": ["company_name", "ceo_name"]
+},
+"force": false
 }
 ```
 
@@ -236,28 +236,28 @@ Override defaults for specific operations:
 
 ```json
 {
-  "success": true,
-  "message": "Entity resolution setup initialized successfully",
-  "results": {
-    "analyzers": {
-      "ngram_analyzer": {"status": "created"},
-      "exact_analyzer": {"status": "created"}
-    },
-    "views": {
-      "companies_blocking_view": {"status": "created"}
-    },
-    "collections": {
-      "companies": true
-    },
-    "warnings": []
-  },
-  "configuration": {
-    "ngramLength": 3,
-    "collections": ["companies"],
-    "force": false,
-    "autoDiscoverFields": true,
-    "fieldsConfigured": true
-  }
+"success": true,
+"message": "Entity resolution setup initialized successfully",
+"results": {
+"analyzers": {
+"ngram_analyzer": {"status": "created"},
+"exact_analyzer": {"status": "created"}
+},
+"views": {
+"companies_blocking_view": {"status": "created"}
+},
+"collections": {
+"companies": true
+},
+"warnings": []
+},
+"configuration": {
+"ngramLength": 3,
+"collections": ["companies"],
+"force": false,
+"autoDiscoverFields": true,
+"fieldsConfigured": true
+}
 }
 ```
 
@@ -276,30 +276,30 @@ Override defaults for specific operations:
 
 ```bash
 curl -X POST "$ARANGO_ENDPOINT/_db/$ARANGO_DATABASE/entity-resolution/setup/initialize" \
-  -u "$ARANGO_USER:$ARANGO_PASSWORD" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "collections": ["companies", "divisions", "subsidiaries"],
-    "fields": {
-      "companies": [
-        "company_name",
-        "legal_name",
-        "ceo_name",
-        "headquarters_address",
-        "headquarters_city",
-        "headquarters_state"
-      ],
-      "divisions": [
-        "division_name",
-        "division_number",
-        "division_type"
-      ],
-      "subsidiaries": [
-        "subsidiary_name",
-        "parent_company"
-      ]
-    }
-  }'
+-u "$ARANGO_USER:$ARANGO_PASSWORD" \
+-H "Content-Type: application/json" \
+-d '{
+"collections": ["companies", "divisions", "subsidiaries"],
+"fields": {
+"companies": [
+"company_name",
+"legal_name",
+"ceo_name",
+"headquarters_address",
+"headquarters_city",
+"headquarters_state"
+],
+"divisions": [
+"division_name",
+"division_number",
+"division_type"
+],
+"subsidiaries": [
+"subsidiary_name",
+"parent_company"
+]
+}
+}'
 ```
 
 **Result:**
@@ -320,16 +320,16 @@ curl -X POST "$ARANGO_ENDPOINT/_db/$ARANGO_DATABASE/entity-resolution/setup/init
 
 ```bash
 curl -X POST "$ARANGO_ENDPOINT/_db/crm/entity-resolution/setup/initialize" \
-  -u "$ARANGO_USER:$ARANGO_PASSWORD" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "collections": ["accounts", "contacts", "leads"],
-    "fields": {
-      "accounts": ["account_name", "website", "phone"],
-      "contacts": ["first_name", "last_name", "email", "company"],
-      "leads": ["company_name", "contact_name", "email"]
-    }
-  }'
+-u "$ARANGO_USER:$ARANGO_PASSWORD" \
+-H "Content-Type: application/json" \
+-d '{
+"collections": ["accounts", "contacts", "leads"],
+"fields": {
+"accounts": ["account_name", "website", "phone"],
+"contacts": ["first_name", "last_name", "email", "company"],
+"leads": ["company_name", "contact_name", "email"]
+}
+}'
 ```
 
 ---
@@ -341,11 +341,11 @@ curl -X POST "$ARANGO_ENDPOINT/_db/crm/entity-resolution/setup/initialize" \
 ```bash
 # Auto-index ALL fields in collections
 curl -X POST "$ARANGO_ENDPOINT/_db/my_database/entity-resolution/setup/views" \
-  -u "$ARANGO_USER:$ARANGO_PASSWORD" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "collections": ["unknown_collection"]
-  }'
+-u "$ARANGO_USER:$ARANGO_PASSWORD" \
+-H "Content-Type: application/json" \
+-d '{
+"collections": ["unknown_collection"]
+}'
 ```
 
 **What happens:**
@@ -365,7 +365,7 @@ curl -X POST "$ARANGO_ENDPOINT/_db/my_database/entity-resolution/setup/views" \
 
 ```json
 {
-  "collections": ["your_collection_name"]
+"collections": ["your_collection_name"]
 }
 ```
 
@@ -379,7 +379,7 @@ curl -X POST "$ARANGO_ENDPOINT/_db/my_database/entity-resolution/setup/views" \
 
 ```json
 {
-  "collections": ["companies"]
+"collections": ["companies"]
 }
 ```
 
@@ -400,10 +400,10 @@ Settings → Services → entity-resolution → Configuration → defaultCollect
 
 ```json
 {
-  "collections": ["companies"],
-  "fields": {
-    "companies": ["your_field_name", "another_field"]
-  }
+"collections": ["companies"],
+"fields": {
+"companies": ["your_field_name", "another_field"]
+}
 }
 ```
 
@@ -411,7 +411,7 @@ Settings → Services → entity-resolution → Configuration → defaultCollect
 
 ```json
 {
-  "collections": ["companies"]
+"collections": ["companies"]
 }
 ```
 
@@ -430,44 +430,44 @@ Leave `fields` empty and set `autoDiscoverFields: true` in service configuration
 **Debug Steps:**
 
 1. **Check view exists:**
-   ```bash
-   curl "$ARANGO_ENDPOINT/_db/$DB/_api/view" -u "$USER:$PASS"
-   ```
+```bash
+curl "$ARANGO_ENDPOINT/_db/$DB/_api/view" -u "$USER:$PASS"
+```
 
 2. **Inspect view configuration:**
-   ```bash
-   curl "$ARANGO_ENDPOINT/_db/$DB/_api/view/companies_blocking_view/properties" \
-     -u "$USER:$PASS"
-   ```
+```bash
+curl "$ARANGO_ENDPOINT/_db/$DB/_api/view/companies_blocking_view/properties" \
+-u "$USER:$PASS"
+```
 
 3. **Test analyzer:**
-   ```bash
-   curl -X POST "$ARANGO_ENDPOINT/_db/$DB/_api/analyzer" \
-     -u "$USER:$PASS" \
-     -d '{
-       "analyzer": "ngram_analyzer",
-       "text": "Your Company Name"
-     }'
-   ```
+```bash
+curl -X POST "$ARANGO_ENDPOINT/_db/$DB/_api/analyzer" \
+-u "$USER:$PASS" \
+-d '{
+"analyzer": "ngram_analyzer",
+"text": "Your Company Name"
+}'
+```
 
 4. **Check for database-prefixed analyzers (AddressERService):**
-   If you're using `AddressERService` and analyzers are stored with database prefixes (e.g., `my_db::address_normalizer`), ensure you're using version 3.0.1+ which automatically detects and uses prefixed analyzer names.
+If you're using `AddressERService` and analyzers are stored with database prefixes (e.g., `my_db::address_normalizer`), ensure you're using version 3.0.1+ which automatically detects and uses prefixed analyzer names.
 
-   ```bash
-   # List all analyzers to check for prefixes
-   curl "$ARANGO_ENDPOINT/_db/$DB/_api/analyzer" -u "$USER:$PASS"
-   ```
+```bash
+# List all analyzers to check for prefixes
+curl "$ARANGO_ENDPOINT/_db/$DB/_api/analyzer" -u "$USER:$PASS"
+```
 
 5. **Recreate with force:**
-   ```json
-   {
-     "collections": ["companies"],
-     "fields": {
-       "companies": ["CORRECT_FIELD_NAME"]
-     },
-     "force": true
-   }
-   ```
+```json
+{
+"collections": ["companies"],
+"fields": {
+"companies": ["CORRECT_FIELD_NAME"]
+},
+"force": true
+}
+```
 
 ---
 
@@ -478,10 +478,10 @@ Leave `fields` empty and set `autoDiscoverFields: true` in service configuration
 **Recommended:**
 ```json
 {
-  "collections": ["companies"],
-  "fields": {
-    "companies": ["company_name", "address"]
-  }
+"collections": ["companies"],
+"fields": {
+"companies": ["company_name", "address"]
+}
 }
 ```
 
@@ -493,7 +493,7 @@ Leave `fields` empty and set `autoDiscoverFields: true` in service configuration
 
 ```json
 {
-  "collections": ["unknown_data"]
+"collections": ["unknown_data"]
 }
 ```
 
@@ -524,7 +524,7 @@ Settings → Services → entity-resolution → Configuration
 Check progress:
 ```bash
 curl "$ARANGO_ENDPOINT/_db/$DB/_api/view/companies_blocking_view/properties" \
-  -u "$USER:$PASS"
+-u "$USER:$PASS"
 ```
 
 ---
@@ -534,31 +534,31 @@ curl "$ARANGO_ENDPOINT/_db/$DB/_api/view/companies_blocking_view/properties" \
 After setup:
 
 1. **Test Blocking:**
-   ```bash
-   POST /entity-resolution/blocking/candidates
-   {
-     "collection": "companies",
-     "record_id": "test_record_id"
-   }
-   ```
+```bash
+POST /entity-resolution/blocking/candidates
+{
+"collection": "companies",
+"record_id": "test_record_id"
+}
+```
 
 2. **Compute Similarity:**
-   ```bash
-   POST /entity-resolution/similarity/compute
-   {
-     "collection": "companies",
-     "record_id_1": "id1",
-     "record_id_2": "id2"
-   }
-   ```
+```bash
+POST /entity-resolution/similarity/compute
+{
+"collection": "companies",
+"record_id_1": "id1",
+"record_id_2": "id2"
+}
+```
 
 3. **Run Clustering:**
-   ```bash
-   POST /entity-resolution/clustering/wcc
-   {
-     "similarity_threshold": 0.8
-   }
-   ```
+```bash
+POST /entity-resolution/clustering/wcc
+{
+"similarity_threshold": 0.8
+}
+```
 
 ---
 
@@ -572,5 +572,5 @@ After setup:
 
 ---
 
-**Last Updated:** October 28, 2025  
+**Last Updated:** October 28, 2025 
 **Version:** 1.1.0 (Custom Collections Support)

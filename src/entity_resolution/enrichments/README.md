@@ -11,10 +11,10 @@ These enrichments are included with arango-entity-resolution but are **standalon
 ```python
 # Import directly from enrichments to avoid database config requirements
 from entity_resolution.enrichments import (
-    TypeCompatibilityFilter,
-    HierarchicalContextResolver,
-    AcronymExpansionHandler,
-    RelationshipProvenanceSweeper
+TypeCompatibilityFilter,
+HierarchicalContextResolver,
+AcronymExpansionHandler,
+RelationshipProvenanceSweeper
 )
 ```
 
@@ -38,8 +38,8 @@ Pre-filters candidates by type compatibility to prevent nonsensical matches.
 
 ```python
 type_filter = TypeCompatibilityFilter({
-    'signal': {'register', 'signal', 'architecture_feature'},
-    'diagnosis': {'condition', 'disease', 'syndrome'}
+'signal': {'register', 'signal', 'architecture_feature'},
+'diagnosis': {'condition', 'disease', 'syndrome'}
 })
 
 valid_candidates = type_filter.filter_candidates('signal', all_candidates)
@@ -53,16 +53,16 @@ Uses parent entity context to improve child entity resolution.
 
 ```python
 resolver = HierarchicalContextResolver(
-    parent_field='parent_id',
-    context_field='description',
-    context_weight=0.3
+parent_field='parent_id',
+context_field='description',
+context_weight=0.3
 )
 
 matches = resolver.resolve_with_context(
-    item=entity,
-    candidates=candidates,
-    parent_context=parent_description,
-    base_similarity_fn=your_similarity_function
+item=entity,
+candidates=candidates,
+parent_context=parent_description,
+base_similarity_fn=your_similarity_function
 )
 ```
 
@@ -74,8 +74,8 @@ Expands domain-specific abbreviations during search.
 
 ```python
 acronym_handler = AcronymExpansionHandler({
-    'MI': ['Myocardial Infarction', 'Mitral Insufficiency'],
-    'ESR': ['Exception Status Register']
+'MI': ['Myocardial Infarction', 'Mitral Insufficiency'],
+'ESR': ['Exception Status Register']
 })
 
 search_terms = acronym_handler.expand_search_terms('MI')
@@ -92,8 +92,8 @@ Remaps relationships after entity consolidation with full audit trail.
 sweeper = RelationshipProvenanceSweeper(track_provenance=True)
 
 golden_relations = sweeper.sweep_relationships(
-    entity_mapping={'old_id_1': 'golden_id', 'old_id_2': 'golden_id'},
-    relationships=original_relationships
+entity_mapping={'old_id_1': 'golden_id', 'old_id_2': 'golden_id'},
+relationships=original_relationships
 )
 ```
 

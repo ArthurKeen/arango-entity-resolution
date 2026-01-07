@@ -58,7 +58,7 @@ These .mermaid files can be directly embedded in Markdown:
 ```markdown
 ```mermaid
 graph TB
- [content from .mermaid file]
+[content from .mermaid file]
 ```
 ```
 
@@ -134,13 +134,13 @@ For complete syntax reference: https://mermaid.js.org/syntax/
 
 ```
 docs/diagrams/
- README.md # This file
- architecture.mermaid # System architecture diagram
- workflow.mermaid # Entity resolution workflow
- arango-multimodel.mermaid # ArangoDB integration details
- architecture.png # Generated images (add after rendering)
- workflow.png # Generated images (add after rendering)
- arango-multimodel.png # Generated images (add after rendering)
+README.md # This file
+architecture.mermaid # System architecture diagram
+workflow.mermaid # Entity resolution workflow
+arango-multimodel.mermaid # ArangoDB integration details
+architecture.png # Generated images (add after rendering)
+workflow.png # Generated images (add after rendering)
+arango-multimodel.png # Generated images (add after rendering)
 ```
 
 ## Integration with Main Documentation

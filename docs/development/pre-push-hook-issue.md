@@ -1,7 +1,7 @@
 # Pre-Push Hook Issue - Import-Time Config Loading
 
-**Date:** December 2, 2025  
-**Status:** ⚠️ **KNOWN ISSUE** - Workaround in place  
+**Date:** December 2, 2025 
+**Status:** **KNOWN ISSUE** - Workaround in place 
 **Impact:** Pre-push hook fails without database credentials
 
 ---
@@ -13,9 +13,9 @@ The pre-push hook tries to import modules to verify they don't have syntax error
 **Error:**
 ```
 Database password is required. Set one of:
-  - ARANGO_ROOT_PASSWORD environment variable
-  - ARANGO_PASSWORD environment variable
-  - USE_DEFAULT_PASSWORD=true (local docker development only)
+- ARANGO_ROOT_PASSWORD environment variable
+- ARANGO_PASSWORD environment variable
+- USE_DEFAULT_PASSWORD=true (local docker development only)
 ```
 
 ---
@@ -25,15 +25,15 @@ Database password is required. Set one of:
 ### 1. `DatabaseManager.__init__()` (Line 36 in database.py)
 ```python
 def __init__(self):
-    if not hasattr(self, 'initialized'):
-        self.config = get_config()  # ← Requires password!
+if not hasattr(self, 'initialized'):
+self.config = get_config() # ← Requires password!
 ```
 
 ### 2. `get_logger()` (Line 23 in logging.py)
 ```python
 def setup_logging(...):
-    config = get_config()  # ← Requires password!
-    level = log_level or config.er.log_level
+config = get_config() # ← Requires password!
+level = log_level or config.er.log_level
 ```
 
 ### 3. Service Classes
@@ -68,26 +68,26 @@ SKIP_TESTS=1 git push
 
 ## Proper Solution (Not Yet Implemented)
 
-### Option 1: Lazy Config Loading ✅ RECOMMENDED
+### Option 1: Lazy Config Loading RECOMMENDED
 
 Make config loading lazy - only load when actually accessed, not at init:
 
 ```python
 class DatabaseManager:
-    def __init__(self):
-        if not hasattr(self, 'initialized'):
-            self._config = None  # Don't load yet
-            self.logger = get_logger(__name__)
-            self._client = None
-            self._databases = {}
-            self.initialized = True
-    
-    @property
-    def config(self) -> Config:
-        """Get configuration, loading lazily on first access"""
-        if self._config is None:
-            self._config = get_config()
-        return self._config
+def __init__(self):
+if not hasattr(self, 'initialized'):
+self._config = None # Don't load yet
+self.logger = get_logger(__name__)
+self._client = None
+self._databases = {}
+self.initialized = True
+
+@property
+def config(self) -> Config:
+"""Get configuration, loading lazily on first access"""
+if self._config is None:
+self._config = get_config()
+return self._config
 ```
 
 **Benefits:**
@@ -144,10 +144,10 @@ python3 -m py_compile src/entity_resolution/services/similarity_service.py
 ## Recommended Fix
 
 **Option 1 (Lazy Config Loading)** is the best solution because:
-1. ✅ Solves the architectural problem
-2. ✅ Makes modules more testable
-3. ✅ Follows best practices (don't do work at import time)
-4. ✅ No workarounds needed
+1. Solves the architectural problem
+2. Makes modules more testable
+3. Follows best practices (don't do work at import time)
+4. No workarounds needed
 
 **Implementation Steps:**
 1. Make `DatabaseManager.config` a lazy-loaded property
@@ -175,8 +175,8 @@ python3 -c "
 from entity_resolution import WCCClusteringService
 import os
 os.environ['ARANGO_PASSWORD'] = 'test'
-service = WCCClusteringService(...)  # This should work
-service.cluster()  # This needs real credentials
+service = WCCClusteringService(...) # This should work
+service.cluster() # This needs real credentials
 "
 ```
 
@@ -185,15 +185,15 @@ service.cluster()  # This needs real credentials
 ## Impact Analysis
 
 **Current Impact:**
-- ⚠️ Developers must use `SKIP_TESTS=1` or set credentials
-- ⚠️ CI/CD pipelines need credentials for simple syntax checks
-- ⚠️ Makes testing more complex
+- Developers must use `SKIP_TESTS=1` or set credentials
+- CI/CD pipelines need credentials for simple syntax checks
+- Makes testing more complex
 
 **After Fix:**
-- ✅ Modules can be imported freely
-- ✅ Tests run without database
-- ✅ Credentials only needed for actual database operations
-- ✅ Better separation of concerns
+- Modules can be imported freely
+- Tests run without database
+- Credentials only needed for actual database operations
+- Better separation of concerns
 
 ---
 
@@ -206,15 +206,15 @@ service.cluster()  # This needs real credentials
 
 ## Conclusion
 
-**Status:** Known issue with workaround  
-**Workaround:** `SKIP_TESTS=1 git push` (after thorough testing)  
-**Proper Fix:** Lazy config loading (not yet implemented)  
-**Priority:** Medium - should fix but not urgent  
+**Status:** Known issue with workaround 
+**Workaround:** `SKIP_TESTS=1 git push` (after thorough testing) 
+**Proper Fix:** Lazy config loading (not yet implemented) 
+**Priority:** Medium - should fix but not urgent 
 **Next Steps:** Implement Option 1 (lazy config loading) when time permits
 
 ---
 
-**Last Updated:** December 2, 2025  
-**Discovered By:** Pre-push hook failure during WCC fix commit  
+**Last Updated:** December 2, 2025 
+**Discovered By:** Pre-push hook failure during WCC fix commit 
 **Workaround Verified:** Yes - used successfully for WCC commit
 

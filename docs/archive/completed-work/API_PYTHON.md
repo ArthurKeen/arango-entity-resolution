@@ -49,11 +49,11 @@ pipeline = EntityResolutionPipeline()
 from entity_resolution.utils.config import Config
 
 config = Config(
-    arango_host="localhost",
-    arango_port=8529,
-    arango_username="root",
-    arango_password="your_password",
-    arango_database="entity_resolution"
+arango_host="localhost",
+arango_port=8529,
+arango_username="root",
+arango_password="your_password",
+arango_database="entity_resolution"
 )
 
 pipeline = EntityResolutionPipeline(config=config)
@@ -84,9 +84,9 @@ Initialize connections to ArangoDB and services.
 
 ```python
 if pipeline.connect():
-    print("Connected successfully")
+print("Connected successfully")
 else:
-    print("Connection failed")
+print("Connection failed")
 ```
 
 **Returns:** `bool` - True if successful
@@ -115,10 +115,10 @@ result = pipeline.load_data("customers.json", collection_name="customers")
 **Returns:** `Dict[str, Any]`
 ```python
 {
-    "success": True,
-    "records_imported": 10000,
-    "collection": "customers",
-    "processing_time": 5.23
+"success": True,
+"records_imported": 10000,
+"collection": "customers",
+"processing_time": 5.23
 }
 ```
 
@@ -141,10 +141,10 @@ Execute the complete entity resolution pipeline.
 
 ```python
 results = pipeline.run_complete_pipeline(
-    collection_name="customers",
-    strategies=["ngram", "exact"],
-    similarity_threshold=0.8,
-    max_candidates=100
+collection_name="customers",
+strategies=["ngram", "exact"],
+similarity_threshold=0.8,
+max_candidates=100
 )
 ```
 
@@ -157,25 +157,25 @@ results = pipeline.run_complete_pipeline(
 **Returns:** `Dict[str, Any]`
 ```python
 {
-    "blocking": {
-        "total_candidates": 50000,
-        "processing_time": 12.5
-    },
-    "similarity": {
-        "pairs_processed": 50000,
-        "matches_found": 5000,
-        "processing_time": 45.3
-    },
-    "clustering": {
-        "total_clusters": 1200,
-        "valid_clusters": 1180,
-        "processing_time": 8.7
-    },
-    "overall": {
-        "total_time": 66.5,
-        "records_processed": 10000,
-        "duplicate_groups": 1200
-    }
+"blocking": {
+"total_candidates": 50000,
+"processing_time": 12.5
+},
+"similarity": {
+"pairs_processed": 50000,
+"matches_found": 5000,
+"processing_time": 45.3
+},
+"clustering": {
+"total_clusters": 1200,
+"valid_clusters": 1180,
+"processing_time": 8.7
+},
+"overall": {
+"total_time": 66.5,
+"records_processed": 10000,
+"duplicate_groups": 1200
+}
 }
 ```
 
@@ -223,10 +223,10 @@ Generate candidate pairs for a target record.
 
 ```python
 candidates = blocking.generate_candidates(
-    collection="customers",
-    target_record_id="customers/12345",
-    strategies=["ngram", "exact"],
-    limit=100
+collection="customers",
+target_record_id="customers/12345",
+strategies=["ngram", "exact"],
+limit=100
 )
 ```
 
@@ -239,19 +239,19 @@ candidates = blocking.generate_candidates(
 **Returns:** `Dict[str, Any]`
 ```python
 {
-    "success": True,
-    "candidates": [
-        {
-            "candidateId": "customers/67890",
-            "score": 8.5,
-            "matchedFields": ["email", "city"],
-            "candidate": { ... }
-        }
-    ],
-    "statistics": {
-        "candidate_count": 15,
-        "reduction_ratio": 0.9985
-    }
+"success": True,
+"candidates": [
+{
+"candidateId": "customers/67890",
+"score": 8.5,
+"matchedFields": ["email", "city"],
+"candidate": { ... }
+}
+],
+"statistics": {
+"candidate_count": 15,
+"reduction_ratio": 0.9985
+}
 }
 ```
 
@@ -261,10 +261,10 @@ Generate candidates for multiple records in batch.
 
 ```python
 results = blocking.generate_candidates_batch(
-    collection="customers",
-    target_record_ids=["customers/123", "customers/456"],
-    strategies=["ngram", "exact"],
-    limit=100
+collection="customers",
+target_record_ids=["customers/123", "customers/456"],
+strategies=["ngram", "exact"],
+limit=100
 )
 ```
 
@@ -295,23 +295,23 @@ Compute Fellegi-Sunter similarity between two documents.
 
 ```python
 doc_a = {
-    "first_name": "John",
-    "last_name": "Smith",
-    "email": "john.smith@example.com",
-    "phone": "555-1234"
+"first_name": "John",
+"last_name": "Smith",
+"email": "john.smith@example.com",
+"phone": "555-1234"
 }
 
 doc_b = {
-    "first_name": "Jon",
-    "last_name": "Smith",
-    "email": "j.smith@example.com",
-    "phone": "555-1234"
+"first_name": "Jon",
+"last_name": "Smith",
+"email": "j.smith@example.com",
+"phone": "555-1234"
 }
 
 result = similarity.compute_similarity(
-    doc_a=doc_a,
-    doc_b=doc_b,
-    include_details=True
+doc_a=doc_a,
+doc_b=doc_b,
+include_details=True
 )
 
 print(f"Match decision: {result['similarity']['decision']}")
@@ -327,20 +327,20 @@ print(f"Confidence: {result['similarity']['confidence']:.2f}")
 **Returns:** `Dict[str, Any]`
 ```python
 {
-    "success": True,
-    "similarity": {
-        "total_score": 3.45,
-        "is_match": True,
-        "confidence": 0.89,
-        "decision": "match",
-        "field_scores": {
-            "name_ngram": {
-                "similarity": 0.85,
-                "agreement": True,
-                "weight": 2.1
-            }
-        }
-    }
+"success": True,
+"similarity": {
+"total_score": 3.45,
+"is_match": True,
+"confidence": 0.89,
+"decision": "match",
+"field_scores": {
+"name_ngram": {
+"similarity": 0.85,
+"agreement": True,
+"weight": 2.1
+}
+}
+}
 }
 ```
 
@@ -350,13 +350,13 @@ Compute similarity for multiple document pairs.
 
 ```python
 pairs = [
-    {"docA": doc1, "docB": doc2},
-    {"docA": doc3, "docB": doc4}
+{"docA": doc1, "docB": doc2},
+{"docA": doc3, "docB": doc4}
 ]
 
 results = similarity.compute_batch_similarity(
-    pairs=pairs,
-    include_details=False
+pairs=pairs,
+include_details=False
 )
 
 print(f"Matches found: {results['statistics']['matches_found']}")
@@ -385,28 +385,28 @@ Customize Fellegi-Sunter probabilities for your data:
 
 ```python
 custom_weights = {
-    "email_exact": {
-        "m_prob": 0.98,      # P(agreement | match)
-        "u_prob": 0.001,     # P(agreement | non-match)
-        "threshold": 1.0,    # Agreement threshold
-        "importance": 1.5    # Field importance multiplier
-    },
-    "name_ngram": {
-        "m_prob": 0.85,
-        "u_prob": 0.02,
-        "threshold": 0.7,
-        "importance": 1.0
-    },
-    "global": {
-        "upper_threshold": 3.0,   # Clear match
-        "lower_threshold": -2.0   # Clear non-match
-    }
+"email_exact": {
+"m_prob": 0.98, # P(agreement | match)
+"u_prob": 0.001, # P(agreement | non-match)
+"threshold": 1.0, # Agreement threshold
+"importance": 1.5 # Field importance multiplier
+},
+"name_ngram": {
+"m_prob": 0.85,
+"u_prob": 0.02,
+"threshold": 0.7,
+"importance": 1.0
+},
+"global": {
+"upper_threshold": 3.0, # Clear match
+"lower_threshold": -2.0 # Clear non-match
+}
 }
 
 result = similarity.compute_similarity(
-    doc_a=doc_a,
-    doc_b=doc_b,
-    field_weights=custom_weights
+doc_a=doc_a,
+doc_b=doc_b,
+field_weights=custom_weights
 )
 ```
 
@@ -429,18 +429,18 @@ Build a similarity graph from scored pairs.
 
 ```python
 scored_pairs = [
-    {
-        "docA_id": "customers/123",
-        "docB_id": "customers/456",
-        "total_score": 3.5,
-        "is_match": True
-    }
+{
+"docA_id": "customers/123",
+"docB_id": "customers/456",
+"total_score": 3.5,
+"is_match": True
+}
 ]
 
 result = clustering.build_similarity_graph(
-    scored_pairs=scored_pairs,
-    threshold=0.8,
-    edge_collection="similarities"
+scored_pairs=scored_pairs,
+threshold=0.8,
+edge_collection="similarities"
 )
 
 print(f"Created {result['results']['created_count']} edges")
@@ -459,17 +459,17 @@ Execute Weakly Connected Components clustering.
 
 ```python
 clusters = clustering.execute_wcc_clustering(
-    edge_collection="similarities",
-    min_similarity=0.8,
-    max_cluster_size=100
+edge_collection="similarities",
+min_similarity=0.8,
+max_cluster_size=100
 )
 
 print(f"Found {len(clusters['clusters'])} entity clusters")
 
 for cluster in clusters['clusters'][:5]:
-    print(f"Cluster {cluster['cluster_id']}: {cluster['cluster_size']} members")
-    print(f"  Average similarity: {cluster['average_similarity']:.2f}")
-    print(f"  Quality score: {cluster['quality_score']:.2f}")
+print(f"Cluster {cluster['cluster_id']}: {cluster['cluster_size']} members")
+print(f" Average similarity: {cluster['average_similarity']:.2f}")
+print(f" Quality score: {cluster['quality_score']:.2f}")
 ```
 
 **Parameters:**
@@ -480,22 +480,22 @@ for cluster in clusters['clusters'][:5]:
 **Returns:** `Dict[str, Any]`
 ```python
 {
-    "success": True,
-    "clusters": [
-        {
-            "cluster_id": "cluster_abc123",
-            "member_ids": ["customers/123", "customers/456"],
-            "cluster_size": 2,
-            "average_similarity": 0.92,
-            "density": 1.0,
-            "quality_score": 0.95,
-            "is_valid": True
-        }
-    ],
-    "statistics": {
-        "total_clusters": 45,
-        "valid_clusters": 43
-    }
+"success": True,
+"clusters": [
+{
+"cluster_id": "cluster_abc123",
+"member_ids": ["customers/123", "customers/456"],
+"cluster_size": 2,
+"average_similarity": 0.92,
+"density": 1.0,
+"quality_score": 0.95,
+"is_valid": True
+}
+],
+"statistics": {
+"total_clusters": 45,
+"valid_clusters": 43
+}
 }
 ```
 
@@ -505,12 +505,12 @@ Validate cluster quality metrics.
 
 ```python
 validation = clustering.validate_cluster_quality(
-    clusters=clusters['clusters'],
-    quality_thresholds={
-        "min_cluster_size": 2,
-        "min_avg_similarity": 0.7,
-        "min_density": 0.3
-    }
+clusters=clusters['clusters'],
+quality_thresholds={
+"min_cluster_size": 2,
+"min_avg_similarity": 0.7,
+"min_density": 0.3
+}
 )
 
 print(f"Valid clusters: {validation['statistics']['valid_clusters']}")
@@ -542,23 +542,23 @@ Load data from various sources.
 ```python
 # From CSV
 result = data_manager.load_data(
-    source="customers.csv",
-    collection_name="customers",
-    batch_size=1000
+source="customers.csv",
+collection_name="customers",
+batch_size=1000
 )
 
 # From JSON
 result = data_manager.load_data(
-    source="customers.json",
-    collection_name="customers"
+source="customers.json",
+collection_name="customers"
 )
 
 # From DataFrame
 import pandas as pd
 df = pd.read_csv("customers.csv")
 result = data_manager.load_data(
-    source=df,
-    collection_name="customers"
+source=df,
+collection_name="customers"
 )
 ```
 
@@ -589,8 +589,8 @@ Export entity clusters to file.
 
 ```python
 data_manager.export_clusters(
-    output_file="entity_clusters.json",
-    cluster_collection="entity_clusters"
+output_file="entity_clusters.json",
+cluster_collection="entity_clusters"
 )
 ```
 
@@ -610,14 +610,14 @@ pipeline = EntityResolutionPipeline()
 
 # Connect to ArangoDB
 if not pipeline.connect():
-    print("Failed to connect to ArangoDB")
-    exit(1)
+print("Failed to connect to ArangoDB")
+exit(1)
 
 # Load customer data
 print("Loading data...")
 load_result = pipeline.load_data(
-    source="customers.csv",
-    collection_name="customers"
+source="customers.csv",
+collection_name="customers"
 )
 print(f"Loaded {load_result['records_imported']} records")
 
@@ -628,10 +628,10 @@ pipeline.setup_collections(["customers"])
 # Run complete pipeline
 print("Running entity resolution pipeline...")
 results = pipeline.run_complete_pipeline(
-    collection_name="customers",
-    strategies=["ngram", "exact"],
-    similarity_threshold=0.8,
-    max_candidates=100
+collection_name="customers",
+strategies=["ngram", "exact"],
+similarity_threshold=0.8,
+max_candidates=100
 )
 
 # Display results
@@ -662,18 +662,18 @@ blocking.connect()
 
 # Use only exact matching for high-precision blocking
 candidates = blocking.generate_candidates(
-    collection="customers",
-    target_record_id="customers/12345",
-    strategies=["exact"],
-    limit=50
+collection="customers",
+target_record_id="customers/12345",
+strategies=["exact"],
+limit=50
 )
 
 # Use all strategies including phonetic
 candidates = blocking.generate_candidates(
-    collection="customers",
-    target_record_id="customers/12345",
-    strategies=["ngram", "exact", "phonetic"],
-    limit=200
+collection="customers",
+target_record_id="customers/12345",
+strategies=["ngram", "exact", "phonetic"],
+limit=200
 )
 ```
 
@@ -694,20 +694,20 @@ record_ids = ["customers/1", "customers/2", "customers/3", ...]
 # Process in batches
 batch_size = 100
 for i in range(0, len(record_ids), batch_size):
-    batch = record_ids[i:i+batch_size]
-    
-    # Generate candidates for batch
-    candidates_result = blocking.generate_candidates_batch(
-        collection="customers",
-        target_record_ids=batch,
-        strategies=["ngram", "exact"],
-        limit=100
-    )
-    
-    # Compute similarities for candidates
-    # ... (process candidates)
-    
-    print(f"Processed batch {i//batch_size + 1}")
+batch = record_ids[i:i+batch_size]
+
+# Generate candidates for batch
+candidates_result = blocking.generate_candidates_batch(
+collection="customers",
+target_record_ids=batch,
+strategies=["ngram", "exact"],
+limit=100
+)
+
+# Compute similarities for candidates
+# ... (process candidates)
+
+print(f"Processed batch {i//batch_size + 1}")
 ```
 
 ### Integrating with Existing Workflows
@@ -716,22 +716,22 @@ for i in range(0, len(record_ids), batch_size):
 # Use entity resolution as part of data pipeline
 
 def process_customer_data(raw_data):
-    pipeline = EntityResolutionPipeline()
-    pipeline.connect()
-    
-    # Load raw data
-    pipeline.load_data(raw_data, collection_name="raw_customers")
-    
-    # Run entity resolution
-    results = pipeline.run_complete_pipeline(
-        collection_name="raw_customers",
-        similarity_threshold=0.85
-    )
-    
-    # Export deduplicated data
-    deduped_data = export_golden_records(results)
-    
-    return deduped_data
+pipeline = EntityResolutionPipeline()
+pipeline.connect()
+
+# Load raw data
+pipeline.load_data(raw_data, collection_name="raw_customers")
+
+# Run entity resolution
+results = pipeline.run_complete_pipeline(
+collection_name="raw_customers",
+similarity_threshold=0.85
+)
+
+# Export deduplicated data
+deduped_data = export_golden_records(results)
+
+return deduped_data
 ```
 
 ---
@@ -744,43 +744,43 @@ from entity_resolution.core.entity_resolver import EntityResolutionPipeline
 pipeline = EntityResolutionPipeline()
 
 try:
-    # Connect with error handling
-    if not pipeline.connect():
-        raise ConnectionError("Failed to connect to ArangoDB")
-    
-    # Load data with validation
-    result = pipeline.load_data("customers.csv", collection_name="customers")
-    if not result.get('success', False):
-        raise ValueError(f"Data load failed: {result.get('error')}")
-    
-    # Run pipeline with error handling
-    results = pipeline.run_complete_pipeline(
-        collection_name="customers",
-        similarity_threshold=0.8
-    )
-    
-    if not results.get('success', False):
-        raise RuntimeError(f"Pipeline failed: {results.get('error')}")
-        
+# Connect with error handling
+if not pipeline.connect():
+raise ConnectionError("Failed to connect to ArangoDB")
+
+# Load data with validation
+result = pipeline.load_data("customers.csv", collection_name="customers")
+if not result.get('success', False):
+raise ValueError(f"Data load failed: {result.get('error')}")
+
+# Run pipeline with error handling
+results = pipeline.run_complete_pipeline(
+collection_name="customers",
+similarity_threshold=0.8
+)
+
+if not results.get('success', False):
+raise RuntimeError(f"Pipeline failed: {results.get('error')}")
+
 except ConnectionError as e:
-    print(f"Connection error: {e}")
-    # Handle connection failure
-    
+print(f"Connection error: {e}")
+# Handle connection failure
+
 except ValueError as e:
-    print(f"Validation error: {e}")
-    # Handle invalid data
-    
+print(f"Validation error: {e}")
+# Handle invalid data
+
 except RuntimeError as e:
-    print(f"Runtime error: {e}")
-    # Handle processing error
-    
+print(f"Runtime error: {e}")
+# Handle processing error
+
 except Exception as e:
-    print(f"Unexpected error: {e}")
-    # Handle unexpected errors
-    
+print(f"Unexpected error: {e}")
+# Handle unexpected errors
+
 finally:
-    # Cleanup if needed
-    pass
+# Cleanup if needed
+pass
 ```
 
 ---
@@ -803,15 +803,15 @@ Process records in batches for better throughput:
 ```python
 # Batch candidate generation
 blocking.generate_candidates_batch(
-    collection="customers",
-    target_record_ids=batch_ids,  # 50-100 records per batch
-    limit=100
+collection="customers",
+target_record_ids=batch_ids, # 50-100 records per batch
+limit=100
 )
 
 # Batch similarity computation
 similarity.compute_batch_similarity(
-    pairs=candidate_pairs,  # 500-1000 pairs per batch
-    include_details=False  # Faster without details
+pairs=candidate_pairs, # 500-1000 pairs per batch
+include_details=False # Faster without details
 )
 ```
 
@@ -837,14 +837,14 @@ Adjust thresholds based on precision/recall needs:
 ```python
 # High precision (fewer false positives)
 results = pipeline.run_complete_pipeline(
-    collection_name="customers",
-    similarity_threshold=0.9  # Higher threshold
+collection_name="customers",
+similarity_threshold=0.9 # Higher threshold
 )
 
 # High recall (fewer false negatives)
 results = pipeline.run_complete_pipeline(
-    collection_name="customers",
-    similarity_threshold=0.7  # Lower threshold
+collection_name="customers",
+similarity_threshold=0.7 # Lower threshold
 )
 ```
 
@@ -858,21 +858,21 @@ The Python API uses type hints for better IDE support:
 from typing import Dict, List, Any, Optional
 
 def process_customers(
-    file_path: str,
-    collection: str = "customers",
-    threshold: float = 0.8
+file_path: str,
+collection: str = "customers",
+threshold: float = 0.8
 ) -> Dict[str, Any]:
-    pipeline = EntityResolutionPipeline()
-    
-    if not pipeline.connect():
-        return {"success": False, "error": "Connection failed"}
-    
-    results: Dict[str, Any] = pipeline.run_complete_pipeline(
-        collection_name=collection,
-        similarity_threshold=threshold
-    )
-    
-    return results
+pipeline = EntityResolutionPipeline()
+
+if not pipeline.connect():
+return {"success": False, "error": "Connection failed"}
+
+results: Dict[str, Any] = pipeline.run_complete_pipeline(
+collection_name=collection,
+similarity_threshold=threshold
+)
+
+return results
 ```
 
 ---

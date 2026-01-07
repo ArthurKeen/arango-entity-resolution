@@ -125,28 +125,28 @@ pytest -m performance -v -s
 ### New Documentation Files
 
 1. **docs/TESTING_GUIDE.md** (550+ lines)
-   - Complete testing guide
-   - Test structure and organization
-   - Running tests (unit, integration, performance)
-   - Writing new tests and best practices
-   - CI/CD integration
+- Complete testing guide
+- Test structure and organization
+- Running tests (unit, integration, performance)
+- Writing new tests and best practices
+- CI/CD integration
 
 2. **TEST_COVERAGE_SUMMARY.md** (450+ lines)
-   - Coverage statistics by component
-   - Test execution guide
-   - Key achievements
-   - Environment variables
+- Coverage statistics by component
+- Test execution guide
+- Key achievements
+- Environment variables
 
 3. **TEST_IMPROVEMENTS_COMPLETE.md** (500+ lines)
-   - Complete improvement report
-   - Before/after comparison
-   - Impact analysis
-   - Next steps
+- Complete improvement report
+- Before/after comparison
+- Impact analysis
+- Next steps
 
 4. **WHATS_NEW_TEST_COVERAGE.md** (this file)
-   - Quick summary of improvements
-   - What changed and why
-   - How to use the new tests
+- Quick summary of improvements
+- What changed and why
+- How to use the new tests
 
 ### Updated Documentation
 
@@ -163,18 +163,18 @@ pytest -m performance -v -s
 - **No dependencies:** Use mocks for external services
 - **Coverage:** 85%+ for new components
 - **Examples:**
-  - Test service initialization
-  - Test individual methods
-  - Test edge cases and error handling
+- Test service initialization
+- Test individual methods
+- Test edge cases and error handling
 
 ### Integration Tests (25+ tests)
 - **Real database:** Uses actual ArangoDB
 - **Complete workflows:** Tests end-to-end scenarios
 - **Real data:** Uses realistic test data
 - **Examples:**
-  - Test bulk processing with 1000 records
-  - Test all blocking strategies combined
-  - Test real-world scenarios (typos, variations)
+- Test bulk processing with 1000 records
+- Test all blocking strategies combined
+- Test real-world scenarios (typos, variations)
 
 ### Performance Tests (12+ tests)
 - **Benchmarking:** Measures actual execution time
@@ -182,9 +182,9 @@ pytest -m performance -v -s
 - **Scalability:** Tests with different dataset sizes
 - **Regression:** Detects performance degradation
 - **Examples:**
-  - Compare bulk vs batch processing
-  - Measure network overhead reduction
-  - Test linear scalability
+- Compare bulk vs batch processing
+- Measure network overhead reduction
+- Test linear scalability
 
 ---
 
@@ -255,9 +255,9 @@ export ARANGO_PORT=8529
 export ARANGO_DATABASE=entity_resolution_test
 
 # Test control
-export SKIP_INTEGRATION_TESTS=false  # Run integration tests
-export SKIP_PERFORMANCE_TESTS=true   # Skip slow performance tests
-export USE_DEFAULT_PASSWORD=true     # Use default test password
+export SKIP_INTEGRATION_TESTS=false # Run integration tests
+export SKIP_PERFORMANCE_TESTS=true # Skip slow performance tests
+export USE_DEFAULT_PASSWORD=true # Use default test password
 ```
 
 ---

@@ -21,22 +21,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No special handling needed - same simple pattern for all deployment types
 
 **Benefits**:
-- ✅ Idempotent pipelines - safe to run multiple times
-- ✅ No duplicate edges
-- ✅ Backward compatible - can disable with `use_deterministic_keys=False`
-- ✅ Verified against production code (dnb_er project pattern)
+- Idempotent pipelines - safe to run multiple times
+- No duplicate edges
+- Backward compatible - can disable with `use_deterministic_keys=False`
+- Verified against production code (dnb_er project pattern)
 
 **Usage**:
 ```python
 service = SimilarityEdgeService(
-    db=db,
-    edge_collection='similarTo',
-    use_deterministic_keys=True  # Default
+db=db,
+edge_collection='similarTo',
+use_deterministic_keys=True # Default
 )
 
 # Run multiple times - no duplicates created
 service.create_edges(matches)
-service.create_edges(matches)  # Safe - same edges won't duplicate
+service.create_edges(matches) # Safe - same edges won't duplicate
 ```
 
 **SmartGraph Support**:
@@ -61,18 +61,18 @@ or fuzzy string matching.
 **New Components:**
 
 1. **EmbeddingService** (`src/entity_resolution/services/embedding_service.py`)
-   - Generate vector embeddings for database records
-   - Uses sentence-transformers with pre-trained models (see config/vector_search_setup.md for model comparison)
-   - Batch processing for efficiency (1000+ records/batch)
-   - Automatic embedding storage in ArangoDB documents
-   - Coverage tracking and statistics
+- Generate vector embeddings for database records
+- Uses sentence-transformers with pre-trained models (see config/vector_search_setup.md for model comparison)
+- Batch processing for efficiency (1000+ records/batch)
+- Automatic embedding storage in ArangoDB documents
+- Coverage tracking and statistics
 
 2. **VectorBlockingStrategy** (`src/entity_resolution/strategies/vector_blocking.py`)
-   - Tier 3 (vector blocking) for semantic similarity-based candidate generation
-   - Cosine similarity with configurable threshold
-   - Optional geographic/categorical blocking constraints
-   - Similarity distribution analysis for threshold tuning
-   - Compatible with existing blocking strategies
+- Tier 3 (vector blocking) for semantic similarity-based candidate generation
+- Cosine similarity with configurable threshold
+- Optional geographic/categorical blocking constraints
+- Similarity distribution analysis for threshold tuning
+- Compatible with existing blocking strategies
 
 **Key Features:**
 - Finds fuzzy matches that exact and text-based blocking miss
@@ -85,12 +85,12 @@ or fuzzy string matching.
 **Configuration:**
 ```yaml
 blocking:
-  strategy: "vector"
-  vector:
-    embedding_model: "all-MiniLM-L6-v2"
-    similarity_threshold: 0.7
-    limit_per_entity: 20
-    text_fields: ["name", "company", "address"]
+strategy: "vector"
+vector:
+embedding_model: "all-MiniLM-L6-v2"
+similarity_threshold: 0.7
+limit_per_entity: 20
+text_fields: ["name", "company", "address"]
 ```
 
 **Usage Example:**
@@ -101,15 +101,15 @@ from entity_resolution.strategies import VectorBlockingStrategy
 # Step 1: Generate embeddings
 embedding_service = EmbeddingService()
 embedding_service.ensure_embeddings_exist(
-    'customers', 
-    text_fields=['name', 'company', 'address']
+'customers', 
+text_fields=['name', 'company', 'address']
 )
 
 # Step 2: Find similar pairs
 strategy = VectorBlockingStrategy(
-    db=db,
-    collection='customers',
-    similarity_threshold=0.7
+db=db,
+collection='customers',
+similarity_threshold=0.7
 )
 pairs = strategy.generate_candidates()
 ```
@@ -142,8 +142,8 @@ pairs = strategy.generate_candidates()
 
 ### Fixed - CRITICAL: WCC Performance Issue (100x Speedup)
 
-**Issue:** N+1 Query Anti-Pattern  
-**Impact:** 100x performance degradation on production datasets  
+**Issue:** N+1 Query Anti-Pattern 
+**Impact:** 100x performance degradation on production datasets 
 **Severity:** HIGH - Made WCC unusable on real data
 
 **Problem:**
@@ -154,22 +154,22 @@ pairs = strategy.generate_candidates()
 **Solution:**
 - New implementation: 1 bulk query + Python DFS
 - Time: 3-8 seconds for same graph
-- **Improvement: 40-100x faster** ✅
+- **Improvement: 40-100x faster** 
 
 **Changes:**
 - Added `_find_connected_components_bulk()` method
-  - Fetches ALL edges in ONE query
-  - Builds graph in Python memory (fast, no network calls)
-  - Runs DFS in Python (no database round-trips)
-  
+- Fetches ALL edges in ONE query
+- Builds graph in Python memory (fast, no network calls)
+- Runs DFS in Python (no database round-trips)
+
 - Added `use_bulk_fetch` parameter (default: `True`)
-  - `True`: Use bulk fetch + Python DFS (FAST, recommended)
-  - `False`: Use per-vertex AQL traversal (SLOW, only for >10M edges)
-  
+- `True`: Use bulk fetch + Python DFS (FAST, recommended)
+- `False`: Use per-vertex AQL traversal (SLOW, only for >10M edges)
+
 - Backward compatible
-  - Existing code works without changes
-  - Default behavior is now 40-100x faster
-  - Old AQL approach still available if needed
+- Existing code works without changes
+- Default behavior is now 40-100x faster
+- Old AQL approach still available if needed
 
 **Performance:**
 - Small graphs (100 edges): 4-5x faster
@@ -196,54 +196,54 @@ service = WCCClusteringService(db, edge_collection='similarTo', use_bulk_fetch=T
 service = WCCClusteringService(db, edge_collection='similarTo', use_bulk_fetch=False)
 ```
 
-**Identified by:** dnb_er customer project  
+**Identified by:** dnb_er customer project 
 **Test coverage:** `test_wcc_performance.py` (5/5 passing)
 
 ### Added
 - **New Utility Modules** - Generic ER utilities ported from production implementations
-  - **`view_utils`**: ArangoSearch view analyzer verification and self-healing
-    - `resolve_analyzer_name()`: Automatically detects database-prefixed analyzer names
-    - `verify_view_analyzers()`: Tests view accessibility and detects analyzer issues
-    - `fix_view_analyzer_names()`: Recreates views with correct analyzer names
-    - `verify_and_fix_view_analyzers()`: Combined verification and auto-fix
-    - Prevents common deployment failures from analyzer name mismatches
-  - **`pipeline_utils`**: ER pipeline state management
-    - `clean_er_results()`: Removes previous ER results from collections
-    - Gracefully handles missing collections and errors
-    - Configurable collection list with sensible defaults
-  - **`config_utils`**: Configuration and environment utilities
-    - `verify_arango_environment()`: Validates required ArangoDB environment variables
-    - `get_arango_config_from_env()`: Loads ArangoDB config from environment
-    - Provides user-friendly error messages for missing configuration
-  - **`validation_utils`**: ER result validation
-    - `validate_er_results()`: Compares expected vs actual document counts
-    - Detects data consistency issues early
-    - Configurable validation rules with sensible defaults
-  - All utilities are exported from `entity_resolution.utils` for easy access
-  - Comprehensive test coverage (38 new test cases)
-  - See `docs/development/LIBRARY_PORT_ANALYSIS.md` for details
+- **`view_utils`**: ArangoSearch view analyzer verification and self-healing
+- `resolve_analyzer_name()`: Automatically detects database-prefixed analyzer names
+- `verify_view_analyzers()`: Tests view accessibility and detects analyzer issues
+- `fix_view_analyzer_names()`: Recreates views with correct analyzer names
+- `verify_and_fix_view_analyzers()`: Combined verification and auto-fix
+- Prevents common deployment failures from analyzer name mismatches
+- **`pipeline_utils`**: ER pipeline state management
+- `clean_er_results()`: Removes previous ER results from collections
+- Gracefully handles missing collections and errors
+- Configurable collection list with sensible defaults
+- **`config_utils`**: Configuration and environment utilities
+- `verify_arango_environment()`: Validates required ArangoDB environment variables
+- `get_arango_config_from_env()`: Loads ArangoDB config from environment
+- Provides user-friendly error messages for missing configuration
+- **`validation_utils`**: ER result validation
+- `validate_er_results()`: Compares expected vs actual document counts
+- Detects data consistency issues early
+- Configurable validation rules with sensible defaults
+- All utilities are exported from `entity_resolution.utils` for easy access
+- Comprehensive test coverage (38 new test cases)
+- See `docs/development/LIBRARY_PORT_ANALYSIS.md` for details
 
 - **AddressERService** - Dual edge loading methods for optimal performance
-  - **Optimized API method**: Cross-block batching reduces API calls by 100x (285K → ~400 calls)
-    - 3-4x faster than original per-block approach
-    - Configurable batch size via `edge_batch_size` (default: 1000)
-    - Good for datasets with <100K edges
-  - **CSV + arangoimport method**: 10-20x faster for large datasets (>100K edges)
-    - Exports edges to CSV and uses ArangoDB's native bulk import tool
-    - Single import operation vs thousands of API calls
-    - Automatic fallback to API method if arangoimport unavailable
-    - Configurable via `edge_loading_method='csv'` in config
-  - **Method selection**: Choose 'api' (default) or 'csv' via configuration
-  - **Progress logging**: Both methods log progress every 100K edges
-  - See `docs/development/EDGE_BULK_LOADING_ANALYSIS.md` for details
+- **Optimized API method**: Cross-block batching reduces API calls by 100x (285K → ~400 calls)
+- 3-4x faster than original per-block approach
+- Configurable batch size via `edge_batch_size` (default: 1000)
+- Good for datasets with <100K edges
+- **CSV + arangoimport method**: 10-20x faster for large datasets (>100K edges)
+- Exports edges to CSV and uses ArangoDB's native bulk import tool
+- Single import operation vs thousands of API calls
+- Automatic fallback to API method if arangoimport unavailable
+- Configurable via `edge_loading_method='csv'` in config
+- **Method selection**: Choose 'api' (default) or 'csv' via configuration
+- **Progress logging**: Both methods log progress every 100K edges
+- See `docs/development/EDGE_BULK_LOADING_ANALYSIS.md` for details
 
 ### Fixed
 - **AddressERService** - Fixed analyzer name resolution for database-prefixed analyzers
-  - Added `_resolve_analyzer_name()` method to detect and use database-prefixed analyzer names (e.g., `database_name::analyzer_name`)
-  - `_setup_search_view()` now automatically detects and uses the correct analyzer names whether they're prefixed or not
-  - Fixes address matching issues when analyzers are stored with database prefixes in ArangoDB
-  - Backward compatible: works with both prefixed and non-prefixed analyzer names
-  - Includes fallback logic for built-in analyzers like `text_en` and `identity`
+- Added `_resolve_analyzer_name()` method to detect and use database-prefixed analyzer names (e.g., `database_name::analyzer_name`)
+- `_setup_search_view()` now automatically detects and uses the correct analyzer names whether they're prefixed or not
+- Fixes address matching issues when analyzers are stored with database prefixes in ArangoDB
+- Backward compatible: works with both prefixed and non-prefixed analyzer names
+- Includes fallback logic for built-in analyzers like `text_en` and `identity`
 
 ## [3.0.0] - 2025-11-17
 
@@ -251,38 +251,38 @@ service = WCCClusteringService(db, edge_collection='similarTo', use_bulk_fetch=F
 
 #### Core Similarity Component
 - **`WeightedFieldSimilarity`** - Standalone reusable similarity computation
-  - Multiple algorithms (Jaro-Winkler, Levenshtein, Jaccard)
-  - Configurable field weights and null handling
-  - String normalization options
-  - Can be used independently or with batch services
+- Multiple algorithms (Jaro-Winkler, Levenshtein, Jaccard)
+- Configurable field weights and null handling
+- String normalization options
+- Can be used independently or with batch services
 
 #### Enhanced Clustering
 - **`WCCClusteringService`** - Now supports multiple algorithms:
-  - **Python DFS** - Reliable across all ArangoDB versions, uses bulk edge fetching
-  - **AQL Graph** (default) - Server-side processing for large graphs
-  - Eliminates N+1 query problems with single bulk edge fetch
+- **Python DFS** - Reliable across all ArangoDB versions, uses bulk edge fetching
+- **AQL Graph** (default) - Server-side processing for large graphs
+- Eliminates N+1 query problems with single bulk edge fetch
 
 #### Address Entity Resolution
 - **`AddressERService`** - Complete address deduplication pipeline
-  - Custom analyzer setup for address normalization
-  - ArangoSearch view configuration
-  - Blocking with registered agent handling
-  - Edge creation and optional clustering
-  - Configurable field mapping (works with any address schema)
+- Custom analyzer setup for address normalization
+- ArangoSearch view configuration
+- Blocking with registered agent handling
+- Edge creation and optional clustering
+- Configurable field mapping (works with any address schema)
 
 #### Configuration-Driven ER
 - **`ERPipelineConfig`** - YAML/JSON-based ER pipeline configuration
 - **`ConfigurableERPipeline`** - Run complete ER pipelines from configuration files
-  - Automatic service instantiation
-  - Validation and error handling
-  - Standardized ER patterns
+- Automatic service instantiation
+- Validation and error handling
+- Standardized ER patterns
 
 ### Fixed
 - **WCC Clustering Service** - Added missing `WITH` clause in AQL graph traversal queries
-  - Fixes "collection not known to traversal" error (ArangoDB Error 1521)
-  - Auto-detects vertex collections from edge `_from` and `_to` fields
-  - Supports both explicit and auto-detected vertex collections
-  - Handles multi-collection graphs correctly
+- Fixes "collection not known to traversal" error (ArangoDB Error 1521)
+- Auto-detects vertex collections from edge `_from` and `_to` fields
+- Supports both explicit and auto-detected vertex collections
+- Handles multi-collection graphs correctly
 - **AddressERService** - Fixed logger.success() calls (replaced with logger.info())
 - **Security** - Added field name validation to prevent AQL injection
 - **Test Coverage** - Added comprehensive tests for ConfigurableERPipeline, graph_utils, config, and database modules
@@ -297,62 +297,62 @@ service = WCCClusteringService(db, edge_collection='similarTo', use_bulk_fetch=F
 
 #### New Blocking Strategies
 - **`CollectBlockingStrategy`** - COLLECT-based composite key blocking
-  - Efficient O(n) complexity without cartesian products
-  - Supports multi-field blocking (phone+state, address+zip, etc.)
-  - Configurable filters per field
-  - Block size limits to prevent explosion
-  - **Computed fields support** - Derive blocking keys from existing fields using AQL expressions
-    - Extract ZIP5 from POSTAL_CODE: `LEFT(d.postal_code, 5)`
-    - Normalize phone numbers: `REGEX_REPLACE(d.phone, '[^0-9]', '')`
-    - Combine fields: `CONCAT(d.field1, '_', d.field2)`
-    - Filter on computed fields
-    - No validation conflicts with non-standard field names
-  
+- Efficient O(n) complexity without cartesian products
+- Supports multi-field blocking (phone+state, address+zip, etc.)
+- Configurable filters per field
+- Block size limits to prevent explosion
+- **Computed fields support** - Derive blocking keys from existing fields using AQL expressions
+- Extract ZIP5 from POSTAL_CODE: `LEFT(d.postal_code, 5)`
+- Normalize phone numbers: `REGEX_REPLACE(d.phone, '[^0-9]', '')`
+- Combine fields: `CONCAT(d.field1, '_', d.field2)`
+- Filter on computed fields
+- No validation conflicts with non-standard field names
+
 - **`BM25BlockingStrategy`** - Fast fuzzy text matching
-  - Uses ArangoSearch BM25 scoring
-  - 400x faster than Levenshtein for initial filtering
-  - Configurable BM25 thresholds
-  - Limit results per entity
-  - Optional blocking field constraints
+- Uses ArangoSearch BM25 scoring
+- 400x faster than Levenshtein for initial filtering
+- Configurable BM25 thresholds
+- Limit results per entity
+- Optional blocking field constraints
 
 #### New Similarity Service
 - **`BatchSimilarityService`** - Optimized similarity computation
-  - Batch document fetching (reduces queries from 100K+ to ~10-15)
-  - Multiple algorithms: Jaro-Winkler, Levenshtein, Jaccard, custom
-  - Configurable field weights
-  - Field normalization options (case, whitespace, etc.)
-  - Progress callbacks for long operations
-  - Performance: ~100K+ pairs/second for Jaro-Winkler
-  - Detailed per-field similarity scores available
+- Batch document fetching (reduces queries from 100K+ to ~10-15)
+- Multiple algorithms: Jaro-Winkler, Levenshtein, Jaccard, custom
+- Configurable field weights
+- Field normalization options (case, whitespace, etc.)
+- Progress callbacks for long operations
+- Performance: ~100K+ pairs/second for Jaro-Winkler
+- Detailed per-field similarity scores available
 
 #### New Edge Service
 - **`SimilarityEdgeService`** - Bulk edge creation
-  - Batch insertion with configurable batch sizes
-  - Automatic _from/_to formatting
-  - Comprehensive metadata tracking
-  - Bidirectional edge support
-  - Cleanup operations for iterative workflows
-  - Performance: ~10K+ edges/second
+- Batch insertion with configurable batch sizes
+- Automatic _from/_to formatting
+- Comprehensive metadata tracking
+- Bidirectional edge support
+- Cleanup operations for iterative workflows
+- Performance: ~10K+ edges/second
 
 #### New Clustering Service
 - **`WCCClusteringService`** - Weakly Connected Components clustering
-  - Server-side AQL graph traversal (efficient, works on all ArangoDB 3.11+)
-  - Handles graphs with millions of edges
-  - Cluster validation methods
-  - Comprehensive statistics tracking
-  - Configurable minimum cluster size
-  - Automatic cluster storage
-  - Future: GAE enhancement path documented
+- Server-side AQL graph traversal (efficient, works on all ArangoDB 3.11+)
+- Handles graphs with millions of edges
+- Cluster validation methods
+- Comprehensive statistics tracking
+- Configurable minimum cluster size
+- Automatic cluster storage
+- Future: GAE enhancement path documented
 
 ### Enhanced
 
 #### Base Classes
 - **`BlockingStrategy`** - Abstract base class for all blocking strategies
-  - Consistent API across all blocking methods
-  - Built-in filter condition builders
-  - Pair normalization and deduplication
-  - Statistics tracking
-  - Progress reporting
+- Consistent API across all blocking methods
+- Built-in filter condition builders
+- Pair normalization and deduplication
+- Statistics tracking
+- Progress reporting
 
 #### Library Exports
 - All new classes properly exported from `entity_resolution` module
@@ -449,6 +449,6 @@ See CONTRIBUTING.md (if available) or open issues/PRs on the project repository.
 
 ---
 
-**Document Version:** 1.0  
-**Date:** November 12, 2025  
+**Document Version:** 1.0 
+**Date:** November 12, 2025 
 **Library Version:** 2.0.0

@@ -86,18 +86,18 @@ These tests fail because they assume API methods that don't exist or have differ
 **Categories of Failures:**
 
 1. **Missing Methods** - Tests call methods that don't exist:
-   - `service.levenshtein_similarity()` (actual: different API)
-   - `service.jaro_winkler_similarity()` (actual: different API)
-   - `service._execute_exact_blocking()` (private method, different signature)
-   - `service.cluster_entities()` (actual: different signature)
+- `service.levenshtein_similarity()` (actual: different API)
+- `service.jaro_winkler_similarity()` (actual: different API)
+- `service._execute_exact_blocking()` (private method, different signature)
+- `service.cluster_entities()` (actual: different signature)
 
 2. **Different Signatures** - Methods exist but have different parameters:
-   - `generate_all_pairs()` may have different parameters
-   - `compute_similarities()` may have different signature
-   - `cluster_entities()` may have different parameters
+- `generate_all_pairs()` may have different parameters
+- `compute_similarities()` may have different signature
+- `cluster_entities()` may have different parameters
 
 3. **Mock Issues** - Mocking paths don't match actual module structure:
-   - Patch paths like `'src.entity_resolution.core.entity_resolver.ArangoClient'` should be `'entity_resolution.core.entity_resolver.ArangoClient'`
+- Patch paths like `'src.entity_resolution.core.entity_resolver.ArangoClient'` should be `'entity_resolution.core.entity_resolver.ArangoClient'`
 
 ---
 
@@ -169,21 +169,21 @@ These are pre-existing issues, not caused by the new tests.
 ### Immediate (To Get More Tests Passing)
 
 1. **Fix Mock Patch Paths**
-   ```python
-   # Change from:
-   @patch('src.entity_resolution.services.bulk_blocking_service.ArangoClient')
-   
-   # To:
-   @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
-   ```
+```python
+# Change from:
+@patch('src.entity_resolution.services.bulk_blocking_service.ArangoClient')
+
+# To:
+@patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
+```
 
 2. **Check Actual Method Signatures**
-   - Read the actual service files
-   - Update test calls to match
+- Read the actual service files
+- Update test calls to match
 
 3. **Fix Method Name Mismatches**
-   - Check if methods like `levenshtein_similarity` exist
-   - Use actual method names from the codebase
+- Check if methods like `levenshtein_similarity` exist
+- Use actual method names from the codebase
 
 ### Short-term (This Sprint)
 
@@ -228,10 +228,10 @@ Total pre-existing test files with errors: 9 files
 
 ##Success Metrics
 
-**Import Errors:** ✓ FIXED (0 import errors in new tests)  
-**Test Infrastructure:** ✓ WORKING (pytest running successfully)  
-**Tests Passing:** 22/74 (30%) - Need to increase to 50%+  
-**Documentation:** ✓ COMPLETE
+**Import Errors:** FIXED (0 import errors in new tests) 
+**Test Infrastructure:** WORKING (pytest running successfully) 
+**Tests Passing:** 22/74 (30%) - Need to increase to 50%+ 
+**Documentation:** COMPLETE
 
 ---
 

@@ -18,26 +18,26 @@ Your feedback identified a critical performance bottleneck in the Foxx service w
 ### What Was Built
 
 1. **Foxx Bulk Blocking Routes** (`foxx-services/entity-resolution/routes/bulk_blocking.js`)
-   - `POST /bulk/all-pairs` - Generate all candidate pairs in one query
-   - `POST /bulk/streaming` - Stream pairs with Server-Sent Events
-   - 2-3x faster for large datasets
+- `POST /bulk/all-pairs` - Generate all candidate pairs in one query
+- `POST /bulk/streaming` - Stream pairs with Server-Sent Events
+- 2-3x faster for large datasets
 
 2. **Python Bulk Blocking Service** (`src/entity_resolution/services/bulk_blocking_service.py`)
-   - Set-based AQL queries (no nested loops)
-   - 3-5x faster for large datasets
-   - Easy to customize for any schema
-   - Streaming support for very large datasets
+- Set-based AQL queries (no nested loops)
+- 3-5x faster for large datasets
+- Easy to customize for any schema
+- Streaming support for very large datasets
 
 3. **Comprehensive Documentation** (`docs/BATCH_VS_BULK_PROCESSING.md`)
-   - Decision matrix: when to use batch vs bulk
-   - Performance benchmarks
-   - Code migration examples
-   - Optimization tips
+- Decision matrix: when to use batch vs bulk
+- Performance benchmarks
+- Code migration examples
+- Optimization tips
 
 4. **Demo Script** (`examples/bulk_processing_demo.py`)
-   - Interactive performance demonstration
-   - Real-time statistics
-   - Comparison with batch approach
+- Interactive performance demonstration
+- Real-time statistics
+- Comparison with batch approach
 
 ---
 
@@ -75,9 +75,9 @@ service.connect()
 
 # Process entire collection in single pass
 result = service.generate_all_pairs(
-    collection_name="customers",
-    strategies=["exact", "ngram", "phonetic"],
-    limit=0  # No limit, process all records
+collection_name="customers",
+strategies=["exact", "ngram", "phonetic"],
+limit=0 # No limit, process all records
 )
 
 print(f"Found {result['statistics']['total_pairs']:,} candidate pairs")
@@ -101,13 +101,13 @@ python ../../scripts/foxx/deploy_foxx_service.py
 
 # Use bulk endpoint
 curl -X POST http://localhost:8529/_db/entity_resolution/entity-resolution/bulk/all-pairs \
-  -u root:password \
-  -H "Content-Type: application/json" \
-  -d '{
-    "collection": "customers",
-    "strategies": ["exact", "ngram"],
-    "limit": 0
-  }'
+-u root:password \
+-H "Content-Type: application/json" \
+-d '{
+"collection": "customers",
+"strategies": ["exact", "ngram"],
+"limit": 0
+}'
 ```
 
 ---
@@ -144,9 +144,9 @@ python examples/bulk_processing_demo.py --collection customers --strategies exac
 ### Simple Rule
 
 ```
-Real-time matching?      Use BATCH (Foxx /blocking/candidates)
-Offline batch jobs?      Use BULK (Python BulkBlockingService)
-Large datasets (>50K)?   Use BULK (3-5x faster)
+Real-time matching? Use BATCH (Foxx /blocking/candidates)
+Offline batch jobs? Use BULK (Python BulkBlockingService)
+Large datasets (>50K)? Use BULK (3-5x faster)
 ```
 
 ---
@@ -157,14 +157,14 @@ Large datasets (>50K)?   Use BULK (3-5x faster)
 
 ```python
 # Old approach: iterate through ALL records
-for record in all_records:  # 331,000 iterations!
-    candidates = blocking_service.generate_candidates(
-        collection="customers",
-        target_record_id=record["_id"],
-        strategies=["exact", "ngram"],
-        limit=100
-    )
-    process_candidates(candidates)
+for record in all_records: # 331,000 iterations!
+candidates = blocking_service.generate_candidates(
+collection="customers",
+target_record_id=record["_id"],
+strategies=["exact", "ngram"],
+limit=100
+)
+process_candidates(candidates)
 
 # Time: ~6.6 minutes
 # API calls: 3,319
@@ -178,9 +178,9 @@ bulk_service = BulkBlockingService()
 bulk_service.connect()
 
 result = bulk_service.generate_all_pairs(
-    collection_name="customers",
-    strategies=["exact", "ngram"],
-    limit=0
+collection_name="customers",
+strategies=["exact", "ngram"],
+limit=0
 )
 
 process_all_pairs(result["candidate_pairs"])
@@ -197,24 +197,24 @@ The Python service is easily customizable:
 
 ```python
 class CustomBulkService(BulkBlockingService):
-    def _execute_custom_blocking(self, collection_name: str, limit: int):
-        """Add custom blocking strategy for your schema"""
-        query = """
-            FOR doc IN @@collection
-            FILTER doc.your_custom_field != null
-            LET blocking_key = YOUR_CUSTOM_LOGIC(doc)
-            COLLECT key = blocking_key INTO group
-            FILTER LENGTH(group) > 1
-            FOR i IN 0..LENGTH(group)-2
-                FOR j IN (i+1)..LENGTH(group)-1
-                    RETURN {
-                        record_a_id: group[i].doc._id,
-                        record_b_id: group[j].doc._id,
-                        strategy: "custom",
-                        blocking_key: key
-                    }
-        """
-        return list(self.db.aql.execute(query, bind_vars={"@collection": collection_name}))
+def _execute_custom_blocking(self, collection_name: str, limit: int):
+"""Add custom blocking strategy for your schema"""
+query = """
+FOR doc IN @@collection
+FILTER doc.your_custom_field != null
+LET blocking_key = YOUR_CUSTOM_LOGIC(doc)
+COLLECT key = blocking_key INTO group
+FILTER LENGTH(group) > 1
+FOR i IN 0..LENGTH(group)-2
+FOR j IN (i+1)..LENGTH(group)-1
+RETURN {
+record_a_id: group[i].doc._id,
+record_b_id: group[j].doc._id,
+strategy: "custom",
+blocking_key: key
+}
+"""
+return list(self.db.aql.execute(query, bind_vars={"@collection": collection_name}))
 
 # Use your custom service
 service = CustomBulkService()
@@ -228,20 +228,20 @@ result = service.generate_all_pairs("your_collection", strategies=["exact", "cus
 Comprehensive documentation has been created:
 
 1. **[BATCH_VS_BULK_PROCESSING.md](docs/BATCH_VS_BULK_PROCESSING.md)**
-   - Complete guide with decision matrices
-   - Performance benchmarks
-   - Code examples
-   - Troubleshooting
+- Complete guide with decision matrices
+- Performance benchmarks
+- Code examples
+- Troubleshooting
 
 2. **[BULK_PROCESSING_IMPLEMENTATION_SUMMARY.md](docs/BULK_PROCESSING_IMPLEMENTATION_SUMMARY.md)**
-   - Technical implementation details
-   - Architecture diagrams
-   - Customization guide
+- Technical implementation details
+- Architecture diagrams
+- Customization guide
 
 3. **Inline Documentation**
-   - All code has comprehensive docstrings
-   - Usage examples in every method
-   - Performance notes
+- All code has comprehensive docstrings
+- Usage examples in every method
+- Performance notes
 
 ---
 
@@ -272,27 +272,27 @@ Comprehensive documentation has been created:
 
 **Batch Processing:**
 ```
-Your Code  3,319 API calls  Foxx Service  ArangoDB
-           (network: 166s)     (per-record)
+Your Code 3,319 API calls Foxx Service ArangoDB
+(network: 166s) (per-record)
 ```
 
 **Bulk Processing:**
 ```
-Your Code  1 API call  Bulk Service  Single AQL Query  ArangoDB
-                         (set-based, server-side optimization)
+Your Code 1 API call Bulk Service Single AQL Query ArangoDB
+(set-based, server-side optimization)
 ```
 
 ### The RBAR Problem
 
 RBAR = "Row By Agonizing Row"
 - Batch processes one record at a time
-- Network latency compounds (3,319  50ms = 166 seconds)
+- Network latency compounds (3,319 50ms = 166 seconds)
 - Can't leverage query optimization
 
 ### Set-Based Solution
 
 - Bulk processes entire collection in one pass
-- Single network round trip (1  50ms = 0.05 seconds)
+- Single network round trip (1 50ms = 0.05 seconds)
 - ArangoDB optimizer can parallelize internally
 - Results computed in-memory on server side
 
@@ -303,38 +303,38 @@ RBAR = "Row By Agonizing Row"
 ### Immediate (Do Now)
 
 1. **Test with your data:**
-   ```bash
-   python examples/bulk_processing_demo.py --collection your_collection
-   ```
+```bash
+python examples/bulk_processing_demo.py --collection your_collection
+```
 
 2. **Compare performance:**
-   - Note the execution time
-   - Confirm 3-5x speedup
-   - Review candidate pairs quality
+- Note the execution time
+- Confirm 3-5x speedup
+- Review candidate pairs quality
 
 3. **Migrate critical code:**
-   - Identify batch processing loops
-   - Replace with bulk service calls
-   - Measure actual improvement
+- Identify batch processing loops
+- Replace with bulk service calls
+- Measure actual improvement
 
 ### Short-term (This Week)
 
 4. **Deploy to production:**
-   - Deploy updated Foxx service (optional)
-   - Integrate bulk service into pipelines
-   - Monitor performance metrics
+- Deploy updated Foxx service (optional)
+- Integrate bulk service into pipelines
+- Monitor performance metrics
 
 5. **Optimize for your schema:**
-   - Customize blocking strategies
-   - Add domain-specific logic
-   - Fine-tune performance
+- Customize blocking strategies
+- Add domain-specific logic
+- Fine-tune performance
 
 ### Long-term (Phase 2+)
 
 6. **Leverage for Phase 2:**
-   - Bulk embedding generation (same pattern)
-   - Batch vector search
-   - Efficient training data creation
+- Bulk embedding generation (same pattern)
+- Batch vector search
+- Efficient training data creation
 
 ---
 
@@ -345,16 +345,16 @@ RBAR = "Row By Agonizing Row"
 ```python
 # Test with limit first
 result = bulk_service.generate_all_pairs(
-    collection_name="customers",
-    strategies=["exact"],  # Fastest strategy only
-    limit=10000  # Limit pairs for testing
+collection_name="customers",
+strategies=["exact"], # Fastest strategy only
+limit=10000 # Limit pairs for testing
 )
 
 # Once confirmed, go full scale
 result = bulk_service.generate_all_pairs(
-    collection_name="customers",
-    strategies=["exact", "ngram", "phonetic"],
-    limit=0  # No limit
+collection_name="customers",
+strategies=["exact", "ngram", "phonetic"],
+limit=0 # No limit
 )
 ```
 
@@ -363,11 +363,11 @@ result = bulk_service.generate_all_pairs(
 ```python
 # For datasets > 1M records
 for batch in bulk_service.generate_pairs_streaming(
-    collection_name="large_collection",
-    batch_size=1000
+collection_name="large_collection",
+batch_size=1000
 ):
-    # Process immediately, don't wait for all pairs
-    process_batch(batch)
+# Process immediately, don't wait for all pairs
+process_batch(batch)
 ```
 
 ### 3. Monitor Performance

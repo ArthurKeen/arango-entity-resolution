@@ -7,18 +7,18 @@ Complete API reference for enhanced entity resolution components.
 ## Table of Contents
 
 - [Blocking Strategies](#blocking-strategies)
-  - [BlockingStrategy (Base)](#blockingstrategy-base)
-  - [CollectBlockingStrategy](#collectblockingstrategy)
-  - [BM25BlockingStrategy](#bm25blockingstrategy)
-  - [VectorBlockingStrategy](#vectorblockingstrategy) **NEW**
+- [BlockingStrategy (Base)](#blockingstrategy-base)
+- [CollectBlockingStrategy](#collectblockingstrategy)
+- [BM25BlockingStrategy](#bm25blockingstrategy)
+- [VectorBlockingStrategy](#vectorblockingstrategy) **NEW**
 - [Embedding Service](#embedding-service) **NEW**
-  - [EmbeddingService](#embeddingservice)
+- [EmbeddingService](#embeddingservice)
 - [Similarity Service](#similarity-service)
-  - [BatchSimilarityService](#batchsimilarityservice)
+- [BatchSimilarityService](#batchsimilarityservice)
 - [Edge Service](#edge-service)
-  - [SimilarityEdgeService](#similarityedgeservice)
+- [SimilarityEdgeService](#similarityedgeservice)
 - [Clustering Service](#clustering-service)
-  - [WCCClusteringService](#wccclusteringservice)
+- [WCCClusteringService](#wccclusteringservice)
 
 ---
 
@@ -47,15 +47,15 @@ Initialize base blocking strategy.
 **Filter Format:**
 ```python
 {
-    "field_name": {
-        "not_null": True,
-        "not_equal": ["value1", "value2"],
-        "min_length": 5,
-        "max_length": 100,
-        "equals": "value",
-        "contains": "substring",
-        "regex": "pattern"
-    }
+"field_name": {
+"not_null": True,
+"not_equal": ["value1", "value2"],
+"min_length": 5,
+"max_length": 100,
+"equals": "value",
+"contains": "substring",
+"regex": "pattern"
+}
 }
 ```
 
@@ -72,10 +72,10 @@ Get statistics about the blocking operation.
 **Returns:**
 ```python
 {
-    "total_pairs": 12345,
-    "execution_time_seconds": 2.3,
-    "strategy_name": "CollectBlockingStrategy",
-    "timestamp": "2025-11-12T14:30:22"
+"total_pairs": 12345,
+"execution_time_seconds": 2.3,
+"strategy_name": "CollectBlockingStrategy",
+"timestamp": "2025-11-12T14:30:22"
 }
 ```
 
@@ -93,15 +93,15 @@ from entity_resolution import CollectBlockingStrategy
 **Example:**
 ```python
 strategy = CollectBlockingStrategy(
-    db=db,
-    collection="companies",
-    blocking_fields=["phone", "state"],
-    filters={
-        "phone": {"not_null": True, "min_length": 10},
-        "state": {"not_null": True}
-    },
-    max_block_size=100,
-    min_block_size=2
+db=db,
+collection="companies",
+blocking_fields=["phone", "state"],
+filters={
+"phone": {"not_null": True, "min_length": 10},
+"state": {"not_null": True}
+},
+max_block_size=100,
+min_block_size=2
 )
 pairs = strategy.generate_candidates()
 ```
@@ -120,11 +120,11 @@ pairs = strategy.generate_candidates()
 **Returns pairs with format:**
 ```python
 {
-    "doc1_key": "123",
-    "doc2_key": "456",
-    "blocking_keys": {"phone": "5551234567", "state": "CA"},
-    "block_size": 3,
-    "method": "collect_blocking"
+"doc1_key": "123",
+"doc2_key": "456",
+"blocking_keys": {"phone": "5551234567", "state": "CA"},
+"block_size": 3,
+"method": "collect_blocking"
 }
 ```
 
@@ -144,28 +144,28 @@ from entity_resolution import BM25BlockingStrategy
 **Prerequisites:** ArangoSearch view must exist:
 ```python
 db.create_view(
-    name='companies_search',
-    view_type='arangosearch',
-    properties={
-        'links': {
-            'companies': {
-                'fields': {'name': {'analyzers': ['text_en']}}
-            }
-        }
-    }
+name='companies_search',
+view_type='arangosearch',
+properties={
+'links': {
+'companies': {
+'fields': {'name': {'analyzers': ['text_en']}}
+}
+}
+}
 )
 ```
 
 **Example:**
 ```python
 strategy = BM25BlockingStrategy(
-    db=db,
-    collection="companies",
-    search_view="companies_search",
-    search_field="name",
-    bm25_threshold=2.0,
-    limit_per_entity=20,
-    blocking_field="state"
+db=db,
+collection="companies",
+search_view="companies_search",
+search_field="name",
+bm25_threshold=2.0,
+limit_per_entity=20,
+blocking_field="state"
 )
 pairs = strategy.generate_candidates()
 ```
@@ -186,12 +186,12 @@ pairs = strategy.generate_candidates()
 **Returns pairs with format:**
 ```python
 {
-    "doc1_key": "123",
-    "doc2_key": "456",
-    "bm25_score": 5.2,
-    "search_field": "name",
-    "blocking_field_value": "CA",
-    "method": "bm25_blocking"
+"doc1_key": "123",
+"doc2_key": "456",
+"bm25_score": 5.2,
+"search_field": "name",
+"blocking_field_value": "CA",
+"method": "bm25_blocking"
 }
 ```
 
@@ -224,17 +224,17 @@ from entity_resolution import EmbeddingService, VectorBlockingStrategy
 # Step 1: Generate embeddings (one-time setup)
 embedding_service = EmbeddingService(model_name='all-MiniLM-L6-v2')
 embedding_service.ensure_embeddings_exist(
-    'customers',
-    text_fields=['name', 'company', 'address']
+'customers',
+text_fields=['name', 'company', 'address']
 )
 
 # Step 2: Use vector blocking
 strategy = VectorBlockingStrategy(
-    db=db,
-    collection='customers',
-    similarity_threshold=0.7,      # 70% similarity minimum
-    limit_per_entity=20,           # Max 20 candidates per document
-    blocking_field='state'         # Optional: only compare within same state
+db=db,
+collection='customers',
+similarity_threshold=0.7, # 70% similarity minimum
+limit_per_entity=20, # Max 20 candidates per document
+blocking_field='state' # Optional: only compare within same state
 )
 pairs = strategy.generate_candidates()
 ```
@@ -246,10 +246,10 @@ pairs = strategy.generate_candidates()
 - `collection` (str): Source collection name
 - `embedding_field` (str): Field containing embeddings (default: DEFAULT_EMBEDDING_FIELD)
 - `similarity_threshold` (float): Minimum cosine similarity 0-1 (default: DEFAULT_SIMILARITY_THRESHOLD)
-  - 0.9-1.0: Very similar (likely duplicates)
-  - 0.8-0.9: Similar (possible duplicates)
-  - 0.7-0.8: Somewhat similar (candidates)
-  - Below 0.7: Low similarity
+- 0.9-1.0: Very similar (likely duplicates)
+- 0.8-0.9: Similar (possible duplicates)
+- 0.7-0.8: Somewhat similar (candidates)
+- Below 0.7: Low similarity
 - `limit_per_entity` (int): Max candidates per document (default: DEFAULT_LIMIT_PER_ENTITY)
 - `blocking_field` (str, optional): Field for additional blocking (e.g., 'state', 'category')
 - `filters` (dict, optional): Standard filters (see BlockingStrategy)
@@ -261,13 +261,13 @@ Generate candidate pairs using vector similarity.
 **Returns:**
 ```python
 [
-    {
-        "doc1_key": "doc123",
-        "doc2_key": "doc456",
-        "similarity": 0.85,     # Cosine similarity score
-        "method": "vector"
-    },
-    ...
+{
+"doc1_key": "doc123",
+"doc2_key": "doc456",
+"similarity": 0.85, # Cosine similarity score
+"method": "vector"
+},
+...
 ]
 ```
 
@@ -281,22 +281,22 @@ Analyze similarity score distribution for threshold tuning.
 **Returns:**
 ```python
 {
-    "sample_size": 1000,
-    "min_similarity": 0.12,
-    "max_similarity": 0.98,
-    "mean_similarity": 0.45,
-    "median_similarity": 0.42,
-    "std_similarity": 0.18,
-    "distribution": [
-        {"bucket": 0.0, "count": 150},
-        {"bucket": 0.1, "count": 200},
-        ...
-    ],
-    "recommended_thresholds": {
-        "conservative": 0.82,  # Top 10%
-        "balanced": 0.65,      # Top 25%
-        "aggressive": 0.45     # Top 50%
-    }
+"sample_size": 1000,
+"min_similarity": 0.12,
+"max_similarity": 0.98,
+"mean_similarity": 0.45,
+"median_similarity": 0.42,
+"std_similarity": 0.18,
+"distribution": [
+{"bucket": 0.0, "count": 150},
+{"bucket": 0.1, "count": 200},
+...
+],
+"recommended_thresholds": {
+"conservative": 0.82, # Top 10%
+"balanced": 0.65, # Top 25%
+"aggressive": 0.45 # Top 50%
+}
 }
 ```
 
@@ -339,14 +339,14 @@ that captures semantic meaning beyond text matching.
 **Example:**
 ```python
 service = EmbeddingService(
-    model_name='all-MiniLM-L6-v2',  # Fast, 384-dim
-    device='cpu'  # or 'cuda' for GPU
+model_name='all-MiniLM-L6-v2', # Fast, 384-dim
+device='cpu' # or 'cuda' for GPU
 )
 
 # Generate embeddings for all documents
 stats = service.ensure_embeddings_exist(
-    collection_name='customers',
-    text_fields=['name', 'company', 'email', 'address']
+collection_name='customers',
+text_fields=['name', 'company', 'email', 'address']
 )
 print(f"Generated {stats['generated']} embeddings")
 ```
@@ -355,9 +355,9 @@ print(f"Generated {stats['generated']} embeddings")
 
 **Parameters:**
 - `model_name` (str): Sentence-transformers model name
-  - `'all-MiniLM-L6-v2'` (default): 384-dim, fast, good quality
-  - `'all-mpnet-base-v2'`: 768-dim, slower, excellent quality
-  - `'all-distilroberta-v1'`: 768-dim, balanced
+- `'all-MiniLM-L6-v2'` (default): 384-dim, fast, good quality
+- `'all-mpnet-base-v2'`: 768-dim, slower, excellent quality
+- `'all-distilroberta-v1'`: 768-dim, balanced
 - `device` (str): 'cpu' or 'cuda' (default: 'cpu')
 - `embedding_field` (str): Field name to store embeddings (default: 'embedding_vector')
 - `db_manager` (DatabaseManager, optional): Database manager instance
@@ -383,7 +383,7 @@ Generate embedding for a single record.
 ```python
 record = {'name': 'John Smith', 'company': 'Acme Corp'}
 embedding = service.generate_embedding(record, text_fields=['name', 'company'])
-print(embedding.shape)  # (384,)
+print(embedding.shape) # (384,)
 ```
 
 #### `generate_embeddings_batch(records, text_fields=None, batch_size=32, show_progress=False)` → np.ndarray
@@ -401,11 +401,11 @@ Generate embeddings for multiple records (more efficient).
 **Example:**
 ```python
 records = [
-    {'name': 'John Smith', 'company': 'Acme'},
-    {'name': 'Jane Doe', 'company': 'TechCo'}
+{'name': 'John Smith', 'company': 'Acme'},
+{'name': 'Jane Doe', 'company': 'TechCo'}
 ]
 embeddings = service.generate_embeddings_batch(records, batch_size=32)
-print(embeddings.shape)  # (2, 384)
+print(embeddings.shape) # (2, 384)
 ```
 
 #### `store_embeddings(collection_name, records, embeddings, database_name=None)` → Dict
@@ -421,9 +421,9 @@ Store embeddings in ArangoDB collection.
 **Returns:**
 ```python
 {
-    "updated": 100,
-    "failed": 0,
-    "total": 100
+"updated": 100,
+"failed": 0,
+"total": 100
 }
 ```
 
@@ -441,10 +441,10 @@ Ensure all documents in collection have embeddings (generates missing ones).
 **Returns:**
 ```python
 {
-    "total_docs": 1000,
-    "generated": 250,  # Documents that were missing embeddings
-    "updated": 250,
-    "failed": 0
+"total_docs": 1000,
+"generated": 250, # Documents that were missing embeddings
+"updated": 250,
+"failed": 0
 }
 ```
 
@@ -452,9 +452,9 @@ Ensure all documents in collection have embeddings (generates missing ones).
 ```python
 # Generate embeddings for documents that don't have them
 stats = service.ensure_embeddings_exist(
-    'customers',
-    text_fields=['name', 'company', 'address', 'email'],
-    batch_size=100
+'customers',
+text_fields=['name', 'company', 'address', 'email'],
+batch_size=100
 )
 print(f"Generated {stats['generated']} new embeddings")
 print(f"Coverage: {stats['updated']}/{stats['total_docs']}")
@@ -467,17 +467,17 @@ Get statistics about embeddings in a collection.
 **Returns:**
 ```python
 {
-    "collection": "customers",
-    "total_documents": 1000,
-    "with_embeddings": 950,
-    "without_embeddings": 50,
-    "coverage_percent": 95.0,
-    "sample_metadata": {
-        "model": "all-MiniLM-L6-v2",
-        "dim": 384,
-        "timestamp": "2025-12-09T10:30:00Z",
-        "version": "v1.0"
-    }
+"collection": "customers",
+"total_documents": 1000,
+"with_embeddings": 950,
+"without_embeddings": 50,
+"coverage_percent": 95.0,
+"sample_metadata": {
+"model": "all-MiniLM-L6-v2",
+"dim": 384,
+"timestamp": "2025-12-09T10:30:00Z",
+"version": "v1.0"
+}
 }
 ```
 
@@ -490,18 +490,18 @@ Get statistics about embeddings in a collection.
 **Document Format:**
 ```javascript
 {
-  "_key": "cust_001",
-  "name": "John Smith",
-  "company": "Acme Corp",
-  
-  // Generated by EmbeddingService
-  "embedding_vector": [0.12, -0.45, 0.78, ...],  // 384 or 768 floats
-  "embedding_metadata": {
-    "model": "all-MiniLM-L6-v2",
-    "dim": 384,
-    "timestamp": "2025-12-09T10:30:00Z",
-    "version": "v1.0"
-  }
+"_key": "cust_001",
+"name": "John Smith",
+"company": "Acme Corp",
+
+// Generated by EmbeddingService
+"embedding_vector": [0.12, -0.45, 0.78, ...], // 384 or 768 floats
+"embedding_metadata": {
+"model": "all-MiniLM-L6-v2",
+"dim": 384,
+"timestamp": "2025-12-09T10:30:00Z",
+"version": "v1.0"
+}
 }
 ```
 
@@ -534,16 +534,16 @@ from entity_resolution import BatchSimilarityService
 **Example:**
 ```python
 service = BatchSimilarityService(
-    db=db,
-    collection="companies",
-    field_weights={
-        "name": 0.4,
-        "ceo": 0.3,
-        "address": 0.2,
-        "city": 0.1
-    },
-    similarity_algorithm="jaro_winkler",
-    batch_size=5000
+db=db,
+collection="companies",
+field_weights={
+"name": 0.4,
+"ceo": 0.3,
+"address": 0.2,
+"city": 0.1
+},
+similarity_algorithm="jaro_winkler",
+batch_size=5000
 )
 matches = service.compute_similarities(pairs, threshold=0.75)
 ```
@@ -555,10 +555,10 @@ matches = service.compute_similarities(pairs, threshold=0.75)
 - `collection` (str): Source collection
 - `field_weights` (Dict[str, float]): Field weights (will be normalized to sum to 1.0)
 - `similarity_algorithm` (str or callable): Algorithm name or custom function
-  - `"jaro_winkler"` (default) - Best for names/addresses
-  - `"levenshtein"` - Edit distance
-  - `"jaccard"` - Set-based similarity
-  - Custom: `(str, str) -> float` callable
+- `"jaro_winkler"` (default) - Best for names/addresses
+- `"levenshtein"` - Edit distance
+- `"jaccard"` - Set-based similarity
+- Custom: `(str, str) -> float` callable
 - `batch_size` (int): Documents per query (default: 5000)
 - `normalization_config` (dict, optional): Field normalization options
 - `progress_callback` (callable, optional): Progress function `(current, total) -> None`
@@ -566,10 +566,10 @@ matches = service.compute_similarities(pairs, threshold=0.75)
 **Normalization Config:**
 ```python
 {
-    "strip": True,
-    "case": "upper",  # or "lower"
-    "remove_extra_whitespace": True,
-    "remove_punctuation": False
+"strip": True,
+"case": "upper", # or "lower"
+"remove_extra_whitespace": True,
+"remove_punctuation": False
 }
 ```
 
@@ -593,18 +593,18 @@ Compute similarities with per-field scores.
 **Returns:**
 ```python
 [
-    {
-        "doc1_key": "123",
-        "doc2_key": "456",
-        "overall_score": 0.87,
-        "field_scores": {
-            "name": 0.95,
-            "ceo": 0.82,
-            "address": 0.78,
-            "city": 0.92
-        },
-        "weighted_score": 0.87
-    }
+{
+"doc1_key": "123",
+"doc2_key": "456",
+"overall_score": 0.87,
+"field_scores": {
+"name": 0.95,
+"ceo": 0.82,
+"address": 0.78,
+"city": 0.92
+},
+"weighted_score": 0.87
+}
 ]
 ```
 
@@ -615,13 +615,13 @@ Get computation statistics.
 **Returns:**
 ```python
 {
-    "pairs_processed": 50000,
-    "pairs_above_threshold": 3421,
-    "documents_cached": 15234,
-    "batch_count": 4,
-    "execution_time_seconds": 12.8,
-    "pairs_per_second": 3906,
-    "algorithm": "jaro_winkler"
+"pairs_processed": 50000,
+"pairs_above_threshold": 3421,
+"documents_cached": 15234,
+"batch_count": 4,
+"execution_time_seconds": 12.8,
+"pairs_per_second": 3906,
+"algorithm": "jaro_winkler"
 }
 ```
 
@@ -641,17 +641,17 @@ from entity_resolution import SimilarityEdgeService
 **Example:**
 ```python
 service = SimilarityEdgeService(
-    db=db,
-    edge_collection="similarTo",
-    vertex_collection="companies",
-    batch_size=1000,
-    use_deterministic_keys=True  # Default - prevents duplicates
+db=db,
+edge_collection="similarTo",
+vertex_collection="companies",
+batch_size=1000,
+use_deterministic_keys=True # Default - prevents duplicates
 )
 
 # Safe to run multiple times - no duplicates created
 edges_created = service.create_edges(
-    matches=matches,
-    metadata={"method": "hybrid", "algorithm": "jaro_winkler"}
+matches=matches,
+metadata={"method": "hybrid", "algorithm": "jaro_winkler"}
 )
 ```
 
@@ -722,11 +722,11 @@ from entity_resolution import WCCClusteringService
 **Example:**
 ```python
 service = WCCClusteringService(
-    db=db,
-    edge_collection="similarTo",
-    cluster_collection="entity_clusters",
-    vertex_collection="companies",
-    min_cluster_size=2
+db=db,
+edge_collection="similarTo",
+cluster_collection="entity_clusters",
+vertex_collection="companies",
+min_cluster_size=2
 )
 clusters = service.cluster(store_results=True)
 ```
@@ -760,13 +760,13 @@ Find cluster containing a specific member.
 **Returns:**
 ```python
 {
-    "_key": "cluster_000123",
-    "cluster_id": 123,
-    "size": 5,
-    "members": ["companies/c001", "companies/c002", ...],
-    "member_keys": ["c001", "c002", ...],
-    "timestamp": "2025-11-12T14:30:22",
-    "method": "aql_graph_traversal"
+"_key": "cluster_000123",
+"cluster_id": 123,
+"size": 5,
+"members": ["companies/c001", "companies/c002", ...],
+"member_keys": ["c001", "c002", ...],
+"timestamp": "2025-11-12T14:30:22",
+"method": "aql_graph_traversal"
 }
 ```
 
@@ -777,19 +777,19 @@ Get clustering statistics.
 **Returns:**
 ```python
 {
-    "total_clusters": 234,
-    "total_entities_clustered": 1523,
-    "avg_cluster_size": 6.5,
-    "max_cluster_size": 45,
-    "min_cluster_size": 2,
-    "cluster_size_distribution": {
-        "2": 120,
-        "3": 56,
-        "4-10": 45,
-        "11-50": 13
-    },
-    "algorithm_used": "aql_graph_traversal",
-    "execution_time_seconds": 3.4
+"total_clusters": 234,
+"total_entities_clustered": 1523,
+"avg_cluster_size": 6.5,
+"max_cluster_size": 45,
+"min_cluster_size": 2,
+"cluster_size_distribution": {
+"2": 120,
+"3": 56,
+"4-10": 45,
+"11-50": 13
+},
+"algorithm_used": "aql_graph_traversal",
+"execution_time_seconds": 3.4
 }
 ```
 
@@ -800,15 +800,15 @@ Validate cluster quality and consistency.
 **Returns:**
 ```python
 {
-    "valid": True,
-    "issues": [],
-    "checks_performed": [
-        "no_overlapping_clusters",
-        "all_edges_respected",
-        "min_size_requirement"
-    ],
-    "entities_checked": 1523,
-    "edges_checked": 845
+"valid": True,
+"issues": [],
+"checks_performed": [
+"no_overlapping_clusters",
+"all_edges_respected",
+"min_size_requirement"
+],
+"entities_checked": 1523,
+"edges_checked": 845
 }
 ```
 
@@ -818,46 +818,46 @@ Validate cluster quality and consistency.
 
 ```python
 from entity_resolution import (
-    CollectBlockingStrategy,
-    BM25BlockingStrategy,
-    BatchSimilarityService,
-    SimilarityEdgeService,
-    WCCClusteringService
+CollectBlockingStrategy,
+BM25BlockingStrategy,
+BatchSimilarityService,
+SimilarityEdgeService,
+WCCClusteringService
 )
 
 # 1. Blocking
 phone_strategy = CollectBlockingStrategy(
-    db=db, collection="companies",
-    blocking_fields=["phone", "state"]
+db=db, collection="companies",
+blocking_fields=["phone", "state"]
 )
 name_strategy = BM25BlockingStrategy(
-    db=db, collection="companies",
-    search_view="companies_search",
-    search_field="name"
+db=db, collection="companies",
+search_view="companies_search",
+search_field="name"
 )
 
 pairs = set()
 for pair in phone_strategy.generate_candidates():
-    pairs.add((pair['doc1_key'], pair['doc2_key']))
+pairs.add((pair['doc1_key'], pair['doc2_key']))
 for pair in name_strategy.generate_candidates():
-    pairs.add((pair['doc1_key'], pair['doc2_key']))
+pairs.add((pair['doc1_key'], pair['doc2_key']))
 
 # 2. Similarity
 similarity = BatchSimilarityService(
-    db=db, collection="companies",
-    field_weights={"name": 0.5, "address": 0.3, "phone": 0.2}
+db=db, collection="companies",
+field_weights={"name": 0.5, "address": 0.3, "phone": 0.2}
 )
 matches = similarity.compute_similarities(list(pairs), threshold=0.75)
 
 # 3. Edges
 edges = SimilarityEdgeService(
-    db=db, edge_collection="similarTo"
+db=db, edge_collection="similarTo"
 )
 edges.create_edges(matches, metadata={"method": "hybrid"})
 
 # 4. Clustering
 clustering = WCCClusteringService(
-    db=db, edge_collection="similarTo"
+db=db, edge_collection="similarTo"
 )
 clusters = clustering.cluster(store_results=True)
 
@@ -877,13 +877,13 @@ All components raise standard Python exceptions:
 **Example:**
 ```python
 try:
-    service = BatchSimilarityService(
-        db=db,
-        collection="companies",
-        field_weights={"name": 0.0}  # Invalid: all weights zero
-    )
+service = BatchSimilarityService(
+db=db,
+collection="companies",
+field_weights={"name": 0.0} # Invalid: all weights zero
+)
 except ValueError as e:
-    print(f"Configuration error: {e}")
+print(f"Configuration error: {e}")
 ```
 
 ---
@@ -906,7 +906,7 @@ except ValueError as e:
 
 ---
 
-**Document Version:** 1.0  
-**Library Version:** 2.0.0  
+**Document Version:** 1.0 
+**Library Version:** 2.0.0 
 **Last Updated:** November 12, 2025
 

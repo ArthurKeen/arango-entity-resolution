@@ -141,11 +141,11 @@ Test reports are generated in `/reports/` directory:
 ## Contributing Tests
 
 When adding new features:
-1. ✅ Write unit tests first (TDD)
-2. ✅ Add integration tests
-3. ✅ Update test documentation
-4. ✅ Ensure tests pass before commit
-5. ✅ Aim for 80%+ coverage
+1. Write unit tests first (TDD)
+2. Add integration tests
+3. Update test documentation
+4. Ensure tests pass before commit
+5. Aim for 80%+ coverage
 
 ## Related Documentation
 
@@ -155,8 +155,8 @@ When adding new features:
 
 ---
 
-**Last Updated:** December 2, 2025  
-**Test Framework:** pytest  
-**Coverage Tool:** pytest-cov  
+**Last Updated:** December 2, 2025 
+**Test Framework:** pytest 
+**Coverage Tool:** pytest-cov 
 **Database:** ArangoDB (via Docker)
 

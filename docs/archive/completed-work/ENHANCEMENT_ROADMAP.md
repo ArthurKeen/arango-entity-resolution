@@ -1,6 +1,6 @@
 # ArangoER Library Enhancement Roadmap
 
-**Date:** November 12, 2025  
+**Date:** November 12, 2025 
 **Status:** Ready to Begin Implementation
 
 ---
@@ -39,17 +39,17 @@ All new components accept collection names, field names, and configuration as pa
 **Good:**
 ```python
 strategy = CollectBlockingStrategy(
-    db=db,
-    collection="my_companies",
-    blocking_fields=["phone", "state"],
-    filters={"phone": {"min_length": 10}}
+db=db,
+collection="my_companies",
+blocking_fields=["phone", "state"],
+filters={"phone": {"min_length": 10}}
 )
 ```
 
 **Bad (what we're NOT doing):**
 ```python
 # This would be BAD - hardcoded collection/field names
-strategy = CollectBlockingStrategy(db)  # Assumes "duns" collection
+strategy = CollectBlockingStrategy(db) # Assumes "duns" collection
 ```
 
 ### Performance-Optimized
@@ -141,18 +141,18 @@ Every component accepts configuration that specifies:
 ```python
 # Works with ANY collection and fields
 strategy = CollectBlockingStrategy(
-    db=db,
-    collection="your_entities",  # Your collection name
-    blocking_fields=["field1", "field2"],  # Your fields
-    filters={
-        "field1": {
-            "not_null": True,
-            "min_length": 5,
-            "not_equal": ["INVALID", "NULL"]
-        },
-        "field2": {"not_null": True}
-    },
-    max_block_size=100
+db=db,
+collection="your_entities", # Your collection name
+blocking_fields=["field1", "field2"], # Your fields
+filters={
+"field1": {
+"not_null": True,
+"min_length": 5,
+"not_equal": ["INVALID", "NULL"]
+},
+"field2": {"not_null": True}
+},
+max_block_size=100
 )
 ```
 
@@ -161,14 +161,14 @@ strategy = CollectBlockingStrategy(
 ```python
 # Works with ANY fields and weights
 service = BatchSimilarityService(
-    db=db,
-    collection="your_entities",
-    field_weights={
-        "your_name_field": 0.5,
-        "your_address_field": 0.3,
-        "your_phone_field": 0.2
-    },
-    similarity_algorithm="jaro_winkler"
+db=db,
+collection="your_entities",
+field_weights={
+"your_name_field": 0.5,
+"your_address_field": 0.3,
+"your_phone_field": 0.2
+},
+similarity_algorithm="jaro_winkler"
 )
 ```
 
@@ -177,9 +177,9 @@ service = BatchSimilarityService(
 ```python
 # Works with ANY edge collection and vertex collection
 service = SimilarityEdgeService(
-    db=db,
-    edge_collection="your_similarity_edges",
-    vertex_collection="your_entities"
+db=db,
+edge_collection="your_similarity_edges",
+vertex_collection="your_entities"
 )
 ```
 
@@ -211,19 +211,19 @@ test_fields = ["field_a", "field_b"]
 ### For Each Component
 
 1. **API Documentation**
-   - Complete parameter descriptions
-   - Return value specifications
-   - Usage examples in docstrings
+- Complete parameter descriptions
+- Return value specifications
+- Usage examples in docstrings
 
 2. **User Guide**
-   - When to use this component
-   - Configuration options explained
-   - Performance tuning tips
+- When to use this component
+- Configuration options explained
+- Performance tuning tips
 
 3. **Examples**
-   - Basic usage
-   - Advanced configurations
-   - Complete workflow examples
+- Basic usage
+- Advanced configurations
+- Complete workflow examples
 
 ### Migration Support
 
@@ -284,22 +284,22 @@ Before each phase is considered complete:
 
 ### Performance Risk
 
-**Risk:** Library implementation slower than direct code  
+**Risk:** Library implementation slower than direct code 
 **Mitigation:** Benchmark continuously, profile bottlenecks, allow query overrides
 
 ### Complexity Risk
 
-**Risk:** API too complex for users  
+**Risk:** API too complex for users 
 **Mitigation:** Sensible defaults, progressive complexity, clear examples
 
 ### Adoption Risk
 
-**Risk:** Users continue direct implementations  
+**Risk:** Users continue direct implementations 
 **Mitigation:** Clear benefits, easy migration, performance proof
 
 ### Breaking Change Risk
 
-**Risk:** New features break existing code  
+**Risk:** New features break existing code 
 **Mitigation:** Add new classes, don't modify existing APIs, follow semver
 
 ---
@@ -308,29 +308,29 @@ Before each phase is considered complete:
 
 ```
 Week 1-2: Phase 1 - Blocking Strategies
-  ├── Base classes and infrastructure
-  ├── CollectBlockingStrategy
-  ├── BM25BlockingStrategy
-  └── Tests and documentation
+Base classes and infrastructure
+CollectBlockingStrategy
+BM25BlockingStrategy
+Tests and documentation
 
 Week 3-4: Phase 2 - Similarity & Edges
-  ├── BatchSimilarityService
-  ├── Multiple algorithm support
-  ├── SimilarityEdgeService
-  └── Tests and documentation
+BatchSimilarityService
+Multiple algorithm support
+SimilarityEdgeService
+Tests and documentation
 
 Week 5-6: Phase 3 - Clustering
-  ├── WCCClusteringService (AQL graph traversal)
-  ├── Validation and statistics
-  ├── GAE enhancement documentation
-  └── Tests and documentation
+WCCClusteringService (AQL graph traversal)
+Validation and statistics
+GAE enhancement documentation
+Tests and documentation
 
 Week 7-8: Phase 4 - Integration & Release
-  ├── Complete API documentation
-  ├── Migration guides
-  ├── Usage examples
-  ├── Performance benchmarks
-  └── Version 2.0.0 release
+Complete API documentation
+Migration guides
+Usage examples
+Performance benchmarks
+Version 2.0.0 release
 ```
 
 ---
@@ -382,18 +382,18 @@ Before starting implementation, consider:
 
 ### What Gets Committed (Public Repo)
 
-✅ Generic library code  
-✅ Generic tests with generic data  
-✅ API documentation  
-✅ Usage examples (generic)  
-✅ This roadmap
+Generic library code 
+Generic tests with generic data 
+API documentation 
+Usage examples (generic) 
+This roadmap
 
 ### What Stays Private
 
-❌ Customer-specific implementations  
-❌ Customer data or schemas  
-❌ Customer documentation  
-❌ Proprietary information
+Customer-specific implementations 
+Customer data or schemas 
+Customer documentation 
+Proprietary information
 
 The `.gitignore` has been updated to prevent accidental commits of proprietary information.
 
@@ -408,11 +408,11 @@ All planning is complete. We have:
 - Quality gates and success criteria
 - Risk mitigation strategies
 
-Let's start with Phase 1: Blocking Strategies! 🚀
+Let's start with Phase 1: Blocking Strategies! 
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** November 12, 2025  
+**Document Version:** 1.0 
+**Last Updated:** November 12, 2025 
 **Next Review:** End of Phase 1
 

@@ -4,43 +4,43 @@ Welcome to the ArangoDB Entity Resolution documentation!
 
 ---
 
-## 📚 Quick Navigation
+## Quick Navigation
 
 ### Getting Started
-- 🚀 [Quick Start Guide](../QUICK_START_GUIDE.md) - Get up and running in 5 minutes
-- 📖 [Main README](../README.md) - Project overview and installation
+- [Quick Start Guide](../QUICK_START_GUIDE.md) - Get up and running in 5 minutes
+- [Main README](../README.md) - Project overview and installation
 
 ### API Documentation
-- 📘 [API Reference](api/API_REFERENCE.md) - Complete API documentation for v2.0
+- [API Reference](api/API_REFERENCE.md) - Complete API documentation for v2.0
 
 ### User Guides
-- 🔄 [Migration Guide v3.0](guides/MIGRATION_GUIDE_V3.md) - Upgrade from v1.x or v2.x
-- 🗂️ [Custom Collections Guide](guides/CUSTOM_COLLECTIONS_GUIDE.md) - Work with your own data
+- [Migration Guide v3.0](guides/MIGRATION_GUIDE_V3.md) - Upgrade from v1.x or v2.x
+- [Custom Collections Guide](guides/CUSTOM_COLLECTIONS_GUIDE.md) - Work with your own data
 - 🧪 [Testing Guide](guides/TESTING_GUIDE.md) - Run tests and benchmarks
 
 ### Architecture & Design
-- 🏗️ [System Design](architecture/DESIGN.md) - How the system works
-- 🔗 [Graph Algorithms](architecture/GRAPH_ALGORITHMS_EXPLANATION.md) - Algorithm explanations
-- 🔌 [Foxx Architecture](architecture/FOXX_ARCHITECTURE.md) - Foxx service design
-- 📦 [Foxx Deployment](architecture/FOXX_DEPLOYMENT.md) - Deploy Foxx services
+- [System Design](architecture/DESIGN.md) - How the system works
+- [Graph Algorithms](architecture/GRAPH_ALGORITHMS_EXPLANATION.md) - Algorithm explanations
+- [Foxx Architecture](architecture/FOXX_ARCHITECTURE.md) - Foxx service design
+- [Foxx Deployment](architecture/FOXX_DEPLOYMENT.md) - Deploy Foxx services
 
 ### Development
-- 🛠️ [Enhancement Plan](development/LIBRARY_ENHANCEMENT_PLAN.md) - Library improvements
-- 🚀 [GAE Enhancement Path](development/GAE_ENHANCEMENT_PATH.md) - Future graph engine support
-- 📊 [Batch vs Bulk Processing](development/BATCH_VS_BULK_PROCESSING.md) - Performance patterns
-- 🔄 [Project Evolution](development/PROJECT_EVOLUTION.md) - Project history
+- [Enhancement Plan](development/LIBRARY_ENHANCEMENT_PLAN.md) - Library improvements
+- [GAE Enhancement Path](development/GAE_ENHANCEMENT_PATH.md) - Future graph engine support
+- [Batch vs Bulk Processing](development/BATCH_VS_BULK_PROCESSING.md) - Performance patterns
+- [Project Evolution](development/PROJECT_EVOLUTION.md) - Project history
 - 🪝 [Git Hooks](development/GIT_HOOKS.md) - Development workflow
 
 ### Research & Papers
-- 📚 [Research Directory](../research/README.md) - Research notes and papers
-- 📄 [Bibliography](../research/bibliography.md) - Academic references
+- [Research Directory](../research/README.md) - Research notes and papers
+- [Bibliography](../research/bibliography.md) - Academic references
 
 ### Visual Documentation
-- 🎨 [Diagrams](diagrams/README.md) - System architecture diagrams
+- [Diagrams](diagrams/README.md) - System architecture diagrams
 
 ---
 
-## 🗂️ Document Categories
+## Document Categories
 
 ### By Audience
 
@@ -85,7 +85,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 
 ---
 
-## 📦 Additional Resources
+## Additional Resources
 
 ### Examples
 - [Enhanced ER Examples](../examples/enhanced_er_examples.py) - Complete working examples
@@ -99,7 +99,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 
 ---
 
-## 🏛️ Archive
+## Archive
 
 Historical documentation is preserved in [`archive/`](archive/):
 - **audits/** - Code audits and quality reports
@@ -111,7 +111,7 @@ Historical documentation is preserved in [`archive/`](archive/):
 
 ---
 
-## 📝 Version Information
+## Version Information
 
 - **Current Version:** 3.0.0
 - **API Version:** v3
@@ -121,7 +121,7 @@ For version history, see [CHANGELOG.md](../CHANGELOG.md)
 
 ---
 
-## 🆘 Need Help?
+## Need Help?
 
 1. **Getting Started:** Read the [Quick Start Guide](../QUICK_START_GUIDE.md)
 2. **API Questions:** Check the [API Reference](api/API_REFERENCE.md)
@@ -131,6 +131,6 @@ For version history, see [CHANGELOG.md](../CHANGELOG.md)
 
 ---
 
-**Documentation Structure Version:** 2.0  
+**Documentation Structure Version:** 2.0 
 **Last Reorganized:** November 11, 2025
 

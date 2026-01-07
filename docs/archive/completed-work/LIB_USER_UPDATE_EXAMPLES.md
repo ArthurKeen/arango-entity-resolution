@@ -14,8 +14,8 @@ from entity_resolution.core.entity_resolver import EntityResolutionPipeline
 pipeline = EntityResolutionPipeline()
 
 result = pipeline.resolve_entities(
-    records=my_data,
-    collection_name='customers'
+records=my_data,
+collection_name='customers'
 )
 
 print(f"Found {len(result['clusters'])} clusters")
@@ -33,14 +33,14 @@ load_dotenv()
 pipeline = EntityResolutionPipeline()
 
 result = pipeline.resolve_entities(
-    records=my_data,
-    collection_name='customers'
+records=my_data,
+collection_name='customers'
 )
 
 print(f"Found {len(result['clusters'])} clusters")
 ```
 
-**Changes:** Just add `load_dotenv()` at the start  
+**Changes:** Just add `load_dotenv()` at the start 
 **Benefit:** More secure credential management
 
 ---
@@ -58,9 +58,9 @@ all_results = []
 batch_size = 100
 
 for i in range(0, len(large_dataset), batch_size):
-    batch = large_dataset[i:i+batch_size]
-    result = pipeline.resolve_entities(batch, 'customers')
-    all_results.append(result)
+batch = large_dataset[i:i+batch_size]
+result = pipeline.resolve_entities(batch, 'customers')
+all_results.append(result)
 
 # Total time: ~6 minutes for 300K records
 ```
@@ -78,9 +78,9 @@ service.connect()
 
 # Process entire collection at once
 result = service.generate_all_pairs(
-    collection_name='customers',
-    strategies=['exact', 'ngram'],
-    limit=0  # 0 = no limit
+collection_name='customers',
+strategies=['exact', 'ngram'],
+limit=0 # 0 = no limit
 )
 
 print(f"Found {result['statistics']['total_pairs']} pairs")
@@ -89,7 +89,7 @@ print(f"Time: {result['statistics']['execution_time']:.2f}s")
 # Total time: ~2 minutes for 300K records (3x faster!)
 ```
 
-**Changes:** Switch to `BulkBlockingService` for large datasets  
+**Changes:** Switch to `BulkBlockingService` for large datasets 
 **Benefit:** 3-5x performance improvement
 
 ---
@@ -102,11 +102,11 @@ from entity_resolution.core.entity_resolver import EntityResolutionPipeline
 
 # DON'T DO THIS - credentials in code!
 pipeline = EntityResolutionPipeline(
-    host="db.company.com",
-    port=8529,
-    username="root",
-    password="MySecretPassword123",  # SECURITY RISK!
-    database="production_db"
+host="db.company.com",
+port=8529,
+username="root",
+password="MySecretPassword123", # SECURITY RISK!
+database="production_db"
 )
 ```
 
@@ -124,7 +124,7 @@ pipeline = EntityResolutionPipeline()
 
 # Or verify they're set
 if not os.getenv('ARANGO_ROOT_PASSWORD'):
-    raise ValueError("Database password not configured")
+raise ValueError("Database password not configured")
 
 pipeline = EntityResolutionPipeline()
 ```
@@ -144,7 +144,7 @@ ARANGO_DATABASE=production_db
 config.json
 ```
 
-**Changes:** Move credentials to `.env` file  
+**Changes:** Move credentials to `.env` file 
 **Benefit:** Secure, no credentials in code, no accidental commits
 
 ---
@@ -157,8 +157,8 @@ from entity_resolution.core.entity_resolver import EntityResolutionPipeline
 
 # Old way (still works)
 pipeline = EntityResolutionPipeline(
-    similarity_threshold=0.85,
-    max_candidates=150
+similarity_threshold=0.85,
+max_candidates=150
 )
 ```
 
@@ -172,11 +172,11 @@ load_dotenv()
 
 # New way (more flexible)
 er_config = EntityResolutionConfig(
-    similarity_threshold=0.85,
-    max_candidates_per_record=150,
-    ngram_length=3,
-    max_cluster_size=100,
-    log_level='INFO'
+similarity_threshold=0.85,
+max_candidates_per_record=150,
+ngram_length=3,
+max_cluster_size=100,
+log_level='INFO'
 )
 
 config = Config(er_config=er_config)
@@ -202,7 +202,7 @@ load_dotenv()
 pipeline = EntityResolutionPipeline()
 ```
 
-**Changes:** Use `Config` objects or environment variables  
+**Changes:** Use `Config` objects or environment variables 
 **Benefit:** More options, cleaner code, environment-specific settings
 
 ---
@@ -219,15 +219,15 @@ batch_size = 100
 all_pairs = []
 
 for i in range(0, total_records, batch_size):
-    response = requests.post(
-        'http://localhost:8529/_db/mydb/entity-resolution/blocking/batch',
-        auth=HTTPBasicAuth('root', 'password'),
-        json={
-            'collection': 'customers',
-            'targetDocIds': record_ids[i:i+batch_size]
-        }
-    )
-    all_pairs.extend(response.json()['candidates'])
+response = requests.post(
+'http://localhost:8529/_db/mydb/entity-resolution/blocking/batch',
+auth=HTTPBasicAuth('root', 'password'),
+json={
+'collection': 'customers',
+'targetDocIds': record_ids[i:i+batch_size]
+}
+)
+all_pairs.extend(response.json()['candidates'])
 
 # Makes 3,319 API calls for 331K records
 ```
@@ -240,13 +240,13 @@ import os
 
 # Single API call for entire collection
 response = requests.post(
-    'http://localhost:8529/_db/mydb/entity-resolution/bulk/all-pairs',
-    auth=HTTPBasicAuth('root', os.getenv('ARANGO_ROOT_PASSWORD')),
-    json={
-        'collection': 'customers',
-        'strategies': ['exact', 'ngram'],
-        'limit': 0  # Process all
-    }
+'http://localhost:8529/_db/mydb/entity-resolution/bulk/all-pairs',
+auth=HTTPBasicAuth('root', os.getenv('ARANGO_ROOT_PASSWORD')),
+json={
+'collection': 'customers',
+'strategies': ['exact', 'ngram'],
+'limit': 0 # Process all
+}
 )
 
 result = response.json()
@@ -258,7 +258,7 @@ print(f"Found {stats['total_pairs']} pairs in {stats['execution_time']:.2f}s")
 # Makes 1 API call for 331K records (3,319x fewer calls!)
 ```
 
-**Changes:** Use new `/bulk/all-pairs` endpoint  
+**Changes:** Use new `/bulk/all-pairs` endpoint 
 **Benefit:** 3,300x fewer network calls, 3-5x faster
 
 ---
@@ -275,7 +275,7 @@ pipeline = EntityResolutionPipeline()
 
 # Start application
 if __name__ == '__main__':
-    app.run()
+app.run()
 ```
 
 ### After (Best Practice)
@@ -293,20 +293,20 @@ required_vars = ['ARANGO_ROOT_PASSWORD', 'ARANGO_DATABASE']
 missing_vars = [var for var in required_vars if not os.getenv(var)]
 
 if missing_vars:
-    raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
+raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
 
 # Initialize with environment config
 pipeline = EntityResolutionPipeline()
 
 # Start application
 if __name__ == '__main__':
-    print("✓ Configuration loaded from environment")
-    print(f"✓ Database: {os.getenv('ARANGO_DATABASE')}")
-    print(f"✓ Host: {os.getenv('ARANGO_HOST', 'localhost')}")
-    app.run()
+print(" Configuration loaded from environment")
+print(f" Database: {os.getenv('ARANGO_DATABASE')}")
+print(f" Host: {os.getenv('ARANGO_HOST', 'localhost')}")
+app.run()
 ```
 
-**Changes:** Add environment validation at startup  
+**Changes:** Add environment validation at startup 
 **Benefit:** Fail fast if misconfigured, clear error messages
 
 ---
@@ -317,26 +317,26 @@ if __name__ == '__main__':
 ```yaml
 version: '3'
 services:
-  app:
-    build: .
-    environment:
-      - DB_HOST=arangodb
-      - DB_PORT=8529
-      - DB_PASSWORD=hardcoded_password  # Not ideal
+app:
+build: .
+environment:
+- DB_HOST=arangodb
+- DB_PORT=8529
+- DB_PASSWORD=hardcoded_password # Not ideal
 ```
 
 ### After (docker-compose.yml)
 ```yaml
 version: '3'
 services:
-  app:
-    build: .
-    env_file:
-      - .env  # Load from file (gitignored)
-    environment:
-      - ARANGO_HOST=arangodb
-      - ARANGO_PORT=8529
-      # Password comes from .env file (secure)
+app:
+build: .
+env_file:
+- .env # Load from file (gitignored)
+environment:
+- ARANGO_HOST=arangodb
+- ARANGO_PORT=8529
+# Password comes from .env file (secure)
 ```
 
 **Create `.env.example` for team:**
@@ -359,7 +359,7 @@ ARANGO_ROOT_PASSWORD=actual_production_password
 ARANGO_DATABASE=entity_resolution
 ```
 
-**Changes:** Use `.env` file for secrets  
+**Changes:** Use `.env` file for secrets 
 **Benefit:** Secure secrets management, different configs per environment
 
 ---

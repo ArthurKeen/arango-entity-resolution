@@ -1,7 +1,7 @@
 # Validation Methodology and Results
 
-**Date:** January 2, 2026  
-**Dataset:** Hardware domain (OR1200 processor)  
+**Date:** January 2, 2026 
+**Dataset:** Hardware domain (OR1200 processor) 
 **Ground Truth:** 15 manually labeled entity pairs
 
 ---
@@ -35,7 +35,7 @@
 
 **Enhanced Configuration:**
 - Baseline + Type Compatibility Filter
-- Baseline + Hierarchical Context Resolver  
+- Baseline + Hierarchical Context Resolver 
 - Baseline + Acronym Expansion Handler
 - Threshold: 0.7 (same as baseline)
 
@@ -80,7 +80,7 @@ python3 validation/validate_metrics.py
 
 ## Key Findings
 
-### 1. Precision Dramatically Improved ✓
+### 1. Precision Dramatically Improved 
 
 **From 50% to 100%** - No false positives with enhanced matching.
 

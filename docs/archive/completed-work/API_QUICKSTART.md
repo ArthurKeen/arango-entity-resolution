@@ -36,9 +36,9 @@ curl -u root:your_password http://localhost:8529/_db/entity_resolution/entity-re
 
 # Should return:
 # {
-#   "status": "healthy",
-#   "service": "entity-resolution",
-#   "version": "1.0.0"
+# "status": "healthy",
+# "service": "entity-resolution",
+# "version": "1.0.0"
 # }
 ```
 
@@ -53,8 +53,8 @@ AUTH="root:your_password"
 
 # Initialize analyzers and views
 curl -u $AUTH -X POST "$BASE_URL/setup/initialize" \
-  -H "Content-Type: application/json" \
-  -d '{"collections": ["customers"]}'
+-H "Content-Type: application/json" \
+-d '{"collections": ["customers"]}'
 ```
 
 ### Find Duplicates
@@ -62,13 +62,13 @@ curl -u $AUTH -X POST "$BASE_URL/setup/initialize" \
 ```bash
 # Generate candidate duplicates for a record
 curl -u $AUTH -X POST "$BASE_URL/blocking/candidates" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "collection": "customers",
-    "targetDocId": "customers/12345",
-    "strategies": ["ngram", "exact"],
-    "limit": 100
-  }' | jq '.'
+-H "Content-Type: application/json" \
+-d '{
+"collection": "customers",
+"targetDocId": "customers/12345",
+"strategies": ["ngram", "exact"],
+"limit": 100
+}' | jq '.'
 ```
 
 ### Compute Similarity
@@ -76,19 +76,19 @@ curl -u $AUTH -X POST "$BASE_URL/blocking/candidates" \
 ```bash
 # Check if two records are the same entity
 curl -u $AUTH -X POST "$BASE_URL/similarity/compute" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "docA": {
-      "first_name": "John",
-      "last_name": "Smith",
-      "email": "john.smith@example.com"
-    },
-    "docB": {
-      "first_name": "Jon",
-      "last_name": "Smith",
-      "email": "j.smith@example.com"
-    }
-  }' | jq '.similarity.decision'
+-H "Content-Type: application/json" \
+-d '{
+"docA": {
+"first_name": "John",
+"last_name": "Smith",
+"email": "john.smith@example.com"
+},
+"docB": {
+"first_name": "Jon",
+"last_name": "Smith",
+"email": "j.smith@example.com"
+}
+}' | jq '.similarity.decision'
 ```
 
 ## Python API Quick Start
@@ -107,8 +107,8 @@ pipeline.load_data("customers.csv", collection_name="customers")
 
 # Run entity resolution
 results = pipeline.run_complete_pipeline(
-    collection_name="customers",
-    similarity_threshold=0.8
+collection_name="customers",
+similarity_threshold=0.8
 )
 
 # View results
@@ -130,29 +130,29 @@ similarity.connect()
 
 # New customer record
 new_customer = {
-    "first_name": "John",
-    "last_name": "Smith",
-    "email": "john.smith@example.com"
+"first_name": "John",
+"last_name": "Smith",
+"email": "john.smith@example.com"
 }
 
 # Find matches
 candidates = blocking.generate_candidates(
-    collection="customers",
-    target_record_id="customers/new",
-    strategies=["ngram", "exact"],
-    limit=50
+collection="customers",
+target_record_id="customers/new",
+strategies=["ngram", "exact"],
+limit=50
 )
 
 # Check similarity
 for candidate in candidates['candidates'][:5]:
-    result = similarity.compute_similarity(
-        doc_a=new_customer,
-        doc_b=candidate['candidate']
-    )
-    
-    if result['similarity']['is_match']:
-        print(f"Match found: {candidate['candidateId']} "
-              f"(confidence: {result['similarity']['confidence']:.2%})")
+result = similarity.compute_similarity(
+doc_a=new_customer,
+doc_b=candidate['candidate']
+)
+
+if result['similarity']['is_match']:
+print(f"Match found: {candidate['candidateId']} "
+f"(confidence: {result['similarity']['confidence']:.2%})")
 ```
 
 ## Common Tasks
@@ -167,9 +167,9 @@ pipeline.connect()
 # Load and process
 pipeline.load_data("customers.csv", "customers")
 results = pipeline.run_complete_pipeline(
-    collection_name="customers",
-    strategies=["ngram", "exact"],
-    similarity_threshold=0.85
+collection_name="customers",
+strategies=["ngram", "exact"],
+similarity_threshold=0.85
 )
 
 # Results
@@ -182,44 +182,44 @@ print(f"Duplicates removed: {results['overall']['records_processed'] - results['
 
 ```python
 def check_for_duplicates(new_record, collection="customers"):
-    """Check if new record is a duplicate"""
-    blocking = BlockingService()
-    similarity = SimilarityService()
-    
-    blocking.connect()
-    similarity.connect()
-    
-    # Find candidates
-    candidates = blocking.generate_candidates(
-        collection=collection,
-        target_record_id=f"{collection}/temp",
-        limit=50
-    )
-    
-    # Check similarities
-    matches = []
-    for candidate in candidates['candidates']:
-        result = similarity.compute_similarity(
-            doc_a=new_record,
-            doc_b=candidate['candidate']
-        )
-        
-        if result['similarity']['is_match']:
-            matches.append({
-                'id': candidate['candidateId'],
-                'confidence': result['similarity']['confidence']
-            })
-    
-    return matches
+"""Check if new record is a duplicate"""
+blocking = BlockingService()
+similarity = SimilarityService()
+
+blocking.connect()
+similarity.connect()
+
+# Find candidates
+candidates = blocking.generate_candidates(
+collection=collection,
+target_record_id=f"{collection}/temp",
+limit=50
+)
+
+# Check similarities
+matches = []
+for candidate in candidates['candidates']:
+result = similarity.compute_similarity(
+doc_a=new_record,
+doc_b=candidate['candidate']
+)
+
+if result['similarity']['is_match']:
+matches.append({
+'id': candidate['candidateId'],
+'confidence': result['similarity']['confidence']
+})
+
+return matches
 
 # Usage
 new_customer = {"first_name": "John", "last_name": "Smith", ...}
 duplicates = check_for_duplicates(new_customer)
 
 if duplicates:
-    print(f"WARNING: {len(duplicates)} potential duplicates found")
+print(f"WARNING: {len(duplicates)} potential duplicates found")
 else:
-    print("No duplicates - safe to insert")
+print("No duplicates - safe to insert")
 ```
 
 ### Task 3: Batch Processing
@@ -237,16 +237,16 @@ record_ids = [...] # Load from database
 # Process in batches
 BATCH_SIZE = 100
 for i in range(0, len(record_ids), BATCH_SIZE):
-    batch = record_ids[i:i+BATCH_SIZE]
-    
-    results = blocking.generate_candidates_batch(
-        collection="customers",
-        target_record_ids=batch,
-        limit=100
-    )
-    
-    print(f"Processed batch {i//BATCH_SIZE + 1}: "
-          f"{results['statistics']['total_candidates']} candidates")
+batch = record_ids[i:i+BATCH_SIZE]
+
+results = blocking.generate_candidates_batch(
+collection="customers",
+target_record_ids=batch,
+limit=100
+)
+
+print(f"Processed batch {i//BATCH_SIZE + 1}: "
+f"{results['statistics']['total_candidates']} candidates")
 ```
 
 ## Configuration
@@ -272,11 +272,11 @@ FOXX_TIMEOUT=30
 from entity_resolution.utils.config import Config
 
 config = Config(
-    arango_host="localhost",
-    arango_port=8529,
-    arango_username="root",
-    arango_password="your_password",
-    arango_database="entity_resolution"
+arango_host="localhost",
+arango_port=8529,
+arango_username="root",
+arango_password="your_password",
+arango_database="entity_resolution"
 )
 
 # Use custom config
@@ -300,9 +300,9 @@ python3 scripts/foxx/deploy_foxx.py
 ```bash
 # Initialize setup
 curl -u root:password -X POST \
-  http://localhost:8529/_db/entity_resolution/entity-resolution/setup/initialize \
-  -H "Content-Type: application/json" \
-  -d '{"collections": ["customers"]}'
+http://localhost:8529/_db/entity_resolution/entity-resolution/setup/initialize \
+-H "Content-Type: application/json" \
+-d '{"collections": ["customers"]}'
 ```
 
 ### Connection Refused

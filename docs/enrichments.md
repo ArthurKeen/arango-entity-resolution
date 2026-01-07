@@ -1,7 +1,7 @@
 # Entity Resolution Enrichments
 
-**Package:** `entity_resolution.enrichments` v0.1.0  
-**Status:** Proof-of-concept with preliminary validation  
+**Package:** `entity_resolution.enrichments` v0.1.0 
+**Status:** Proof-of-concept with preliminary validation 
 **Documentation:** Components for hierarchical and technical domain entity resolution
 
 ---
@@ -11,7 +11,7 @@
 Four components that address common challenges in entity resolution for hierarchical knowledge graphs:
 
 1. **Type Compatibility Filter** - Pre-filters candidates by type to prevent nonsensical matches
-2. **Hierarchical Context Resolver** - Uses parent entity context to disambiguate similar names  
+2. **Hierarchical Context Resolver** - Uses parent entity context to disambiguate similar names 
 3. **Acronym Expansion Handler** - Expands domain-specific abbreviations during search
 4. **Relationship Provenance Sweeper** - Remaps relationships after deduplication with audit trail
 
@@ -92,9 +92,9 @@ python3 validation/validate_metrics.py --domain medical
 
 ### 3. Integration Path
 - Should these be:
-  - Separate plugin package?
-  - Integrated into ER Library core?
-  - Documented patterns without code contribution?
+- Separate plugin package?
+- Integrated into ER Library core?
+- Documented patterns without code contribution?
 
 ### 4. API Design Review
 - Are the APIs intuitive and flexible enough?
@@ -114,8 +114,8 @@ python3 validation/validate_metrics.py --domain medical
 **Example:**
 ```python
 type_filter = TypeCompatibilityFilter({
-    'diagnosis': {'condition', 'disease', 'syndrome'},
-    'medication': {'drug', 'treatment'}  # diagnosis ↔ medication blocked
+'diagnosis': {'condition', 'disease', 'syndrome'},
+'medication': {'drug', 'treatment'} # diagnosis ↔ medication blocked
 })
 ```
 
@@ -269,7 +269,7 @@ Thank you for considering this work and for building such a useful library!
 
 ---
 
-**Prepared by:** [Your name]  
-**Date:** January 2, 2026  
+**Prepared by:** [Your name] 
+**Date:** January 2, 2026 
 **Contact:** [Your contact]
 

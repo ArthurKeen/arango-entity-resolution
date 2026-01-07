@@ -17,7 +17,7 @@ Modified `entity_resolution/utils/logging.py` to use **lazy config loading**:
 ```bash
 # Works without any database setup:
 from entity_resolution.enrichments import HierarchicalContextResolver, \
-    TypeCompatibilityFilter, AcronymExpansionHandler, RelationshipProvenanceSweeper
+TypeCompatibilityFilter, AcronymExpansionHandler, RelationshipProvenanceSweeper
 
 # All 22 unit tests pass
 pytest tests/enrichments/test_components.py -v
@@ -36,7 +36,7 @@ from ic_enrichment import HierarchicalContextResolver, ...
 With:
 ```python
 from entity_resolution.enrichments import HierarchicalContextResolver, \
-    TypeCompatibilityFilter, AcronymExpansionHandler, RelationshipProvenanceSweeper
+TypeCompatibilityFilter, AcronymExpansionHandler, RelationshipProvenanceSweeper
 ```
 
 **Note:** The class names are the same - this is just changing the import path.
@@ -71,30 +71,30 @@ Update any references to "IC Enrichment Pack" to point to the library:
 ## Files Changed in ER Library
 
 ```
-src/entity_resolution/enrichments/           # Integrated package
-├── __init__.py
-├── README.md
-├── context_resolver.py
-├── type_constraints.py
-├── acronym_handler.py
-└── relationship_sweeper.py
+src/entity_resolution/enrichments/ # Integrated package
+__init__.py
+README.md
+context_resolver.py
+type_constraints.py
+acronym_handler.py
+relationship_sweeper.py
 
-tests/enrichments/                           # Unit tests
-└── test_components.py
+tests/enrichments/ # Unit tests
+test_components.py
 
-examples/enrichments/                        # Examples
-├── hardware_er_example.py
-└── domain_agnostic_examples.py
+examples/enrichments/ # Examples
+hardware_er_example.py
+domain_agnostic_examples.py
 
 docs/
-├── enrichments.md                          # API documentation
-└── validation/                             # Validation data
-    ├── validation_methodology.md
-    ├── hardware_ground_truth.json
-    ├── medical_ground_truth.json
-    └── validate_metrics.py
+enrichments.md # API documentation
+validation/ # Validation data
+validation_methodology.md
+hardware_ground_truth.json
+medical_ground_truth.json
+validate_metrics.py
 
-src/entity_resolution/utils/logging.py       # Fixed to allow standalone imports
+src/entity_resolution/utils/logging.py # Fixed to allow standalone imports
 ```
 
 ## Verification
@@ -108,10 +108,10 @@ cd ~/code/cadence
 cat > test_library_import.py << 'EOF'
 """Test that enrichments can be imported from the ER library"""
 from entity_resolution.enrichments import (
-    HierarchicalContextResolver,
-    TypeCompatibilityFilter,
-    AcronymExpansionHandler,
-    RelationshipProvenanceSweeper
+HierarchicalContextResolver,
+TypeCompatibilityFilter,
+AcronymExpansionHandler,
+RelationshipProvenanceSweeper
 )
 
 # Test instantiation
@@ -120,7 +120,7 @@ type_filter = TypeCompatibilityFilter()
 acronym_handler = AcronymExpansionHandler()
 sweeper = RelationshipProvenanceSweeper()
 
-print("✓ All enrichment classes imported and instantiated successfully")
+print(" All enrichment classes imported and instantiated successfully")
 EOF
 
 python test_library_import.py

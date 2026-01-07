@@ -1,7 +1,7 @@
 # Code Audit Report - ArangoEntity Resolution v2.0
 
-**Date:** November 11, 2025  
-**Auditor:** AI Assistant  
+**Date:** November 11, 2025 
+**Auditor:** AI Assistant 
 **Scope:** Security, Code Duplication, Hardwiring
 
 ---
@@ -19,7 +19,7 @@
 
 ---
 
-## 🔴 SECURITY ISSUES
+## SECURITY ISSUES
 
 ### 1. **CRITICAL: Hardcoded Test Password**
 
@@ -27,20 +27,20 @@
 
 ```python
 if not password and os.getenv("USE_DEFAULT_PASSWORD") == "true":
-    password = "testpassword123"  # Development/testing only
+password = "testpassword123" # Development/testing only
 ```
 
-**Risk Level:** 🔴 **HIGH**  
+**Risk Level:** **HIGH** 
 **Impact:** If `USE_DEFAULT_PASSWORD=true` is accidentally set in production, it uses a weak password
 
 **Recommendation:**
 ```python
 # Remove entirely, or make it explicit that this is ONLY for automated testing
 if not password:
-    if os.getenv("PYTEST_CURRENT_TEST"):  # Only in pytest
-        password = "test_only_unsafe"
-    else:
-        raise ValueError("ARANGO_ROOT_PASSWORD environment variable must be set")
+if os.getenv("PYTEST_CURRENT_TEST"): # Only in pytest
+password = "test_only_unsafe"
+else:
+raise ValueError("ARANGO_ROOT_PASSWORD environment variable must be set")
 ```
 
 ---
@@ -53,22 +53,22 @@ if not password:
 - `src/entity_resolution/utils/constants.py:298`
 
 ```python
-password: str = ""  # SECURITY: Must be provided via ARANGO_ROOT_PASSWORD environment variable
+password: str = "" # SECURITY: Must be provided via ARANGO_ROOT_PASSWORD environment variable
 ```
 
-**Risk Level:** 🟡 **MEDIUM**  
+**Risk Level:** 🟡 **MEDIUM** 
 **Impact:** Empty password allows connection without authentication if ArangoDB is misconfigured
 
 **Recommendation:**
 ```python
-password: str = None  # Force explicit configuration
+password: str = None # Force explicit configuration
 
 @classmethod
 def from_env(cls) -> 'DatabaseConfig':
-    password = os.getenv("ARANGO_PASSWORD") or os.getenv("ARANGO_ROOT_PASSWORD")
-    if not password:
-        raise ValueError("Database password must be set via ARANGO_ROOT_PASSWORD environment variable")
-    return cls(password=password, ...)
+password = os.getenv("ARANGO_PASSWORD") or os.getenv("ARANGO_ROOT_PASSWORD")
+if not password:
+raise ValueError("Database password must be set via ARANGO_ROOT_PASSWORD environment variable")
+return cls(password=password, ...)
 ```
 
 ---
@@ -78,30 +78,30 @@ def from_env(cls) -> 'DatabaseConfig':
 **File:** `src/entity_resolution/strategies/collect_blocking.py:159-195`
 
 ```python
-query_parts = [f"FOR d IN {self.collection}"]  # ❌ Collection name not parameterized
+query_parts = [f"FOR d IN {self.collection}"] # Collection name not parameterized
 ```
 
-**Risk Level:** 🟠 **MEDIUM**  
+**Risk Level:** 🟠 **MEDIUM** 
 **Impact:** If `collection` parameter comes from user input, could allow AQL injection
 
 **Recommendation:**
 ```python
 # Good: Most places already use bind_vars
 bind_vars = {
-    'collection': self.collection  # But ArangoDB doesn't support collection as bind var
+'collection': self.collection # But ArangoDB doesn't support collection as bind var
 }
 
 # Alternative: Strict validation
 def __init__(self, ..., collection: str, ...):
-    # Validate collection name (alphanumeric + underscore only)
-    if not re.match(r'^[a-zA-Z0-9_]+$', collection):
-        raise ValueError(f"Invalid collection name: {collection}")
-    self.collection = collection
+# Validate collection name (alphanumeric + underscore only)
+if not re.match(r'^[a-zA-Z0-9_]+$', collection):
+raise ValueError(f"Invalid collection name: {collection}")
+self.collection = collection
 ```
 
 **Current Status:** 
-- ✅ BM25BlockingStrategy uses `bind_vars` for thresholds (line 155)
-- ❌ Collection/field names are directly embedded in f-strings
+- BM25BlockingStrategy uses `bind_vars` for thresholds (line 155)
+- Collection/field names are directly embedded in f-strings
 - 🟡 Partially safe if inputs come from library code, not user input
 
 ---
@@ -114,17 +114,17 @@ def __init__(self, ..., collection: str, ...):
 
 ```python
 except Exception as e:
-    print(f"Error inserting edge batch: {e}")  # ❌ Exposes internal errors
+print(f"Error inserting edge batch: {e}") # Exposes internal errors
 ```
 
-**Risk Level:** 🟢 **LOW**  
+**Risk Level:** 🟢 **LOW** 
 **Impact:** Error details exposed to stdout, potential information disclosure
 
 **Recommendation:**
 ```python
 except Exception as e:
-    self.logger.error(f"Error inserting edge batch: {e}", exc_info=True)
-    # Don't continue silently - either re-raise or track failures
+self.logger.error(f"Error inserting edge batch: {e}", exc_info=True)
+# Don't continue silently - either re-raise or track failures
 ```
 
 ---
@@ -138,27 +138,27 @@ except Exception as e:
 self.blocking_fields = blocking_fields
 ```
 
-**Risk Level:** 🟡 **MEDIUM**  
+**Risk Level:** 🟡 **MEDIUM** 
 **Impact:** If field names come from user input, could cause injection or errors
 
 **Recommendation:**
 ```python
 def _validate_field_name(self, field: str) -> bool:
-    """Validate field name is safe for AQL."""
-    # Allow alphanumeric, underscore, dot (for nested fields)
-    if not re.match(r'^[a-zA-Z0-9_\.]+$', field):
-        raise ValueError(f"Invalid field name: {field}")
-    return True
+"""Validate field name is safe for AQL."""
+# Allow alphanumeric, underscore, dot (for nested fields)
+if not re.match(r'^[a-zA-Z0-9_\.]+$', field):
+raise ValueError(f"Invalid field name: {field}")
+return True
 
 def __init__(self, ..., blocking_fields: List[str], ...):
-    for field in blocking_fields:
-        self._validate_field_name(field)
-    self.blocking_fields = blocking_fields
+for field in blocking_fields:
+self._validate_field_name(field)
+self.blocking_fields = blocking_fields
 ```
 
 ---
 
-## 🔁 CODE DUPLICATION
+## CODE DUPLICATION
 
 ### 1. **Duplicate: _format_vertex_id() Method**
 
@@ -171,12 +171,12 @@ def __init__(self, ..., blocking_fields: List[str], ...):
 ```python
 # DUPLICATE CODE in both files:
 def _format_vertex_id(self, key: str) -> str:
-    """Format a document key as a vertex ID."""
-    if '/' in key:
-        return key
-    if self.vertex_collection:
-        return f"{self.vertex_collection}/{key}"
-    return f"vertices/{key}"
+"""Format a document key as a vertex ID."""
+if '/' in key:
+return key
+if self.vertex_collection:
+return f"{self.vertex_collection}/{key}"
+return f"vertices/{key}"
 ```
 
 **Recommendation:**
@@ -185,23 +185,23 @@ Create a shared utility module:
 ```python
 # src/entity_resolution/utils/graph_utils.py
 def format_vertex_id(key: str, vertex_collection: Optional[str] = None) -> str:
-    """
-    Format a document key as a vertex ID.
-    
-    Args:
-        key: Document key or full vertex ID
-        vertex_collection: Collection name (optional)
-    
-    Returns:
-        Formatted vertex ID: "collection/key"
-    """
-    if '/' in key:
-        return key
-    
-    if vertex_collection:
-        return f"{vertex_collection}/{key}"
-    
-    return f"vertices/{key}"
+"""
+Format a document key as a vertex ID.
+
+Args:
+key: Document key or full vertex ID
+vertex_collection: Collection name (optional)
+
+Returns:
+Formatted vertex ID: "collection/key"
+"""
+if '/' in key:
+return key
+
+if vertex_collection:
+return f"{vertex_collection}/{key}"
+
+return f"vertices/{key}"
 ```
 
 **Impact:** 15 lines × 2 = 30 lines that should be 1 function call
@@ -214,18 +214,18 @@ def format_vertex_id(key: str, vertex_collection: Optional[str] = None) -> str:
 
 ```python
 def _extract_key_from_vertex_id(self, vertex_id: str) -> Optional[str]:
-    """Extract document key from vertex ID."""
-    if '/' in vertex_id:
-        return vertex_id.split('/')[-1]
-    return vertex_id
+"""Extract document key from vertex ID."""
+if '/' in vertex_id:
+return vertex_id.split('/')[-1]
+return vertex_id
 ```
 
 **Recommendation:** Add to same `graph_utils.py`:
 
 ```python
 def extract_key_from_vertex_id(vertex_id: str) -> str:
-    """Extract document key from vertex ID (collection/key -> key)."""
-    return vertex_id.split('/')[-1] if '/' in vertex_id else vertex_id
+"""Extract document key from vertex ID (collection/key -> key)."""
+return vertex_id.split('/')[-1] if '/' in vertex_id else vertex_id
 ```
 
 ---
@@ -242,20 +242,20 @@ def extract_key_from_vertex_id(vertex_id: str) -> str:
 # config.py
 @dataclass
 class DatabaseConfig:
-    host: str = "localhost"
-    port: int = 8529
-    username: str = "root"
-    password: str = ""
-    database: str = "entity_resolution"
+host: str = "localhost"
+port: int = 8529
+username: str = "root"
+password: str = ""
+database: str = "entity_resolution"
 
-# enhanced_config.py  
+# enhanced_config.py 
 @dataclass
 class DatabaseConfig:
-    host: str = "localhost"
-    port: int = 8529
-    username: str = "root"
-    password: str = ""
-    database_name: str = "entity_resolution"  # Note: different field name!
+host: str = "localhost"
+port: int = 8529
+username: str = "root"
+password: str = ""
+database_name: str = "entity_resolution" # Note: different field name!
 ```
 
 **Recommendation:**
@@ -284,17 +284,17 @@ Both files implement logger configuration with similar logic (60+ lines overlap)
 **Pattern repeated in 6 files:**
 ```python
 self._stats = {
-    'timestamp': datetime.now().isoformat(),
-    'execution_time_seconds': 0,
-    # ... more fields
+'timestamp': datetime.now().isoformat(),
+'execution_time_seconds': 0,
+# ... more fields
 }
 
 def _update_statistics(self, ...):
-    self._stats['field'] = value
-    self._stats['timestamp'] = datetime.now().isoformat()
+self._stats['field'] = value
+self._stats['timestamp'] = datetime.now().isoformat()
 
 def get_statistics(self) -> Dict:
-    return self._stats.copy()
+return self._stats.copy()
 ```
 
 **Files:**
@@ -310,21 +310,21 @@ Create a `StatisticsTracker` mixin or base class:
 ```python
 # src/entity_resolution/utils/statistics.py
 class StatisticsTracker:
-    """Mixin for services that track statistics."""
-    
-    def __init__(self):
-        self._stats = {'timestamp': datetime.now().isoformat()}
-    
-    def _init_statistics(self, **fields):
-        self._stats.update(fields)
-        self._stats['timestamp'] = datetime.now().isoformat()
-    
-    def _update_statistics(self, **updates):
-        self._stats.update(updates)
-        self._stats['timestamp'] = datetime.now().isoformat()
-    
-    def get_statistics(self) -> Dict:
-        return self._stats.copy()
+"""Mixin for services that track statistics."""
+
+def __init__(self):
+self._stats = {'timestamp': datetime.now().isoformat()}
+
+def _init_statistics(self, **fields):
+self._stats.update(fields)
+self._stats['timestamp'] = datetime.now().isoformat()
+
+def _update_statistics(self, **updates):
+self._stats.update(updates)
+self._stats['timestamp'] = datetime.now().isoformat()
+
+def get_statistics(self) -> Dict:
+return self._stats.copy()
 ```
 
 ---
@@ -335,9 +335,9 @@ class StatisticsTracker:
 
 ```python
 # Appears in multiple services with similar defaults:
-edge_collection = "similarTo"  # Or "similarities"
+edge_collection = "similarTo" # Or "similarities"
 cluster_collection = "entity_clusters"
-vertex_collection = "companies"  # Or None
+vertex_collection = "companies" # Or None
 ```
 
 **Recommendation:**
@@ -347,7 +347,7 @@ Centralize in `constants.py`:
 # constants.py
 DEFAULT_EDGE_COLLECTION = "similarTo"
 DEFAULT_CLUSTER_COLLECTION = "entity_clusters"
-DEFAULT_VERTEX_COLLECTION = None  # Must be specified
+DEFAULT_VERTEX_COLLECTION = None # Must be specified
 ```
 
 ---
@@ -362,9 +362,9 @@ Same try/except pattern duplicated in two methods:
 
 ```python
 try:
-    edges_inserted = edge_collection.insert_many(batch)
+edges_inserted = edge_collection.insert_many(batch)
 except Exception as e:
-    print(f"Error inserting edge batch: {e}")
+print(f"Error inserting edge batch: {e}")
 ```
 
 **Recommendation:**
@@ -372,13 +372,13 @@ Extract to a helper method:
 
 ```python
 def _insert_edge_batch(self, batch: List[Dict]) -> int:
-    """Insert edge batch with error handling."""
-    try:
-        result = self.edge_collection.insert_many(batch)
-        return len(batch)
-    except Exception as e:
-        self.logger.error(f"Failed to insert edge batch: {e}", exc_info=True)
-        raise  # Or handle based on strategy
+"""Insert edge batch with error handling."""
+try:
+result = self.edge_collection.insert_many(batch)
+return len(batch)
+except Exception as e:
+self.logger.error(f"Failed to insert edge batch: {e}", exc_info=True)
+raise # Or handle based on strategy
 ```
 
 ---
@@ -395,13 +395,13 @@ def _insert_edge_batch(self, batch: List[Dict]) -> int:
 ```python
 # utils/time_utils.py
 def get_iso_timestamp() -> str:
-    """Get current timestamp in ISO format."""
-    return datetime.now().isoformat()
+"""Get current timestamp in ISO format."""
+return datetime.now().isoformat()
 ```
 
 ---
 
-## 🔧 HARDWIRING ISSUES
+## HARDWIRING ISSUES
 
 ### 1. **Hardcoded Host/Port Values**
 
@@ -431,7 +431,7 @@ Make it more configurable per environment:
 database = os.getenv("ARANGO_DATABASE", "entity_resolution")
 env_suffix = os.getenv("ENVIRONMENT", "")
 if env_suffix:
-    database = f"{database}_{env_suffix}"  # e.g., entity_resolution_prod
+database = f"{database}_{env_suffix}" # e.g., entity_resolution_prod
 ```
 
 ---
@@ -442,8 +442,8 @@ if env_suffix:
 - Multiple services use hardcoded defaults like `"similarTo"`, `"entity_clusters"`
 
 **Current Status:** 
-- ✅ Most services allow override via constructor
-- ❌ Defaults are inconsistent (`similarTo` vs `similarities`)
+- Most services allow override via constructor
+- Defaults are inconsistent (`similarTo` vs `similarities`)
 
 **Recommendation:**
 Standardize and document defaults in one place.
@@ -466,7 +466,7 @@ Build URLs dynamically from database config:
 ```python
 @property
 def blocking_service_url(self) -> str:
-    return f"{self.get_database_url()}/_db/{self.database.database_name}/blocking"
+return f"{self.get_database_url()}/_db/{self.database.database_name}/blocking"
 ```
 
 ---
@@ -484,10 +484,10 @@ Centralize batch size configuration:
 ```python
 # constants.py
 BATCH_SIZES = {
-    'document_fetch': 5000,
-    'edge_insert': 1000,
-    'blocking': 100,
-    'similarity': 1000
+'document_fetch': 5000,
+'edge_insert': 1000,
+'blocking': 100,
+'similarity': 1000
 }
 ```
 
@@ -533,8 +533,8 @@ self.logger.info(f"Found {stats['total_clusters']} clusters")
 # database.py ArangoBaseConnection.print_success()
 # These are intentional for CLI output - document as such
 def print_success(self, message: str) -> None:
-    """Print success message to console (CLI use only)."""
-    print(f"✓ {message}")
+"""Print success message to console (CLI use only)."""
+print(f" {message}")
 ```
 
 ---
@@ -543,8 +543,8 @@ def print_success(self, message: str) -> None:
 
 **Pattern:**
 ```python
-except Exception as e:  # Too broad
-    print(f"Error: {e}")
+except Exception as e: # Too broad
+print(f"Error: {e}")
 ```
 
 **Recommendation:**
@@ -552,11 +552,11 @@ Catch specific exceptions:
 
 ```python
 except (ArangoServerError, ArangoClientError) as e:
-    self.logger.error(f"Database error: {e}", exc_info=True)
-    raise
+self.logger.error(f"Database error: {e}", exc_info=True)
+raise
 except ValueError as e:
-    self.logger.warning(f"Invalid data: {e}")
-    # Handle gracefully
+self.logger.warning(f"Invalid data: {e}")
+# Handle gracefully
 ```
 
 ---
@@ -570,7 +570,7 @@ Add type hints throughout:
 
 ```python
 def generate_candidates(self) -> List[Dict[str, Any]]:
-    ...
+...
 ```
 
 ---
@@ -589,8 +589,8 @@ Break into smaller, testable methods.
 Various magic numbers in code:
 
 ```python
-limit=100  # Why 100?
-if size > 999999:  # Why this number?
+limit=100 # Why 100?
+if size > 999999: # Why this number?
 ```
 
 **Recommendation:**
@@ -598,12 +598,12 @@ Use named constants:
 
 ```python
 DEFAULT_SAMPLE_SIZE = 100
-MAX_TRAVERSAL_DEPTH = 999999  # AQL graph traversal limit
+MAX_TRAVERSAL_DEPTH = 999999 # AQL graph traversal limit
 ```
 
 ---
 
-## 📊 METRICS
+## METRICS
 
 ### Code Statistics
 
@@ -619,54 +619,54 @@ Security Issues: 5 (1 high, 3 medium, 1 low)
 
 | Metric | Score | Target |
 |--------|-------|--------|
-| Code Duplication | 🟡 3% | <5% ✅ |
+| Code Duplication | 🟡 3% | <5% |
 | Security | 🟡 Medium | High |
-| Test Coverage | 🟢 100% | >80% ✅ |
-| Documentation | 🟢 Excellent | Good ✅ |
+| Test Coverage | 🟢 100% | >80% |
+| Documentation | 🟢 Excellent | Good |
 
 ---
 
-## 🎯 ACTION ITEMS (Prioritized)
+## ACTION ITEMS (Prioritized)
 
 ### Priority 1 - Security (Do Now)
 
-1. ✅ **Remove/secure hardcoded test password**
-2. ✅ **Add input validation for collection/field names**
-3. ✅ **Replace print() with logger in error handling**
-4. ✅ **Make password required (not optional/empty)**
+1. **Remove/secure hardcoded test password**
+2. **Add input validation for collection/field names**
+3. **Replace print() with logger in error handling**
+4. **Make password required (not optional/empty)**
 
 ### Priority 2 - Code Quality (Do Soon)
 
-5. ⚠️ **Extract duplicate vertex ID methods to utils**
-6. ⚠️ **Consolidate DatabaseConfig classes**
-7. ⚠️ **Create StatisticsTracker base class**
-8. ⚠️ **Replace all print() with logging**
+5. **Extract duplicate vertex ID methods to utils**
+6. **Consolidate DatabaseConfig classes**
+7. **Create StatisticsTracker base class**
+8. **Replace all print() with logging**
 
 ### Priority 3 - Maintainability (Nice to Have)
 
-9. 📋 **Centralize all hardcoded constants**
-10. 📋 **Standardize batch size configuration**
-11. 📋 **Consolidate logging setup**
-12. 📋 **Add missing type hints**
+9. **Centralize all hardcoded constants**
+10. **Standardize batch size configuration**
+11. **Consolidate logging setup**
+12. **Add missing type hints**
 
 ---
 
-## ✅ POSITIVE FINDINGS
+## POSITIVE FINDINGS
 
 ### What's Going Well
 
-1. ✅ **Excellent test coverage** (48 tests, 100% passing)
-2. ✅ **Good use of bind_vars** in BM25 strategy
-3. ✅ **Comprehensive documentation**
-4. ✅ **Consistent naming conventions**
-5. ✅ **Proper use of dataclasses** for configuration
-6. ✅ **Good separation of concerns** (strategies, services, utils)
-7. ✅ **No SQL injection** in AQL queries (mostly safe)
-8. ✅ **Environment variable support** for secrets
+1. **Excellent test coverage** (48 tests, 100% passing)
+2. **Good use of bind_vars** in BM25 strategy
+3. **Comprehensive documentation**
+4. **Consistent naming conventions**
+5. **Proper use of dataclasses** for configuration
+6. **Good separation of concerns** (strategies, services, utils)
+7. **No SQL injection** in AQL queries (mostly safe)
+8. **Environment variable support** for secrets
 
 ---
 
-## 📋 RECOMMENDATIONS SUMMARY
+## RECOMMENDATIONS SUMMARY
 
 ### Quick Wins (< 1 hour)
 - Remove hardcoded test password
@@ -685,7 +685,7 @@ Security Issues: 5 (1 high, 3 medium, 1 low)
 
 ---
 
-## 🔒 SECURITY CHECKLIST
+## SECURITY CHECKLIST
 
 - [ ] Remove hardcoded test credentials
 - [ ] Validate all user inputs (collection names, fields)
@@ -700,6 +700,6 @@ Security Issues: 5 (1 high, 3 medium, 1 low)
 
 ---
 
-**Report Generated:** November 11, 2025  
-**Next Review:** Recommended after security fixes  
+**Report Generated:** November 11, 2025 
+**Next Review:** Recommended after security fixes 
 **Status:** 🟡 **MEDIUM RISK - ACTION REQUIRED**

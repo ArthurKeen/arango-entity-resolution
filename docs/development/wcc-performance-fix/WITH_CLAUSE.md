@@ -14,7 +14,7 @@ In `src/entity_resolution/services/wcc_clustering_service.py`, the `_find_connec
 
 ```aql
 FOR v IN 0..999999 ANY @start_vertex similarTo
-    RETURN DISTINCT v._id
+RETURN DISTINCT v._id
 ```
 
 This query lacks the `WITH` clause that declares which vertex collection(s) will be traversed.
@@ -25,21 +25,21 @@ Added automatic detection and inclusion of the `WITH` clause in graph traversal 
 ### Changes Made
 
 1. **Added `_get_vertex_collections()` helper method** (lines 387-425)
-   - Auto-detects vertex collections from edge `_from` and `_to` fields
-   - Falls back to explicitly provided `vertex_collection` parameter
-   - Samples up to 10 edges to determine all vertex collections in use
-   - Returns sorted list of unique collection names
+- Auto-detects vertex collections from edge `_from` and `_to` fields
+- Falls back to explicitly provided `vertex_collection` parameter
+- Samples up to 10 edges to determine all vertex collections in use
+- Returns sorted list of unique collection names
 
 2. **Updated `_find_connected_components_aql()` method** (lines 303-356)
-   - Calls `_get_vertex_collections()` to determine collections
-   - Builds `WITH` clause from detected collections
-   - Adds `WITH` clause to the graph traversal query
-   - Now generates proper AQL:
+- Calls `_get_vertex_collections()` to determine collections
+- Builds `WITH` clause from detected collections
+- Adds `WITH` clause to the graph traversal query
+- Now generates proper AQL:
 
 ```aql
 WITH duns
 FOR v IN 0..999999 ANY @start_vertex similarTo
-    RETURN DISTINCT v._id
+RETURN DISTINCT v._id
 ```
 
 ## Benefits
@@ -60,17 +60,17 @@ FOR v IN 0..999999 ANY @start_vertex similarTo
 ```python
 # Auto-detection (recommended)
 service = WCCClusteringService(
-    db=db,
-    edge_collection="similarTo",
-    cluster_collection="entity_clusters"
+db=db,
+edge_collection="similarTo",
+cluster_collection="entity_clusters"
 )
 
 # Explicit vertex collection
 service = WCCClusteringService(
-    db=db,
-    edge_collection="similarTo",
-    cluster_collection="entity_clusters",
-    vertex_collection="duns"  # Explicitly specify
+db=db,
+edge_collection="similarTo",
+cluster_collection="entity_clusters",
+vertex_collection="duns" # Explicitly specify
 )
 
 clusters = service.cluster(store_results=True)
@@ -78,8 +78,8 @@ clusters = service.cluster(store_results=True)
 
 ## Files Modified
 - `src/entity_resolution/services/wcc_clustering_service.py`
-  - Added `_get_vertex_collections()` method
-  - Updated `_find_connected_components_aql()` to include WITH clause
+- Added `_get_vertex_collections()` method
+- Updated `_find_connected_components_aql()` to include WITH clause
 
 ## Date
 November 12, 2025

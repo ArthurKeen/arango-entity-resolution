@@ -9,17 +9,17 @@
 #### **Data Schema**:
 ```json
 {
-  "first_name": "John",
-  "last_name": "Smith", 
-  "email": "john.smith@email.com",
-  "phone": "+1-555-0101",
-  "address": "123 Main St",
-  "city": "New York",
-  "state": "NY",
-  "zip_code": "10001",
-  "source": "system_a",
-  "created_at": "2024-01-15T10:30:00Z",
-  "blocking_keys": ["S_N", "JS_10001", "john.smith@email.com"]
+"first_name": "John",
+"last_name": "Smith", 
+"email": "john.smith@email.com",
+"phone": "+1-555-0101",
+"address": "123 Main St",
+"city": "New York",
+"state": "NY",
+"zip_code": "10001",
+"source": "system_a",
+"created_at": "2024-01-15T10:30:00Z",
+"blocking_keys": ["S_N", "JS_10001", "john.smith@email.com"]
 }
 ```
 
@@ -186,7 +186,7 @@ python demo_orchestrator.py --records 25000 --auto
 
 ### **Processing Speed**
 - **1K records**: ~2 seconds
-- **10K records**: ~20 seconds  
+- **10K records**: ~20 seconds 
 - **100K records**: ~3 minutes
 - **1M records**: ~30 minutes
 
@@ -216,15 +216,15 @@ generator = DataGenerator()
 
 # Generate custom dataset
 records, metadata = generator.generate_dataset(
-    total_records=5000,
-    duplicate_rate=0.25,
-    industry_focus="healthcare"  # or "finance", "retail", "b2b"
+total_records=5000,
+duplicate_rate=0.25,
+industry_focus="healthcare" # or "finance", "retail", "b2b"
 )
 
 # Save to file
 import json
 with open('custom_dataset.json', 'w') as f:
-    json.dump(records, f, indent=2)
+json.dump(records, f, indent=2)
 ```
 
 This provides enterprise-focused entity resolution demonstrations using realistic business data scenarios rather than entertainment industry data.

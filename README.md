@@ -2,79 +2,79 @@
 
 **Current Version**: 3.0.0-stable | [Version History](VERSION_HISTORY.md) | [Changelog](CHANGELOG.md)
 
-## 🚀 What's New in v3.0
+## What's New in v3.0
 
 Version 3.0 introduces **general-purpose ER components** extracted from production implementations, enabling configuration-driven ER pipelines:
 
 ### Core Similarity Component
 - **`WeightedFieldSimilarity`** - Standalone reusable similarity computation component
-  - Multiple algorithms (Jaro-Winkler, Levenshtein, Jaccard)
-  - Configurable field weights and null handling
-  - String normalization options
-  - Can be used independently or with batch services
+- Multiple algorithms (Jaro-Winkler, Levenshtein, Jaccard)
+- Configurable field weights and null handling
+- String normalization options
+- Can be used independently or with batch services
 
 ### Enhanced Clustering
 - **`WCCClusteringService`** - Now supports multiple algorithms:
-  - **Python DFS** - Reliable across all ArangoDB versions, uses bulk edge fetching
-  - **AQL Graph** (default) - Server-side processing for large graphs
-  - Eliminates N+1 query problems with single bulk edge fetch
+- **Python DFS** - Reliable across all ArangoDB versions, uses bulk edge fetching
+- **AQL Graph** (default) - Server-side processing for large graphs
+- Eliminates N+1 query problems with single bulk edge fetch
 
 ### Address Entity Resolution
 - **`AddressERService`** - Complete address deduplication pipeline
-  - Custom analyzer setup for address normalization
-  - ArangoSearch view configuration
-  - Blocking with registered agent handling
-  - Edge creation and optional clustering
-  - Configurable field mapping (works with any address schema)
+- Custom analyzer setup for address normalization
+- ArangoSearch view configuration
+- Blocking with registered agent handling
+- Edge creation and optional clustering
+- Configurable field mapping (works with any address schema)
 
 ### Configuration-Driven ER
 - **`ERPipelineConfig`** - YAML/JSON-based ER pipeline configuration
 - **`ConfigurableERPipeline`** - Run complete ER pipelines from configuration files
-  - Automatic service instantiation
-  - Validation and error handling
-  - Standardized ER patterns
+- Automatic service instantiation
+- Validation and error handling
+- Standardized ER patterns
 
 ### Key Benefits
-- ✅ **92% code reduction** - Consuming projects reduce from 1,863 to 155 lines
-- ✅ **50-100x performance** improvement for similarity computation
-- ✅ **Standardized ER patterns** across all projects
-- ✅ **Configuration-driven** - No code changes needed to tune ER parameters
-- ✅ **Production-proven** - Battle-tested components from real-world implementations
+- **92% code reduction** - Consuming projects reduce from 1,863 to 155 lines
+- **50-100x performance** improvement for similarity computation
+- **Standardized ER patterns** across all projects
+- **Configuration-driven** - No code changes needed to tune ER parameters
+- **Production-proven** - Battle-tested components from real-world implementations
 
 [See Migration Guide](docs/guides/MIGRATION_GUIDE_V3.md) | [API Reference](docs/api/API_REFERENCE.md) | [Examples](examples/enhanced_er_examples.py)
 
 ---
 
-## 🚀 What's New in v2.1 - Phase 2: Vector Search
+## What's New in v2.1 - Phase 2: Vector Search
 
 **NEW** - Tier 3 (vector blocking) for semantic similarity-based entity resolution using vector embeddings:
 
 ### Vector Search Components
 - **`EmbeddingService`** - Generate and manage vector embeddings for database records
-  - Pre-trained sentence-transformers models (see [model comparison](config/vector_search_setup.md#recommended-models))
-  - Batch processing (1000+ records/batch)
-  - Automatic storage in ArangoDB with metadata tracking
-  - Coverage statistics and monitoring
-  
+- Pre-trained sentence-transformers models (see [model comparison](config/vector_search_setup.md#recommended-models))
+- Batch processing (1000+ records/batch)
+- Automatic storage in ArangoDB with metadata tracking
+- Coverage statistics and monitoring
+
 - **`VectorBlockingStrategy`** - Tier 3 (vector blocking) for semantic similarity
-  - Cosine similarity matching with configurable threshold
-  - Finds fuzzy matches that exact/text blocking miss (typos, abbreviations, variations)
-  - Optional geographic/categorical constraints
-  - Similarity distribution analysis for threshold tuning
-  - Integrates seamlessly with existing Tier 1 (exact) and Tier 2 (fuzzy text) blocking
+- Cosine similarity matching with configurable threshold
+- Finds fuzzy matches that exact/text blocking miss (typos, abbreviations, variations)
+- Optional geographic/categorical constraints
+- Similarity distribution analysis for threshold tuning
+- Integrates seamlessly with existing Tier 1 (exact) and Tier 2 (fuzzy text) blocking
 
 ### Key Benefits
-- ✅ **Semantic matching** - Captures meaning beyond text similarity
-- ✅ **Handles variations** - Typos, abbreviations, different phrasings
-- ✅ **Configurable precision** - Tune similarity threshold for your data
-- ✅ **Production ready** - 700+ tests, comprehensive documentation
-- ✅ **Research-based** - Implements Ebraheem et al. (2018) tuple embeddings
+- **Semantic matching** - Captures meaning beyond text similarity
+- **Handles variations** - Typos, abbreviations, different phrasings
+- **Configurable precision** - Tune similarity threshold for your data
+- **Production ready** - 700+ tests, comprehensive documentation
+- **Research-based** - Implements Ebraheem et al. (2018) tuple embeddings
 
 [Quick Start](config/vector_search_setup.md) | [Example](examples/vector_blocking_example.py) | [API Reference](docs/api/API_REFERENCE.md#embedding-service)
 
 ---
 
-## 🚀 What's New in v2.0
+## What's New in v2.0
 
 Version 2.0 introduced **powerful new components** for production-grade entity resolution:
 
@@ -95,7 +95,7 @@ Entity resolution is a critical data quality challenge that directly impacts bus
 
 ### **Revenue Protection & Growth**
 - **Eliminate Revenue Leakage**: Prevent duplicate customer acquisition costs and conflicting outreach
-- **Complete Customer 360 View**: Unified customer profiles enable targeted marketing and personalized experiences  
+- **Complete Customer 360 View**: Unified customer profiles enable targeted marketing and personalized experiences 
 - **Improve Conversion Rates**: Accurate customer data increases campaign effectiveness by 20-40%
 - **Reduce Operational Costs**: Automated deduplication saves hours of manual data cleaning
 
@@ -201,7 +201,7 @@ Record blocking is a preprocessing technique that groups potentially similar rec
 Most graph databases (Neo4j, Amazon Neptune) require external search engines for text-based blocking:
 ```
 Traditional Approach: ArangoDB -> Elasticsearch -> Application -> Neo4j
-Our Approach:        ArangoDB <-> Application
+Our Approach: ArangoDB <-> Application
 ```
 
 **Multi-Strategy Blocking in Single Queries**
@@ -232,18 +232,18 @@ Record blocking leverages ArangoDB's search capabilities to create efficient can
 ```aql
 // Exact email blocking
 FOR candidate IN customers
-  SEARCH candidate.email == @target_email
-  RETURN candidate
+SEARCH candidate.email == @target_email
+RETURN candidate
 
-// Phonetic name blocking  
+// Phonetic name blocking 
 FOR candidate IN customers
-  SEARCH ANALYZER(candidate.last_name, "soundex") == ANALYZER(@target_name, "soundex")
-  RETURN candidate
+SEARCH ANALYZER(candidate.last_name, "soundex") == ANALYZER(@target_name, "soundex")
+RETURN candidate
 
 // N-gram company blocking
-FOR candidate IN customers  
-  SEARCH NGRAM_MATCH(candidate.company, @target_company, 0.8, "bigram")
-  RETURN candidate
+FOR candidate IN customers 
+SEARCH NGRAM_MATCH(candidate.company, @target_company, 0.8, "bigram")
+RETURN candidate
 ```
 
 #### **Stage 2: Similarity Computation (Precision)**
@@ -377,7 +377,7 @@ The system demonstrates exceptional scalability through record blocking (see [wo
 
 **Scale Analysis:**
 - **10K Records**: Naive 50M pairs → Blocked 500K pairs → 2 seconds
-- **100K Records**: Naive 5B pairs → Blocked 5M pairs → 20 seconds  
+- **100K Records**: Naive 5B pairs → Blocked 5M pairs → 20 seconds 
 - **1M Records**: Naive 500B pairs → Blocked 50M pairs → 3 minutes
 - **10M Records**: Naive 50T pairs → Blocked 500M pairs → 30 minutes
 
@@ -548,14 +548,14 @@ The project is organized into logical modules for maintainability and scalabilit
 
 1. **Prerequisites**: Ensure you have Docker, Docker Compose, and Python 3.8+ installed
 2. **Automated Setup**: Run the setup script to get started immediately
-   ```bash
-   ./scripts/setup.sh
-   ```
+```bash
+./scripts/setup.sh
+```
 3. **Access ArangoDB**: Open http://localhost:8529 (username: `root`, password: `testpassword123`)
 4. **Test the System**: 
-   ```bash
-   python3 scripts/crud/crud_operations.py count --collection customers
-   ```
+```bash
+python3 scripts/crud/crud_operations.py count --collection customers
+```
 
 For detailed setup instructions, see [Testing Guide](docs/TESTING.md).
 
@@ -595,9 +595,9 @@ service.connect()
 
 # Process entire collection in ~2 minutes (331K records)
 result = service.generate_all_pairs(
-    collection_name="customers",
-    strategies=["exact", "ngram"],
-    limit=0  # No limit, process all
+collection_name="customers",
+strategies=["exact", "ngram"],
+limit=0 # No limit, process all
 )
 
 print(f"Found {result['statistics']['total_pairs']:,} pairs")
@@ -641,9 +641,9 @@ print(f"Found {results['clustering']['total_clusters']} entity clusters")
 ```bash
 # REST API Example
 curl -u root:password -X POST \
-  http://localhost:8529/_db/entity_resolution/entity-resolution/blocking/candidates \
-  -H "Content-Type: application/json" \
-  -d '{"collection": "customers", "targetDocId": "customers/12345"}'
+http://localhost:8529/_db/entity_resolution/entity-resolution/blocking/candidates \
+-H "Content-Type: application/json" \
+-d '{"collection": "customers", "targetDocId": "customers/12345"}'
 ```
 
 ## System Demonstrations
@@ -758,7 +758,7 @@ python demo/scripts/demo_orchestrator.py --auto --records 1000
 **Infrastructure & Architecture** - Production Ready
 - [DONE] **Database Layer**: Centralized connection management, no code duplication
 - [DONE] **Configuration System**: Environment-based settings with validation
-- [DONE] **Service Architecture**: Modular design with standardized interfaces  
+- [DONE] **Service Architecture**: Modular design with standardized interfaces 
 - [DONE] **Error Handling**: Consistent error patterns and logging
 - [DONE] **Performance**: 1,000+ records/second processing capability
 
@@ -793,15 +793,15 @@ The system is fully operational and ready for real-world entity resolution chall
 - **Reliability**: Comprehensive error handling and validation
 - **Maintainability**: Clean architecture with centralized components
 
-## 📚 Documentation
+## Documentation
 
 Complete documentation is available in the [`docs/`](docs/) directory:
 
 ### Quick Links
-- 📖 **[Documentation Index](docs/README.md)** - Complete documentation navigation
-- 🚀 **[Quick Start Guide](QUICK_START_GUIDE.md)** - Get started in 5 minutes
-- 📘 **[API Reference](docs/api/API_REFERENCE.md)** - Complete API documentation
-- 🔄 **[Migration Guide v3.0](docs/guides/MIGRATION_GUIDE_V3.md)** - Upgrade from v1.x or v2.x
+- **[Documentation Index](docs/README.md)** - Complete documentation navigation
+- **[Quick Start Guide](QUICK_START_GUIDE.md)** - Get started in 5 minutes
+- **[API Reference](docs/api/API_REFERENCE.md)** - Complete API documentation
+- **[Migration Guide v3.0](docs/guides/MIGRATION_GUIDE_V3.md)** - Upgrade from v1.x or v2.x
 
 ### By Category
 - **Guides**: Migration, custom collections, testing
@@ -866,9 +866,9 @@ Please ensure any contributions align with the project requirements outlined in 
 
 ### Development Workflow
 1. **Install Git Hooks** - Set up pre-commit checks (see [Git Hooks Guide](docs/development/GIT_HOOKS.md))
-   ```bash
-   ./scripts/setup-git-hooks.sh
-   ```
+```bash
+./scripts/setup-git-hooks.sh
+```
 2. Review the [Testing Guide](docs/guides/TESTING_GUIDE.md)
 3. Check the [CHANGELOG](CHANGELOG.md) for recent changes
 4. Follow the established patterns in existing scripts

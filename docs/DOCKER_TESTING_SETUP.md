@@ -1,11 +1,11 @@
 # Docker Testing Setup
 
-**Last Updated**: November 17, 2025  
+**Last Updated**: November 17, 2025 
 **Version**: 3.0.0
 
 ## ArangoDB Container Setup
 
-✅ **ArangoDB CE container setup and testing verified**
+**ArangoDB CE container setup and testing verified**
 
 **Container Details:**
 - **Name**: `arangodb-test`
@@ -99,11 +99,11 @@ pytest tests/test_integration_and_performance.py -v -s -m integration
 
 The round-trip tests verify:
 
-1. ✅ **WeightedFieldSimilarity** - Standalone similarity computation
-2. ✅ **BatchSimilarityService** - Batch similarity with database
-3. ✅ **AddressERService** - Complete address ER pipeline
-4. ✅ **WCCClusteringService** - Python DFS clustering algorithm
-5. ✅ **Complete Pipeline** - End-to-end ER workflow
+1. **WeightedFieldSimilarity** - Standalone similarity computation
+2. **BatchSimilarityService** - Batch similarity with database
+3. **AddressERService** - Complete address ER pipeline
+4. **WCCClusteringService** - Python DFS clustering algorithm
+5. **Complete Pipeline** - End-to-end ER workflow
 
 ## Verifying Database Connection
 
@@ -116,9 +116,9 @@ curl -u root:testpassword123 http://localhost:8529/_api/version
 Expected response:
 ```json
 {
-  "server": "arango",
-  "license": "community",
-  "version": "3.12.4-3"
+"server": "arango",
+"license": "community",
+"version": "3.12.4-3"
 }
 ```
 
@@ -137,9 +137,9 @@ If port 8529 is already in use, stop the existing container or use a different p
 docker stop arangodb-test
 docker rm arangodb-test
 docker run -d --name arangodb-test -p 8529:8529 \
-  -e ARANGO_ROOT_PASSWORD=testpassword123 \
-  -v ~/data:/data \
-  arangodb/arangodb:latest
+-e ARANGO_ROOT_PASSWORD=testpassword123 \
+-v ~/data:/data \
+arangodb/arangodb:latest
 ```
 
 ### Database Connection Errors
@@ -158,14 +158,14 @@ The `~/data` directory is mounted to `/data` in the container, so:
 ## Next Steps
 
 1. Install dependencies (if not already installed):
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+pip install -r requirements.txt
+```
 
 2. Run tests:
-   ```bash
-   python3 test_round_trip_simple.py
-   ```
+```bash
+python3 test_round_trip_simple.py
+```
 
 3. Review test results and verify all components work correctly
 

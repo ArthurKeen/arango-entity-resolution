@@ -1,8 +1,8 @@
 # IC Enrichment Pack Assessment - Technical Review
 
-**Date:** January 2, 2026  
-**Reviewer:** Arango Entity Resolution Library Maintainer Perspective  
-**Source Project:** OR1200 Knowledge Graph (Cadence)  
+**Date:** January 2, 2026 
+**Reviewer:** Arango Entity Resolution Library Maintainer Perspective 
+**Source Project:** OR1200 Knowledge Graph (Cadence) 
 **Package Location:** `/Users/arthurkeen/cadence/ic_enrichment/`
 
 ---
@@ -13,17 +13,17 @@ The IC Design Enrichment Pack is a **well-implemented, professionally documented
 
 **Recommendation:** 🟡 **REVISE BEFORE SENDING**
 
-- ✅ Code quality is production-ready
-- ✅ API design is clean and intuitive
-- ❌ Metrics claims lack validation methodology
-- ❌ "Domain-agnostic" claim needs evidence
-- ⚠️ Some components may be outside typical ER library scope
+- Code quality is production-ready
+- API design is clean and intuitive
+- Metrics claims lack validation methodology
+- "Domain-agnostic" claim needs evidence
+- Some components may be outside typical ER library scope
 
 ---
 
 ## Part 1: Code Quality Assessment
 
-### 1.1 Overall Code Quality: ✅ EXCELLENT
+### 1.1 Overall Code Quality: EXCELLENT
 
 **Strengths:**
 - **Clean architecture:** Each component has single responsibility
@@ -36,17 +36,17 @@ The IC Design Enrichment Pack is a **well-implemented, professionally documented
 **Code Statistics:**
 ```
 ic_enrichment/
-├── context_resolver.py      252 lines (19% comments/docstrings)
-├── type_constraints.py       293 lines (25% comments/docstrings)
-├── acronym_handler.py        340 lines (28% comments/docstrings)
-├── relationship_sweeper.py   332 lines (23% comments/docstrings)
-└── tests/test_components.py  382 lines
+context_resolver.py 252 lines (19% comments/docstrings)
+type_constraints.py 293 lines (25% comments/docstrings)
+acronym_handler.py 340 lines (28% comments/docstrings)
+relationship_sweeper.py 332 lines (23% comments/docstrings)
+tests/test_components.py 382 lines
 
 Total: ~1,600 lines (code + tests)
 Documentation ratio: ~24% (industry best practice: 20-30%)
 ```
 
-### 1.2 API Design: ✅ EXCELLENT
+### 1.2 API Design: EXCELLENT
 
 All four components follow consistent, intuitive patterns:
 
@@ -70,7 +70,7 @@ component.validate_*()
 
 **Assessment:** This is production-quality API design that would integrate cleanly into an existing library.
 
-### 1.3 Dependencies: ✅ MINIMAL
+### 1.3 Dependencies: MINIMAL
 
 **External dependencies:**
 - Python 3.8+ standard library only (`re`, `hashlib`, `typing`)
@@ -85,48 +85,48 @@ component.validate_*()
 
 ### 2.1 Component Generalizability
 
-#### ✅ Component 1: Hierarchical Context Resolver - FULLY GENERALIZABLE
+#### Component 1: Hierarchical Context Resolver - FULLY GENERALIZABLE
 
 **Domain-agnostic API:**
 ```python
 resolver = HierarchicalContextResolver(
-    parent_field='parent_id',      # Any field name
-    context_field='description',   # Any text field
-    context_weight=0.3
+parent_field='parent_id', # Any field name
+context_field='description', # Any text field
+context_weight=0.3
 )
 ```
 
 **Use cases beyond hardware:**
-- ✅ Organizations: Department descriptions boost employee matching
-- ✅ Products: Category descriptions boost SKU matching
-- ✅ File systems: Directory metadata boosts file matching
-- ✅ Geographic: Region info boosts city/address matching
+- Organizations: Department descriptions boost employee matching
+- Products: Category descriptions boost SKU matching
+- File systems: Directory metadata boosts file matching
+- Geographic: Region info boosts city/address matching
 
 **Generalizability Score: 10/10**
 
 ---
 
-#### ✅ Component 2: Type Compatibility Filter - FULLY GENERALIZABLE
+#### Component 2: Type Compatibility Filter - FULLY GENERALIZABLE
 
 **Domain-agnostic API:**
 ```python
 filter = TypeCompatibilityFilter({
-    'source_type_a': {'target_type_x', 'target_type_y'},
-    'source_type_b': {'target_type_z'}
+'source_type_a': {'target_type_x', 'target_type_y'},
+'source_type_b': {'target_type_z'}
 })
 ```
 
 **Use cases beyond hardware:**
-- ✅ Medical: Symptoms only match Conditions/Side Effects
-- ✅ Legal: Clauses only match Obligations/Rights
-- ✅ E-commerce: Products only match similar Categories
-- ✅ HR: Employees only match valid Positions/Departments
+- Medical: Symptoms only match Conditions/Side Effects
+- Legal: Clauses only match Obligations/Rights
+- E-commerce: Products only match similar Categories
+- HR: Employees only match valid Positions/Departments
 
 **Generalizability Score: 10/10**
 
 ---
 
-#### ⚠️ Component 3: Acronym Expansion Handler - SEMI-GENERALIZABLE
+#### Component 3: Acronym Expansion Handler - SEMI-GENERALIZABLE
 
 **Issues:**
 
@@ -134,8 +134,8 @@ filter = TypeCompatibilityFilter({
 ```python
 # User must curate domain-specific dictionary
 acronym_dict = {
-    'ESR': ['Exception Status Register', 'Exception State Register'],
-    'ALU': ['Arithmetic Logic Unit']
+'ESR': ['Exception Status Register', 'Exception State Register'],
+'ALU': ['Arithmetic Logic Unit']
 }
 ```
 
@@ -151,13 +151,13 @@ This requires **domain expertise** and **manual curation** for each use case.
 **Generalizability Score: 6/10** (generalizable concept, manual setup burden)
 
 **Use cases beyond hardware:**
-- ✅ Medical: MI → Myocardial Infarction
-- ✅ Business: ROI → Return on Investment, KPI → Key Performance Indicator
-- ⚠️ Requires domain-specific dictionaries (high setup cost)
+- Medical: MI → Myocardial Infarction
+- Business: ROI → Return on Investment, KPI → Key Performance Indicator
+- Requires domain-specific dictionaries (high setup cost)
 
 ---
 
-#### ⚠️ Component 4: Relationship Provenance Sweeper - OUTSIDE TYPICAL ER SCOPE
+#### Component 4: Relationship Provenance Sweeper - OUTSIDE TYPICAL ER SCOPE
 
 **Issues:**
 
@@ -166,7 +166,7 @@ This component operates **AFTER** entity resolution is complete:
 ```
 1. ER Library identifies duplicates
 2. Application consolidates entities
-3. Sweeper remaps relationships  <- This is application logic
+3. Sweeper remaps relationships <- This is application logic
 ```
 
 2. **Knowledge Graph Specific:**
@@ -188,20 +188,20 @@ This is valuable functionality but feels like:
 
 ---
 
-### 2.2 Domain-Agnostic Testing: ❌ INSUFFICIENT
+### 2.2 Domain-Agnostic Testing: INSUFFICIENT
 
 **Current testing:**
-- ✅ Unit tests exist (382 lines)
-- ✅ Hardware example exists
-- ❌ **ZERO non-hardware domain tests**
-- ❌ **ZERO validation on other domains**
+- Unit tests exist (382 lines)
+- Hardware example exists
+- **ZERO non-hardware domain tests**
+- **ZERO validation on other domains**
 
 **From test file analysis:**
 ```python
 # All test data is generic/synthetic:
 candidates = [
-    {'name': 'Entity A', 'description': 'First entity'},
-    {'name': 'Entity B', 'description': 'Second entity'}
+{'name': 'Entity A', 'description': 'First entity'},
+{'name': 'Entity B', 'description': 'Second entity'}
 ]
 ```
 
@@ -230,42 +230,42 @@ From outreach document and PHASE3_SUMMARY.md:
 | Acronym Expansion | +12% | +31% | < 1% |
 | **Combined** | **+35%** | **+31%** | **< 2%** |
 
-### 3.2 Validation Methodology: ❌ NOT DOCUMENTED
+### 3.2 Validation Methodology: NOT DOCUMENTED
 
 **Critical missing information:**
 
 1. **No baseline definition:**
-   - What was the "before" system?
-   - Was it vanilla ER Library?
-   - Was it a custom implementation?
+- What was the "before" system?
+- Was it vanilla ER Library?
+- Was it a custom implementation?
 
 2. **No ground truth:**
-   - How were precision/recall calculated?
-   - Was there manual labeling?
-   - What was the test set size?
+- How were precision/recall calculated?
+- Was there manual labeling?
+- What was the test set size?
 
 3. **No reproducibility:**
-   - Where is the evaluation code?
-   - Where is the test dataset?
-   - Can results be independently verified?
+- Where is the evaluation code?
+- Where is the test dataset?
+- Can results be independently verified?
 
 4. **No statistical significance:**
-   - What were the confidence intervals?
-   - How many test runs?
-   - Were results statistically significant?
+- What were the confidence intervals?
+- How many test runs?
+- Were results statistically significant?
 
 ### 3.3 What Documentation Actually Shows
 
 **From PHASE2_PERFORMANCE_ANALYSIS.md:**
-- ✅ Query performance benchmarks (execution time)
-- ✅ Processing throughput estimates
-- ❌ **ZERO precision/recall measurements**
-- ❌ **ZERO accuracy comparisons**
+- Query performance benchmarks (execution time)
+- Processing throughput estimates
+- **ZERO precision/recall measurements**
+- **ZERO accuracy comparisons**
 
 **From COMPREHENSIVE_TEST_REPORT.md:**
-- ✅ Unit tests pass
-- ✅ System integration works
-- ❌ **ZERO quality metrics**
+- Unit tests pass
+- System integration works
+- **ZERO quality metrics**
 
 **Actual quote from docs:**
 > "Enable precision/recall/F1 measurement" - Listed as TODO in multiple places
@@ -273,14 +273,14 @@ From outreach document and PHASE3_SUMMARY.md:
 ### 3.4 Where Do These Numbers Come From?
 
 Searching the entire codebase:
-- ❌ No evaluation script found
-- ❌ No metrics calculation code found
-- ❌ No test set with ground truth found
-- ❌ No precision/recall implementation found
+- No evaluation script found
+- No metrics calculation code found
+- No test set with ground truth found
+- No precision/recall implementation found
 
 **Hypothesis:** These numbers appear to be **estimated/projected**, not empirically measured.
 
-### 3.5 Verdict: 🚨 METRICS ARE UNSUBSTANTIATED
+### 3.5 Verdict: METRICS ARE UNSUBSTANTIATED
 
 **Impact on outreach:**
 - Library maintainers will **immediately ask** for validation methodology
@@ -290,23 +290,23 @@ Searching the entire codebase:
 **What you need before sending:**
 
 1. **Create labeled test set:**
-   - 100-200 entity pairs
-   - Manual labels: match/no-match
-   - Document labeling criteria
+- 100-200 entity pairs
+- Manual labels: match/no-match
+- Document labeling criteria
 
 2. **Implement baseline:**
-   - Run ER Library without enhancements
-   - Calculate precision/recall/F1
+- Run ER Library without enhancements
+- Calculate precision/recall/F1
 
 3. **Implement with enhancements:**
-   - Add components one by one
-   - Measure incremental improvements
-   - Document methodology
+- Add components one by one
+- Measure incremental improvements
+- Document methodology
 
 4. **Report results:**
-   - Confusion matrices
-   - Statistical significance tests
-   - Performance vs. quality trade-offs
+- Confusion matrices
+- Statistical significance tests
+- Performance vs. quality trade-offs
 
 **Time estimate:** 1-2 days of work to properly validate
 
@@ -320,27 +320,27 @@ Searching the entire codebase:
 
 ```python
 def calculate_token_overlap(self, text1: str, text2: str) -> float:
-    tokens1 = set(re.findall(r'\w+', text1.lower()))
-    tokens2 = set(re.findall(r'\w+', text2.lower()))
-    
-    tokens1 -= self.stop_words
-    tokens2 -= self.stop_words
-    
-    intersection = tokens1.intersection(tokens2)
-    min_len = min(len(tokens1), len(tokens2))
-    
-    return len(intersection) / min_len if min_len > 0 else 0.0
+tokens1 = set(re.findall(r'\w+', text1.lower()))
+tokens2 = set(re.findall(r'\w+', text2.lower()))
+
+tokens1 -= self.stop_words
+tokens2 -= self.stop_words
+
+intersection = tokens1.intersection(tokens2)
+min_len = min(len(tokens1), len(tokens2))
+
+return len(intersection) / min_len if min_len > 0 else 0.0
 ```
 
 **Analysis:**
 
-✅ **Strengths:**
+**Strengths:**
 - Simple, explainable algorithm
 - Fast (O(n+m) tokenization, O(min(n,m)) overlap)
 - Configurable stop words
 - Sensible default weights (70% base, 30% context)
 
-⚠️ **Potential Issues:**
+**Potential Issues:**
 - Bag-of-words approach ignores word order
 - No semantic similarity (e.g., "exception" vs "error")
 - Stop word list is English-only
@@ -356,10 +356,10 @@ def calculate_token_overlap(self, text1: str, text2: str) -> float:
 from entity_resolution.similarity import calculate_similarity
 
 class HierarchicalContextResolver:
-    def __init__(self, base_similarity, context_similarity, weights):
-        self.base_sim = base_similarity
-        self.context_sim = context_similarity
-        self.weights = weights
+def __init__(self, base_similarity, context_similarity, weights):
+self.base_sim = base_similarity
+self.context_sim = context_similarity
+self.weights = weights
 ```
 
 ---
@@ -368,18 +368,18 @@ class HierarchicalContextResolver:
 
 **Implementation:** Simple dictionary lookup with strict/permissive modes
 
-✅ **Strengths:**
+**Strengths:**
 - Zero-overhead filtering (pure Python dict lookup)
 - Clean API
 - Batch processing support
 - Good statistics/debugging utilities
 
-✅ **Novel contribution:**
+**Novel contribution:**
 - ER libraries typically don't have type constraints
 - This prevents "semantic drift" in specialized domains
 - Could be valuable addition
 
-⚠️ **Integration concern:**
+**Integration concern:**
 - Where does this fit in library architecture?
 - Should it be a `BlockingStrategy`? A filter? A scorer?
 
@@ -389,12 +389,12 @@ class HierarchicalContextResolver:
 from entity_resolution.blocking import BlockingStrategy
 
 class TypeCompatibilityBlocking(BlockingStrategy):
-    def __init__(self, compatibility_matrix):
-        self.filter = TypeCompatibilityFilter(compatibility_matrix)
-    
-    def block(self, source_items, target_items):
-        # Filter candidates by type before similarity computation
-        ...
+def __init__(self, compatibility_matrix):
+self.filter = TypeCompatibilityFilter(compatibility_matrix)
+
+def block(self, source_items, target_items):
+# Filter candidates by type before similarity computation
+...
 ```
 
 ---
@@ -403,31 +403,31 @@ class TypeCompatibilityBlocking(BlockingStrategy):
 
 **Implementation:** Dictionary-based expansion with case handling
 
-✅ **Strengths:**
+**Strengths:**
 - Clean file I/O (JSON)
 - Flexible (case-sensitive/insensitive)
 - Good statistics utilities
 - Multiple expansion strategies
 
-⚠️ **Concerns:**
+**Concerns:**
 1. **Preprocessing vs ER:**
-   - This feels like data normalization, not entity resolution
-   - Should happen before ER, not during
+- This feels like data normalization, not entity resolution
+- Should happen before ER, not during
 
 2. **Manual curation burden:**
-   - Every domain needs a custom dictionary
-   - No automated acronym detection
-   - Maintenance overhead
+- Every domain needs a custom dictionary
+- No automated acronym detection
+- Maintenance overhead
 
 3. **Expansion strategy unused:**
-   - `expansion_strategy` parameter defined but not used in main API
-   - Code suggests plans for 'union', 'intersection', 'ranked' but not implemented
+- `expansion_strategy` parameter defined but not used in main API
+- Code suggests plans for 'union', 'intersection', 'ranked' but not implemented
 
 **Missing implementation:**
 ```python
 # This is defined but never used:
 def __init__(self, acronym_dict, expansion_strategy='union'):
-    self.expansion_strategy = expansion_strategy  # Stored but not used!
+self.expansion_strategy = expansion_strategy # Stored but not used!
 
 # expand_search_terms() always returns union
 ```
@@ -443,30 +443,30 @@ def __init__(self, acronym_dict, expansion_strategy='union'):
 
 **Implementation:** Hash-based edge deduplication with provenance tracking
 
-✅ **Strengths:**
+**Strengths:**
 - Solves real problem (post-ER consolidation)
 - Full audit trail
 - Good validation utilities
 - Clean statistics
 
-⚠️ **Concerns:**
+**Concerns:**
 1. **Outside ER scope:**
-   - ER = identify duplicates
-   - This = consolidate graph after ER
-   - Application logic, not algorithm
+- ER = identify duplicates
+- This = consolidate graph after ER
+- Application logic, not algorithm
 
 2. **Graph-specific:**
-   - Assumes `_from`, `_to` edge model
-   - ArangoDB-centric design
-   - Not all ER use cases have relationships
+- Assumes `_from`, `_to` edge model
+- ArangoDB-centric design
+- Not all ER use cases have relationships
 
 3. **Validation edge case:**
 ```python
 def validate_mapping(self, entity_mapping, golden_entities, id_field='_id'):
-    # Cycle detection has potential infinite loop:
-    if len(path) > 100:  # Magic number!
-        errors.append(f"Mapping chain too long (possible cycle): {source}")
-        break
+# Cycle detection has potential infinite loop:
+if len(path) > 100: # Magic number!
+errors.append(f"Mapping chain too long (possible cycle): {source}")
+break
 ```
 
 **Verdict:** Useful pattern, but better as:
@@ -481,16 +481,16 @@ def validate_mapping(self, entity_mapping, golden_entities, id_field='_id'):
 ### 5.1 Alignment with ER Library Goals
 
 **Typical ER Library Scope:**
-1. ✅ Blocking strategies (candidate generation)
-2. ✅ Similarity functions (scoring)
-3. ✅ Clustering algorithms (grouping duplicates)
-4. ✅ Evaluation metrics (precision/recall)
+1. Blocking strategies (candidate generation)
+2. Similarity functions (scoring)
+3. Clustering algorithms (grouping duplicates)
+4. Evaluation metrics (precision/recall)
 
 **IC Enrichment Pack Scope:**
-1. ✅ **Context Resolver** - Fits as similarity enhancement
-2. ✅ **Type Filter** - Fits as blocking strategy
-3. ⚠️ **Acronym Handler** - Preprocessing utility
-4. ⚠️ **Relationship Sweeper** - Post-processing utility
+1. **Context Resolver** - Fits as similarity enhancement
+2. **Type Filter** - Fits as blocking strategy
+3. **Acronym Handler** - Preprocessing utility
+4. **Relationship Sweeper** - Post-processing utility
 
 **Alignment Score: 2/4 core library, 2/4 utilities**
 
@@ -507,7 +507,7 @@ Utilities Package:
 - RelationshipProvenanceSweeper
 ```
 
-**Pros:** Best of both worlds  
+**Pros:** Best of both worlds 
 **Cons:** Requires two separate PRs
 
 ---
@@ -520,7 +520,7 @@ Depends on: arango-entity-resolution
 All 4 components packaged together
 ```
 
-**Pros:** No changes to core library, faster to deploy  
+**Pros:** No changes to core library, faster to deploy 
 **Cons:** Less visibility, requires separate maintenance
 
 ---
@@ -534,7 +534,7 @@ Add to docs/examples/ directory:
 - relationship_consolidation.py
 ```
 
-**Pros:** No code maintenance burden, shows best practices  
+**Pros:** No code maintenance burden, shows best practices 
 **Cons:** Less reusable, users must adapt code
 
 ---
@@ -542,27 +542,27 @@ Add to docs/examples/ directory:
 ### 5.3 Maintainer Concerns (Anticipated)
 
 **1. "Show me the metrics validation"**
-- Status: ❌ Not documented
+- Status: Not documented
 - Blocker: YES
 - Fix: Create labeled test set and run experiments
 
 **2. "Is this tested on other domains?"**
-- Status: ❌ Hardware only
+- Status: Hardware only
 - Blocker: MAYBE
 - Fix: Add at least one non-hardware example
 
 **3. "How does this integrate with existing library?"**
-- Status: ⚠️ Standalone components
+- Status: Standalone components
 - Blocker: NO, but needs design discussion
 - Fix: Propose integration points
 
 **4. "What's the maintenance burden?"**
-- Status: ✅ Clean code, well-tested
+- Status: Clean code, well-tested
 - Blocker: NO
 - Evidence: Low dependencies, good test coverage
 
 **5. "Are you committed to maintaining this?"**
-- Status: ❓ Not addressed in outreach
+- Status: Not addressed in outreach
 - Blocker: MAYBE
 - Fix: Include maintenance commitment
 
@@ -572,7 +572,7 @@ Add to docs/examples/ directory:
 
 ### 6.1 Before Sending Outreach (CRITICAL)
 
-#### Priority 1: Validate Metrics 🚨
+#### Priority 1: Validate Metrics 
 **Time: 1-2 days**
 
 1. Create ground truth test set (100+ entity pairs)
@@ -584,7 +584,7 @@ Add to docs/examples/ directory:
 
 ---
 
-#### Priority 2: Add Non-Hardware Example 🚨
+#### Priority 2: Add Non-Hardware Example 
 **Time: 4 hours**
 
 Pick ONE domain and create example:
@@ -601,20 +601,20 @@ Add to `ic_enrichment/examples/`:
 
 ---
 
-#### Priority 3: Fix Outreach Document 🚨
+#### Priority 3: Fix Outreach Document 
 **Time: 2 hours**
 
 **Remove/revise:**
-- ❌ "+35% precision, +31% recall" (unvalidated)
-- ❌ "domain-agnostic" (untested claim)
-- ❌ "Production-tested, validated" (only on one domain)
+- "+35% precision, +31% recall" (unvalidated)
+- "domain-agnostic" (untested claim)
+- "Production-tested, validated" (only on one domain)
 
 **Add:**
-- ✅ Honest limitations: "Developed for IC design, designed to be generalizable, seeking feedback"
-- ✅ Clear methodology section when metrics are validated
-- ✅ Dependencies: "Requires Python 3.8+, zero external dependencies"
-- ✅ License: "MIT License, willing to assign copyright if needed"
-- ✅ Maintenance commitment: "Committed to maintaining for 2+ years"
+- Honest limitations: "Developed for IC design, designed to be generalizable, seeking feedback"
+- Clear methodology section when metrics are validated
+- Dependencies: "Requires Python 3.8+, zero external dependencies"
+- License: "MIT License, willing to assign copyright if needed"
+- Maintenance commitment: "Committed to maintaining for 2+ years"
 
 ---
 
@@ -626,9 +626,9 @@ Add to `ic_enrichment/examples/`:
 1. Open GitHub Discussion (not full proposal yet)
 2. **Title:** "Feedback Request: Type Constraints and Hierarchical Context for ER"
 3. **Content:**
-   - Brief description (2-3 paragraphs)
-   - Link to GitHub repo with code
-   - Ask: "Would features like these be valuable?"
+- Brief description (2-3 paragraphs)
+- Link to GitHub repo with code
+- Ask: "Would features like these be valuable?"
 4. Wait for response
 
 **Advantage:** Low commitment, avoids wasted effort if not aligned
@@ -663,19 +663,19 @@ Add to `ic_enrichment/examples/`:
 **If maintainers say "not right now" or "scope too broad":**
 
 1. **Publish to PyPI:**
-   - Package name: `arango-er-enrichments`
-   - Depends on: `arango-entity-resolution`
-   - Position as "best practices extensions"
+- Package name: `arango-er-enrichments`
+- Depends on: `arango-entity-resolution`
+- Position as "best practices extensions"
 
 2. **Create integration docs:**
-   - Show how to use alongside ER Library
-   - Provide working examples
-   - Link from ER Library discussions/wiki
+- Show how to use alongside ER Library
+- Provide working examples
+- Link from ER Library discussions/wiki
 
 3. **Build community:**
-   - Blog post announcing package
-   - ArangoDB community forum post
-   - Technical domain forums (hardware, medical, etc.)
+- Blog post announcing package
+- ArangoDB community forum post
+- Technical domain forums (hardware, medical, etc.)
 
 **Advantage:** 
 - Immediate value delivery
@@ -833,39 +833,39 @@ package or examples directory rather than core library integration?
 ### Before Sending Outreach
 
 - [ ] **Validate metrics with labeled test set**
-  - [ ] Create ground truth (100+ entity pairs)
-  - [ ] Implement baseline evaluation
-  - [ ] Measure precision/recall/F1
-  - [ ] Document methodology
-  - [ ] Add reproducibility code
+- [ ] Create ground truth (100+ entity pairs)
+- [ ] Implement baseline evaluation
+- [ ] Measure precision/recall/F1
+- [ ] Document methodology
+- [ ] Add reproducibility code
 
 - [ ] **Add non-hardware example**
-  - [ ] Choose domain (medical/org/legal/ecommerce)
-  - [ ] Create working example
-  - [ ] Add to `examples/` directory
-  - [ ] Update README
+- [ ] Choose domain (medical/org/legal/ecommerce)
+- [ ] Create working example
+- [ ] Add to `examples/` directory
+- [ ] Update README
 
 - [ ] **Fix outreach document**
-  - [ ] Remove unvalidated metric claims
-  - [ ] Add honest limitations section
-  - [ ] Add technical details section
-  - [ ] Add methodology section (when available)
-  - [ ] Add license information
-  - [ ] Add maintenance commitment
+- [ ] Remove unvalidated metric claims
+- [ ] Add honest limitations section
+- [ ] Add technical details section
+- [ ] Add methodology section (when available)
+- [ ] Add license information
+- [ ] Add maintenance commitment
 
 - [ ] **Code readiness**
-  - [ ] Run all tests (pytest)
-  - [ ] Check for lint errors
-  - [ ] Verify examples run
-  - [ ] Add LICENSE file
-  - [ ] Add CONTRIBUTING.md
-  - [ ] Add setup.py for pip install
+- [ ] Run all tests (pytest)
+- [ ] Check for lint errors
+- [ ] Verify examples run
+- [ ] Add LICENSE file
+- [ ] Add CONTRIBUTING.md
+- [ ] Add setup.py for pip install
 
 - [ ] **Documentation**
-  - [ ] API reference complete
-  - [ ] Examples documented
-  - [ ] Integration guide
-  - [ ] Troubleshooting section
+- [ ] API reference complete
+- [ ] Examples documented
+- [ ] Integration guide
+- [ ] Troubleshooting section
 
 ---
 
@@ -873,46 +873,46 @@ package or examples directory rather than core library integration?
 
 ### What Makes This Contribution Valuable
 
-✅ **High-quality implementation:**
+**High-quality implementation:**
 - Clean code, well-documented, tested
 - Zero dependency bloat
 - Professional API design
 
-✅ **Addresses real gaps:**
+**Addresses real gaps:**
 - Hierarchical relationships are common but not well-supported in ER
 - Type constraints prevent semantic drift in specialized domains
 - These are proven patterns from production use
 
-✅ **Committed contributor:**
+**Committed contributor:**
 - Already invested significant time
 - Has real-world use case
 - Willing to maintain
 
 ### What Are the Concerns
 
-⚠️ **Limited validation:**
+**Limited validation:**
 - Only tested on one domain
 - Metrics not empirically measured
 - Need cross-domain validation
 
-⚠️ **Scope questions:**
+**Scope questions:**
 - Some components may be outside typical ER library scope
 - Need discussion on integration approach
 - May fit better as utilities/examples
 
-⚠️ **Integration effort:**
+**Integration effort:**
 - Components are standalone (good for flexibility)
 - Need design work to integrate with library architecture
 - May require refactoring to fit library patterns
 
 ### Recommendation to Maintainers
 
-**If this were submitted today:** ❌ REJECT (politely)
+**If this were submitted today:** REJECT (politely)
 - Insufficient validation
 - Overclaimed results
 - Scope questions unresolved
 
-**If validation is added:** ✅ SERIOUSLY CONSIDER
+**If validation is added:** SERIOUSLY CONSIDER
 - Valuable functionality
 - Professional implementation
 - Clear use cases
@@ -931,10 +931,10 @@ package or examples directory rather than core library integration?
 The IC Design Enrichment Pack is **high-quality software** that solves **real problems** in technical domain entity resolution. However, the **outreach proposal has critical issues** that will lead to rejection if not addressed.
 
 **Bottom line:** You have good code, but you need to:
-1. ✅ Validate your metrics properly
-2. ✅ Test on another domain
-3. ✅ Be honest about limitations
-4. ✅ Start with discussion, not full proposal
+1. Validate your metrics properly
+2. Test on another domain
+3. Be honest about limitations
+4. Start with discussion, not full proposal
 
 **Estimated work to make this contribution-ready:** 2-3 days
 
@@ -946,7 +946,7 @@ The IC Design Enrichment Pack is **high-quality software** that solves **real pr
 
 ---
 
-**Prepared by:** AI Assistant (Arango ER Library Maintainer Perspective)  
-**Date:** January 2, 2026  
+**Prepared by:** AI Assistant (Arango ER Library Maintainer Perspective) 
+**Date:** January 2, 2026 
 **Review Status:** Ready for cadence team review
 

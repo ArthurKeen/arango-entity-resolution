@@ -53,21 +53,21 @@ INSERT INTO similarities (_from, _to, score) VALUES (@from, @to, @score)
 ```javascript
 UPSERT { _from: @from, _to: @to }
 INSERT {
-  _from: @from,
-  _to: @to,
-  similarity_score: @score,
-  field_scores: @fieldScores,
-  is_match: @isMatch,
-  algorithm: "fellegi_sunter",
-  created_at: DATE_NOW(),
-  update_count: 1
+_from: @from,
+_to: @to,
+similarity_score: @score,
+field_scores: @fieldScores,
+is_match: @isMatch,
+algorithm: "fellegi_sunter",
+created_at: DATE_NOW(),
+update_count: 1
 }
 UPDATE {
-  similarity_score: @forceUpdate ? @score : AVERAGE([OLD.similarity_score, @score]),
-  field_scores: @forceUpdate ? @fieldScores : OLD.field_scores,
-  is_match: @forceUpdate ? @isMatch : (OLD.is_match || @isMatch),
-  updated_at: DATE_NOW(),
-  update_count: OLD.update_count + 1
+similarity_score: @forceUpdate ? @score : AVERAGE([OLD.similarity_score, @score]),
+field_scores: @forceUpdate ? @fieldScores : OLD.field_scores,
+is_match: @forceUpdate ? @isMatch : (OLD.is_match || @isMatch),
+updated_at: DATE_NOW(),
+update_count: OLD.update_count + 1
 }
 ```
 
@@ -104,11 +104,11 @@ similarity_score: AVERAGE([OLD.similarity_score, @score])
 
 ```javascript
 GRAPH_WEAKLY_CONNECTED_COMPONENTS(
-  @@edgeCollection,
-  {
-    weightAttribute: "similarity_score",
-    threshold: @minSimilarity
-  }
+@@edgeCollection,
+{
+weightAttribute: "similarity_score",
+threshold: @minSimilarity
+}
 )
 ```
 
@@ -116,7 +116,7 @@ GRAPH_WEAKLY_CONNECTED_COMPONENTS(
 
 Consider these similarity relationships:
 - Record A ↔ Record B: 0.85 similarity
-- Record A ↔ Record C: 0.75 similarity  
+- Record A ↔ Record C: 0.75 similarity 
 - Record D ↔ Record E: 0.90 similarity
 - Record B ↔ Record F: 0.80 similarity
 
@@ -133,7 +133,7 @@ With threshold 0.7, WCC creates:
 
 #### 2. **Complex Relationship Patterns**
 - **Star patterns**: A connects to B, C, D, E (A is the "hub")
-- **Dense clusters**: Everyone connected to everyone  
+- **Dense clusters**: Everyone connected to everyone 
 - **Bridge connections**: Records that link separate groups
 
 #### 3. **Natural Community Detection**
@@ -147,15 +147,15 @@ The system validates each cluster with multiple metrics:
 
 ```javascript
 {
-  cluster_id: "cluster_abc123",
-  member_ids: [vertex_ids],
-  cluster_size: 4,
-  edge_count: 5,
-  average_similarity: 0.82,
-  min_similarity: 0.71,
-  max_similarity: 0.95,
-  density: 0.83,  // How interconnected the cluster is
-  quality_score: 0.89
+cluster_id: "cluster_abc123",
+member_ids: [vertex_ids],
+cluster_size: 4,
+edge_count: 5,
+average_similarity: 0.82,
+min_similarity: 0.71,
+max_similarity: 0.95,
+density: 0.83, // How interconnected the cluster is
+quality_score: 0.89
 }
 ```
 
@@ -171,9 +171,9 @@ The system validates each cluster with multiple metrics:
 
 ```
 Similarity Scores → UPSERT Edges → WCC Clustering → Quality Validation → Entity Clusters
-      ↓                 ↓              ↓                    ↓               ↓
- Fellegi-Sunter    Graph Building   Community        Coherence      Final Clusters
-   Framework         (idempotent)    Detection        Checking      + Metadata
+↓ ↓ ↓ ↓ ↓
+Fellegi-Sunter Graph Building Community Coherence Final Clusters
+Framework (idempotent) Detection Checking + Metadata
 ```
 
 ### Performance Optimizations
@@ -190,15 +190,15 @@ From our centralized configuration:
 
 ```javascript
 // Clustering parameters
-MAX_CLUSTER_SIZE: 100,           // Prevent runaway clusters
-MIN_CLUSTER_SIZE: 2,             // At least a pair
-CLUSTER_DENSITY_THRESHOLD: 0.3,  // Minimum interconnectedness
-QUALITY_SCORE_THRESHOLD: 0.6,    // Overall quality threshold
+MAX_CLUSTER_SIZE: 100, // Prevent runaway clusters
+MIN_CLUSTER_SIZE: 2, // At least a pair
+CLUSTER_DENSITY_THRESHOLD: 0.3, // Minimum interconnectedness
+QUALITY_SCORE_THRESHOLD: 0.6, // Overall quality threshold
 
 // Graph building
-MAX_SCORED_PAIRS_BATCH: 10000,   // Batch processing limit
-UPPER_THRESHOLD: 2.0,            // Fellegi-Sunter upper bound
-LOWER_THRESHOLD: -1.0,           // Fellegi-Sunter lower bound
+MAX_SCORED_PAIRS_BATCH: 10000, // Batch processing limit
+UPPER_THRESHOLD: 2.0, // Fellegi-Sunter upper bound
+LOWER_THRESHOLD: -1.0, // Fellegi-Sunter lower bound
 ```
 
 ## Advantages Over Traditional Approaches
@@ -229,7 +229,7 @@ LOWER_THRESHOLD: -1.0,           // Fellegi-Sunter lower bound
 ### E-commerce Customer Deduplication
 ```
 Customer A: "John Doe, john.doe@email.com, 555-1234"
-Customer B: "J. Doe, john.doe@gmail.com, 555-1234"  
+Customer B: "J. Doe, john.doe@gmail.com, 555-1234" 
 Customer C: "John D., jdoe@email.com, 555-1234"
 ```
 → WCC clusters all three despite different email formats

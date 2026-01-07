@@ -31,149 +31,149 @@ Complete guide to all documentation for the ArangoDB Advanced Entity Resolution 
 
 #### Core Documents
 - **[README.md](README.md)**
-  - Project vision and business value
-  - Technology stack and architecture
-  - Key features (implemented and roadmap)
-  - Quick start guide
-  - System demonstrations
+- Project vision and business value
+- Technology stack and architecture
+- Key features (implemented and roadmap)
+- Quick start guide
+- System demonstrations
 
 - **[docs/PRD.md](docs/PRD.md)**
-  - Product Requirements Document
-  - Functional requirements
-  - Non-functional requirements
-  - Success metrics
-  - Research foundation
+- Product Requirements Document
+- Functional requirements
+- Non-functional requirements
+- Success metrics
+- Research foundation
 
 - **[docs/PROJECT_EVOLUTION.md](docs/PROJECT_EVOLUTION.md)**
-  - Project history and evolution
-  - Scope expansion timeline
-  - Implementation roadmap
-  - Lessons learned
+- Project history and evolution
+- Scope expansion timeline
+- Implementation roadmap
+- Lessons learned
 
 #### Change Management
 - **[CHANGELOG.md](CHANGELOG.md)**
-  - Version history
-  - Feature additions
-  - Bug fixes
-  - Breaking changes
+- Version history
+- Feature additions
+- Bug fixes
+- Breaking changes
 
 #### Code Quality & Security
 - **[CODE_AUDIT_REPORT.md](CODE_AUDIT_REPORT.md)**
-  - Comprehensive code audit results
-  - Security analysis
-  - Test coverage analysis
-  - Recommendations and action items
-  
+- Comprehensive code audit results
+- Security analysis
+- Test coverage analysis
+- Recommendations and action items
+
 - **[AUDIT_QUICK_SUMMARY.md](AUDIT_QUICK_SUMMARY.md)**
-  - Executive summary of audit
-  - Critical fixes applied
-  - Quick reference guide
-  
+- Executive summary of audit
+- Critical fixes applied
+- Quick reference guide
+
 - **[SECURITY.md](SECURITY.md)**
-  - Security best practices
-  - Credential management
-  - Production deployment security
-  - Compliance guidelines
+- Security best practices
+- Credential management
+- Production deployment security
+- Compliance guidelines
 
 ### 2. Getting Started
 
 #### Setup & Installation
 - **[docs/TESTING.md](docs/TESTING.md)** - Sections: Testing Setup, Prerequisites, Configuration
-  - Prerequisites and requirements
-  - Automated setup instructions
-  - Manual setup for troubleshooting
-  - Environment configuration
-  - Data directory setup
+- Prerequisites and requirements
+- Automated setup instructions
+- Manual setup for troubleshooting
+- Environment configuration
+- Data directory setup
 
 #### Quick Start Guides
 - **[README.md](README.md)** - Section: Getting Started
-  - 4-step quick setup
-  - Docker and Python setup
-  - First test run
+- 4-step quick setup
+- Docker and Python setup
+- First test run
 
 - **[docs/API_QUICKSTART.md](docs/API_QUICKSTART.md)**
-  - 5-minute API introduction
-  - REST and Python examples
-  - Common operations
-  - Quick troubleshooting
+- 5-minute API introduction
+- REST and Python examples
+- Common operations
+- Quick troubleshooting
 
 ### 3. API Documentation
 
 #### REST API (Foxx Services)
 - **[docs/API_REFERENCE.md](docs/API_REFERENCE.md)**
-  - Complete endpoint documentation
-  - Request/response formats
-  - Authentication
-  - Error handling
-  - Rate limiting
+- Complete endpoint documentation
+- Request/response formats
+- Authentication
+- Error handling
+- Rate limiting
 
 - **[docs/openapi.yaml](docs/openapi.yaml)**
-  - OpenAPI 3.0.3 specification
-  - Machine-readable API schema
-  - For code generation and tooling
+- OpenAPI 3.0.3 specification
+- Machine-readable API schema
+- For code generation and tooling
 
 #### Python SDK
 - **[docs/API_PYTHON.md](docs/API_PYTHON.md)**
-  - Python SDK reference
-  - Class documentation
-  - Method signatures
-  - Configuration options
-  - Integration patterns
+- Python SDK reference
+- Class documentation
+- Method signatures
+- Configuration options
+- Integration patterns
 
 #### Usage Examples
 - **[docs/API_EXAMPLES.md](docs/API_EXAMPLES.md)**
-  - Complete pipeline examples
-  - Service-specific examples
-  - Industry use cases (healthcare, finance, retail, B2B)
-  - Error handling patterns
-  - Performance optimization
+- Complete pipeline examples
+- Service-specific examples
+- Industry use cases (healthcare, finance, retail, B2B)
+- Error handling patterns
+- Performance optimization
 
 #### API Summary
 - **[docs/API_DOCUMENTATION_SUMMARY.md](docs/API_DOCUMENTATION_SUMMARY.md)**
-  - Overview of all API docs
-  - Navigation guide
-  - Quick reference links
+- Overview of all API docs
+- Navigation guide
+- Quick reference links
 
 ### 4. Testing & Quality Assurance
 
 #### Comprehensive Testing Guide
 - **[docs/TESTING.md](docs/TESTING.md)**
-  - Testing setup (prerequisites, installation)
-  - Testing strategies (CURL, Python, performance)
-  - Automated testing with git hooks
-  - CI/CD integration
-  - Troubleshooting
+- Testing setup (prerequisites, installation)
+- Testing strategies (CURL, Python, performance)
+- Automated testing with git hooks
+- CI/CD integration
+- Troubleshooting
 
 - **[docs/TESTING_GUIDE.md](docs/TESTING_GUIDE.md)**
-  - Complete testing guide for improved test suite
-  - Test structure and organization
-  - Running different test types (unit, integration, performance)
-  - Test coverage measurement
-  - Writing new tests and best practices
-  - CI/CD integration examples
+- Complete testing guide for improved test suite
+- Test structure and organization
+- Running different test types (unit, integration, performance)
+- Test coverage measurement
+- Writing new tests and best practices
+- CI/CD integration examples
 
 #### Test Coverage Reports
 - **[TEST_COVERAGE_SUMMARY.md](TEST_COVERAGE_SUMMARY.md)**
-  - Test coverage statistics by component
-  - Test execution guide
-  - Coverage goals and targets
-  - Key achievements
-  - CI/CD integration examples
+- Test coverage statistics by component
+- Test execution guide
+- Coverage goals and targets
+- Key achievements
+- CI/CD integration examples
 
 - **[TEST_IMPROVEMENTS_COMPLETE.md](TEST_IMPROVEMENTS_COMPLETE.md)**
-  - Complete test improvement report
-  - Before/after comparison
-  - New test files created
-  - Performance validation
-  - Impact analysis
+- Complete test improvement report
+- Before/after comparison
+- New test files created
+- Performance validation
+- Impact analysis
 
 #### Git Hooks
 - **[docs/GIT_HOOKS.md](docs/GIT_HOOKS.md)**
-  - Pre-commit hook (~5 seconds)
-  - Pre-push hook (~2-3 minutes)
-  - Installation and usage
-  - Bypass options
-  - Troubleshooting
+- Pre-commit hook (~5 seconds)
+- Pre-push hook (~2-3 minutes)
+- Installation and usage
+- Bypass options
+- Troubleshooting
 
 #### Test Suite
 Located in `tests/` directory (19 test files, 3,261 lines):
@@ -212,25 +212,25 @@ Located in `tests/` directory (19 test files, 3,261 lines):
 
 #### Bulk Processing Guide
 - **[docs/BATCH_VS_BULK_PROCESSING.md](docs/BATCH_VS_BULK_PROCESSING.md)**
-  - Batch vs bulk processing strategies
-  - Performance benchmarks (3-5x speedup)
-  - Decision matrix: when to use what
-  - Code migration examples
-  - Optimization tips
-  - Troubleshooting guide
+- Batch vs bulk processing strategies
+- Performance benchmarks (3-5x speedup)
+- Decision matrix: when to use what
+- Code migration examples
+- Optimization tips
+- Troubleshooting guide
 
 - **[docs/BULK_PROCESSING_IMPLEMENTATION_SUMMARY.md](docs/BULK_PROCESSING_IMPLEMENTATION_SUMMARY.md)**
-  - Technical implementation details
-  - Architecture comparison
-  - Customization guide
-  - Integration examples
+- Technical implementation details
+- Architecture comparison
+- Customization guide
+- Integration examples
 
 - **[PERFORMANCE_IMPROVEMENTS_SUMMARY.md](PERFORMANCE_IMPROVEMENTS_SUMMARY.md)**
-  - Executive summary
-  - Business impact
-  - Quick start guide
-  - Migration examples
-  - FAQ
+- Executive summary
+- Business impact
+- Quick start guide
+- Migration examples
+- FAQ
 
 #### Performance Examples
 Located in `examples/`:
@@ -240,53 +240,53 @@ Located in `examples/`:
 
 #### Foxx Service Deployment
 - **[docs/FOXX_DEPLOYMENT.md](docs/FOXX_DEPLOYMENT.md)**
-  - Quick start (automated deployment)
-  - Manual deployment via web interface
-  - Alternative deployment methods
-  - Testing deployment
-  - Troubleshooting
-  - Service configuration
-  - Monitoring and maintenance
+- Quick start (automated deployment)
+- Manual deployment via web interface
+- Alternative deployment methods
+- Testing deployment
+- Troubleshooting
+- Service configuration
+- Monitoring and maintenance
 
 #### Foxx Architecture
 - **[docs/FOXX_ARCHITECTURE.md](docs/FOXX_ARCHITECTURE.md)**
-  - Service architecture
-  - Module organization
-  - Route structure
-  - Performance benefits
-  - Design decisions
+- Service architecture
+- Module organization
+- Route structure
+- Performance benefits
+- Design decisions
 
 #### Docker & Infrastructure
 - **[docker-compose.yml](docker-compose.yml)**
-  - ArangoDB container configuration
-  - Port mappings
-  - Volume mounts
-  - Environment variables
+- ArangoDB container configuration
+- Port mappings
+- Volume mounts
+- Environment variables
 
 - **[env.example](env.example)**
-  - Environment variable template
-  - Configuration options
-  - Security settings
+- Environment variable template
+- Configuration options
+- Security settings
 
 ### 7. Demonstrations & Presentations
 
 #### Demo Package
 - **[demo/README.md](demo/README.md)**
-  - Complete demo guide
-  - Quick start (1 minute launch)
-  - Demo modes (Interactive, Inspector, Quick, Automated)
-  - Business value & ROI
-  - Demo scenarios (Executive, Technical, Sales, Industry)
-  - Presentation guide
-  - Technical details
+- Complete demo guide
+- Quick start (1 minute launch)
+- Demo modes (Interactive, Inspector, Quick, Automated)
+- Business value & ROI
+- Demo scenarios (Executive, Technical, Sales, Industry)
+- Presentation guide
+- Technical details
 
 #### Presentation Materials
 - **[demo/PRESENTATION_SCRIPT.md](demo/PRESENTATION_SCRIPT.md)**
-  - 3-act demo structure
-  - Talking points for each section
-  - Audience interaction guidelines
-  - Q&A preparation
-  - Technical deep-dive options
+- 3-act demo structure
+- Talking points for each section
+- Audience interaction guidelines
+- Q&A preparation
+- Technical deep-dive options
 
 #### Demo Scripts
 Located in `demo/scripts/`:
@@ -300,20 +300,20 @@ Located in `demo/scripts/`:
 
 #### System Architecture
 - **[docs/DESIGN.md](docs/DESIGN.md)**
-  - Overall system design
-  - Component architecture
-  - Data flow
-  - Design decisions
-  - Scalability considerations
+- Overall system design
+- Component architecture
+- Data flow
+- Design decisions
+- Scalability considerations
 
 #### Diagrams
 - **[docs/diagrams/README.md](docs/diagrams/README.md)**
-  - Diagram index and descriptions
+- Diagram index and descriptions
 
 - **[docs/DIAGRAM_GENERATION_GUIDE.md](docs/DIAGRAM_GENERATION_GUIDE.md)**
-  - How to create and update diagrams
-  - Mermaid syntax guide
-  - Diagram conventions
+- How to create and update diagrams
+- Mermaid syntax guide
+- Diagram conventions
 
 Available diagrams (Mermaid + SVG/PNG):
 - Architecture overview
@@ -323,26 +323,26 @@ Available diagrams (Mermaid + SVG/PNG):
 
 #### Technical Explanations
 - **[docs/GRAPH_ALGORITHMS_EXPLANATION.md](docs/GRAPH_ALGORITHMS_EXPLANATION.md)**
-  - Graph algorithm details
-  - Weakly Connected Components (WCC)
-  - Clustering approaches
-  - Performance characteristics
+- Graph algorithm details
+- Weakly Connected Components (WCC)
+- Clustering approaches
+- Performance characteristics
 
 ### 9. Research & Academic Foundation
 
 #### Research Overview
 - **[research/README.md](research/README.md)**
-  - Research areas
-  - Academic papers
-  - Implementation notes
-  - Future directions
+- Research areas
+- Academic papers
+- Implementation notes
+- Future directions
 
 #### Bibliography
 - **[research/bibliography.md](research/bibliography.md)**
-  - Complete paper references
-  - Categorized by topic
-  - Key findings
-  - Relevance to project
+- Complete paper references
+- Categorized by topic
+- Key findings
+- Relevance to project
 
 #### Paper Notes
 Located in `research/papers/`:
@@ -361,10 +361,10 @@ Located in `research/notes/`:
 
 #### Available Datasets
 - **[docs/AVAILABLE_DATASETS.md](docs/AVAILABLE_DATASETS.md)**
-  - Implemented datasets
-  - Test scenarios
-  - Demo execution instructions
-  - Data characteristics
+- Implemented datasets
+- Test scenarios
+- Demo execution instructions
+- Data characteristics
 
 #### Sample Data
 Located in `data/sample/`:
@@ -391,27 +391,27 @@ Located in `examples/`:
 
 #### Contributing & Development
 - **[README.md](README.md)** - Section: Contributing
-  - Development workflow
-  - Git hooks setup
-  - Testing requirements
-  - Code quality standards
+- Development workflow
+- Git hooks setup
+- Testing requirements
+- Code quality standards
 
 - **[docs/GIT_HOOKS.md](docs/GIT_HOOKS.md)**
-  - Automated quality checks
-  - Pre-commit validation
-  - Pre-push testing
+- Automated quality checks
+- Pre-commit validation
+- Pre-push testing
 
 #### Configuration
 - **[docs/CLAUDE.md](docs/CLAUDE.md)**
-  - Claude AI integration guidelines
-  - Project-specific instructions
-  - Documentation standards
-  - ASCII-only policy
+- Claude AI integration guidelines
+- Project-specific instructions
+- Documentation standards
+- ASCII-only policy
 
 - **[config.json](config.json)**
-  - Application configuration
-  - Service settings
-  - Default parameters
+- Application configuration
+- Service settings
+- Default parameters
 
 #### Scripts & Utilities
 Located in `scripts/`:
@@ -428,48 +428,48 @@ Located in `scripts/`:
 #### File Structure
 ```
 arango-entity-resolution/
-├── README.md                          # Project overview
-├── DOCUMENTATION_INDEX.md             # This file
-├── CHANGELOG.md                       # Version history
-├── docker-compose.yml                 # Docker configuration
-├── requirements.txt                   # Python dependencies
-├── env.example                        # Environment template
-│
-├── src/entity_resolution/             # Core implementation
-│   ├── core/                          # Pipeline orchestration
-│   ├── services/                      # ER services
-│   ├── data/                          # Data management
-│   └── utils/                         # Utilities
-│
-├── foxx-services/entity-resolution/   # Foxx microservices
-│   ├── main.js                        # Service entry point
-│   ├── manifest.json                  # Service manifest
-│   └── routes/                        # API routes
-│
-├── docs/                              # Documentation
-│   ├── API_*.md                       # API documentation
-│   ├── TESTING.md                     # Testing guide
-│   ├── FOXX_*.md                      # Foxx docs
-│   ├── GIT_HOOKS.md                   # Git hooks
-│   ├── DESIGN.md                      # Architecture
-│   ├── PRD.md                         # Requirements
-│   ├── PROJECT_EVOLUTION.md           # History
-│   ├── openapi.yaml                   # OpenAPI spec
-│   └── diagrams/                      # Architecture diagrams
-│
-├── demo/                              # Demo package
-│   ├── README.md                      # Demo guide
-│   ├── PRESENTATION_SCRIPT.md         # Presentation guide
-│   ├── scripts/                       # Demo scripts
-│   ├── data/                          # Demo data
-│   └── templates/                     # Dashboards
-│
-├── tests/                             # Test suite
-├── examples/                          # Usage examples
-├── scripts/                           # Utility scripts
-├── research/                          # Academic papers
-├── data/                              # Data files
-└── config/                            # Configuration files
+README.md # Project overview
+DOCUMENTATION_INDEX.md # This file
+CHANGELOG.md # Version history
+docker-compose.yml # Docker configuration
+requirements.txt # Python dependencies
+env.example # Environment template
+
+src/entity_resolution/ # Core implementation
+core/ # Pipeline orchestration
+services/ # ER services
+data/ # Data management
+utils/ # Utilities
+
+foxx-services/entity-resolution/ # Foxx microservices
+main.js # Service entry point
+manifest.json # Service manifest
+routes/ # API routes
+
+docs/ # Documentation
+API_*.md # API documentation
+TESTING.md # Testing guide
+FOXX_*.md # Foxx docs
+GIT_HOOKS.md # Git hooks
+DESIGN.md # Architecture
+PRD.md # Requirements
+PROJECT_EVOLUTION.md # History
+openapi.yaml # OpenAPI spec
+diagrams/ # Architecture diagrams
+
+demo/ # Demo package
+README.md # Demo guide
+PRESENTATION_SCRIPT.md # Presentation guide
+scripts/ # Demo scripts
+data/ # Demo data
+templates/ # Dashboards
+
+tests/ # Test suite
+examples/ # Usage examples
+scripts/ # Utility scripts
+research/ # Academic papers
+data/ # Data files
+config/ # Configuration files
 ```
 
 ---

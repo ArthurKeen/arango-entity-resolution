@@ -1,6 +1,6 @@
 # Testing Guide
 
-**Last Updated**: November 17, 2025  
+**Last Updated**: November 17, 2025 
 **Version**: 3.0.0
 
 ---
@@ -24,11 +24,11 @@ This guide covers testing the arango-entity-resolution library, including unit t
 Current test coverage: **~80%** (estimated)
 
 **Well-Covered Components:**
-- ✅ v3.0 components (WeightedFieldSimilarity, AddressERService, ConfigurableERPipeline)
-- ✅ v2.0 services (BatchSimilarityService, SimilarityEdgeService, strategies)
-- ✅ Security utilities (validation.py)
-- ✅ Configuration system (er_config.py, config.py)
-- ✅ Database utilities (database.py, graph_utils.py)
+- v3.0 components (WeightedFieldSimilarity, AddressERService, ConfigurableERPipeline)
+- v2.0 services (BatchSimilarityService, SimilarityEdgeService, strategies)
+- Security utilities (validation.py)
+- Configuration system (er_config.py, config.py)
+- Database utilities (database.py, graph_utils.py)
 
 **Coverage Report**: See [TEST_COVERAGE_AUDIT.md](archive/audits/TEST_COVERAGE_AUDIT.md) for detailed analysis.
 
@@ -39,17 +39,17 @@ Current test coverage: **~80%** (estimated)
 ### Prerequisites
 
 1. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+pip install -r requirements.txt
+```
 
 2. **ArangoDB Container** (for integration tests):
-   ```bash
-   docker run -d --name arangodb-test -p 8529:8529 \
-     -e ARANGO_ROOT_PASSWORD=testpassword123 \
-     -v ~/data:/data \
-     arangodb/arangodb:latest
-   ```
+```bash
+docker run -d --name arangodb-test -p 8529:8529 \
+-e ARANGO_ROOT_PASSWORD=testpassword123 \
+-v ~/data:/data \
+arangodb/arangodb:latest
+```
 
 ### Environment Variables
 
@@ -96,19 +96,19 @@ python test_round_trip_simple.py
 
 ### Latest Test Run (November 17, 2025)
 
-**Status**: ✅ **All Tests Passing**
+**Status**: **All Tests Passing**
 
 - **Total Tests**: 14 integration tests
-- **Passed**: 14 ✅
+- **Passed**: 14 
 - **Failed**: 0
 - **Runtime**: ~10 seconds
 
 **Components Tested:**
-- ✅ WeightedFieldSimilarity
-- ✅ BatchSimilarityService
-- ✅ AddressERService
-- ✅ WCCClusteringService (Python DFS)
-- ✅ Complete ER pipeline
+- WeightedFieldSimilarity
+- BatchSimilarityService
+- AddressERService
+- WCCClusteringService (Python DFS)
+- Complete ER pipeline
 
 **Full Results**: See [E2E_TEST_RESULTS.md](../E2E_TEST_RESULTS.md)
 
@@ -150,13 +150,13 @@ import pytest
 from entity_resolution import YourComponent
 
 class TestYourComponent:
-    """Test cases for YourComponent."""
-    
-    def test_basic_functionality(self):
-        """Test basic functionality."""
-        component = YourComponent()
-        result = component.do_something()
-        assert result is not None
+"""Test cases for YourComponent."""
+
+def test_basic_functionality(self):
+"""Test basic functionality."""
+component = YourComponent()
+result = component.do_something()
+assert result is not None
 ```
 
 ### Using Fixtures
@@ -164,9 +164,9 @@ class TestYourComponent:
 ```python
 @pytest.fixture
 def test_db():
-    """Provide test database connection."""
-    from entity_resolution import get_database
-    return get_database()
+"""Provide test database connection."""
+from entity_resolution import get_database
+return get_database()
 ```
 
 ### Integration Test Markers
@@ -174,8 +174,8 @@ def test_db():
 ```python
 @pytest.mark.integration
 def test_with_database(test_db):
-    """Integration test requiring database."""
-    # Test code here
+"""Integration test requiring database."""
+# Test code here
 ```
 
 ---
