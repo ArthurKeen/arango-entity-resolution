@@ -1,4 +1,4 @@
-# Summary Feedback for Cadence Project
+# Summary Feedback for Hardware-ER Project
 
 **Date:** January 2, 2026 
 **Assessment:** IC Design Enrichment Pack for Arango ER Library contribution
@@ -113,7 +113,7 @@ Add ONE working example in another domain:
 Without this, your outreach will be immediately rejected.
 
 ```bash
-cd /Users/arthurkeen/cadence
+cd /Users/arthurkeen/hardware-er
 # Create:
 # - evaluation/ground_truth.json (labeled entity pairs)
 # - evaluation/run_experiments.py (baseline vs enhanced)
@@ -126,7 +126,7 @@ cd /Users/arthurkeen/cadence
 Without this, "domain-agnostic" claim is false advertising.
 
 ```bash
-cd /Users/arthurkeen/cadence/ic_enrichment/examples
+cd /Users/arthurkeen/hardware-er/ic_enrichment/examples
 # Create ONE of:
 # - medical_er_example.py
 # - organization_er_example.py 
@@ -253,6 +253,6 @@ Good luck! This is valuable work that deserves proper validation.
 ---
 
 **Prepared by:** AI Assistant (ER Library Maintainer Perspective) 
-**For:** Cadence Team 
+**For:** Hardware-ER Team 
 **Next Action:** Review detailed assessment, then decide on validation approach
 

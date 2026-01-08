@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-The Cadence team has completed **all required work** and created a **model open-source contribution**. 
+The Hardware-ER team has completed **all required work** and created a **model open-source contribution**. 
 
 **Final approval granted. Send `ER_LIBRARY_EMAIL_VALIDATED.md` immediately.** 
 
@@ -205,7 +205,7 @@ validation/validation_results_hardware.json
 **Recommendation:** Add this file (it's validation output, should be tracked)
 
 ```bash
-cd /Users/arthurkeen/cadence
+cd /Users/arthurkeen/hardware-er
 git add validation/validation_results_hardware.json
 git commit -m "Add validation results for hardware domain"
 git push
@@ -325,7 +325,7 @@ Why so confident?
 
 ---
 
-## Next Steps for Cadence Team
+## Next Steps for Hardware-ER Team
 
 ### Immediate (Today)
 1. Add untracked validation results file to git

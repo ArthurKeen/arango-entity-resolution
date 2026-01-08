@@ -2,8 +2,8 @@
 
 **Date:** January 2, 2026 
 **Reviewer:** Arango Entity Resolution Library Maintainer Perspective 
-**Source Project:** OR1200 Knowledge Graph (Cadence) 
-**Package Location:** `/Users/arthurkeen/cadence/ic_enrichment/`
+**Source Project:** OR1200 Knowledge Graph (Hardware-ER) 
+**Package Location:** `/Users/arthurkeen/hardware-er/ic_enrichment/`
 
 ---
 
@@ -948,5 +948,5 @@ The IC Design Enrichment Pack is **high-quality software** that solves **real pr
 
 **Prepared by:** AI Assistant (Arango ER Library Maintainer Perspective) 
 **Date:** January 2, 2026 
-**Review Status:** Ready for cadence team review
+**Review Status:** Ready for hardware-er team review
 

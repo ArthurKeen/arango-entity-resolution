@@ -24,7 +24,7 @@ pytest tests/enrichments/test_components.py -v
 # ============================== 22 passed in 0.23s ==============================
 ```
 
-## Migration Instructions for Cadence Project
+## Migration Instructions for Hardware-ER Project
 
 ### Step 1: Update imports in your code
 
@@ -57,7 +57,7 @@ Or for local development:
 
 Once you've verified everything works with the library imports:
 ```bash
-# From the cadence project root
+# From the hardware-er project root
 rm -rf ic_enrichment/
 ```
 
@@ -102,7 +102,7 @@ src/entity_resolution/utils/logging.py # Fixed to allow standalone imports
 To verify the integration works in your project:
 
 ```bash
-cd ~/code/cadence
+cd ~/code/hardware-er
 
 # Create a test script
 cat > test_library_import.py << 'EOF'

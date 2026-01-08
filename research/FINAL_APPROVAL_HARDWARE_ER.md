@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-The Cadence team has done **exceptional work** addressing all feedback and creating **honest, rigorous validation**. This is now a **model contribution** that demonstrates:
+The Hardware-ER team has done **exceptional work** addressing all feedback and creating **honest, rigorous validation**. This is now a **model contribution** that demonstrates:
 
 High-quality code 
 Comprehensive testing 

@@ -1,4 +1,4 @@
-# TL;DR: Cadence Team - You're 95% There! 
+# TL;DR: Hardware-ER Team - You're 95% There! 
 
 **Status:** READY TO SEND with 3 small fixes (30 minutes work) 
 **Grade:** A- (Excellent work!) 
@@ -120,9 +120,9 @@ Make the 3 fixes and send with confidence!
 ---
 
 **Files to review:**
-1. `/Users/arthurkeen/code/arango-entity-resolution/research/CADENCE_FINAL_REVIEW.md` (detailed review)
-2. `/Users/arthurkeen/cadence/docs/ER_LIBRARY_EMAIL.md` (make fixes here)
-3. `/Users/arthurkeen/cadence/docs/VALIDATION_AND_TECHNICAL_SPEC.md` (add methodology)
+1. `/Users/arthurkeen/code/arango-entity-resolution/research/HARDWARE_ER_FINAL_REVIEW.md` (detailed review)
+2. `/Users/arthurkeen/hardware-er/docs/ER_LIBRARY_EMAIL.md` (make fixes here)
+3. `/Users/arthurkeen/hardware-er/docs/VALIDATION_AND_TECHNICAL_SPEC.md` (add methodology)
 
 **Next step:** Make 3 fixes, then send to ER Library maintainers!
 

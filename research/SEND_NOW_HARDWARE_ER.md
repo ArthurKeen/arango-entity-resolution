@@ -1,4 +1,4 @@
-# CADENCE TEAM: YOU'RE READY! Send Now!
+# HARDWARE_ER TEAM: YOU'RE READY! Send Now!
 
 **Status:** **APPROVED** 
 **Grade:** A (Excellent!) 
