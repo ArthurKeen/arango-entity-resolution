@@ -98,7 +98,7 @@ These 9 test files have pre-existing import errors (modules don't exist):
 
 ### Run All Working Tests (76 tests)
 ```bash
-cd /Users/arthurkeen/code/arango-entity-resolution
+cd .
 
 pytest tests/test_bulk_blocking_service.py \
 tests/test_entity_resolver_simple.py \

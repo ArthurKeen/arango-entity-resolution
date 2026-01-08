@@ -273,7 +273,7 @@ Potential future additions (not yet implemented):
 
 ## References
 
-- Original analysis: `/Users/arthurkeen/code/dnb_er/docs/internal/LIBRARY_PORT_ANALYSIS.md`
+- Original analysis: `./customer-project/docs/internal/LIBRARY_PORT_ANALYSIS.md`
 - Implementation: `src/entity_resolution/utils/`
 - Tests: `tests/test_*_utils.py`
 - CHANGELOG: `CHANGELOG.md`

@@ -310,7 +310,7 @@ Benchmarks included in integration tests measure:
 
 ### Quick Test (Unit Only)
 ```bash
-cd /Users/arthurkeen/code/arango-entity-resolution
+cd .
 pytest tests/test_blocking_strategies.py -v
 pytest tests/test_similarity_and_edge_services.py -v
 pytest tests/test_wcc_clustering_service.py -v

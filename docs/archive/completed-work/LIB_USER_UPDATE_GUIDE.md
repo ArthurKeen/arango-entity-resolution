@@ -70,7 +70,7 @@ mv arango-entity-resolution arango-entity-resolution-backup
 git clone https://github.com/yourusername/arango-entity-resolution.git
 
 # Or if pulling from local path
-cp -r /Users/arthurkeen/code/arango-entity-resolution .
+cp -r . .
 ```
 
 ---

@@ -92,7 +92,7 @@ Status: All import errors fixed, all API calls corrected
 
 ### Run All Fixed Tests
 ```bash
-cd /Users/arthurkeen/code/arango-entity-resolution
+cd .
 
 pytest tests/test_bulk_blocking_service.py \
 tests/test_entity_resolver_simple.py \

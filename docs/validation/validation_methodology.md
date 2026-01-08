@@ -48,7 +48,7 @@
 
 **All validation is reproducible:**
 ```bash
-cd /Users/arthurkeen/hardware-er
+cd ./hardware-er
 python3 validation/validate_metrics.py
 ```
 

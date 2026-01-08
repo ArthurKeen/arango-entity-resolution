@@ -17,7 +17,7 @@ Example:
 """
 
 __version__ = '0.1.0'
-__author__ = 'Arthur Keen'
+__author__ = "Entity Resolution Team"
 __license__ = 'MIT'
 
 from .context_resolver import HierarchicalContextResolver

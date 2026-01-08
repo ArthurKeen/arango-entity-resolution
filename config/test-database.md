@@ -24,7 +24,7 @@
 ### Starting the Test Container
 
 ```bash
-cd /Users/arthurkeen/code/arango-entity-resolution
+cd .
 docker-compose -f docker-compose.test.yml up -d
 ```
 
@@ -49,7 +49,7 @@ Open: http://localhost:8532
 ### Full Test Suite
 
 ```bash
-cd /Users/arthurkeen/code/arango-entity-resolution
+cd .
 python3 test_new_features.py
 ```
 

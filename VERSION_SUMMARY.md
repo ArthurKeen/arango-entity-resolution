@@ -4,15 +4,15 @@
 
 ---
 
-## Current Version: 3.0.0-stable
+## Current Version: 3.1.0-stable
 
-**Released**: December 2025 
+**Released**: January 2026 
 **Status**: Production Ready
 
 ### Version String
 ```python
 import entity_resolution
-print(entity_resolution.__version__) # "3.0.0-stable"
+print(entity_resolution.__version__) # "3.1.0-stable"
 ```
 
 ### Version Code Location
@@ -20,7 +20,7 @@ print(entity_resolution.__version__) # "3.0.0-stable"
 ```python
 VERSION_INFO = {
 'major': 3,
-'minor': 0,
+'minor': 1,
 'patch': 0,
 'release': 'stable'
 }
@@ -28,9 +28,16 @@ VERSION_INFO = {
 
 ---
 
-## What's Included in v3.0.0
+## What's Included in v3.1.0
 
-### Complete Services
+### Specialized Enrichments
+
+1. **TypeCompatibilityFilter** - Pre-filter candidates by compatibility matrix
+2. **HierarchicalContextResolver** - Parent context disambiguation
+3. **AcronymExpansionHandler** - Domain-specific abbreviation expansion
+4. **RelationshipProvenanceSweeper** - Post-resolution relationship remapping
+
+### Core Services (from v3.0.0)
 
 1. **AddressERService** - Address deduplication pipeline
 2. **CrossCollectionMatchingService** - Match entities across collections
@@ -40,24 +47,15 @@ VERSION_INFO = {
 6. **WCCClusteringService** - Graph clustering (optimized)
 7. **SimilarityEdgeService** - Edge creation
 
-### Blocking Strategies
-
-- CollectBlockingStrategy (exact key)
-- BM25BlockingStrategy (fuzzy text)
-- HybridBlockingStrategy (BM25 + distance)
-- GeographicBlockingStrategy (location)
-- GraphTraversalBlockingStrategy (relationships)
-- VectorBlockingStrategy (semantic)
-
 ### Key Features
 
-- Vector search-based ER (Phase 2)
-- Address entity resolution
-- Cross-collection matching
-- WCC 40-100x performance improvement
-- Bulk document fetching
-- Configuration-driven pipelines
-- Comprehensive utilities
+- **Entity Resolution Enrichments** - Domain-specific technical ER (v3.1.0)
+- **Vector search-based ER** - Phase 2 (v3.0.0)
+- **Address entity resolution** (v3.0.0)
+- **Cross-collection matching** (v3.0.0)
+- **WCC 40-100x performance improvement** (v3.0.0)
+- **Bulk document fetching** (v3.0.0)
+- **Configuration-driven pipelines** (v3.0.0)
 
 ---
 
@@ -67,7 +65,8 @@ VERSION_INFO = {
 
 | Version | Identifier | Key Features |
 |---------|-----------|--------------|
-| **v3.0.0** | `"3.0.0-stable"` | ← **CURRENT** - All services included |
+| **v3.1.0** | `"3.1.0-stable"` | ← **CURRENT** - Includes ER Enrichments |
+| v3.0.0 | `"3.0.0-stable"` | All core services, no enrichments |
 | v2.x | `"2.x.x-*"` | Partial services, no address ER |
 | v1.x | `"1.x.x-*"` | Legacy basic ER |
 

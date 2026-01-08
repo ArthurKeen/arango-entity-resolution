@@ -51,7 +51,7 @@ The easiest way to get started:
 
 ```bash
 # Clone the repository
-git clone https://github.com/ArthurKeen/arango-entity-resolution.git
+git clone https://github.com/arangodb/arango-entity-resolution.git
 cd arango-entity-resolution
 
 # Install git hooks for quality checks

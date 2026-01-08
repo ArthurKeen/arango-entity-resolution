@@ -113,7 +113,7 @@ Add ONE working example in another domain:
 Without this, your outreach will be immediately rejected.
 
 ```bash
-cd /Users/arthurkeen/hardware-er
+cd ./hardware-er
 # Create:
 # - evaluation/ground_truth.json (labeled entity pairs)
 # - evaluation/run_experiments.py (baseline vs enhanced)
@@ -126,7 +126,7 @@ cd /Users/arthurkeen/hardware-er
 Without this, "domain-agnostic" claim is false advertising.
 
 ```bash
-cd /Users/arthurkeen/hardware-er/ic_enrichment/examples
+cd ./hardware-er/ic_enrichment/examples
 # Create ONE of:
 # - medical_er_example.py
 # - organization_er_example.py 
@@ -204,7 +204,7 @@ Arthur
 
 ## Detailed Assessment
 
-See `/Users/arthurkeen/code/arango-entity-resolution/research/IC_ENRICHMENT_PACK_ASSESSMENT.md`
+See `./research/IC_ENRICHMENT_PACK_ASSESSMENT.md`
 
 This 400+ line technical review covers:
 - Code quality analysis (line-by-line)

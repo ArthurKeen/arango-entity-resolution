@@ -44,6 +44,49 @@ service.create_edges(matches) # Safe - same edges won't duplicate
 - Edge key is pure hash (no shard prefix)
 - ArangoDB handles edge placement via `_from` field automatically
 
+## [3.1.0] - 2026-01-08
+
+**Version Identifier**: 3.1.0-stable
+
+### Added - Entity Resolution Enrichments
+
+**New Feature**: Specialized components for technical, hierarchical, and domain-specific entity resolution.
+
+**New Components**:
+
+1. **TypeCompatibilityFilter** (`src/entity_resolution/enrichments/type_constraints.py`)
+- Pre-filters candidates using a compatibility matrix before similarity scoring.
+- Prevents nonsensical matches between incompatible types.
+- Supports strict and loose matching modes.
+
+2. **HierarchicalContextResolver** (`src/entity_resolution/enrichments/context_resolver.py`)
+- Blends base similarity with token overlap between parent context and candidate description.
+- Resolves ambiguities in hierarchical data where parent context provides critical disambiguation.
+- Configurable weight for context influence.
+
+3. **AcronymExpansionHandler** (`src/entity_resolution/enrichments/acronym_handler.py`)
+- Expands search terms using domain-specific abbreviation dictionaries.
+- Critical for technical and medical domains with heavy abbreviation use.
+- Supports case-sensitive and case-insensitive matching.
+
+4. **RelationshipProvenanceSweeper** (`src/entity_resolution/enrichments/relationship_sweeper.py`)
+- Remaps relationships after deduplication to canonical golden entities.
+- Maintains full audit trail and provenance of original source relationships.
+- Optional relationship deduplication during remapping.
+
+### Improved - Library Infrastructure
+
+- **Lazy Configuration Loading**: Modified logging utilities to support standalone module imports without requiring database credentials.
+- **Anonymized Documentation**: Removed specific customer references and anonymized examples for public distribution.
+- **Emoji Removal**: Standardized all documentation to plain text for professional distribution.
+
+### Fixed
+
+- **Logging**: Fixed segfaults and import-time dependencies in `entity_resolution.utils.logging`.
+- **Pre-commit Hooks**: Updated to correctly handle `PYTHONPATH` during import verification.
+
+---
+
 ## [3.0.0] - 2025-12-09
 
 **Version Identifier**: 3.0.0-stable

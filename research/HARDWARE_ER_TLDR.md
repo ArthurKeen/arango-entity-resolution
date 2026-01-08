@@ -120,9 +120,9 @@ Make the 3 fixes and send with confidence!
 ---
 
 **Files to review:**
-1. `/Users/arthurkeen/code/arango-entity-resolution/research/HARDWARE_ER_FINAL_REVIEW.md` (detailed review)
-2. `/Users/arthurkeen/hardware-er/docs/ER_LIBRARY_EMAIL.md` (make fixes here)
-3. `/Users/arthurkeen/hardware-er/docs/VALIDATION_AND_TECHNICAL_SPEC.md` (add methodology)
+1. `./research/HARDWARE_ER_FINAL_REVIEW.md` (detailed review)
+2. `./hardware-er/docs/ER_LIBRARY_EMAIL.md` (make fixes here)
+3. `./hardware-er/docs/VALIDATION_AND_TECHNICAL_SPEC.md` (add methodology)
 
 **Next step:** Make 3 fixes, then send to ER Library maintainers!
 

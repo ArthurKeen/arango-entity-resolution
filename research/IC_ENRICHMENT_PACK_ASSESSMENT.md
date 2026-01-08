@@ -3,7 +3,7 @@
 **Date:** January 2, 2026 
 **Reviewer:** Arango Entity Resolution Library Maintainer Perspective 
 **Source Project:** OR1200 Knowledge Graph (Hardware-ER) 
-**Package Location:** `/Users/arthurkeen/hardware-er/ic_enrichment/`
+**Package Location:** `./hardware-er/ic_enrichment/`
 
 ---
 

@@ -205,7 +205,7 @@ The code is **production-ready** because:
 
 ### Start Test Container (if not running)
 ```bash
-cd /Users/arthurkeen/code/arango-entity-resolution
+cd .
 docker-compose -f docker-compose.test.yml up -d
 ```
 

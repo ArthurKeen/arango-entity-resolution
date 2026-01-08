@@ -1,6 +1,21 @@
 # ArangoDB Advanced Entity Resolution System
 
-**Current Version**: 3.0.0-stable | [Version History](VERSION_HISTORY.md) | [Changelog](CHANGELOG.md)
+**Current Version**: 3.1.0-stable | [Version History](VERSION_HISTORY.md) | [Changelog](CHANGELOG.md)
+
+## What's New in v3.1
+
+Version 3.1 introduces **Entity Resolution Enrichments** - specialized components for technical, hierarchical, and domain-specific entity resolution:
+
+### Entity Resolution Enrichments
+- **`TypeCompatibilityFilter`** - Pre-filter candidates by compatibility matrix to prevent nonsensical matches
+- **`HierarchicalContextResolver`** - Use parent context to disambiguate similar names in hierarchical data
+- **`AcronymExpansionHandler`** - Handle domain-specific abbreviations and acronyms during search
+- **`RelationshipProvenanceSweeper`** - Remap relationships through consolidation with full audit trails
+- **Cross-Domain Support** - Validated on Hardware ER and Medical domains
+
+[Enrichments Guide](docs/enrichments.md) | [Examples](examples/enrichments/domain_agnostic_examples.py)
+
+---
 
 ## What's New in v3.0
 

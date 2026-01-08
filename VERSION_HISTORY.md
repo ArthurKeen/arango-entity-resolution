@@ -4,7 +4,25 @@ This document provides a clear timeline of major library versions to distinguish
 
 ---
 
-## Version 3.0.0-stable (CURRENT) - December 2025
+## Version 3.1.0-stable (CURRENT) - January 2026
+
+**Status**: **PRODUCTION READY**
+
+### Major Features
+
+**Entity Resolution Enrichments**:
+- `TypeCompatibilityFilter` - Pre-filter candidates by type to prevent nonsensical matches
+- `HierarchicalContextResolver` - Use parent context to disambiguate similar names in hierarchical data
+- `AcronymExpansionHandler` - Handle domain-specific abbreviations and acronyms during search
+- `RelationshipProvenanceSweeper` - Remap relationships through consolidation with full audit trails
+
+**Improvements**:
+- Standalone enrichment modules with lazy config loading (no database required for utility modules)
+- Cross-domain validation on Hardware ER and Medical domains
+
+---
+
+## Version 3.0.0-stable - December 2025
 
 **Status**: **PRODUCTION READY**
 

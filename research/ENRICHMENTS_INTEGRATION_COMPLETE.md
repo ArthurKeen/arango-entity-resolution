@@ -50,7 +50,7 @@ Remove or comment out the local `ic_enrichment` reference and add:
 
 Or for local development:
 ```
--e /Users/arthurkeen/code/arango-entity-resolution
+-e .
 ```
 
 ### Step 3: Remove the local `ic_enrichment/` directory
@@ -138,7 +138,7 @@ python test_library_import.py
 
 If you encounter any issues during migration, check:
 
-1. Python path is set correctly: `export PYTHONPATH=/Users/arthurkeen/code/arango-entity-resolution/src:$PYTHONPATH`
+1. Python path is set correctly: `export PYTHONPATH=./src:$PYTHONPATH`
 2. The ER library repo is up to date: `git pull origin main`
 3. If you get config errors, ensure `USE_DEFAULT_PASSWORD=true` is set (though this should no longer be needed)
 

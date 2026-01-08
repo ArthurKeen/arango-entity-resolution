@@ -41,6 +41,12 @@ This directory contains academic papers, research notes, and analysis related to
 - Reduction ratio and pairs completeness for blocking
 - Scalability and performance benchmarks
 
+### 6. Entity Resolution Enrichments
+- **Hardware ER Assessment**: [HARDWARE_ER_FINAL_REVIEW.md](HARDWARE_ER_FINAL_REVIEW.md)
+- **Integration Summary**: [ENRICHMENTS_INTEGRATION_COMPLETE.md](ENRICHMENTS_INTEGRATION_COMPLETE.md)
+- **Technical TL;DR**: [HARDWARE_ER_TLDR.md](HARDWARE_ER_TLDR.md)
+- **Contribution Checklist**: [CONTRIBUTION_CHECKLIST.md](CONTRIBUTION_CHECKLIST.md)
+
 ## Academic Papers Referenced in PRD
 
 The PRD identifies several key foundational papers. Research notes are now available for the core papers:

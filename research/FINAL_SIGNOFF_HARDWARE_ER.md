@@ -205,7 +205,7 @@ validation/validation_results_hardware.json
 **Recommendation:** Add this file (it's validation output, should be tracked)
 
 ```bash
-cd /Users/arthurkeen/hardware-er
+cd ./hardware-er
 git add validation/validation_results_hardware.json
 git commit -m "Add validation results for hardware domain"
 git push

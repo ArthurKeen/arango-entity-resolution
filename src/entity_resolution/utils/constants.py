@@ -262,7 +262,10 @@ INDUSTRY_CONSTANTS = {
 }
 
 # Version Information
-# v3.0.0-stable: Current production release
+# v3.1.0-stable: Current production release
+#   - Includes Entity Resolution Enrichments (TypeCompatibilityFilter, etc.)
+#   - Standalone enrichment modules with lazy config loading
+# v3.0.0-stable: Previous production release
 #   - Includes AddressERService, CrossCollectionMatchingService
 #   - Vector search (EmbeddingService, VectorBlockingStrategy)
 #   - WCC performance optimization (40-100x speedup)
@@ -271,7 +274,7 @@ INDUSTRY_CONSTANTS = {
 # See VERSION_HISTORY.md for detailed version timeline
 VERSION_INFO = {
     'major': 3,
-    'minor': 0,
+    'minor': 1,
     'patch': 0,
     'release': 'stable'
 }

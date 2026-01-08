@@ -232,7 +232,7 @@ Proven patterns from production use:
 ### 1. Test with Your Data
 
 ```bash
-cd /Users/arthurkeen/code/arango-entity-resolution
+cd .
 python examples/enhanced_er_examples.py
 ```
 
