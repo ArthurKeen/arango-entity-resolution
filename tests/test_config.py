@@ -56,7 +56,8 @@ class TestDatabaseConfig:
         'ARANGO_PORT': '9999',
         'ARANGO_USERNAME': 'testuser',
         'ARANGO_ROOT_PASSWORD': 'testpass',
-        'ARANGO_DATABASE': 'testdb'
+        'ARANGO_DATABASE': 'testdb',
+        'ARANGO_PASSWORD': ''  # Clear this to avoid conflicts
     })
     def test_from_env_all_variables(self):
         """Test from_env with all environment variables."""

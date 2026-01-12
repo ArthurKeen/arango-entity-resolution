@@ -354,8 +354,7 @@ class ConfigurableERPipeline:
             db=self.db,
             edge_collection=self.config.edge_collection,
             cluster_collection=self.config.cluster_collection,
-            min_cluster_size=self.config.clustering.min_cluster_size,
-            algorithm=self.config.clustering.wcc_algorithm
+            min_cluster_size=self.config.clustering.min_cluster_size
         )
         
         clusters = clustering_service.cluster(

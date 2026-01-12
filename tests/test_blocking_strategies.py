@@ -178,8 +178,8 @@ class TestCollectBlockingStrategy:
         
         query = strategy._build_collect_query()
         
-        assert "LET zip5 = LEFT(d.postal_code, 5)" in query
-        assert "COLLECT zip5 = zip5, state = d.state" in query
+        assert "LET _computed_zip5 = LEFT(d.postal_code, 5)" in query
+        assert "COLLECT zip5 = _computed_zip5, state = d.state" in query
     
     def test_repr(self, db):
         """Test string representation."""
