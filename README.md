@@ -557,22 +557,37 @@ The project is organized into logical modules for maintainability and scalabilit
 - **Documentation**: API documentation and presentation materials
 - **Code Quality**: Centralized configuration, no duplication, type safety
 
+## Installation
+
+### As a Library (Recommended)
+You can install the system directly from the repository using `pip`:
+
+```bash
+# Basic installation
+pip install arango-entity-resolution
+
+# With ML features (for vector search)
+pip install "arango-entity-resolution[ml]"
+
+# For development
+pip install -e ".[dev,test]"
+```
+
 ## Getting Started
 
-### Quick Setup for Testing
+### Quick Start with CLI
+After installation, you can run a complete entity resolution pipeline from the command line:
 
-1. **Prerequisites**: Ensure you have Docker, Docker Compose, and Python 3.8+ installed
-2. **Automated Setup**: Run the setup script to get started immediately
 ```bash
-./scripts/setup.sh
-```
-3. **Access ArangoDB**: Open http://localhost:8529 (username: `root`, password: `testpassword123`)
-4. **Test the System**: 
-```bash
-python3 scripts/crud/crud_operations.py count --collection customers
+arango-er run --config config/er_config.example.yaml
 ```
 
-For detailed setup instructions, see [Testing Guide](docs/TESTING.md).
+To launch the interactive demo:
+```bash
+arango-er-demo
+```
+
+### Quick Setup for Testing (Legacy/Manual)
 
 ## Performance & Scalability
 

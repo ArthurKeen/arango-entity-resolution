@@ -40,7 +40,11 @@ Current test coverage: **~80%** (estimated)
 
 1. **Install Dependencies**:
 ```bash
-pip install -r requirements.txt
+# Recommended: install as a library in editable mode
+pip install -e ".[test]"
+
+# Alternative: install from requirements file
+# pip install -r requirements.txt
 ```
 
 2. **ArangoDB Container** (for integration tests):
