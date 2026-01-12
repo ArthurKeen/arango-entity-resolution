@@ -276,15 +276,18 @@ VERSION_INFO = {
     'major': 3,
     'minor': 1,
     'patch': 0,
-    'release': 'stable'
+    'release': ''
 }
 
-__version__ = "3.1.0-stable"
+__version__ = "3.1.0"
 
 def get_version_string() -> str:
     """Get formatted version string"""
     v = VERSION_INFO
-    return f"{v['major']}.{v['minor']}.{v['patch']}-{v['release']}"
+    version = f"{v['major']}.{v['minor']}.{v['patch']}"
+    if v['release']:
+        version = f"{version}-{v['release']}"
+    return version
 
 def get_database_url(host: str = None, port: int = None) -> str:
     """Get formatted database URL"""
