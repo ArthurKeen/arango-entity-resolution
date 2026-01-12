@@ -28,10 +28,10 @@ except ImportError:
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.entity_resolution.utils.config import get_config
-from src.entity_resolution.utils.logging import get_logger
-from src.entity_resolution.utils.database import get_database_manager
-from src.entity_resolution.utils.constants import DEFAULT_DATABASE_CONFIG
+from entity_resolution.utils.config import get_config
+from entity_resolution.utils.logging import get_logger
+from entity_resolution.utils.database import get_database_manager
+from entity_resolution.utils.constants import DEFAULT_DATABASE_CONFIG
 
 
 class DatabaseInspector:

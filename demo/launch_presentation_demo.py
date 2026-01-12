@@ -220,7 +220,7 @@ def environment_check():
     # Check database connection (optional)
     print("\n[DATABASE] Database Connection:")
     try:
-        from src.entity_resolution.utils.config import get_config
+        from entity_resolution.utils.config import get_config
         config = get_config()
         print(f"  [INFO] Host: {config.db.host}:{config.db.port}")
         print(f"  [INFO] Database: {config.db.database}")

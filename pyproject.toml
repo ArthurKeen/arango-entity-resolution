@@ -58,6 +58,9 @@ pattern = "__version__ = \"(?P<version>[^\"]+)\""
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/entity_resolution"]
+# Ensure 'src' is treated as a source directory so the package is just 'entity_resolution'
+[tool.hatch.build.targets.wheel.sources]
+"src" = ""
 
 [project.scripts]
 arango-er = "entity_resolution.cli:main"

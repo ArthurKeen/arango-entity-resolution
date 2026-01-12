@@ -16,9 +16,9 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.entity_resolution.core.entity_resolver import EntityResolutionPipeline
-from src.entity_resolution.utils.config import get_config
-from src.entity_resolution.utils.logging import get_logger
+from entity_resolution.core.entity_resolver import EntityResolutionPipeline
+from entity_resolution.utils.config import get_config
+from entity_resolution.utils.logging import get_logger
 
 
 class DemoWalkthrough:

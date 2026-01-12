@@ -208,7 +208,7 @@ All test files have been validated:
 
 1. **Install Dependencies**:
 ```bash
-pip install -r requirements.txt
+pip install -e ".[test]"
 ```
 
 2. **Verify ArangoDB**:

@@ -159,7 +159,7 @@ The `~/data` directory is mounted to `/data` in the container, so:
 
 1. Install dependencies (if not already installed):
 ```bash
-pip install -r requirements.txt
+pip install -e ".[test]"
 ```
 
 2. Run tests:

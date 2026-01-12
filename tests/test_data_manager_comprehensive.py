@@ -18,8 +18,8 @@ import pytest
 import json
 import tempfile
 from unittest.mock import Mock, MagicMock, patch, mock_open
-from src.entity_resolution.data.data_manager import DataManager, PANDAS_AVAILABLE
-from src.entity_resolution.utils.config import Config
+from entity_resolution.data.data_manager import DataManager, PANDAS_AVAILABLE
+from entity_resolution.utils.config import Config
 
 
 class TestDataManagerInitialization:

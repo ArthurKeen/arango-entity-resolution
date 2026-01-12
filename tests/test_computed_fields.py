@@ -12,7 +12,7 @@ Tests cover:
 
 import pytest
 from unittest.mock import Mock, MagicMock
-from src.entity_resolution.strategies import CollectBlockingStrategy
+from entity_resolution.strategies import CollectBlockingStrategy
 
 
 @pytest.fixture

@@ -446,8 +446,7 @@ python-version: 3.11
 
 - name: Install dependencies
 run: |
-pip install -r requirements.txt
-pip install pytest pytest-cov
+pip install -e ".[test]"
 
 - name: Run unit tests
 run: pytest -m unit

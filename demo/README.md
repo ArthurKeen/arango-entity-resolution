@@ -18,18 +18,11 @@ This comprehensive demo package showcases the business value and technical excel
 ### One-Minute Launch
 
 ```bash
-# 1. Navigate to project root
-cd /path/to/arango-entity-resolution
+# 1. Install as a library
+pip install arango-entity-resolution
 
-# 2. Launch demo launcher
-python demo/launch_presentation_demo.py
-
-# 3. Choose your demo mode:
-# Option 1: Interactive Presentation (45-60 min) - Full control for live presentations
-# Option 2: Database Inspector - Show actual data states
-# Option 3: Quick Demo (15-20 min) - Time-constrained presentations
-# Option 4: Automated Demo (5-10 min) - Testing and validation
-# Option 6: Environment Check - Verify setup
+# 2. Launch demo directly
+arango-er-demo
 ```
 
 ### Complete Setup (15 minutes)

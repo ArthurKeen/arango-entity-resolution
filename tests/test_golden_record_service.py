@@ -12,8 +12,8 @@ Tests cover:
 
 import pytest
 from datetime import datetime
-from src.entity_resolution.services.golden_record_service import GoldenRecordService
-from src.entity_resolution.utils.config import Config
+from entity_resolution.services.golden_record_service import GoldenRecordService
+from entity_resolution.utils.config import Config
 
 
 class TestGoldenRecordServiceBasics:

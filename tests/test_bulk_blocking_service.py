@@ -16,8 +16,8 @@ Tests cover:
 
 import pytest
 from unittest.mock import Mock, MagicMock, patch
-from src.entity_resolution.services.bulk_blocking_service import BulkBlockingService
-from src.entity_resolution.utils.config import Config
+from entity_resolution.services.bulk_blocking_service import BulkBlockingService
+from entity_resolution.utils.config import Config
 
 
 class TestBulkBlockingServiceBasics:
@@ -45,7 +45,7 @@ class TestBulkBlockingServiceBasics:
 class TestDatabaseConnection:
     """Test database connection functionality."""
     
-    @patch('src.entity_resolution.services.bulk_blocking_service.ArangoClient')
+    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
     def test_connect_success(self, mock_arango_client):
         """Test successful database connection."""
         # Setup mocks
@@ -65,7 +65,7 @@ class TestDatabaseConnection:
         mock_arango_client.assert_called_once()
         mock_client_instance.db.assert_called_once()
     
-    @patch('src.entity_resolution.services.bulk_blocking_service.ArangoClient')
+    @patch('entity_resolution.services.bulk_blocking_service.ArangoClient')
     def test_connect_failure(self, mock_arango_client):
         """Test database connection failure."""
         mock_arango_client.side_effect = Exception("Connection failed")

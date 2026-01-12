@@ -185,9 +185,9 @@ class DemoDatabaseSetup:
         try:
             # Import the database setup
             sys.path.insert(0, str(Path(__file__).parent.parent))
-            from src.entity_resolution.utils.database import DatabaseManager
-            from src.entity_resolution.data.data_manager import DataManager
-            from src.entity_resolution.core.entity_resolver import EntityResolutionPipeline
+            from entity_resolution.utils.database import DatabaseManager
+            from entity_resolution.data.data_manager import DataManager
+            from entity_resolution.core.entity_resolver import EntityResolutionPipeline
             
             # Initialize database manager
             db_manager = DatabaseManager()

@@ -16,8 +16,8 @@ Tests cover:
 
 import pytest
 from unittest.mock import Mock, MagicMock, patch
-from src.entity_resolution.core.entity_resolver import EntityResolutionPipeline, EntityResolver
-from src.entity_resolution.utils.config import Config
+from entity_resolution.core.entity_resolver import EntityResolutionPipeline, EntityResolver
+from entity_resolution.utils.config import Config
 
 
 class TestPipelineInitialization:
@@ -138,8 +138,8 @@ class TestDataLoading:
         assert "data_loading" in pipeline.pipeline_stats
         assert pipeline.pipeline_stats["data_loading"]["records_loaded"] == 100
     
-    @patch('src.entity_resolution.core.entity_resolver.PANDAS_AVAILABLE', True)
-    @patch('src.entity_resolution.core.entity_resolver.pd')
+    @patch('entity_resolution.core.entity_resolver.PANDAS_AVAILABLE', True)
+    @patch('entity_resolution.core.entity_resolver.pd')
     def test_load_data_from_dataframe(self, mock_pd):
         """Test loading data from DataFrame."""
         pipeline = EntityResolutionPipeline()

@@ -22,9 +22,9 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.entity_resolution.services.bulk_blocking_service import BulkBlockingService
-from src.entity_resolution.utils.config import get_config
-from src.entity_resolution.utils.logging import get_logger
+from entity_resolution.services.bulk_blocking_service import BulkBlockingService
+from entity_resolution.utils.config import get_config
+from entity_resolution.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
