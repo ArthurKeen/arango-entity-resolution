@@ -54,7 +54,8 @@ dev = [
 
 [tool.hatch.version]
 path = "src/entity_resolution/utils/constants.py"
-pattern = "'major': (?P<major>\\d+),\\s+'minor': (?P<minor>\\d+),\\s+'patch': (?P<patch>\\d+),"
+pattern = "'major': (?P<major>\\d+),\\s+'minor': (?P<minor>\\d+),\\s+'patch': (?P<patch>\\d+),\\s+'release': '(?P<release>[^']+)'"
+template = "{major}.{minor}.{patch}-{release}"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/entity_resolution"]
