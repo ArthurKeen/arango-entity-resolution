@@ -26,6 +26,8 @@ jobs:
         python -m pip install -e ".[test,ml]"
         
     - name: Run unit tests
+      env:
+        USE_DEFAULT_PASSWORD: "true"
       run: |
         pytest -v -m unit
         

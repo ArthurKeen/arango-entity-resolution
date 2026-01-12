@@ -14,6 +14,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from entity_resolution.utils.config import Config, get_config
 from entity_resolution.services.bulk_blocking_service import BulkBlockingService
 
+# Ensure unit tests don't fail due to missing environment variables
+os.environ.setdefault("USE_DEFAULT_PASSWORD", "true")
+
 
 # Configure pytest
 def pytest_configure(config):
@@ -33,6 +36,9 @@ def pytest_configure(config):
 @pytest.fixture(scope="session")
 def test_config():
     """Provide test configuration"""
+    # Ensure we have a valid config for unit tests without environment lookups
+    # setting USE_DEFAULT_PASSWORD=true makes get_config() not fail
+    os.environ["USE_DEFAULT_PASSWORD"] = "true"
     config = get_config()
     
     # Override with test-specific settings

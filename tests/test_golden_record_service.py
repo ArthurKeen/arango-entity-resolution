@@ -13,7 +13,7 @@ Tests cover:
 import pytest
 from datetime import datetime
 from entity_resolution.services.golden_record_service import GoldenRecordService
-from entity_resolution.utils.config import Config
+from entity_resolution.utils.config import Config, DatabaseConfig
 
 
 class TestGoldenRecordServiceBasics:
@@ -30,7 +30,8 @@ class TestGoldenRecordServiceBasics:
     
     def test_initialization_with_custom_config(self):
         """Test service initializes with custom configuration."""
-        config = Config()
+        db_config = DatabaseConfig(password="test")
+        config = Config(db_config=db_config)
         service = GoldenRecordService(config=config)
         
         assert service.config == config

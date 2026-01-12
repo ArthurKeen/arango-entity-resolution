@@ -17,7 +17,15 @@ Tests cover:
 import pytest
 from unittest.mock import Mock, MagicMock, patch
 from entity_resolution.services.bulk_blocking_service import BulkBlockingService
-from entity_resolution.utils.config import Config
+from entity_resolution.utils.config import Config, DatabaseConfig
+
+
+@pytest.fixture(autouse=True)
+def mock_env_config(monkeypatch):
+    """Automatically provide a valid config for all tests to avoid env lookups."""
+    dummy_config = Config(db_config=DatabaseConfig(password="dummy"))
+    monkeypatch.setattr("entity_resolution.services.bulk_blocking_service.get_config", lambda: dummy_config)
+    return dummy_config
 
 
 class TestBulkBlockingServiceBasics:

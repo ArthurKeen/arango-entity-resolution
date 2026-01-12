@@ -36,7 +36,7 @@ class DatabaseConfig:
             ValueError: If password is not provided and not in test mode
         """
         # Get password from environment (multiple sources for compatibility)
-        password = os.getenv("ARANGO_PASSWORD", os.getenv("ARANGO_ROOT_PASSWORD", ""))
+        password = os.getenv("ARANGO_PASSWORD") or os.getenv("ARANGO_ROOT_PASSWORD")
         
         # Fall back to default test password ONLY if explicitly set (docker local development)
         if not password:
