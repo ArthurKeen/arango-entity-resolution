@@ -7,7 +7,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 ## Quick Navigation
 
 ### Getting Started
-- [Quick Start Guide](../QUICK_START_GUIDE.md) - Get up and running in 5 minutes
+- [Quick Start Guide](guides/QUICK_START.md) - Get up and running in 5 minutes
 - [Main README](../README.md) - Project overview and installation
 
 ### API Documentation
@@ -123,7 +123,7 @@ For version history, see [CHANGELOG.md](../CHANGELOG.md)
 
 ## Need Help?
 
-1. **Getting Started:** Read the [Quick Start Guide](../QUICK_START_GUIDE.md)
+1. **Getting Started:** Read the [Quick Start Guide](guides/QUICK_START.md)
 2. **API Questions:** Check the [API Reference](api/API_REFERENCE.md)
 3. **Migration:** See the [Migration Guide](guides/MIGRATION_GUIDE_V3.md)
 4. **Examples:** Review [examples/enhanced_er_examples.py](../examples/enhanced_er_examples.py)

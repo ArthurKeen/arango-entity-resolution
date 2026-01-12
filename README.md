@@ -60,7 +60,7 @@ Version 3.0 introduces **general-purpose ER components** extracted from producti
 
 ---
 
-## What's New in v2.1 - Phase 2: Vector Search
+## What's New in v2.1
 
 **NEW** - Tier 3 (vector blocking) for semantic similarity-based entity resolution using vector embeddings:
 
@@ -829,7 +829,7 @@ Complete documentation is available in the [`docs/`](docs/) directory:
 
 ### Quick Links
 - **[Documentation Index](docs/README.md)** - Complete documentation navigation
-- **[Quick Start Guide](QUICK_START_GUIDE.md)** - Get started in 5 minutes
+- **[Quick Start Guide](docs/guides/QUICK_START.md)** - Get started in 5 minutes
 - **[API Reference](docs/api/API_REFERENCE.md)** - Complete API documentation
 - **[Migration Guide v3.0](docs/guides/MIGRATION_GUIDE_V3.md)** - Upgrade from v1.x or v2.x
 
