@@ -123,7 +123,7 @@
 - ConfigurableERPipeline (via integration) 
 
 ### Complete Workflows
-- Blocking → Similarity → Edges → Clustering 
+- Blocking -> Similarity -> Edges -> Clustering 
 - Address ER pipeline 
 - Performance benchmarks 
 

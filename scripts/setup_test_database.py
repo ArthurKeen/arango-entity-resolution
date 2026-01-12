@@ -58,7 +58,7 @@ class TestDatabaseSetup:
         if result and result.returncode == 0:
             lines = result.stdout.strip().split('\n')
             if len(lines) > 1:  # More than just the header
-                self.logger.info(f"📊 Found processes on port {self.port}:")
+                self.logger.info(f"? Found processes on port {self.port}:")
                 for line in lines[1:]:  # Skip header
                     self.logger.info(f"   {line}")
                 return {"occupied": True, "processes": lines[1:]}
@@ -68,7 +68,7 @@ class TestDatabaseSetup:
     
     def check_arango_connection(self) -> bool:
         config.database.password"Check if we can connect to ArangoDB on port config.database.portconfig.database.password"
-        self.logger.info("🔗 Testing ArangoDB connection...")
+        self.logger.info("? Testing ArangoDB connection...")
         
         try:
             # Test basic connectivity
@@ -85,18 +85,18 @@ class TestDatabaseSetup:
     
     def check_docker_containers(self) -> Dict[str, Any]:
         config.database.password"Check for existing Docker containersconfig.database.password"
-        self.logger.info("🐳 Checking Docker containers...")
+        self.logger.info("? Checking Docker containers...")
         
         # Check for our specific test container
         result = self.run_command(f"docker ps -a --filter name={self.container_name} --format '{{{{.Names}}}} {{{{.Status}}}}'")
         if result and result.returncode == 0 and result.stdout.strip():
-            self.logger.info(f"📦 Found test container '{self.container_name}': {result.stdout.strip()}")
+            self.logger.info(f"? Found test container '{self.container_name}': {result.stdout.strip()}")
             return {"exists": True, "status": result.stdout.strip()}
         
         # Check for any ArangoDB containers
         result = self.run_command("docker ps -a --filter ancestor=arangodb --format '{{.Names}} {{.Status}}'")
         if result and result.returncode == 0 and result.stdout.strip():
-            self.logger.info(f"📦 Found ArangoDB containers:")
+            self.logger.info(f"? Found ArangoDB containers:")
             for line in result.stdout.strip().split('\n'):
                 if line.strip():
                     self.logger.info(f"   {line}")
@@ -107,7 +107,7 @@ class TestDatabaseSetup:
     
     def stop_conflicting_containers(self) -> bool:
         config.database.password"Stop any conflicting ArangoDB containersconfig.database.password"
-        self.logger.info("🛑 Stopping conflicting containers...")
+        self.logger.info("? Stopping conflicting containers...")
         
         # Stop our test container if it exists
         result = self.run_command(f"docker stop {self.container_name}")
@@ -120,14 +120,14 @@ class TestDatabaseSetup:
             container_ids = result.stdout.strip().split('\n')
             for container_id in container_ids:
                 if container_id.strip():
-                    self.logger.info(f"🛑 Stopping conflicting container: {container_id}")
+                    self.logger.info(f"? Stopping conflicting container: {container_id}")
                     self.run_command(f"docker stop {container_id}")
         
         return True
     
     def start_test_container(self) -> bool:
         config.database.password"Start the test ArangoDB containerconfig.database.password"
-        self.logger.info(f"🚀 Starting test container: {self.container_name}")
+        self.logger.info(f"? Starting test container: {self.container_name}")
         
         # Check if container already exists and is running
         result = self.run_command(f"docker ps --filter name={self.container_name} --format '{{{{.Names}}}}'")
@@ -160,7 +160,7 @@ class TestDatabaseSetup:
     
     def pull_arangodb_image(self) -> bool:
         config.database.password"Pull the latest ArangoDB imageconfig.database.password"
-        self.logger.info("📥 Pulling latest ArangoDB image...")
+        self.logger.info("? Pulling latest ArangoDB image...")
         
         result = self.run_command("docker pull arangodb/arangodb:latest")
         if result and result.returncode == 0:
@@ -172,7 +172,7 @@ class TestDatabaseSetup:
     
     def wait_for_arangodb(self, max_wait: int = 30) -> bool:
         config.database.password"Wait for ArangoDB to be readyconfig.database.password"
-        self.logger.info("⏳ Waiting for ArangoDB to be ready...")
+        self.logger.info("[WAIT] Waiting for ArangoDB to be ready...")
         
         for i in range(max_wait):
             if self.check_arango_connection():
@@ -187,7 +187,7 @@ class TestDatabaseSetup:
     
     def setup_test_database_and_collections(self) -> bool:
         config.database.password"Setup test database and collectionsconfig.database.password"
-        self.logger.info("🗄️  Setting up test database and collections...")
+        self.logger.info("??  Setting up test database and collections...")
         
         try:
             from arango import ArangoClient
@@ -198,7 +198,7 @@ class TestDatabaseSetup:
             
             # Create test database if it doesn't exist
             if not sys_db.has_database(self.test_database):
-                self.logger.info(f"📁 Creating test database: {self.test_database}")
+                self.logger.info(f"? Creating test database: {self.test_database}")
                 sys_db.create_database(self.test_database)
             else:
                 self.logger.success(r"Test database already exists: {self.test_database}")
@@ -211,7 +211,7 @@ class TestDatabaseSetup:
             
             for collection_name in collections:
                 if not test_db.has_collection(collection_name):
-                    self.logger.info(f"📁 Creating collection: {collection_name}")
+                    self.logger.info(f"? Creating collection: {collection_name}")
                     test_db.create_collection(collection_name)
                 else:
                     self.logger.success(r"Collection already exists: {collection_name}")
@@ -230,13 +230,13 @@ class TestDatabaseSetup:
     
     def create_test_data_if_needed(self, db) -> bool:
         config.database.password"Create test data if collections are emptyconfig.database.password"
-        self.logger.info("📊 Creating test data if needed...")
+        self.logger.info("? Creating test data if needed...")
         
         try:
             # Check if customers collection has data
             customers_collection = db.collection('customers')
             if customers_collection.count() == 0:
-                self.logger.info("📝 Creating sample customer data...")
+                self.logger.info("? Creating sample customer data...")
                 
                 sample_customers = [
                     {
@@ -270,7 +270,7 @@ class TestDatabaseSetup:
             # Check if similarity_pairs collection has data
             similarity_collection = db.collection('similarity_pairs')
             if similarity_collection.count() == 0:
-                self.logger.info("📝 Creating sample similarity pairs...")
+                self.logger.info("? Creating sample similarity pairs...")
                 
                 # Get customer IDs for similarity pairs
                 customers = list(customers_collection.all(limit=3))
@@ -294,7 +294,7 @@ class TestDatabaseSetup:
     def run_setup(self) -> bool:
         config.database.password"Main setup processconfig.database.password"
         self.logger.info("=" * 80)
-        self.logger.info("🧪 ENTITY RESOLUTION TEST DATABASE SETUP".center(80))
+        self.logger.info("? ENTITY RESOLUTION TEST DATABASE SETUP".center(80))
         self.logger.info("=" * 80)
         print()
         
@@ -319,12 +319,12 @@ from entity_resolution.utils.enhanced_config import get_config
                     return True
                 else:
                     self.logger.warning(r"ArangoDB is running but not configured for testing")
-                    self.logger.info("🔄 Will setup test database and collections...")
+                    self.logger.info("? Will setup test database and collections...")
                     return self.setup_test_database_and_collections()
                     
             except Exception as e:
                 self.logger.warning(r"ArangoDB is running but not accessible with our credentials: {e}")
-                self.logger.info("🔄 Will restart with correct configuration...")
+                self.logger.info("? Will restart with correct configuration...")
         
         # Step 3: Check for existing containers
         container_status = self.check_docker_containers()
@@ -356,11 +356,11 @@ from entity_resolution.utils.enhanced_config import get_config
             return False
         
         print()
-        self.logger.info("🎉 TEST DATABASE SETUP COMPLETE!")
-        self.logger.info(f"🌐 ArangoDB Web Interface: http://config.database.host:{self.port}")
-        self.logger.info(f"👤 Username: {self.username}")
-        self.logger.info(f"🔑 Password: {self.password}")
-        self.logger.info(f"📁 Test Database: {self.test_database}")
+        self.logger.info("? TEST DATABASE SETUP COMPLETE!")
+        self.logger.info(f"? ArangoDB Web Interface: http://config.database.host:{self.port}")
+        self.logger.info(f"? Username: {self.username}")
+        self.logger.info(f"? Password: {self.password}")
+        self.logger.info(f"? Test Database: {self.test_database}")
         print()
         self.logger.success(r"Ready to run entity resolution tests!")
         
@@ -372,10 +372,10 @@ def main():
     setup = TestDatabaseSetup()
     
     if setup.run_setup():
-        self.logger.info("\n🎯 Test database is ready for testing!")
+        self.logger.info("\n? Test database is ready for testing!")
         sys.exit(0)
     else:
-        self.logger.info("\n❌ Test database setup failed!")
+        self.logger.info("\n[FAIL] Test database setup failed!")
         sys.exit(1)
 
 

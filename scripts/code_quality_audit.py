@@ -147,7 +147,7 @@ class CodeQualityAuditor:
     
     def find_duplicate_code(self) -> List[Dict[str, Any]]:
         """Find duplicate code patterns."""
-        print("🔍 Analyzing duplicate code patterns...")
+        print("? Analyzing duplicate code patterns...")
         
         duplicates = []
         
@@ -175,7 +175,7 @@ class CodeQualityAuditor:
     
     def find_redundant_files(self) -> List[Dict[str, Any]]:
         """Find redundant files."""
-        print("🔍 Analyzing redundant files...")
+        print("? Analyzing redundant files...")
         
         redundant_files = []
         
@@ -214,7 +214,7 @@ class CodeQualityAuditor:
     
     def find_hardcoded_values(self) -> List[Dict[str, Any]]:
         """Find hardcoded values that should be in configuration."""
-        print("🔍 Analyzing hardcoded values...")
+        print("? Analyzing hardcoded values...")
         
         hardcoded_issues = []
         
@@ -258,7 +258,7 @@ class CodeQualityAuditor:
     
     def find_inconsistent_patterns(self) -> List[Dict[str, Any]]:
         """Find inconsistent coding patterns."""
-        print("🔍 Analyzing inconsistent patterns...")
+        print("? Analyzing inconsistent patterns...")
         
         inconsistencies = []
         
@@ -294,7 +294,7 @@ class CodeQualityAuditor:
     
     def find_unused_code(self) -> List[Dict[str, Any]]:
         """Find potentially unused code."""
-        print("🔍 Analyzing unused code...")
+        print("? Analyzing unused code...")
         
         unused_code = []
         
@@ -343,7 +343,7 @@ class CodeQualityAuditor:
     
     def analyze_file_organization(self) -> List[Dict[str, Any]]:
         """Analyze file organization issues."""
-        print("🔍 Analyzing file organization...")
+        print("? Analyzing file organization...")
         
         organization_issues = []
         
@@ -374,12 +374,12 @@ class CodeQualityAuditor:
     
     def run_comprehensive_audit(self) -> Dict[str, Any]:
         """Run comprehensive code quality audit."""
-        print("🧪 COMPREHENSIVE CODE QUALITY AUDIT")
+        print("? COMPREHENSIVE CODE QUALITY AUDIT")
         print("="*60)
         print(f"Timestamp: {datetime.now().isoformat()}")
         
         # Analyze all Python files
-        print("\n📊 Analyzing Python files...")
+        print("\n? Analyzing Python files...")
         for file_path in self.project_root.rglob("*.py"):
             if file_path.name.startswith('__'):
                 continue
@@ -399,7 +399,7 @@ class CodeQualityAuditor:
         # Generate summary
         total_issues = sum(len(issues) for issues in self.issues.values())
         
-        print(f"\n📊 AUDIT SUMMARY")
+        print(f"\n? AUDIT SUMMARY")
         print("="*40)
         print(f"Total Issues Found: {total_issues}")
         print(f"Duplicate Code: {len(self.issues['duplicate_code'])}")
@@ -422,7 +422,7 @@ class CodeQualityAuditor:
     
     def generate_cleanup_plan(self) -> Dict[str, Any]:
         """Generate a cleanup plan based on audit results."""
-        print("\n📋 GENERATING CLEANUP PLAN")
+        print("\n? GENERATING CLEANUP PLAN")
         print("="*40)
         
         cleanup_plan = {
@@ -488,11 +488,11 @@ def main():
                 "cleanup_plan": cleanup_plan
             }, f, indent=2, default=str)
         
-        print(f"\n📁 Detailed report saved: {report_file}")
+        print(f"\n? Detailed report saved: {report_file}")
         
         return 0
     except Exception as e:
-        print(f"❌ Code quality audit failed: {e}")
+        print(f"[FAIL] Code quality audit failed: {e}")
         return 1
 
 if __name__ == "__main__":

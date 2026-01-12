@@ -69,7 +69,7 @@ class GeographicBlockingStrategy(BlockingStrategy):
         pairs = strategy.generate_candidates()
         ```
     
-    Performance: Reduces comparisons from O(n²) to O(k×m²) where k = number
+    Performance: Reduces comparisons from O(n^2) to O(kxm^2) where k = number
     of regions and m = average entities per region
     """
     

@@ -73,7 +73,7 @@ pairs = strategy.generate_candidates()
 
 ---
 
-### 4. ℹ MISSING: Cross-References
+### 4. [INFO] MISSING: Cross-References
 
 **Issue**: Documents don't consistently reference each other
 
@@ -90,7 +90,7 @@ pairs = strategy.generate_candidates()
 
 ---
 
-### 5. ℹ INCONSISTENCY: Terminology
+### 5. [INFO] INCONSISTENCY: Terminology
 
 **Found**: Minor terminology variations
 

@@ -389,7 +389,7 @@ class TestVectorBlockingIntegration:
     """Integration tests for full vector blocking workflow"""
     
     def test_full_workflow(self, db, test_collection_name, setup_test_data):
-        """Test complete workflow: embed → block → verify"""
+        """Test complete workflow: embed -> block -> verify"""
         # Step 1: Generate embeddings
         embedding_service = EmbeddingService()
         emb_stats = embedding_service.ensure_embeddings_exist(

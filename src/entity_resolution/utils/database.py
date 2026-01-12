@@ -229,19 +229,19 @@ class ArangoBaseConnection(DatabaseMixin):
     
     def print_success(self, message: str) -> None:
         """Print success message with checkmark"""
-        print(f"✓ {message}")
+        print(f"[OK] {message}")
     
     def print_warning(self, message: str) -> None:
         """Print warning message with warning symbol"""
-        print(f"⚠ {message}")
+        print(f"[WARN] {message}")
     
     def print_error(self, message: str) -> None:
         """Print error message with X symbol"""
-        print(f"✗ {message}")
+        print(f"[X] {message}")
     
     def print_info(self, message: str) -> None:
         """Print info message with icon"""
-        print(f"📋 {message}")
+        print(f"? {message}")
 
 
 def get_default_connection_args() -> Dict[str, Any]:

@@ -8,7 +8,7 @@
 **URL**: https://dl.acm.org/doi/10.1145/3183713.3196926
 
 ## Relevance to Project
-**Rating**: ⭐⭐⭐⭐⭐ (Highest Priority)
+**Rating**: ***** (Highest Priority)
 
 This paper is directly relevant to our roadmap Phase 3 (Embeddings & Vector Search). It systematically explores deep learning architectures for entity matching, which is essential for implementing embedding-based blocking and similarity computation.
 
@@ -129,17 +129,17 @@ Based on paper's findings for structured + textual data:
 
 ```
 Input: Customer Record
-  ├─ Text Attributes (name, company, address)
-  │   └─ BiLSTM Encoder (128 hidden units)
-  │       └─ Attention Layer
-  │
-  ├─ Structured Attributes (phone, email, zip)
-  │   └─ MLP Encoder (64 hidden units)
-  │
-  └─ Combine
-      └─ Decomposable Attention
-          └─ Similarity MLP
-              └─ Sigmoid Output (match probability)
+  +- Text Attributes (name, company, address)
+  |   +- BiLSTM Encoder (128 hidden units)
+  |       +- Attention Layer
+  |
+  +- Structured Attributes (phone, email, zip)
+  |   +- MLP Encoder (64 hidden units)
+  |
+  +- Combine
+      +- Decomposable Attention
+          +- Similarity MLP
+              +- Sigmoid Output (match probability)
 ```
 
 ### 3. Integration with Existing Pipeline

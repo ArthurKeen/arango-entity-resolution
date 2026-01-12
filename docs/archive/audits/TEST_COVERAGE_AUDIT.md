@@ -11,16 +11,16 @@
 
 | Category | Files | Coverage Status | Priority |
 |----------|-------|-----------------|----------|
-| **Core Components** | 2 | 🟡 Partial | High |
-| **v3.0 New Components** | 4 | 🟢 Good | High |
-| **Services (v2.0+)** | 6 | 🟢 Good | High |
-| **Legacy Services** | 4 | 🟡 Partial | Medium |
-| **Strategies** | 3 | 🟢 Good | High |
-| **Utilities** | 8 | 🟡 Partial | Medium |
-| **Configuration** | 2 | 🟢 Good | High |
-| **Data & Demo** | 2 | 🟡 Partial | Low |
+| **Core Components** | 2 | ? Partial | High |
+| **v3.0 New Components** | 4 | ? Good | High |
+| **Services (v2.0+)** | 6 | ? Good | High |
+| **Legacy Services** | 4 | ? Partial | Medium |
+| **Strategies** | 3 | ? Good | High |
+| **Utilities** | 8 | ? Partial | Medium |
+| **Configuration** | 2 | ? Good | High |
+| **Data & Demo** | 2 | ? Partial | Low |
 
-**Overall Coverage**: 🟢 **~80%** (Estimated, after adding critical tests)
+**Overall Coverage**: ? **~80%** (Estimated, after adding critical tests)
 
 ---
 
@@ -28,7 +28,7 @@
 
 ### Well-Covered Components
 
-#### 1. **v3.0 New Components** 🟢
+#### 1. **v3.0 New Components** ?
 
 | Component | Source File | Test File | Coverage | Notes |
 |-----------|------------|-----------|----------|-------|
@@ -41,7 +41,7 @@
 
 ---
 
-#### 2. **v2.0 Enhanced Services** 🟢
+#### 2. **v2.0 Enhanced Services** ?
 
 | Component | Source File | Test File | Coverage | Notes |
 |-----------|------------|-----------|----------|-------|
@@ -54,7 +54,7 @@
 
 ---
 
-#### 3. **Utilities** 🟡
+#### 3. **Utilities** ?
 
 | Component | Source File | Test File | Coverage | Notes |
 |-----------|------------|-----------|----------|-------|
@@ -66,44 +66,44 @@
 | `logging.py` | `utils/logging.py` | **MISSING** | None | **Gap identified** |
 | `constants.py` | `utils/constants.py` | **MISSING** | None | **Gap identified** |
 
-**Status**: 🟡 **Partial** - Critical utilities missing tests
+**Status**: ? **Partial** - Critical utilities missing tests
 
 ---
 
 ### Partially Covered Components
 
-#### 4. **Core Components** 🟡
+#### 4. **Core Components** ?
 
 | Component | Source File | Test File | Coverage | Notes |
 |-----------|------------|-----------|----------|-------|
 | `ConfigurableERPipeline` | `core/configurable_pipeline.py` | **MISSING** | None | **Critical gap** |
-| `EntityResolver` | `core/entity_resolver.py` | `test_entity_resolver_*.py` (3 files) | 🟡 Partial | Multiple test files but may not cover all paths |
+| `EntityResolver` | `core/entity_resolver.py` | `test_entity_resolver_*.py` (3 files) | ? Partial | Multiple test files but may not cover all paths |
 
-**Status**: 🟡 **Partial** - ConfigurableERPipeline has no tests (critical)
-
----
-
-#### 5. **Legacy Services** 🟡
-
-| Component | Source File | Test File | Coverage | Notes |
-|-----------|------------|-----------|----------|-------|
-| `BlockingService` | `services/blocking_service.py` | `test_blocking_service.py` | 🟡 Partial | Legacy v1.x service |
-| `SimilarityService` | `services/similarity_service.py` | `test_similarity_service*.py` (3 files) | 🟡 Partial | Multiple test files |
-| `ClusteringService` | `services/clustering_service.py` | `test_clustering_service*.py` (3 files) | 🟡 Partial | Multiple test files |
-| `GoldenRecordService` | `services/golden_record_service.py` | `test_golden_record_service.py` | 🟡 Partial | Some coverage |
-
-**Status**: 🟡 **Partial** - Legacy services have tests but may not be comprehensive
+**Status**: ? **Partial** - ConfigurableERPipeline has no tests (critical)
 
 ---
 
-#### 6. **Data & Demo** 🟡
+#### 5. **Legacy Services** ?
 
 | Component | Source File | Test File | Coverage | Notes |
 |-----------|------------|-----------|----------|-------|
-| `DataManager` | `data/data_manager.py` | `test_data_manager_comprehensive.py` | 🟡 Partial | Some coverage |
+| `BlockingService` | `services/blocking_service.py` | `test_blocking_service.py` | ? Partial | Legacy v1.x service |
+| `SimilarityService` | `services/similarity_service.py` | `test_similarity_service*.py` (3 files) | ? Partial | Multiple test files |
+| `ClusteringService` | `services/clustering_service.py` | `test_clustering_service*.py` (3 files) | ? Partial | Multiple test files |
+| `GoldenRecordService` | `services/golden_record_service.py` | `test_golden_record_service.py` | ? Partial | Some coverage |
+
+**Status**: ? **Partial** - Legacy services have tests but may not be comprehensive
+
+---
+
+#### 6. **Data & Demo** ?
+
+| Component | Source File | Test File | Coverage | Notes |
+|-----------|------------|-----------|----------|-------|
+| `DataManager` | `data/data_manager.py` | `test_data_manager_comprehensive.py` | ? Partial | Some coverage |
 | `DemoManager` | `demo/demo_manager.py` | **MISSING** | None | **Gap identified** |
 
-**Status**: 🟡 **Partial** - Demo components not tested
+**Status**: ? **Partial** - Demo components not tested
 
 ---
 
@@ -121,7 +121,7 @@
 - Integration with all service types
 
 2. **`graph_utils.py`** (`utils/graph_utils.py`)
-- **Impact**: 🟠 **HIGH** - Used by multiple services
+- **Impact**: ? **HIGH** - Used by multiple services
 - **Status**: No test file exists
 - **Recommendation**: Create `test_graph_utils.py` with:
 - Vertex ID formatting tests
@@ -129,7 +129,7 @@
 - Normalization tests
 
 3. **`config.py`** (`utils/config.py`)
-- **Impact**: 🟠 **HIGH** - Core configuration system
+- **Impact**: ? **HIGH** - Core configuration system
 - **Status**: No test file exists
 - **Recommendation**: Create `test_config.py` with:
 - Environment variable loading tests
@@ -137,7 +137,7 @@
 - Password validation tests
 
 4. **`database.py`** (`utils/database.py`)
-- **Impact**: 🟠 **HIGH** - Database connection management
+- **Impact**: ? **HIGH** - Database connection management
 - **Status**: No test file exists
 - **Recommendation**: Create `test_database.py` with:
 - Connection tests
@@ -147,17 +147,17 @@
 #### Medium Priority Gaps
 
 5. **`logging.py`** (`utils/logging.py`)
-- **Impact**: 🟡 **MEDIUM** - Logging utilities
+- **Impact**: ? **MEDIUM** - Logging utilities
 - **Status**: No test file exists
 - **Recommendation**: Create `test_logging.py`
 
 6. **`constants.py`** (`utils/constants.py`)
-- **Impact**: 🟡 **MEDIUM** - Constants and defaults
+- **Impact**: ? **MEDIUM** - Constants and defaults
 - **Status**: No test file exists
 - **Recommendation**: Create `test_constants.py` for constant validation
 
 7. **`demo_manager.py`** (`demo/demo_manager.py`)
-- **Impact**: 🟢 **LOW** - Demo functionality
+- **Impact**: ? **LOW** - Demo functionality
 - **Status**: No test file exists
 - **Recommendation**: Create `test_demo_manager.py` (optional)
 
@@ -244,10 +244,10 @@ Located in `tests/archive_broken/`:
 | **config/** | 1 | 1 | 100% | |
 | **strategies/** | 3 | 3 | 100% | |
 | **services/** (v2.0+) | 4 | 4 | 100% | |
-| **services/** (legacy) | 4 | 4 | ~75% | 🟡 |
-| **core/** | 2 | 1 | 50% | 🟡 |
+| **services/** (legacy) | 4 | 4 | ~75% | ? |
+| **core/** | 2 | 1 | 50% | ? |
 | **utils/** | 8 | 2 | 25% | |
-| **data/** | 1 | 1 | ~60% | 🟡 |
+| **data/** | 1 | 1 | ~60% | ? |
 | **demo/** | 1 | 0 | 0% | |
 
 ### Overall Statistics
@@ -320,17 +320,17 @@ Located in `tests/archive_broken/`:
 - Test error handling
 - Test integration with all services
 
-2. **Create `test_graph_utils.py`** 🟠
+2. **Create `test_graph_utils.py`** ?
 - Test all vertex ID functions
 - Test edge cases
 - Test normalization
 
-3. **Create `test_config.py`** 🟠
+3. **Create `test_config.py`** ?
 - Test environment variable loading
 - Test password validation
 - Test default values
 
-4. **Create `test_database.py`** 🟠
+4. **Create `test_database.py`** ?
 - Test connection management
 - Test error handling
 - Test database operations
@@ -418,7 +418,7 @@ pytest tests/ --cov=src/entity_resolution --cov-report=html
 
 ## Conclusion
 
-**Current Status**: 🟡 **~70% Coverage** (Estimated)
+**Current Status**: ? **~70% Coverage** (Estimated)
 
 **Strengths**:
 - v3.0 components well tested

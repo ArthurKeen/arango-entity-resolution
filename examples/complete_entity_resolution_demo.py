@@ -665,7 +665,7 @@ def main():
         logger.info("All services connected successfully")
         
         # Run the complete pipeline
-        logger.info("\n🚀 Starting complete entity resolution pipeline...")
+        logger.info("\n? Starting complete entity resolution pipeline...")
         
         start_time = time.time()
         result = pipeline.run_complete_pipeline(
@@ -681,12 +681,12 @@ def main():
             # Save detailed report
             save_pipeline_report(result)
             
-            logger.info(f"\n✅ Complete entity resolution pipeline demo completed successfully!")
+            logger.info(f"\n[PASS] Complete entity resolution pipeline demo completed successfully!")
             logger.info(f"   Total execution time: {end_time - start_time:.3f} seconds")
             
             return True
         else:
-            logger.error(f"❌ Pipeline execution failed: {result.get('error', 'Unknown error')}")
+            logger.error(f"[FAIL] Pipeline execution failed: {result.get('error', 'Unknown error')}")
             return False
             
     except Exception as e:
@@ -707,7 +707,7 @@ def display_pipeline_results(result: Dict[str, Any], logger):
     print("="*80)
     
     # Summary statistics
-    print(f"📊 Processing Summary:")
+    print(f"? Processing Summary:")
     print(f"   Input records: {summary.get('input_records', 0):,}")
     print(f"   Candidate pairs: {summary.get('candidate_pairs', 0):,}")
     print(f"   Scored pairs: {summary.get('scored_pairs', 0):,}")
@@ -720,7 +720,7 @@ def display_pipeline_results(result: Dict[str, Any], logger):
         throughput = performance.get("throughput", {})
         efficiency = performance.get("efficiency", {})
         
-        print(f"\n⚡ Performance Metrics:")
+        print(f"\n[FAST] Performance Metrics:")
         print(f"   Processing speed: {throughput.get('records_per_second', 0):.0f} records/second")
         print(f"   Pair processing: {throughput.get('pairs_per_second', 0):.0f} pairs/second") 
         print(f"   Blocking efficiency: {efficiency.get('blocking_reduction_ratio', 0)*100:.1f}% pair reduction")
@@ -729,7 +729,7 @@ def display_pipeline_results(result: Dict[str, Any], logger):
     # Stage-by-stage breakdown
     stages = result.get("stages", {})
     
-    print(f"\n🔄 Stage-by-Stage Results:")
+    print(f"\n? Stage-by-Stage Results:")
     stage_names = ["data_loading", "blocking", "similarity", "clustering", "golden_records"]
     stage_labels = ["Data Loading", "Blocking", "Similarity", "Clustering", "Golden Records"]
     
@@ -737,16 +737,16 @@ def display_pipeline_results(result: Dict[str, Any], logger):
         stage_data = stages.get(name, {})
         if stage_data.get("success", False):
             time_taken = stage_data.get("processing_time", 0)
-            print(f"   {label}: ✅ {time_taken:.3f}s")
+            print(f"   {label}: [PASS] {time_taken:.3f}s")
         else:
-            print(f"   {label}: ❌ Failed")
+            print(f"   {label}: [FAIL] Failed")
     
     # Quality analysis
     data_stage = stages.get("data_loading", {})
     data_quality = data_stage.get("data_quality", {})
     overall_quality = data_quality.get("overall_quality", 0)
     
-    print(f"\n📈 Quality Analysis:")
+    print(f"\n? Quality Analysis:")
     print(f"   Data quality score: {overall_quality*100:.1f}%")
     
     # Clustering analysis
@@ -788,7 +788,7 @@ def save_pipeline_report(result: Dict[str, Any]):
     with open(report_path, 'w') as f:
         json.dump(enhanced_result, f, indent=2, default=str)
     
-    print(f"\n📄 Detailed report saved to: {report_path}")
+    print(f"\n? Detailed report saved to: {report_path}")
 
 
 if __name__ == "__main__":

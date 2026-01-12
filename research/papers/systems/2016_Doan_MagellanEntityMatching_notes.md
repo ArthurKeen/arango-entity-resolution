@@ -13,7 +13,7 @@ This paper discusses the challenges and solutions for building end-to-end entity
 ## Key System Design Principles
 
 ### End-to-End Pipeline Philosophy
-**Core Insight**: Entity matching is not just about algorithms—it's about building complete, usable systems.
+**Core Insight**: Entity matching is not just about algorithms--it's about building complete, usable systems.
 
 **Pipeline Components**:
 1. **Data Preparation**: Cleaning, standardization, schema alignment

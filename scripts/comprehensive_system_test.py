@@ -189,63 +189,63 @@ class ComprehensiveSystemTester:
     
     def run_comprehensive_test(self):
         """Run comprehensive system test."""
-        print("🧪 COMPREHENSIVE SYSTEM TEST")
+        print("? COMPREHENSIVE SYSTEM TEST")
         print("="*60)
         print(f"Timestamp: {datetime.now().isoformat()}")
         
         # Test logging framework
-        print("\n📊 Testing Logging Framework...")
+        print("\n? Testing Logging Framework...")
         logging_success = self.test_logging_framework()
         self.test_results["tests"]["logging_framework"] = {
             "success": logging_success,
             "description": "Enhanced logging framework with colored output and file logging"
         }
-        print(f"   {'✅' if logging_success else '❌'} Logging Framework: {'PASSED' if logging_success else 'FAILED'}")
+        print(f"   {'[PASS]' if logging_success else '[FAIL]'} Logging Framework: {'PASSED' if logging_success else 'FAILED'}")
         
         # Test configuration management
-        print("\n📊 Testing Configuration Management...")
+        print("\n? Testing Configuration Management...")
         config_success = self.test_configuration_management()
         self.test_results["tests"]["configuration_management"] = {
             "success": config_success,
             "description": "Enhanced configuration management with environment variable support"
         }
-        print(f"   {'✅' if config_success else '❌'} Configuration Management: {'PASSED' if config_success else 'FAILED'}")
+        print(f"   {'[PASS]' if config_success else '[FAIL]'} Configuration Management: {'PASSED' if config_success else 'FAILED'}")
         
         # Test error handling
-        print("\n📊 Testing Error Handling...")
+        print("\n? Testing Error Handling...")
         error_handling_success = self.test_error_handling()
         self.test_results["tests"]["error_handling"] = {
             "success": error_handling_success,
             "description": "Improved error handling with specific exception types"
         }
-        print(f"   {'✅' if error_handling_success else '❌'} Error Handling: {'PASSED' if error_handling_success else 'FAILED'}")
+        print(f"   {'[PASS]' if error_handling_success else '[FAIL]'} Error Handling: {'PASSED' if error_handling_success else 'FAILED'}")
         
         # Test unit tests
-        print("\n📊 Testing Unit Test Framework...")
+        print("\n? Testing Unit Test Framework...")
         unit_tests_success = self.test_unit_tests()
         self.test_results["tests"]["unit_tests"] = {
             "success": unit_tests_success,
             "description": "Comprehensive unit test framework with 13 test files"
         }
-        print(f"   {'✅' if unit_tests_success else '❌'} Unit Test Framework: {'PASSED' if unit_tests_success else 'FAILED'}")
+        print(f"   {'[PASS]' if unit_tests_success else '[FAIL]'} Unit Test Framework: {'PASSED' if unit_tests_success else 'FAILED'}")
         
         # Test configuration file
-        print("\n📊 Testing Configuration File...")
+        print("\n? Testing Configuration File...")
         config_file_success = self.test_configuration_file()
         self.test_results["tests"]["configuration_file"] = {
             "success": config_file_success,
             "description": "Configuration file with all required sections"
         }
-        print(f"   {'✅' if config_file_success else '❌'} Configuration File: {'PASSED' if config_file_success else 'FAILED'}")
+        print(f"   {'[PASS]' if config_file_success else '[FAIL]'} Configuration File: {'PASSED' if config_file_success else 'FAILED'}")
         
         # Test improvement scripts
-        print("\n📊 Testing Improvement Scripts...")
+        print("\n? Testing Improvement Scripts...")
         scripts_success = self.test_improvement_scripts()
         self.test_results["tests"]["improvement_scripts"] = {
             "success": scripts_success,
             "description": "All improvement scripts created and available"
         }
-        print(f"   {'✅' if scripts_success else '❌'} Improvement Scripts: {'PASSED' if scripts_success else 'FAILED'}")
+        print(f"   {'[PASS]' if scripts_success else '[FAIL]'} Improvement Scripts: {'PASSED' if scripts_success else 'FAILED'}")
         
         # Calculate summary
         all_tests = [
@@ -269,7 +269,7 @@ class ComprehensiveSystemTester:
         }
         
         # Print summary
-        print(f"\n📊 COMPREHENSIVE TEST SUMMARY")
+        print(f"\n? COMPREHENSIVE TEST SUMMARY")
         print("="*50)
         print(f"Total Tests: {total_tests}")
         print(f"Passed: {passed_tests}")
@@ -278,18 +278,18 @@ class ComprehensiveSystemTester:
         
         # Generate recommendations
         if success_rate == 100:
-            self.test_results["recommendations"].append("✅ All improvements working correctly - system is production ready")
+            self.test_results["recommendations"].append("[PASS] All improvements working correctly - system is production ready")
         elif success_rate >= 80:
-            self.test_results["recommendations"].append("✅ Most improvements working correctly - minor issues to address")
+            self.test_results["recommendations"].append("[PASS] Most improvements working correctly - minor issues to address")
         else:
-            self.test_results["recommendations"].append("❌ Multiple issues found - system needs attention")
+            self.test_results["recommendations"].append("[FAIL] Multiple issues found - system needs attention")
         
         # Save results
         report_file = f"comprehensive_system_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         with open(report_file, 'w') as f:
             json.dump(self.test_results, f, indent=2, default=str)
         
-        print(f"\n📁 Comprehensive test report saved: {report_file}")
+        print(f"\n? Comprehensive test report saved: {report_file}")
         
         return success_rate == 100
 
@@ -300,16 +300,16 @@ def main():
         success = tester.run_comprehensive_test()
         
         if success:
-            print("\n🎉 Comprehensive system test completed successfully!")
-            print("✅ All code quality improvements are working correctly!")
+            print("\n? Comprehensive system test completed successfully!")
+            print("[PASS] All code quality improvements are working correctly!")
             return 0
         else:
-            print("\n❌ Comprehensive system test failed!")
-            print("⚠️  Some improvements may need attention!")
+            print("\n[FAIL] Comprehensive system test failed!")
+            print("[WARN]?  Some improvements may need attention!")
             return 1
             
     except Exception as e:
-        print(f"❌ Comprehensive system test failed: {e}")
+        print(f"[FAIL] Comprehensive system test failed: {e}")
         return 1
 
 if __name__ == "__main__":

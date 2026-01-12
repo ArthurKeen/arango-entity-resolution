@@ -27,9 +27,9 @@ The Hardware-ER team has completed **all required work** and created a **model o
 - P.S. reiterates honesty (perfect tone)
 
 **Numbers (Lines 9-17):** CORRECT
-- Hardware: 0.50 → 1.00 precision (+50pp, +100% relative) 
-- Medical: 0.00 → 0.89 precision (baseline failed) 
-- F1 improvements: +238% hardware, baseline→0.94 medical 
+- Hardware: 0.50 -> 1.00 precision (+50pp, +100% relative) 
+- Medical: 0.00 -> 0.89 precision (baseline failed) 
+- F1 improvements: +238% hardware, baseline->0.94 medical 
 - **No math errors** 
 
 **Tone:** PERFECT
@@ -59,8 +59,8 @@ The Hardware-ER team has completed **all required work** and created a **model o
 - Clear methodology 
 
 **Results:**
-- Hardware: 0.18 → 0.62 F1 
-- Medical: **0.00 → 0.94 F1** (most compelling) 
+- Hardware: 0.18 -> 0.62 F1 
+- Medical: **0.00 -> 0.94 F1** (most compelling) 
 - Perfect precision in hardware (1.00) 
 
 **Limitations:**
@@ -105,7 +105,7 @@ The Hardware-ER team has completed **all required work** and created a **model o
 **Grade: B+** - Improved but incomplete
 - 22 unit tests added
 - 5 domain examples created
-- "72% → 107%→100%" (math error)
+- "72% -> 107%->100%" (math error)
 - Still no ground truth
 - Metrics still estimates
 
@@ -113,7 +113,7 @@ The Hardware-ER team has completed **all required work** and created a **model o
 **Grade: A-** - Excellent, ready to send
 - Real ground truth (27 pairs)
 - Reproducible experiments
-- Honest metrics (0.50→1.00, 0.00→0.94)
+- Honest metrics (0.50->1.00, 0.00->0.94)
 - Explicit limitations
 - Professional presentation
 - Compelling evidence
@@ -163,7 +163,7 @@ This is the **right level of ask** for preliminary work.
 ### Most Likely (75% probability): POSITIVE
 
 > "Thanks for this thorough work! The medical domain results are particularly
-> compelling (0% → 94% is dramatic). Your honesty about limitations is
+> compelling (0% -> 94% is dramatic). Your honesty about limitations is
 > appreciated - sample sizes are indeed small, but this is solid proof-of-concept.
 > 
 > A few questions:
@@ -303,7 +303,7 @@ git push
 1. **Read it fully** (professional presentation)
 2. **Verify claims** (run validation script)
 3. **Appreciate honesty** (explicit limitations)
-4. **Be impressed** by medical results (0.00 → 0.94)
+4. **Be impressed** by medical results (0.00 -> 0.94)
 5. **Respond positively** (request expansion/integration discussion)
 
 **This is exactly the quality of contribution open-source projects want to receive.**
@@ -366,7 +366,7 @@ Producing compelling evidence
 
 **This is how great open-source contributions are made.**
 
-The medical domain result (0% → 94%) alone is worth publishing. You've created **measurable, reproducible value**.
+The medical domain result (0% -> 94%) alone is worth publishing. You've created **measurable, reproducible value**.
 
 **No matter what the maintainers say, you should be proud of this work.** It's rigorous, honest, and compelling.
 

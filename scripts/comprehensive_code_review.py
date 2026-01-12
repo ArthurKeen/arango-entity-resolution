@@ -338,7 +338,7 @@ class ComprehensiveCodeReviewer:
     
     def run_comprehensive_review(self) -> Dict[str, Any]:
         """Run comprehensive code review."""
-        print("🔍 COMPREHENSIVE CODE REVIEW")
+        print("? COMPREHENSIVE CODE REVIEW")
         print("="*60)
         print(f"Timestamp: {datetime.now().isoformat()}")
         
@@ -348,17 +348,17 @@ class ComprehensiveCodeReviewer:
         
         for source_dir in source_dirs:
             if os.path.exists(source_dir):
-                print(f"\n📁 Analyzing {source_dir}/")
+                print(f"\n? Analyzing {source_dir}/")
                 for root, dirs, files in os.walk(source_dir):
                     for file in files:
                         if file.endswith('.py'):
                             file_path = os.path.join(root, file)
-                            print(f"   📄 {file_path}")
+                            print(f"   ? {file_path}")
                             issues = self.analyze_file(file_path)
                             all_issues.extend(issues)
         
         # Analyze test coverage
-        print(f"\n📊 Analyzing test coverage...")
+        print(f"\n? Analyzing test coverage...")
         coverage_data = self.analyze_test_coverage()
         
         # Categorize issues
@@ -421,45 +421,45 @@ class ComprehensiveCodeReviewer:
         recommendations = []
         
         if issues_by_severity.get("critical", []):
-            recommendations.append("❌ Critical issues found - address immediately")
+            recommendations.append("[FAIL] Critical issues found - address immediately")
         
         if issues_by_severity.get("high", []):
-            recommendations.append("⚠️  High severity issues found - prioritize fixes")
+            recommendations.append("[WARN]?  High severity issues found - prioritize fixes")
         
         if total_coverage < 80:
-            recommendations.append("⚠️  Test coverage below 80% - add more tests")
+            recommendations.append("[WARN]?  Test coverage below 80% - add more tests")
         
         if issues_by_type.get("security_issues", []):
-            recommendations.append("🔒 Security issues found - review security practices")
+            recommendations.append("? Security issues found - review security practices")
         
         if issues_by_type.get("hardcoded_values", []):
-            recommendations.append("⚙️  Hardcoded values found - use configuration management")
+            recommendations.append("[SETTINGS]?  Hardcoded values found - use configuration management")
         
         if issues_by_type.get("print_statement", []):
-            recommendations.append("📝 Print statements found - use logging framework")
+            recommendations.append("? Print statements found - use logging framework")
         
         self.review_results["recommendations"] = recommendations
         
         # Print summary
-        print(f"\n📊 CODE REVIEW SUMMARY")
+        print(f"\n? CODE REVIEW SUMMARY")
         print("="*50)
-        print(f"📁 Files analyzed: {self.review_results['summary']['total_files_analyzed']}")
-        print(f"🐛 Total issues: {self.review_results['summary']['total_issues']}")
-        print(f"📊 Test coverage: {total_coverage:.1f}%")
+        print(f"? Files analyzed: {self.review_results['summary']['total_files_analyzed']}")
+        print(f"? Total issues: {self.review_results['summary']['total_issues']}")
+        print(f"? Test coverage: {total_coverage:.1f}%")
         
-        print(f"\n🐛 Issues by severity:")
+        print(f"\n? Issues by severity:")
         for severity, count in issues_by_severity.items():
             print(f"   {severity}: {count}")
         
-        print(f"\n🐛 Issues by type:")
+        print(f"\n? Issues by type:")
         for issue_type, count in issues_by_type.items():
             print(f"   {issue_type}: {count}")
         
-        print(f"\n📊 Test coverage:")
+        print(f"\n? Test coverage:")
         print(f"   Files with tests: {self.review_results['summary']['test_coverage']['files_with_tests']}")
         print(f"   Files without tests: {self.review_results['summary']['test_coverage']['files_without_tests']}")
         
-        print(f"\n💡 Recommendations:")
+        print(f"\n? Recommendations:")
         for rec in recommendations:
             print(f"   {rec}")
         
@@ -468,7 +468,7 @@ class ComprehensiveCodeReviewer:
         with open(report_file, 'w') as f:
             json.dump(self.review_results, f, indent=2, default=str)
         
-        print(f"\n📁 Comprehensive code review report saved: {report_file}")
+        print(f"\n? Comprehensive code review report saved: {report_file}")
         
         return self.review_results
 
@@ -479,7 +479,7 @@ def main():
         results = reviewer.run_comprehensive_review()
         return 0
     except Exception as e:
-        print(f"❌ Code review failed: {e}")
+        print(f"[FAIL] Code review failed: {e}")
         return 1
 
 if __name__ == "__main__":

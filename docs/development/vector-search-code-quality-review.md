@@ -48,7 +48,7 @@
 
 ---
 
-### 4. ℹ INFO: Missing Input Validation
+### 4. [INFO] INFO: Missing Input Validation
 
 **Location**: `embedding_service.py` - `generate_embeddings_batch()`
 
@@ -58,7 +58,7 @@
 
 ---
 
-### 5. ℹ INFO: Inefficient String Building in Filter
+### 5. [INFO] INFO: Inefficient String Building in Filter
 
 **Location**: `base_strategy.py` `_build_filter_conditions()` (inherited)
 

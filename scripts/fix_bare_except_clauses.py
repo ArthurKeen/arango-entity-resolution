@@ -13,7 +13,7 @@ from typing import List, Tuple
 
 def fix_bare_except_clauses():
     """Fix all bare except clauses in the codebase."""
-    print("🔧 FIXING BARE EXCEPT CLAUSES")
+    print("? FIXING BARE EXCEPT CLAUSES")
     print("="*50)
     
     # Files with bare except clauses identified in code review
@@ -29,7 +29,7 @@ def fix_bare_except_clauses():
     
     for file_path in files_to_fix:
         if os.path.exists(file_path):
-            print(f"📄 Fixing {file_path}...")
+            print(f"? Fixing {file_path}...")
             
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
@@ -47,27 +47,27 @@ def fix_bare_except_clauses():
                 if content != original_content:
                     with open(file_path, 'w', encoding='utf-8') as f:
                         f.write(content)
-                    print(f"   ✅ Fixed bare except clauses")
+                    print(f"   [PASS] Fixed bare except clauses")
                     fixes_applied += 1
                 else:
-                    print(f"   ℹ️  No bare except clauses found")
+                    print(f"   [INFO]?  No bare except clauses found")
                     
             except Exception as e:
-                print(f"   ❌ Error fixing {file_path}: {e}")
+                print(f"   [FAIL] Error fixing {file_path}: {e}")
         else:
-            print(f"   ⚠️  File not found: {file_path}")
+            print(f"   [WARN]?  File not found: {file_path}")
     
-    print(f"\n📊 Summary: Fixed {fixes_applied} files")
+    print(f"\n? Summary: Fixed {fixes_applied} files")
     return fixes_applied
 
 def main():
     """Main function to fix bare except clauses."""
     try:
         fixes = fix_bare_except_clauses()
-        print(f"\n🎉 Successfully fixed bare except clauses in {fixes} files")
+        print(f"\n? Successfully fixed bare except clauses in {fixes} files")
         return 0
     except Exception as e:
-        print(f"❌ Error fixing bare except clauses: {e}")
+        print(f"[FAIL] Error fixing bare except clauses: {e}")
         return 1
 
 if __name__ == "__main__":

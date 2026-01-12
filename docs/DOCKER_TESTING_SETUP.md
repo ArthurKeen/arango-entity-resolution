@@ -12,7 +12,7 @@
 - **Image**: `arangodb/arangodb:latest`
 - **Version**: ArangoDB 3.12.4-3 (Community Edition)
 - **Port**: `8529` (mapped to host)
-- **Volume Mount**: `~/data` → `/data` (in container)
+- **Volume Mount**: `~/data` -> `/data` (in container)
 - **Password**: `testpassword123` (test environment only)
 
 ## Container Management

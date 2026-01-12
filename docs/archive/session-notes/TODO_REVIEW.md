@@ -96,7 +96,7 @@ These are **deployment steps**, not TODOs:
 - [ ] Test with customer data (recommended)
 - [ ] Monitor performance in staging
 
-**Status:** ℹ INFORMATIONAL
+**Status:** [INFO] INFORMATIONAL
 - These are instructions for deployment
 - Not action items to fix
 - Already validated with scripts
@@ -150,7 +150,7 @@ The initial scan found 26 matches, but they were all false positives:
 
 ### 3. Documentation TODOs
 **Count:** 20 unchecked items in 3 files 
-**Status:** ℹ INFORMATIONAL 
+**Status:** [INFO] INFORMATIONAL 
 **Action Required:** None - these are:
 - Enhancement ideas (not blockers)
 - Deployment instructions (not fixes)

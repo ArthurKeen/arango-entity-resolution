@@ -307,7 +307,7 @@ When we optimize the library, you get the improvements for free!
 
 ## Configuration Mapping
 
-### Your Current Configuration → Library Configuration
+### Your Current Configuration -> Library Configuration
 
 **Field Mappings:**
 ```python
@@ -641,7 +641,7 @@ threshold=0.80, # Higher threshold = fewer candidates
 
 ### Immediate Benefits
 
-**80% less code to maintain** (240 lines → 50 lines) 
+**80% less code to maintain** (240 lines -> 50 lines) 
 **Tested implementation** (7/7 tests passing) 
 **Better documentation** (than custom scripts) 
 **Free improvements** (library updates automatically benefit you) 

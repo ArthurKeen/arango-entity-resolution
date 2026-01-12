@@ -332,7 +332,7 @@ if __name__ == '__main__':
     
     def create_all_unit_tests(self) -> int:
         """Create unit tests for all core components."""
-        print("🧪 CREATING COMPREHENSIVE UNIT TESTS")
+        print("? CREATING COMPREHENSIVE UNIT TESTS")
         print("="*50)
         
         # Core components to test
@@ -369,7 +369,7 @@ if __name__ == '__main__':
             # Create tests directory if it doesn't exist
             os.makedirs("tests", exist_ok=True)
             
-            print(f"📄 Creating {test_file_path}...")
+            print(f"? Creating {test_file_path}...")
             
             try:
                 test_content = self.create_test_file(component_type, module_name, class_name)
@@ -377,11 +377,11 @@ if __name__ == '__main__':
                 with open(test_file_path, 'w', encoding='utf-8') as f:
                     f.write(test_content)
                 
-                print(f"   ✅ Created unit tests for {class_name}")
+                print(f"   [PASS] Created unit tests for {class_name}")
                 tests_created += 1
                 
             except Exception as e:
-                print(f"   ❌ Error creating test for {class_name}: {e}")
+                print(f"   [FAIL] Error creating test for {class_name}: {e}")
         
         return tests_created
     
@@ -402,7 +402,7 @@ from pathlib import Path
 
 def run_all_tests():
     """Run all unit tests."""
-    print("🧪 RUNNING COMPREHENSIVE UNIT TESTS")
+    print("? RUNNING COMPREHENSIVE UNIT TESTS")
     print("="*50)
     
     # Discover and run tests
@@ -414,7 +414,7 @@ def run_all_tests():
     result = runner.run(suite)
     
     # Print summary
-    print(f"\\n📊 TEST SUMMARY")
+    print(f"\\n? TEST SUMMARY")
     print("="*30)
     print(f"Tests run: {result.testsRun}")
     print(f"Failures: {len(result.failures)}")
@@ -425,7 +425,7 @@ def run_all_tests():
 
 def run_coverage_analysis():
     """Run coverage analysis."""
-    print("\\n📊 RUNNING COVERAGE ANALYSIS")
+    print("\\n? RUNNING COVERAGE ANALYSIS")
     print("="*40)
     
     try:
@@ -438,14 +438,14 @@ def run_coverage_analysis():
             # Generate coverage report
             subprocess.run(['python', '-m', 'coverage', 'report'], check=True)
             subprocess.run(['python', '-m', 'coverage', 'html'], check=True)
-            print("✅ Coverage report generated: htmlcov/index.html")
+            print("[PASS] Coverage report generated: htmlcov/index.html")
         else:
-            print(f"❌ Coverage analysis failed: {result.stderr}")
+            print(f"[FAIL] Coverage analysis failed: {result.stderr}")
             
     except subprocess.CalledProcessError as e:
-        print(f"❌ Coverage analysis error: {e}")
+        print(f"[FAIL] Coverage analysis error: {e}")
     except FileNotFoundError:
-        print("⚠️  Coverage module not found. Install with: pip install coverage")
+        print("[WARN]?  Coverage module not found. Install with: pip install coverage")
 
 def main():
     """Main test runner function."""
@@ -464,7 +464,7 @@ if __name__ == "__main__":
         with open('run_tests.py', 'w', encoding='utf-8') as f:
             f.write(test_runner_content)
         
-        print("✅ Created comprehensive test runner")
+        print("[PASS] Created comprehensive test runner")
 
 def main():
     """Main function to create unit tests."""
@@ -476,8 +476,8 @@ def main():
     # Create test runner
     creator.create_test_runner()
     
-    print(f"\\n📊 Summary: Created {tests_created} unit test files")
-    print("✅ Comprehensive unit tests created")
+    print(f"\\n? Summary: Created {tests_created} unit test files")
+    print("[PASS] Comprehensive unit tests created")
     
     return 0
 

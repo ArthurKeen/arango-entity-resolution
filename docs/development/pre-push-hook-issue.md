@@ -26,13 +26,13 @@ Database password is required. Set one of:
 ```python
 def __init__(self):
 if not hasattr(self, 'initialized'):
-self.config = get_config() # ← Requires password!
+self.config = get_config() # <- Requires password!
 ```
 
 ### 2. `get_logger()` (Line 23 in logging.py)
 ```python
 def setup_logging(...):
-config = get_config() # ← Requires password!
+config = get_config() # <- Requires password!
 level = log_level or config.er.log_level
 ```
 

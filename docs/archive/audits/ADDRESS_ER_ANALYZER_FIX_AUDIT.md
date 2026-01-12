@@ -325,7 +325,7 @@ pass
 
 ## Risk Assessment
 
-### Risk Level: 🟢 **LOW**
+### Risk Level: ? **LOW**
 
 **Risks Identified**: None
 

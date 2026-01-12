@@ -89,7 +89,7 @@ class RealisticIntegrationTester:
     
     def generate_realistic_data(self, scenario: TestScenario) -> List[Dict[str, Any]]:
         """Generate realistic test data for a scenario."""
-        self.logger.info(f"📊 Generating realistic data for {scenario.name}...")
+        self.logger.info(f"? Generating realistic data for {scenario.name}...")
         
         # Base data templates
         first_names = [
@@ -152,7 +152,7 @@ class RealisticIntegrationTester:
                 data.append(variation)
                 entity_id += 1
         
-        self.logger.info(f"   ✅ Generated {len(data)} records with {num_duplicates} duplicate groups")
+        self.logger.info(f"   [PASS] Generated {len(data)} records with {num_duplicates} duplicate groups")
         return data
     
     def _create_record_variations(self, base_record: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -204,7 +204,7 @@ class RealisticIntegrationTester:
     
     def run_integration_test(self, scenario: TestScenario) -> Dict[str, Any]:
         """Run integration test for a specific scenario."""
-        self.logger.info(f"\n🧪 Running Integration Test: {scenario.name}")
+        self.logger.info(f"\n? Running Integration Test: {scenario.name}")
         self.logger.info("="*60)
         
         start_time = time.time()
@@ -221,7 +221,7 @@ class RealisticIntegrationTester:
             collection_name = f"test_{scenario.name.lower().replace(' ', '_')}"
             collection = pipeline.data_manager.database.collection(collection_name)
             
-            self.logger.info(f"📊 Loading {len(test_data)} records into database...")
+            self.logger.info(f"? Loading {len(test_data)} records into database...")
             for record in test_data:
                 collection.insert(record)
             
@@ -241,7 +241,7 @@ class RealisticIntegrationTester:
                 )
                 candidates.extend(record_candidates)
             
-            self.logger.info(f"   📊 Generated {len(candidates)} candidates")
+            self.logger.info(f"   ? Generated {len(candidates)} candidates")
             
             # Step 3: Compute similarities
             similarity_pairs = []
@@ -262,12 +262,12 @@ class RealisticIntegrationTester:
                                 "score": similarity.get('normalized_score', 0)
                             })
             
-            self.logger.info(f"   📊 Computed {len(similarity_pairs)} similarity scores")
+            self.logger.info(f"   ? Computed {len(similarity_pairs)} similarity scores")
             
             # Step 4: Cluster entities
             clusters = pipeline.clustering_service.cluster_entities(similarity_pairs)
             
-            self.logger.info(f"   📊 Generated {len(clusters)} clusters")
+            self.logger.info(f"   ? Generated {len(clusters)} clusters")
             
             # Calculate metrics
             execution_time = time.time() - start_time
@@ -298,14 +298,14 @@ class RealisticIntegrationTester:
                 }
             }
             
-            self.logger.info(f"   ✅ Test completed in {execution_time:.2f}s")
-            self.logger.info(f"   📊 Accuracy: {accuracy:.1%}")
-            self.logger.info(f"   📊 Performance: {results['performance_metrics']['records_per_second']:.1f} records/s")
+            self.logger.info(f"   [PASS] Test completed in {execution_time:.2f}s")
+            self.logger.info(f"   ? Accuracy: {accuracy:.1%}")
+            self.logger.info(f"   ? Performance: {results['performance_metrics']['records_per_second']:.1f} records/s")
             
             return results
             
         except Exception as e:
-            self.logger.info(f"   ❌ Test failed: {e}")
+            self.logger.info(f"   [FAIL] Test failed: {e}")
             return {
                 "scenario": scenario.name,
                 "error": str(e),
@@ -314,7 +314,7 @@ class RealisticIntegrationTester:
     
     def run_comprehensive_integration_tests(self) -> Dict[str, Any]:
         """Run comprehensive integration tests for all scenarios."""
-        self.logger.info("🧪 COMPREHENSIVE REALISTIC INTEGRATION TESTS")
+        self.logger.info("? COMPREHENSIVE REALISTIC INTEGRATION TESTS")
         self.logger.info("="*70)
         self.logger.info(f"Timestamp: {datetime.now().isoformat()}")
         
@@ -329,7 +329,7 @@ class RealisticIntegrationTester:
         successful_tests = 0
         
         for scenario_name, scenario in self.test_scenarios.items():
-            self.logger.info(f"\n📋 Testing Scenario: {scenario_name}")
+            self.logger.info(f"\n? Testing Scenario: {scenario_name}")
             test_result = self.run_integration_test(scenario)
             results["scenarios"][scenario_name] = test_result
             
@@ -353,31 +353,31 @@ class RealisticIntegrationTester:
                 "total_execution_time": total_execution_time
             }
             
-            self.logger.info(f"\n📊 INTEGRATION TEST SUMMARY")
+            self.logger.info(f"\n? INTEGRATION TEST SUMMARY")
             self.logger.info("="*50)
             self.logger.success(r"Successful: {successful_tests}/{total_tests}")
-            self.logger.info(f"📊 Success Rate: {successful_tests/total_tests*100:.1f}%")
-            self.logger.info(f"📊 Average Accuracy: {avg_accuracy:.1%}")
-            self.logger.info(f"📊 Average Performance: {avg_performance:.1f} records/s")
-            self.logger.info(f"📊 Total Execution Time: {total_execution_time:.2f}s")
+            self.logger.info(f"? Success Rate: {successful_tests/total_tests*100:.1f}%")
+            self.logger.info(f"? Average Accuracy: {avg_accuracy:.1%}")
+            self.logger.info(f"? Average Performance: {avg_performance:.1f} records/s")
+            self.logger.info(f"? Total Execution Time: {total_execution_time:.2f}s")
         
         # Generate recommendations
         recommendations = []
         if successful_tests == total_tests:
-            recommendations.append("✅ All integration tests passed - system is production ready")
+            recommendations.append("[PASS] All integration tests passed - system is production ready")
         elif successful_tests >= total_tests * 0.8:
-            recommendations.append("✅ Most integration tests passed - system is ready with minor issues")
+            recommendations.append("[PASS] Most integration tests passed - system is ready with minor issues")
         else:
-            recommendations.append("❌ Multiple integration test failures - system needs attention")
+            recommendations.append("[FAIL] Multiple integration test failures - system needs attention")
         
         if successful_scenarios:
             avg_accuracy = sum(r.get("accuracy", 0) for r in successful_scenarios) / len(successful_scenarios)
             if avg_accuracy >= 0.9:
-                recommendations.append("✅ Excellent accuracy across all scenarios")
+                recommendations.append("[PASS] Excellent accuracy across all scenarios")
             elif avg_accuracy >= 0.8:
-                recommendations.append("✅ Good accuracy across scenarios")
+                recommendations.append("[PASS] Good accuracy across scenarios")
             else:
-                recommendations.append("⚠️  Accuracy could be improved")
+                recommendations.append("[WARN]?  Accuracy could be improved")
         
         results["recommendations"] = recommendations
         
@@ -386,13 +386,13 @@ class RealisticIntegrationTester:
         with open(report_file, 'w') as f:
             json.dump(results, f, indent=2, default=str)
         
-        self.logger.info(f"\n📁 Comprehensive integration test report saved: {report_file}")
+        self.logger.info(f"\n? Comprehensive integration test report saved: {report_file}")
         
         return results
     
     def generate_ci_cd_config(self) -> Dict[str, Any]:
         """Generate CI/CD configuration for automated testing."""
-        self.logger.info("🔧 Generating CI/CD Configuration...")
+        self.logger.info("? Generating CI/CD Configuration...")
         
         ci_cd_config = {
             "name": "Entity Resolution Integration Tests",
@@ -459,7 +459,7 @@ class RealisticIntegrationTester:
         with open(config_file, 'w') as f:
             json.dump(ci_cd_config, f, indent=2)
         
-        self.logger.info(f"   ✅ CI/CD configuration saved: {config_file}")
+        self.logger.info(f"   [PASS] CI/CD configuration saved: {config_file}")
         return ci_cd_config
 
 def main():

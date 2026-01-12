@@ -98,7 +98,7 @@ This is a comprehensive presentation script for demonstrating entity resolution 
 - "Similarity scores are edges"
 - "Connected components become entities"
 
-**Show Results:** "10 records → 7 unique entities. We eliminated 3 duplicates!"
+**Show Results:** "10 records -> 7 unique entities. We eliminated 3 duplicates!"
 
 ### Golden Record Creation
 **Action:** Show golden record generation
@@ -112,7 +112,7 @@ This is a comprehensive presentation script for demonstrating entity resolution 
 - "Audit trail: Links back to original records"
 
 **Show Before/After:** 
-- "John Smith: 3 messy records → 1 perfect golden record"
+- "John Smith: 3 messy records -> 1 perfect golden record"
 - "95% data quality score"
 - "Complete audit trail maintained"
 

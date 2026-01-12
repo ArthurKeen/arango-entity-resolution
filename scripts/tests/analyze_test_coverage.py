@@ -98,14 +98,14 @@ class TestCoverageAnalyzer:
     
     def analyze_test_coverage(self) -> Dict[str, Any]:
         """Analyze test coverage across the codebase."""
-        print("🔍 Analyzing Test Coverage...")
+        print("? Analyzing Test Coverage...")
         
         # Find all source and test files
         source_files = self.find_source_files()
         test_files = self.find_test_files()
         
-        print(f"📊 Found {len(source_files)} source files")
-        print(f"📊 Found {len(test_files)} test files")
+        print(f"? Found {len(source_files)} source files")
+        print(f"? Found {len(test_files)} test files")
         
         # Analyze source files
         source_analysis = {}
@@ -324,29 +324,29 @@ class TestCoverageAnalyzer:
     def generate_coverage_report(self, coverage_data: Dict[str, Any]):
         """Generate a comprehensive coverage report."""
         print("\n" + "="*60)
-        print("📊 TEST COVERAGE ANALYSIS REPORT")
+        print("? TEST COVERAGE ANALYSIS REPORT")
         print("="*60)
         
         summary = coverage_data['summary']
-        print(f"📁 Source Files: {summary['total_source_files']}")
-        print(f"🧪 Test Files: {summary['total_test_files']}")
-        print(f"📊 Total Functions: {summary['total_functions']}")
-        print(f"📊 Total Classes: {summary['total_classes']}")
-        print(f"📊 Total Lines of Code: {summary['total_lines_of_code']}")
-        print(f"📊 Test Lines of Code: {summary['test_lines_of_code']}")
-        print(f"📊 Module Coverage: {summary['module_coverage_percent']:.1f}%")
+        print(f"? Source Files: {summary['total_source_files']}")
+        print(f"? Test Files: {summary['total_test_files']}")
+        print(f"? Total Functions: {summary['total_functions']}")
+        print(f"? Total Classes: {summary['total_classes']}")
+        print(f"? Total Lines of Code: {summary['total_lines_of_code']}")
+        print(f"? Test Lines of Code: {summary['test_lines_of_code']}")
+        print(f"? Module Coverage: {summary['module_coverage_percent']:.1f}%")
         
-        print(f"\n🎯 Coverage by Area:")
+        print(f"\n? Coverage by Area:")
         for area, data in coverage_data['coverage_areas'].items():
             quality = data['coverage_quality']
-            status = "✅" if quality == 'Good' else "❌"
+            status = "[PASS]" if quality == 'Good' else "[FAIL]"
             print(f"   {status} {area.replace('_', ' ').title()}: {quality}")
             print(f"      Functions: {data['functions_count']}")
             print(f"      Test Files: {len(data['test_files'])}")
         
-        print(f"\n📋 Module Coverage Details:")
+        print(f"\n? Module Coverage Details:")
         for module, data in coverage_data['module_coverage'].items():
-            status = "✅" if data['tested'] else "❌"
+            status = "[PASS]" if data['tested'] else "[FAIL]"
             print(f"   {status} {module}: {data['functions']} functions, {data['lines']} lines")
         
         # Save detailed report
@@ -354,20 +354,20 @@ class TestCoverageAnalyzer:
         with open(report_file, 'w') as f:
             json.dump(coverage_data, f, indent=2, default=str)
         
-        print(f"\n📁 Detailed report saved: {report_file}")
+        print(f"\n? Detailed report saved: {report_file}")
         
         # Recommendations
-        print(f"\n💡 Coverage Recommendations:")
+        print(f"\n? Coverage Recommendations:")
         untested_modules = [module for module, data in coverage_data['module_coverage'].items() if not data['tested']]
         if untested_modules:
-            print(f"   ❌ Untested modules: {', '.join(untested_modules)}")
+            print(f"   [FAIL] Untested modules: {', '.join(untested_modules)}")
         
         poor_coverage_areas = [area for area, data in coverage_data['coverage_areas'].items() if data['coverage_quality'] == 'Poor']
         if poor_coverage_areas:
-            print(f"   ❌ Poor coverage areas: {', '.join(poor_coverage_areas)}")
+            print(f"   [FAIL] Poor coverage areas: {', '.join(poor_coverage_areas)}")
         
         if not untested_modules and not poor_coverage_areas:
-            print(f"   ✅ Excellent coverage across all modules and areas!")
+            print(f"   [PASS] Excellent coverage across all modules and areas!")
 
 def main():
     """Run test coverage analysis."""
@@ -377,7 +377,7 @@ def main():
         analyzer.generate_coverage_report(coverage_data)
         return 0
     except Exception as e:
-        print(f"❌ Coverage analysis failed: {e}")
+        print(f"[FAIL] Coverage analysis failed: {e}")
         return 1
 
 if __name__ == "__main__":

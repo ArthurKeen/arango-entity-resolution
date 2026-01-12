@@ -75,7 +75,7 @@ The PRD identifies several key foundational papers. Research notes are now avail
    - **Notes**: [papers/blocking/2021_Thirumuruganathan_LearningBlocking_notes.md](papers/blocking/2021_Thirumuruganathan_LearningBlocking_notes.md)
    - **Status**: Critical for embedding-based blocking, hybrid approach documented
 
-7. **"The Dedoop Framework for Scalable Entity Resolution"** - Köpcke and Thor
+7. **"The Dedoop Framework for Scalable Entity Resolution"** - K?pcke and Thor
    - **Status**: Research notes needed
 
 8. **"A Comparative Analysis of Approximate Blocking Techniques for Entity Resolution"** - George Papadakis et al.

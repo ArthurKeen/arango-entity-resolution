@@ -31,8 +31,8 @@
 ### 2. Error Logging (Fix #3)
 
 **Updated Files:**
-- `similarity_edge_service.py` - 2 print() → logger.error()
-- `wcc_clustering_service.py` - 1 print() → logger.error()
+- `similarity_edge_service.py` - 2 print() -> logger.error()
+- `wcc_clustering_service.py` - 1 print() -> logger.error()
 - Added logging initialization to both services
 
 ### 3. Password Requirements (Fix #4)

@@ -48,7 +48,7 @@ Reproducible experiments
 - JSON format with full metadata
 
 **Medical Domain (12 pairs):**
-- Clinical abbreviations → full terms
+- Clinical abbreviations -> full terms
 - Real medical acronyms (MI, CHF, COPD, etc.)
 - Context fields (symptoms, specialties)
 - Mix of true matches and confusable non-matches
@@ -184,16 +184,16 @@ This level of honesty is **rare and impressive**. It builds trust.
 ### After First Fixes (December - My Review #2)
 - 22 unit tests (excellent)
 - 5 domain examples (good)
-- "Precision: 72% → 107%→100%" (math error)
+- "Precision: 72% -> 107%->100%" (math error)
 - Still no ground truth
 - **Grade: B+** (better, but metrics still unsubstantiated)
 
 ### Current Proposal (January - Final)
 - Real ground truth (27 labeled pairs)
 - Reproducible validation scripts
-- Honest metrics (0.50→1.00 precision, 0.11→0.44 recall)
+- Honest metrics (0.50->1.00 precision, 0.11->0.44 recall)
 - Explicit limitations section
-- Medical domain validation (baseline: 0.00 F1 → enhanced: 0.94 F1)
+- Medical domain validation (baseline: 0.00 F1 -> enhanced: 0.94 F1)
 - Honest about preliminary nature
 - **Grade: A** (excellent, ready to send)
 
@@ -277,7 +277,7 @@ This level of honesty is **rare and impressive**. It builds trust.
 - [x] Tone is humble and seeking feedback
 - [x] Code quality high (22/22 tests passing)
 - [x] Two domains validated (hardware + medical)
-- [x] Results compelling (especially medical: 0.00 → 0.94 F1)
+- [x] Results compelling (especially medical: 0.00 -> 0.94 F1)
 
 **Status: READY TO SEND**
 
@@ -382,7 +382,7 @@ If I were actually an ER Library maintainer and received this proposal:
 Why?
 1. **Code quality is high** (22 tests, clean APIs)
 2. **Validation is honest** (acknowledges limitations)
-3. **Results are compelling** (medical: 0.00 → 0.94 F1)
+3. **Results are compelling** (medical: 0.00 -> 0.94 F1)
 4. **Contributor is serious** (reproducible validation, thorough docs)
 5. **Ask is reasonable** (seeking feedback, not demanding integration)
 

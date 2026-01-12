@@ -150,7 +150,7 @@ class ConfigurableERPipeline:
             'candidate_pairs': len(candidate_pairs),
             'runtime_seconds': round(blocking_time, 2)
         }
-        self.logger.info(f"✓ Found {len(candidate_pairs):,} candidate pairs")
+        self.logger.info(f"[OK] Found {len(candidate_pairs):,} candidate pairs")
         
         # Phase 2: Similarity
         if candidate_pairs and self.config.similarity:
@@ -164,7 +164,7 @@ class ConfigurableERPipeline:
                 'pairs_processed': len(candidate_pairs),
                 'runtime_seconds': round(similarity_time, 2)
             }
-            self.logger.info(f"✓ Found {len(matches):,} matches")
+            self.logger.info(f"[OK] Found {len(matches):,} matches")
         else:
             matches = []
             results['similarity'] = {
@@ -184,7 +184,7 @@ class ConfigurableERPipeline:
                 'edges_created': edges_created,
                 'runtime_seconds': round(edge_time, 2)
             }
-            self.logger.info(f"✓ Created {edges_created:,} edges")
+            self.logger.info(f"[OK] Created {edges_created:,} edges")
         else:
             results['edges'] = {
                 'edges_created': 0,
@@ -202,7 +202,7 @@ class ConfigurableERPipeline:
                 'clusters_found': len(clusters),
                 'runtime_seconds': round(cluster_time, 2)
             }
-            self.logger.info(f"✓ Found {len(clusters):,} clusters")
+            self.logger.info(f"[OK] Found {len(clusters):,} clusters")
         else:
             results['clustering'] = {
                 'clusters_found': 0,

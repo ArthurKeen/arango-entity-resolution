@@ -1,7 +1,7 @@
 """
 Blocking Service for Entity Resolution (v1.x Legacy)
 
-⚠️  DEPRECATED: This service is deprecated and will be removed in v3.0.
+[WARN]?  DEPRECATED: This service is deprecated and will be removed in v3.0.
 Use the v2.0 strategy pattern instead:
 - CollectBlockingStrategy for composite key blocking (99% test coverage)
 - BM25BlockingStrategy for fuzzy text matching (85% test coverage)
@@ -23,7 +23,7 @@ class BlockingService(BaseEntityResolutionService):
     """
     Record blocking service that generates candidate pairs (v1.x legacy).
     
-    ⚠️  DEPRECATED: Use CollectBlockingStrategy or BM25BlockingStrategy instead.
+    [WARN]?  DEPRECATED: Use CollectBlockingStrategy or BM25BlockingStrategy instead.
     This service will be removed in v3.0.
     
     For v2.0+, prefer using CollectBlockingStrategy or BM25BlockingStrategy

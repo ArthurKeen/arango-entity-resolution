@@ -410,7 +410,7 @@ class TestCompletePipelineRoundTrip:
         )
         pairs = strategy.generate_candidates()
         pair_tuples = [(p['doc1_key'], p['doc2_key']) for p in pairs]
-        print(f"  ✓ Found {len(pair_tuples)} candidate pairs")
+        print(f"  [OK] Found {len(pair_tuples)} candidate pairs")
         
         # Step 2: Similarity
         print("\n[2/4] Computing similarity...")
@@ -429,7 +429,7 @@ class TestCompletePipelineRoundTrip:
             candidate_pairs=pair_tuples,
             threshold=0.75
         )
-        print(f"  ✓ Found {len(matches)} matches above threshold")
+        print(f"  [OK] Found {len(matches)} matches above threshold")
         
         # Step 3: Create edges
         print("\n[3/4] Creating edges...")
@@ -443,7 +443,7 @@ class TestCompletePipelineRoundTrip:
             matches=matches,
             metadata={"method": "round_trip_test", "algorithm": "jaro_winkler"}
         )
-        print(f"  ✓ Created {edges_created} edges")
+        print(f"  [OK] Created {edges_created} edges")
         
         # Step 4: Clustering (Python DFS)
         print("\n[4/4] Clustering (Python DFS)...")
@@ -457,8 +457,8 @@ class TestCompletePipelineRoundTrip:
         )
         clusters = clustering.cluster(store_results=True)
         stats = clustering.get_statistics()
-        print(f"  ✓ Found {stats['total_clusters']} clusters")
-        print(f"  ✓ Total entities clustered: {stats['total_entities_clustered']}")
+        print(f"  [OK] Found {stats['total_clusters']} clusters")
+        print(f"  [OK] Total entities clustered: {stats['total_entities_clustered']}")
         
         # Verify complete pipeline
         assert len(pair_tuples) > 0, "Should find candidate pairs"
@@ -467,7 +467,7 @@ class TestCompletePipelineRoundTrip:
         assert stats['total_clusters'] > 0, "Should find clusters"
         
         print("\n" + "="*80)
-        print("✓ ROUND-TRIP PIPELINE COMPLETE!")
+        print("[OK] ROUND-TRIP PIPELINE COMPLETE!")
         print("="*80)
         
         # Cleanup

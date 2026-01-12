@@ -94,7 +94,7 @@ python examples/bulk_processing_demo.py
 
 ---
 
-### 🟡 MEDIUM PRIORITY - Should Fix Soon
+### ? MEDIUM PRIORITY - Should Fix Soon
 
 #### 4. Nine Test Files Have Import Errors
 **Risk:** Some old test files can't run (pre-existing issue)
@@ -114,7 +114,7 @@ python examples/bulk_processing_demo.py
 
 **Fix:** Can be addressed post-deployment
 
-**Status:** ℹ NOT BLOCKING
+**Status:** [INFO] NOT BLOCKING
 
 ---
 
@@ -125,7 +125,7 @@ python examples/bulk_processing_demo.py
 
 **Location:** See `CODE_AUDIT_REPORT.md` for details
 
-**Status:** ℹ NOT BLOCKING (refactoring can wait)
+**Status:** [INFO] NOT BLOCKING (refactoring can wait)
 
 ---
 
@@ -146,14 +146,14 @@ curl -X POST http://localhost:8529/_db/entity_resolution/entity-resolution/bulk/
 
 ---
 
-### 🟢 LOW PRIORITY - Minor Issues
+### ? LOW PRIORITY - Minor Issues
 
 #### 7. Some TODOs in Documentation
 **Risk:** Documentation has some TODOs and placeholders
 
 **Impact:** Minimal - docs are comprehensive enough
 
-**Status:** ℹ ACCEPTABLE
+**Status:** [INFO] ACCEPTABLE
 
 ---
 
@@ -162,7 +162,7 @@ curl -X POST http://localhost:8529/_db/entity_resolution/entity-resolution/bulk/
 
 **Impact:** Unknown behavior with concurrent requests or very large datasets (>1M records)
 
-**Status:** ℹ PLAN FOR LATER
+**Status:** [INFO] PLAN FOR LATER
 
 ---
 
@@ -207,7 +207,7 @@ git status | grep config.json
 # Should show nothing or "Untracked files"
 ```
 
-- [ ] **7. Performance baseline** ℹ RECOMMENDED
+- [ ] **7. Performance baseline** [INFO] RECOMMENDED
 ```bash
 # Measure with customer data volume
 pytest tests/test_performance_benchmarks.py -v
@@ -287,7 +287,7 @@ pytest tests/test_performance_benchmarks.py -v
 - System tested with test data, should validate with their data
 - Performance metrics are estimates, actual results may vary
 - Integration testing recommended before production deployment
-- ℹ Some advanced features planned for Phase 2 (embeddings, ML)
+- [INFO] Some advanced features planned for Phase 2 (embeddings, ML)
 
 **Requirements:**
 - ArangoDB 3.11+ required
@@ -301,11 +301,11 @@ pytest tests/test_performance_benchmarks.py -v
 
 | Scenario | Risk Level | Recommendation |
 |----------|------------|----------------|
-| **POC/Demo with test data** | 🟢 LOW | Ready to use |
-| **Development environment** | 🟢 LOW | Ready to use |
-| **Staging with customer data** | 🟡 MEDIUM | Fix passwords, test integration |
+| **POC/Demo with test data** | ? LOW | Ready to use |
+| **Development environment** | ? LOW | Ready to use |
+| **Staging with customer data** | ? MEDIUM | Fix passwords, test integration |
 | **Production deployment** | HIGH | Complete checklist first |
-| **Production with <10K records** | 🟡 MEDIUM | Test integration, change passwords |
+| **Production with <10K records** | ? MEDIUM | Test integration, change passwords |
 | **Production with >100K records** | HIGH | Full testing + performance validation |
 
 ---
@@ -319,7 +319,7 @@ pytest tests/test_performance_benchmarks.py -v
 2. **MUST change default passwords** (security)
 3. **SHOULD run integration tests** (validation)
 4. **SHOULD test with customer data** (performance)
-5. ℹ Monitor and optimize based on actual usage
+5. [INFO] Monitor and optimize based on actual usage
 
 **Timeline:**
 - Immediate deployment: NOT recommended (fix passwords first)

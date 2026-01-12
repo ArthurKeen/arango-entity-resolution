@@ -41,14 +41,14 @@ def test_similarity_algorithms():
     try:
         # Ensure test database is available
         db_manager = ensure_test_database()
-        logger.info("✅ Test database is available")
+        logger.info("[PASS] Test database is available")
         
         # Initialize similarity service
         config = Config.from_env()
         similarity_service = SimilarityService(config)
         
     except Exception as e:
-        logger.error(f"❌ Failed to setup test database: {e}")
+        logger.error(f"[FAIL] Failed to setup test database: {e}")
         return False
     
     # Test cases with various types of variations
@@ -123,7 +123,7 @@ def test_document_similarity():
     try:
         # Ensure test database is available
         db_manager = ensure_test_database()
-        logger.info("✅ Test database is available")
+        logger.info("[PASS] Test database is available")
         
         # Initialize similarity service
         config = Config.from_env()
@@ -143,7 +143,7 @@ def test_document_similarity():
         logger.info(f"Using sample record: {sample_record.get('first_name', 'Unknown')} {sample_record.get('last_name', 'Unknown')}")
         
     except Exception as e:
-        logger.error(f"❌ Failed to setup test database: {e}")
+        logger.error(f"[FAIL] Failed to setup test database: {e}")
         return False
     
     # Test document similarity with various field combinations
@@ -234,7 +234,7 @@ def test_similarity_with_database_records():
     try:
         # Ensure test database is available
         db_manager = ensure_test_database()
-        logger.info("✅ Test database is available")
+        logger.info("[PASS] Test database is available")
         
         # Initialize similarity service
         config = Config.from_env()
@@ -285,7 +285,7 @@ def test_similarity_with_database_records():
         return True
         
     except Exception as e:
-        logger.error(f"❌ Failed to test similarity with database records: {e}")
+        logger.error(f"[FAIL] Failed to test similarity with database records: {e}")
         return False
 
 
@@ -298,7 +298,7 @@ def test_similarity_performance():
     try:
         # Ensure test database is available
         db_manager = ensure_test_database()
-        logger.info("✅ Test database is available")
+        logger.info("[PASS] Test database is available")
         
         # Initialize similarity service
         config = Config.from_env()
@@ -352,14 +352,14 @@ def test_similarity_performance():
         return True
         
     except Exception as e:
-        logger.error(f"❌ Failed to test similarity performance: {e}")
+        logger.error(f"[FAIL] Failed to test similarity performance: {e}")
         return False
 
 
 def main():
     """Main test function with resilient database management"""
     
-    print("🧪 RESILIENT SIMILARITY SERVICE TESTING")
+    print("? RESILIENT SIMILARITY SERVICE TESTING")
     print("=" * 50)
     
     # Setup logging
@@ -370,36 +370,36 @@ def main():
         # Test 1: Individual algorithms
         print("\n1. Testing Individual Similarity Algorithms...")
         if test_similarity_algorithms():
-            print("✅ Individual algorithm tests passed")
+            print("[PASS] Individual algorithm tests passed")
         else:
-            print("❌ Individual algorithm tests failed")
+            print("[FAIL] Individual algorithm tests failed")
         
         # Test 2: Document similarity
         print("\n2. Testing Document Similarity Computation...")
         if test_document_similarity():
-            print("✅ Document similarity tests passed")
+            print("[PASS] Document similarity tests passed")
         else:
-            print("❌ Document similarity tests failed")
+            print("[FAIL] Document similarity tests failed")
         
         # Test 3: Database records
         print("\n3. Testing Similarity with Database Records...")
         if test_similarity_with_database_records():
-            print("✅ Database record tests passed")
+            print("[PASS] Database record tests passed")
         else:
-            print("❌ Database record tests failed")
+            print("[FAIL] Database record tests failed")
         
         # Test 4: Performance
         print("\n4. Testing Similarity Performance...")
         if test_similarity_performance():
-            print("✅ Performance tests passed")
+            print("[PASS] Performance tests passed")
         else:
-            print("❌ Performance tests failed")
+            print("[FAIL] Performance tests failed")
         
-        print("\n🎉 All similarity service tests completed!")
+        print("\n? All similarity service tests completed!")
         return True
         
     except Exception as e:
-        logger.error(f"❌ Test suite failed: {e}")
+        logger.error(f"[FAIL] Test suite failed: {e}")
         return False
 
 

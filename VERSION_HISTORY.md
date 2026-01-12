@@ -214,9 +214,9 @@ This project follows [Semantic Versioning](https://semver.org/):
 - **v1.x**: End of life
 
 ### Upgrade Path
-1. v1.x → v2.x → v3.0.0 (recommended)
-2. v1.x → v3.0.0 (possible with careful migration)
-3. v2.x → v3.0.0 (straightforward)
+1. v1.x -> v2.x -> v3.0.0 (recommended)
+2. v1.x -> v3.0.0 (possible with careful migration)
+3. v2.x -> v3.0.0 (straightforward)
 
 ---
 

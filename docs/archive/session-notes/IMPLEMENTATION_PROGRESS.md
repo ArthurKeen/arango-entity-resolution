@@ -188,7 +188,7 @@ Following best practices:
 - Phase 3.4: Unit tests for clustering
 
 **Documentation (In Progress):**
-- Phase 4.2: API documentation ← Next
+- Phase 4.2: API documentation <- Next
 - Phase 4.3: Migration guide
 - Phase 4.4: Usage examples
 - Phase 4.5: README and CHANGELOG updates

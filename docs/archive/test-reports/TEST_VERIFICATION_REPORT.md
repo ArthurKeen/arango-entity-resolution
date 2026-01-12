@@ -151,12 +151,12 @@ Multiple field validation: ['name', 'address', 'phone'] all validated
 
 **Tests Performed:**
 ```
-format_vertex_id('123', 'companies') → 'companies/123'
-format_vertex_id('companies/123', 'companies') → 'companies/123' (idempotent)
-extract_key_from_vertex_id('companies/123') → '123'
-extract_key_from_vertex_id('123') → '123' (plain key)
-parse_vertex_id('companies/123') → ('companies', '123')
-normalize_vertex_ids(['123', 'companies/456', '789']) → all normalized
+format_vertex_id('123', 'companies') -> 'companies/123'
+format_vertex_id('companies/123', 'companies') -> 'companies/123' (idempotent)
+extract_key_from_vertex_id('companies/123') -> '123'
+extract_key_from_vertex_id('123') -> '123' (plain key)
+parse_vertex_id('companies/123') -> ('companies', '123')
+normalize_vertex_ids(['123', 'companies/456', '789']) -> all normalized
 is_valid_vertex_id() validates correctly for all cases
 ```
 
@@ -187,8 +187,8 @@ Proper password via ARANGO_ROOT_PASSWORD: Works without warning
 
 **Changes Verified:**
 ```
-similarity_edge_service.py: 2 print() → logger.error()
-wcc_clustering_service.py: 1 print() → logger.error()
+similarity_edge_service.py: 2 print() -> logger.error()
+wcc_clustering_service.py: 1 print() -> logger.error()
 All services now have proper logging
 Stack traces included (exc_info=True)
 ```
@@ -226,7 +226,7 @@ src/entity_resolution/utils/config.py - No errors
 
 ```
 Blocking Performance:
-100 docs → 450 pairs in 0.004s (O(n) confirmed)
+100 docs -> 450 pairs in 0.004s (O(n) confirmed)
 
 Similarity Performance:
 24,912 pairs/second (target: >10K) 

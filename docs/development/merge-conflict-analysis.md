@@ -14,7 +14,7 @@
 - Local changes: Adding new blocking strategies and services
 
 2. **Meanwhile, v3.0 was released to remote** (7 new commits)
-- Commits: `460c6b4` → `0ccee7d`
+- Commits: `460c6b4` -> `0ccee7d`
 - Added: AddressERService, pipeline_utils, ER config system, extensive tests
 - Modified: Same files we were working on
 

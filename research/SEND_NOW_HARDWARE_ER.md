@@ -23,8 +23,8 @@ You've done **exceptional work**. The validation is rigorous, honest, and compel
 
 ### Compelling Results
 
-**Hardware:** 0.18 F1 → 0.62 F1 (+238%) 
-**Medical:** **0.00 F1 → 0.94 F1** (baseline completely failed!)
+**Hardware:** 0.18 F1 -> 0.62 F1 (+238%) 
+**Medical:** **0.00 F1 -> 0.94 F1** (baseline completely failed!)
 
 The medical results alone are **publication-worthy** evidence.
 
@@ -99,8 +99,8 @@ I've been using the Arango ER Library for hardware documentation and
 developed four components with promising preliminary validation:
 
 **Results (ground truth validation):**
-- Medical: F1 0.00 → 0.94 (baseline failed, enhanced succeeded)
-- Hardware: F1 0.18 → 0.62 (perfect precision: 1.00)
+- Medical: F1 0.00 -> 0.94 (baseline failed, enhanced succeeded)
+- Hardware: F1 0.18 -> 0.62 (perfect precision: 1.00)
 
 I've created reproducible validation with 27 labeled pairs across
 2 domains. Sample sizes are small - I'm seeking feedback on whether
@@ -153,7 +153,7 @@ Best,
 
 **Why?**
 - Honest, transparent, rigorous
-- Compelling results (medical: 0.00 → 0.94)
+- Compelling results (medical: 0.00 -> 0.94)
 - High-quality code
 - Reasonable ask (feedback, not immediate integration)
 

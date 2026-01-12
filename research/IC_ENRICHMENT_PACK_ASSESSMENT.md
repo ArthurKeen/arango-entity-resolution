@@ -11,7 +11,7 @@
 
 The IC Design Enrichment Pack is a **well-implemented, professionally documented set of 4 Python modules** (~1,080 lines) that demonstrate clear value for technical domain entity resolution. However, the outreach proposal requires significant corrections before submission to library maintainers.
 
-**Recommendation:** 🟡 **REVISE BEFORE SENDING**
+**Recommendation:** ? **REVISE BEFORE SENDING**
 
 - Code quality is production-ready
 - API design is clean and intuitive
@@ -151,8 +151,8 @@ This requires **domain expertise** and **manual curation** for each use case.
 **Generalizability Score: 6/10** (generalizable concept, manual setup burden)
 
 **Use cases beyond hardware:**
-- Medical: MI → Myocardial Infarction
-- Business: ROI → Return on Investment, KPI → Key Performance Indicator
+- Medical: MI -> Myocardial Infarction
+- Business: ROI -> Return on Investment, KPI -> Key Performance Indicator
 - Requires domain-specific dictionaries (high setup cost)
 
 ---
@@ -346,7 +346,7 @@ return len(intersection) / min_len if min_len > 0 else 0.0
 - Stop word list is English-only
 - No stemming/lemmatization
 
-🤔 **Question for maintainers:**
+? **Question for maintainers:**
 - Should this use existing ER Library similarity functions instead?
 - Integration point: Could this be a `ContextualSimilarity` wrapper around existing similarities?
 
@@ -589,8 +589,8 @@ Add to docs/examples/ directory:
 
 Pick ONE domain and create example:
 - Medical terminology (acronyms: MI, COPD, etc.)
-- Organization hierarchy (departments → employees)
-- E-commerce (categories → products)
+- Organization hierarchy (departments -> employees)
+- E-commerce (categories -> products)
 
 Add to `ic_enrichment/examples/`:
 - `medical_er_example.py` OR
@@ -917,7 +917,7 @@ package or examples directory rather than core library integration?
 - Professional implementation
 - Clear use cases
 
-**Best path forward:** 🤝 COLLABORATE
+**Best path forward:** ? COLLABORATE
 1. Start with GitHub Discussion to gauge interest
 2. Get maintainer feedback on scope/integration
 3. Validate metrics based on feedback

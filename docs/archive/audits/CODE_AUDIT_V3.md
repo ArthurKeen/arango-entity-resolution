@@ -11,12 +11,12 @@
 
 | Category | Issues Found | Severity | Status |
 |----------|--------------|----------|--------|
-| **Security** | 4 | 🟠 High | Action Required |
-| **Code Duplication** | 5 | 🟠 Medium | Refactor Recommended |
-| **Hardcoding** | 15 | 🟡 Low-Medium | Configuration Needed |
-| **Code Quality** | 4 | 🟢 Low | Quality Improvement |
+| **Security** | 4 | ? High | Action Required |
+| **Code Duplication** | 5 | ? Medium | Refactor Recommended |
+| **Hardcoding** | 15 | ? Low-Medium | Configuration Needed |
+| **Code Quality** | 4 | ? Low | Quality Improvement |
 
-**Overall Risk Level**: 🟠 **MEDIUM-HIGH**
+**Overall Risk Level**: ? **MEDIUM-HIGH**
 
 ---
 
@@ -40,7 +40,7 @@ fields_str = ', '.join([f'"{f}": doc.{f} || ""' for f in fields]) # fields not v
 query = f"FOR doc IN {self.collection}..." # collection validated but fields not
 ```
 
-**Risk Level**: 🟠 **HIGH** 
+**Risk Level**: ? **HIGH** 
 **Impact**: Malicious field names could inject AQL code
 
 **Recommendation**: Validate all field names before use:
@@ -98,7 +98,7 @@ raise ValueError("ARANGO_ROOT_PASSWORD environment variable must be set")
 password: str = "" # SECURITY: Must be provided via ARANGO_ROOT_PASSWORD environment variable
 ```
 
-**Risk Level**: 🟡 **MEDIUM** 
+**Risk Level**: ? **MEDIUM** 
 **Impact**: Empty password allows connection without authentication if ArangoDB is misconfigured
 
 **Recommendation**:
@@ -126,14 +126,14 @@ raise ValueError("ARANGO_ROOT_PASSWORD must be set")
 host: str = "localhost"
 ```
 
-**Risk Level**: 🟢 **LOW** 
+**Risk Level**: ? **LOW** 
 **Impact**: Defaults to localhost which is fine for development but should be configurable
 
 **Status**: Acceptable - has environment variable override
 
 ---
 
-## 🟠 CODE DUPLICATION
+## ? CODE DUPLICATION
 
 ### 1. **Duplicate: String Normalization Logic**
 
@@ -259,7 +259,7 @@ DEFAULT_MIN_CLUSTER_SIZE = 2
 
 ---
 
-## 🟡 HARDCODED VALUES
+## ? HARDCODED VALUES
 
 ### 1. **Batch Sizes**
 
@@ -389,7 +389,7 @@ edge_collection: str = DEFAULT_EDGE_COLLECTION # "similarTo"
 
 ---
 
-## 🟢 CODE QUALITY ISSUES
+## ? CODE QUALITY ISSUES
 
 ### 1. **Inconsistent Error Handling**
 

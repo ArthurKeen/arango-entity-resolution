@@ -286,13 +286,13 @@ Improvements:
 - **Performance validation** confirming 3-5x speedup claims
 
 ### 2. Enhanced Existing Tests
-- **EntityResolutionPipeline:** 20% → 75%+ coverage
-- **SimilarityService:** 60% → 85%+ coverage
-- **ClusteringService:** 50% → 80%+ coverage
+- **EntityResolutionPipeline:** 20% -> 75%+ coverage
+- **SimilarityService:** 60% -> 85%+ coverage
+- **ClusteringService:** 50% -> 80%+ coverage
 
 ### 3. Performance Validation
 - Tests confirm **3-5x speedup** claim
-- Tests validate **network overhead reduction** (3,319 calls → 1 call)
+- Tests validate **network overhead reduction** (3,319 calls -> 1 call)
 - Tests verify **linear scalability**
 - Regression detection tests prevent performance degradation
 
@@ -490,7 +490,7 @@ file: ./coverage.xml
 1. **3.6x more test code** - From 923 to 4,500+ lines
 2. **6x more tests** - From ~25 to 150+ test methods
 3. **3.6x better coverage** - From 16.5% to 60-70%
-4. **New component tests** - 0% → 85%+ for bulk processing
+4. **New component tests** - 0% -> 85%+ for bulk processing
 5. **Enhanced existing tests** - Significant improvement for all services
 
 ---

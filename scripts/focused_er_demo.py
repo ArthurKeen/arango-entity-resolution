@@ -27,12 +27,12 @@ class FocusedERDemo:
     def print_header(self, title):
         """Print a formatted header."""
         print(f"\n{'='*60}")
-        print(f"🎯 {title}")
+        print(f"? {title}")
         print(f"{'='*60}")
     
     def print_step(self, step, description):
         """Print a step with timing."""
-        print(f"\n📋 Step {step}: {description}")
+        print(f"\n? Step {step}: {description}")
         print("-" * 40)
     
     def test_similarity_algorithms(self):
@@ -94,7 +94,7 @@ class FocusedERDemo:
             }
         ]
         
-        print("🧮 Testing similarity algorithms...")
+        print("? Testing similarity algorithms...")
         print("   Using Fellegi-Sunter probabilistic framework")
         
         for test in test_pairs:
@@ -107,15 +107,15 @@ class FocusedERDemo:
                 is_high = score > 0.5
                 expected = test["expected_high"]
                 
-                status = "✅" if (is_high == expected) else "⚠️"
+                status = "[PASS]" if (is_high == expected) else "[WARN]?"
                 print(f"   {status} {test['name']}: {score:.3f} ({'High' if is_high else 'Low'})")
                 
                 if similarity.get('details'):
                     details = similarity['details']
-                    print(f"      📊 Field scores: {details}")
+                    print(f"      ? Field scores: {details}")
                     
             except Exception as e:
-                print(f"   ❌ {test['name']}: Error - {e}")
+                print(f"   [FAIL] {test['name']}: Error - {e}")
         
         return True
     
@@ -126,7 +126,7 @@ class FocusedERDemo:
         # Initialize pipeline
         self.pipeline = EntityResolutionPipeline(self.config)
         if not self.pipeline.connect():
-            print("❌ Failed to connect to pipeline")
+            print("[FAIL] Failed to connect to pipeline")
             return False
         
         # Create test data
@@ -141,23 +141,23 @@ class FocusedERDemo:
         
         # Create collection and load data
         if not self.pipeline.data_manager.create_collection(collection_name):
-            print("❌ Failed to create collection")
+            print("[FAIL] Failed to create collection")
             return False
         
         collection = self.pipeline.data_manager.database.collection(collection_name)
         collection.insert_many(test_data)
-        print(f"✅ Loaded {len(test_data)} test records")
+        print(f"[PASS] Loaded {len(test_data)} test records")
         
         # Test blocking setup
-        print("🔍 Setting up blocking strategies...")
+        print("? Setting up blocking strategies...")
         setup_result = self.pipeline.blocking_service.setup_for_collections([collection_name])
         if setup_result.get('success', False):
-            print("✅ Blocking strategies configured successfully")
+            print("[PASS] Blocking strategies configured successfully")
         else:
-            print(f"⚠️  Blocking setup issues: {setup_result.get('error', 'Unknown')}")
+            print(f"[WARN]?  Blocking setup issues: {setup_result.get('error', 'Unknown')}")
         
         # Test candidate generation
-        print("🎯 Testing candidate generation...")
+        print("? Testing candidate generation...")
         records = list(collection.all())
         
         for record in records:
@@ -167,15 +167,15 @@ class FocusedERDemo:
                 )
                 if candidate_result.get('success', False):
                     candidates = candidate_result.get('candidates', [])
-                    print(f"   📋 Record {record['_key']}: {len(candidates)} candidates")
+                    print(f"   ? Record {record['_key']}: {len(candidates)} candidates")
                 else:
-                    print(f"   ⚠️  No candidates for {record['_key']}")
+                    print(f"   [WARN]?  No candidates for {record['_key']}")
             except Exception as e:
-                print(f"   ❌ Error for {record['_key']}: {e}")
+                print(f"   [FAIL] Error for {record['_key']}: {e}")
         
         # Cleanup
         self.pipeline.data_manager.database.delete_collection(collection_name)
-        print("✅ Test data cleaned up")
+        print("[PASS] Test data cleaned up")
         
         return True
     
@@ -194,29 +194,29 @@ class FocusedERDemo:
         collection_name = "quality_test"
         
         if not self.pipeline.data_manager.create_collection(collection_name):
-            print("❌ Failed to create collection")
+            print("[FAIL] Failed to create collection")
             return False
         
         collection = self.pipeline.data_manager.database.collection(collection_name)
         collection.insert_many(quality_test_data)
-        print(f"✅ Loaded {len(quality_test_data)} test records")
+        print(f"[PASS] Loaded {len(quality_test_data)} test records")
         
         # Test data quality validation
-        print("🔍 Analyzing data quality...")
+        print("? Analyzing data quality...")
         try:
             quality_report = self.pipeline.data_manager.validate_data_quality(collection_name)
             if quality_report:
-                print(f"   📊 Total records: {quality_report.get('total_records', 0)}")
-                print(f"   📊 Issues found: {quality_report.get('issues_found', 0)}")
-                print(f"   📊 Quality score: {quality_report.get('quality_score', 0):.2f}")
+                print(f"   ? Total records: {quality_report.get('total_records', 0)}")
+                print(f"   ? Issues found: {quality_report.get('issues_found', 0)}")
+                print(f"   ? Quality score: {quality_report.get('quality_score', 0):.2f}")
             else:
-                print("   ℹ️  Quality validation not available")
+                print("   [INFO]?  Quality validation not available")
         except Exception as e:
-            print(f"   ⚠️  Quality validation error: {e}")
+            print(f"   [WARN]?  Quality validation error: {e}")
         
         # Cleanup
         self.pipeline.data_manager.database.delete_collection(collection_name)
-        print("✅ Test data cleaned up")
+        print("[PASS] Test data cleaned up")
         
         return True
     
@@ -225,7 +225,7 @@ class FocusedERDemo:
         self.print_step(4, "Testing System Performance")
         
         # Create larger dataset
-        print("📊 Creating performance test data...")
+        print("? Creating performance test data...")
         performance_data = []
         for i in range(100):
             performance_data.append({
@@ -239,30 +239,30 @@ class FocusedERDemo:
         collection_name = "performance_test"
         
         if not self.pipeline.data_manager.create_collection(collection_name):
-            print("❌ Failed to create collection")
+            print("[FAIL] Failed to create collection")
             return False
         
         # Test insertion performance
-        print("⚡ Testing insertion performance...")
+        print("[FAST] Testing insertion performance...")
         start_time = time.time()
         collection = self.pipeline.data_manager.database.collection(collection_name)
         collection.insert_many(performance_data)
         insert_time = time.time() - start_time
         
         # Test retrieval performance
-        print("⚡ Testing retrieval performance...")
+        print("[FAST] Testing retrieval performance...")
         start_time = time.time()
         records = list(collection.all())
         retrieve_time = time.time() - start_time
         
-        print(f"   📊 Inserted {len(performance_data)} records in {insert_time:.3f}s")
-        print(f"   📊 Retrieved {len(records)} records in {retrieve_time:.3f}s")
-        print(f"   📊 Insertion rate: {len(performance_data)/insert_time:.0f} records/sec")
-        print(f"   📊 Retrieval rate: {len(records)/retrieve_time:.0f} records/sec")
+        print(f"   ? Inserted {len(performance_data)} records in {insert_time:.3f}s")
+        print(f"   ? Retrieved {len(records)} records in {retrieve_time:.3f}s")
+        print(f"   ? Insertion rate: {len(performance_data)/insert_time:.0f} records/sec")
+        print(f"   ? Retrieval rate: {len(records)/retrieve_time:.0f} records/sec")
         
         # Cleanup
         self.pipeline.data_manager.database.delete_collection(collection_name)
-        print("✅ Performance test data cleaned up")
+        print("[PASS] Performance test data cleaned up")
         
         return True
     
@@ -270,7 +270,7 @@ class FocusedERDemo:
         """Run the focused Entity Resolution demonstration."""
         self.print_header("Focused Entity Resolution Demonstration")
         
-        print("🎯 This demonstration focuses on core ER capabilities:")
+        print("? This demonstration focuses on core ER capabilities:")
         print("   1. Similarity algorithm testing")
         print("   2. Blocking strategy validation")
         print("   3. Data quality analysis")
@@ -292,17 +292,17 @@ class FocusedERDemo:
             
             # Final summary
             self.print_header("Focused Demonstration Complete")
-            print("🎉 Focused Entity Resolution demonstration completed!")
-            print("✅ Core algorithms working correctly")
-            print("✅ Blocking strategies functional")
-            print("✅ Data quality validation working")
-            print("✅ Performance metrics achieved")
-            print("✅ System ready for production use")
+            print("? Focused Entity Resolution demonstration completed!")
+            print("[PASS] Core algorithms working correctly")
+            print("[PASS] Blocking strategies functional")
+            print("[PASS] Data quality validation working")
+            print("[PASS] Performance metrics achieved")
+            print("[PASS] System ready for production use")
             
             return True
             
         except Exception as e:
-            print(f"❌ Demonstration failed: {e}")
+            print(f"[FAIL] Demonstration failed: {e}")
             return False
 
 def main():
@@ -312,17 +312,17 @@ def main():
         success = demo.run_focused_demo()
         
         if success:
-            print("\n🎉 Focused Entity Resolution demonstration completed successfully!")
+            print("\n? Focused Entity Resolution demonstration completed successfully!")
             return 0
         else:
-            print("\n❌ Focused Entity Resolution demonstration failed!")
+            print("\n[FAIL] Focused Entity Resolution demonstration failed!")
             return 1
             
     except KeyboardInterrupt:
-        print("\n❌ Demonstration interrupted by user")
+        print("\n[FAIL] Demonstration interrupted by user")
         return 1
     except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
+        print(f"\n[FAIL] Unexpected error: {e}")
         return 1
 
 if __name__ == "__main__":

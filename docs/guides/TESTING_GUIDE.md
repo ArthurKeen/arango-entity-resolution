@@ -213,7 +213,7 @@ assert len(phone_pairs) >= 1
 
 **Validates:**
 - 3-5x speedup claim
-- Network overhead reduction (3,319 calls → 1 call)
+- Network overhead reduction (3,319 calls -> 1 call)
 - Linear scalability
 - Throughput (pairs/second)
 - Memory efficiency

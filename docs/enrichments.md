@@ -58,7 +58,7 @@ type_filter = TypeCompatibilityFilter({
     'medication': {'drug', 'treatment'}
 })
 
-# diagnosis ↔ medication will be blocked even if names are similar
+# diagnosis <-> medication will be blocked even if names are similar
 is_ok = type_filter.is_compatible('diagnosis', 'medication') # False
 ```
 

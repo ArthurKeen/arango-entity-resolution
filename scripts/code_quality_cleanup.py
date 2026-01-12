@@ -26,8 +26,8 @@ class CodeQualityCleanup:
         
     def log_action(self, action: str, details: str = ""):
         """Log cleanup actions."""
-        self.cleanup_log.append(f"✅ {action}: {details}")
-        print(f"✅ {action}: {details}")
+        self.cleanup_log.append(f"[PASS] {action}: {details}")
+        print(f"[PASS] {action}: {details}")
     
     def identify_redundant_files(self) -> List[Dict[str, Any]]:
         """Identify redundant files for removal."""
@@ -270,42 +270,42 @@ if __name__ == "__main__":
     
     def run_cleanup(self):
         """Run the complete cleanup process."""
-        print("🧹 Starting Code Quality Cleanup")
+        print("? Starting Code Quality Cleanup")
         print("=" * 50)
         
         # Step 1: Identify redundant files
-        print("\n🔍 Step 1: Identifying redundant files...")
+        print("\n? Step 1: Identifying redundant files...")
         redundant_files = self.identify_redundant_files()
         print(f"Found {len(redundant_files)} redundant files")
         
         # Step 2: Identify hardcoded values
-        print("\n🔍 Step 2: Identifying hardcoded values...")
+        print("\n? Step 2: Identifying hardcoded values...")
         hardcoded_issues = self.identify_hardcoded_values()
         print(f"Found {len(hardcoded_issues)} hardcoded value issues")
         
         # Step 3: Consolidate duplicate logic
-        print("\n🔧 Step 3: Consolidating duplicate logic...")
+        print("\n? Step 3: Consolidating duplicate logic...")
         self.consolidate_duplicate_logic()
         
         # Step 4: Remove redundant files
-        print("\n🗑️ Step 4: Removing redundant files...")
+        print("\n?? Step 4: Removing redundant files...")
         self.remove_redundant_files(redundant_files)
         
         # Step 5: Fix hardcoded values
-        print("\n🔧 Step 5: Fixing hardcoded values...")
+        print("\n? Step 5: Fixing hardcoded values...")
         self.fix_hardcoded_values(hardcoded_issues)
         
         # Step 6: Validate improvements
-        print("\n✅ Step 6: Validating improvements...")
+        print("\n[PASS] Step 6: Validating improvements...")
         self.validate_improvements()
         
         # Step 7: Generate report
-        print("\n📊 Step 7: Generating cleanup report...")
+        print("\n? Step 7: Generating cleanup report...")
         self.generate_cleanup_report()
         
-        print(f"\n🎉 Code Quality Cleanup Completed!")
-        print(f"📊 Total improvements: {len(self.cleanup_log)}")
-        print(f"📁 Report saved: code_quality_cleanup_report.json")
+        print(f"\n? Code Quality Cleanup Completed!")
+        print(f"? Total improvements: {len(self.cleanup_log)}")
+        print(f"? Report saved: code_quality_cleanup_report.json")
 
 def main():
     """Run the code quality cleanup."""
@@ -314,7 +314,7 @@ def main():
         cleanup.run_cleanup()
         return 0
     except Exception as e:
-        print(f"❌ Cleanup failed: {e}")
+        print(f"[FAIL] Cleanup failed: {e}")
         return 1
 
 if __name__ == "__main__":

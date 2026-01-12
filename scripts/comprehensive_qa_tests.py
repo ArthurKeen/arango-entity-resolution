@@ -33,7 +33,7 @@ class QATestSuite:
         
     def log_test(self, test_name, success, message="", duration=0):
         """Log test result."""
-        status = "✅ PASS" if success else "❌ FAIL"
+        status = "[PASS] PASS" if success else "[FAIL] FAIL"
         self.test_results.append({
             'test': test_name,
             'success': success,
@@ -44,7 +44,7 @@ class QATestSuite:
     
     def test_database_connection(self):
         """Test 1: Database connection and basic functionality."""
-        print("\n🔍 Test 1: Database Connection")
+        print("\n? Test 1: Database Connection")
         start_time = time.time()
         
         try:
@@ -67,7 +67,7 @@ class QATestSuite:
     
     def test_database_cleanup(self):
         """Test 2: Database cleanup functionality."""
-        print("\n🔍 Test 2: Database Cleanup")
+        print("\n? Test 2: Database Cleanup")
         start_time = time.time()
         
         try:
@@ -105,7 +105,7 @@ class QATestSuite:
     
     def test_data_manager(self):
         """Test 3: DataManager functionality."""
-        print("\n🔍 Test 3: DataManager")
+        print("\n? Test 3: DataManager")
         start_time = time.time()
         
         try:
@@ -153,7 +153,7 @@ class QATestSuite:
     
     def test_entity_resolution_pipeline(self):
         """Test 4: Entity Resolution Pipeline."""
-        print("\n🔍 Test 4: Entity Resolution Pipeline")
+        print("\n? Test 4: Entity Resolution Pipeline")
         start_time = time.time()
         
         try:
@@ -189,7 +189,7 @@ class QATestSuite:
     
     def test_services_connectivity(self):
         """Test 5: Services connectivity and health."""
-        print("\n🔍 Test 5: Services Connectivity")
+        print("\n? Test 5: Services Connectivity")
         start_time = time.time()
         
         try:
@@ -220,7 +220,7 @@ class QATestSuite:
     
     def test_data_integrity(self):
         """Test 6: Data integrity and consistency."""
-        print("\n🔍 Test 6: Data Integrity")
+        print("\n? Test 6: Data Integrity")
         start_time = time.time()
         
         try:
@@ -271,7 +271,7 @@ class QATestSuite:
     
     def test_error_handling(self):
         """Test 7: Error handling and edge cases."""
-        print("\n🔍 Test 7: Error Handling")
+        print("\n? Test 7: Error Handling")
         start_time = time.time()
         
         try:
@@ -307,7 +307,7 @@ class QATestSuite:
     
     def test_performance(self):
         """Test 8: Performance and scalability."""
-        print("\n🔍 Test 8: Performance")
+        print("\n? Test 8: Performance")
         start_time = time.time()
         
         try:
@@ -365,7 +365,7 @@ class QATestSuite:
     
     def run_all_tests(self):
         """Run all QA tests."""
-        print("🚀 Starting Comprehensive QA Tests")
+        print("? Starting Comprehensive QA Tests")
         print("=" * 50)
         
         tests = [
@@ -389,7 +389,7 @@ class QATestSuite:
                 else:
                     failed += 1
             except Exception as e:
-                print(f"❌ Test failed with exception: {e}")
+                print(f"[FAIL] Test failed with exception: {e}")
                 failed += 1
         
         # Generate report
@@ -403,7 +403,7 @@ class QATestSuite:
         success_rate = (passed / total_tests) * 100 if total_tests > 0 else 0
         
         print("\n" + "=" * 50)
-        print("📊 QA TEST REPORT")
+        print("? QA TEST REPORT")
         print("=" * 50)
         print(f"Total Tests: {total_tests}")
         print(f"Passed: {passed}")
@@ -411,7 +411,7 @@ class QATestSuite:
         print(f"Success Rate: {success_rate:.1f}%")
         
         if failed > 0:
-            print(f"\n❌ Failed Tests:")
+            print(f"\n[FAIL] Failed Tests:")
             for result in self.test_results:
                 if not result['success']:
                     print(f"  - {result['test']}: {result['message']}")
@@ -433,16 +433,16 @@ class QATestSuite:
         with open(report_file, 'w') as f:
             json.dump(report_data, f, indent=2, default=str)
         
-        print(f"\n📁 Detailed report saved: {report_file}")
+        print(f"\n? Detailed report saved: {report_file}")
         
         if success_rate >= 90:
-            print("🎉 Excellent! System is working properly.")
+            print("? Excellent! System is working properly.")
         elif success_rate >= 75:
-            print("✅ Good! System is mostly working with minor issues.")
+            print("[PASS] Good! System is mostly working with minor issues.")
         elif success_rate >= 50:
-            print("⚠️  Fair. System has some issues that need attention.")
+            print("[WARN]?  Fair. System has some issues that need attention.")
         else:
-            print("❌ Poor. System has significant issues that need immediate attention.")
+            print("[FAIL] Poor. System has significant issues that need immediate attention.")
 
 def main():
     """Run comprehensive QA tests."""
@@ -451,17 +451,17 @@ def main():
         success = qa_suite.run_all_tests()
         
         if success:
-            print("\n🎉 All QA tests passed!")
+            print("\n? All QA tests passed!")
             return 0
         else:
-            print("\n❌ Some QA tests failed!")
+            print("\n[FAIL] Some QA tests failed!")
             return 1
             
     except KeyboardInterrupt:
-        print("\n❌ Tests interrupted by user")
+        print("\n[FAIL] Tests interrupted by user")
         return 1
     except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
+        print(f"\n[FAIL] Unexpected error: {e}")
         return 1
 
 if __name__ == "__main__":

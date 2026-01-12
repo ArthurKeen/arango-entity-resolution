@@ -133,7 +133,7 @@ python3 test_round_trip_simple.py
 - Statistics tracking
 
 5. **Complete Pipeline**
-- Blocking → Similarity → Edges → Clustering
+- Blocking -> Similarity -> Edges -> Clustering
 - End-to-end workflow verification
 - Results validation
 

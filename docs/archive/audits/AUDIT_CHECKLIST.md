@@ -86,7 +86,7 @@ Quick reference for audit verification.
 ### Organization
 - [x] `DOCUMENTATION_INDEX.md` exists
 - [x] Clear document hierarchy
-- [x] Progressive disclosure (Quick Start → Full Docs)
+- [x] Progressive disclosure (Quick Start -> Full Docs)
 - [x] Multiple audience levels (users, developers, managers)
 
 **Status:** PASSED

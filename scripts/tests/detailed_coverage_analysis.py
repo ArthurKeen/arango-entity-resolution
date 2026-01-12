@@ -15,7 +15,7 @@ from datetime import datetime
 def analyze_qa_test_coverage():
     """Analyze what our QA tests actually cover."""
     
-    print("🔍 Detailed QA Test Coverage Analysis")
+    print("? Detailed QA Test Coverage Analysis")
     print("="*60)
     
     # Analyze our test files
@@ -38,7 +38,7 @@ def analyze_qa_test_coverage():
     # Analyze each test file
     for test_file in test_files:
         if os.path.exists(test_file):
-            print(f"\n📋 Analyzing {test_file}...")
+            print(f"\n? Analyzing {test_file}...")
             
             with open(test_file, 'r') as f:
                 content = f.read()
@@ -60,15 +60,15 @@ def analyze_qa_test_coverage():
             coverage_analysis["test_files_analyzed"].append(test_coverage)
             
             # Print coverage for this file
-            print(f"   Database Tests: {'✅' if test_coverage['database_tests'] else '❌'}")
-            print(f"   Similarity Tests: {'✅' if test_coverage['similarity_tests'] else '❌'}")
-            print(f"   Blocking Tests: {'✅' if test_coverage['blocking_tests'] else '❌'}")
-            print(f"   Clustering Tests: {'✅' if test_coverage['clustering_tests'] else '❌'}")
-            print(f"   Pipeline Tests: {'✅' if test_coverage['pipeline_tests'] else '❌'}")
-            print(f"   Error Handling: {'✅' if test_coverage['error_handling'] else '❌'}")
-            print(f"   Performance Tests: {'✅' if test_coverage['performance_tests'] else '❌'}")
-            print(f"   Data Quality Tests: {'✅' if test_coverage['data_quality_tests'] else '❌'}")
-            print(f"   End-to-End Tests: {'✅' if test_coverage['end_to_end_tests'] else '❌'}")
+            print(f"   Database Tests: {'[PASS]' if test_coverage['database_tests'] else '[FAIL]'}")
+            print(f"   Similarity Tests: {'[PASS]' if test_coverage['similarity_tests'] else '[FAIL]'}")
+            print(f"   Blocking Tests: {'[PASS]' if test_coverage['blocking_tests'] else '[FAIL]'}")
+            print(f"   Clustering Tests: {'[PASS]' if test_coverage['clustering_tests'] else '[FAIL]'}")
+            print(f"   Pipeline Tests: {'[PASS]' if test_coverage['pipeline_tests'] else '[FAIL]'}")
+            print(f"   Error Handling: {'[PASS]' if test_coverage['error_handling'] else '[FAIL]'}")
+            print(f"   Performance Tests: {'[PASS]' if test_coverage['performance_tests'] else '[FAIL]'}")
+            print(f"   Data Quality Tests: {'[PASS]' if test_coverage['data_quality_tests'] else '[FAIL]'}")
+            print(f"   End-to-End Tests: {'[PASS]' if test_coverage['end_to_end_tests'] else '[FAIL]'}")
     
     # Calculate overall coverage
     total_tests = len(coverage_analysis["test_files_analyzed"])
@@ -85,16 +85,16 @@ def analyze_qa_test_coverage():
             "end_to_end_tests": sum(1 for t in coverage_analysis["test_files_analyzed"] if t["end_to_end_tests"]) / total_tests * 100
         }
         
-        print(f"\n📊 Overall Coverage Percentages:")
+        print(f"\n? Overall Coverage Percentages:")
         for area, percentage in coverage_percentages.items():
-            status = "✅" if percentage >= 50 else "❌"
+            status = "[PASS]" if percentage >= 50 else "[FAIL]"
             print(f"   {status} {area.replace('_', ' ').title()}: {percentage:.1f}%")
         
         # Identify gaps
         gaps = [area for area, percentage in coverage_percentages.items() if percentage < 50]
         if gaps:
             coverage_analysis["coverage_gaps"] = gaps
-            print(f"\n❌ Coverage Gaps Identified:")
+            print(f"\n[FAIL] Coverage Gaps Identified:")
             for gap in gaps:
                 print(f"   - {gap.replace('_', ' ').title()}: {coverage_percentages[gap]:.1f}% coverage")
         
@@ -102,56 +102,56 @@ def analyze_qa_test_coverage():
         strengths = [area for area, percentage in coverage_percentages.items() if percentage >= 50]
         if strengths:
             coverage_analysis["strengths"] = strengths
-            print(f"\n✅ Well-Covered Areas:")
+            print(f"\n[PASS] Well-Covered Areas:")
             for strength in strengths:
                 print(f"   - {strength.replace('_', ' ').title()}: {coverage_percentages[strength]:.1f}% coverage")
     
     # Specific analysis of what we found in our tests
-    print(f"\n🔍 Specific Test Coverage Analysis:")
+    print(f"\n? Specific Test Coverage Analysis:")
     
     # Database Management Coverage
-    print(f"\n📊 Database Management:")
-    print(f"   ✅ Connection testing: Present in comprehensive_qa_tests.py")
-    print(f"   ✅ CRUD operations: Present in comprehensive_qa_tests.py")
-    print(f"   ✅ Collection management: Present in comprehensive_qa_tests.py")
-    print(f"   ❌ Transaction testing: Missing")
-    print(f"   ❌ Error recovery: Missing")
+    print(f"\n? Database Management:")
+    print(f"   [PASS] Connection testing: Present in comprehensive_qa_tests.py")
+    print(f"   [PASS] CRUD operations: Present in comprehensive_qa_tests.py")
+    print(f"   [PASS] Collection management: Present in comprehensive_qa_tests.py")
+    print(f"   [FAIL] Transaction testing: Missing")
+    print(f"   [FAIL] Error recovery: Missing")
     
     # Similarity Algorithm Coverage
-    print(f"\n📊 Similarity Algorithms:")
-    print(f"   ✅ Service initialization: Present in comprehensive_qa_tests.py")
-    print(f"   ❌ Algorithm accuracy: Missing (this is why we found the 0.000 scores)")
-    print(f"   ❌ Edge case testing: Missing")
-    print(f"   ❌ Performance testing: Missing")
-    print(f"   ❌ Field weight validation: Missing")
+    print(f"\n? Similarity Algorithms:")
+    print(f"   [PASS] Service initialization: Present in comprehensive_qa_tests.py")
+    print(f"   [FAIL] Algorithm accuracy: Missing (this is why we found the 0.000 scores)")
+    print(f"   [FAIL] Edge case testing: Missing")
+    print(f"   [FAIL] Performance testing: Missing")
+    print(f"   [FAIL] Field weight validation: Missing")
     
     # Blocking Strategy Coverage
-    print(f"\n📊 Blocking Strategies:")
-    print(f"   ✅ Service initialization: Present in comprehensive_qa_tests.py")
-    print(f"   ❌ Strategy effectiveness: Missing")
-    print(f"   ❌ Candidate generation accuracy: Missing")
-    print(f"   ❌ Performance testing: Missing")
+    print(f"\n? Blocking Strategies:")
+    print(f"   [PASS] Service initialization: Present in comprehensive_qa_tests.py")
+    print(f"   [FAIL] Strategy effectiveness: Missing")
+    print(f"   [FAIL] Candidate generation accuracy: Missing")
+    print(f"   [FAIL] Performance testing: Missing")
     
     # Clustering Algorithm Coverage
-    print(f"\n📊 Clustering Algorithms:")
-    print(f"   ✅ Service initialization: Present in comprehensive_qa_tests.py")
-    print(f"   ❌ Algorithm accuracy: Missing")
-    print(f"   ❌ Cluster quality validation: Missing")
-    print(f"   ❌ WCC algorithm testing: Missing")
+    print(f"\n? Clustering Algorithms:")
+    print(f"   [PASS] Service initialization: Present in comprehensive_qa_tests.py")
+    print(f"   [FAIL] Algorithm accuracy: Missing")
+    print(f"   [FAIL] Cluster quality validation: Missing")
+    print(f"   [FAIL] WCC algorithm testing: Missing")
     
     # Pipeline Integration Coverage
-    print(f"\n📊 Pipeline Integration:")
-    print(f"   ✅ Component initialization: Present in comprehensive_qa_tests.py")
-    print(f"   ❌ End-to-end workflow: Missing")
-    print(f"   ❌ Data flow validation: Missing")
-    print(f"   ❌ Integration error handling: Missing")
+    print(f"\n? Pipeline Integration:")
+    print(f"   [PASS] Component initialization: Present in comprehensive_qa_tests.py")
+    print(f"   [FAIL] End-to-end workflow: Missing")
+    print(f"   [FAIL] Data flow validation: Missing")
+    print(f"   [FAIL] Integration error handling: Missing")
     
     # Data Quality Coverage
-    print(f"\n📊 Data Quality:")
-    print(f"   ✅ Service initialization: Present in comprehensive_qa_tests.py")
-    print(f"   ❌ Quality metric validation: Missing")
-    print(f"   ❌ Issue detection accuracy: Missing")
-    print(f"   ❌ Quality scoring validation: Missing")
+    print(f"\n? Data Quality:")
+    print(f"   [PASS] Service initialization: Present in comprehensive_qa_tests.py")
+    print(f"   [FAIL] Quality metric validation: Missing")
+    print(f"   [FAIL] Issue detection accuracy: Missing")
+    print(f"   [FAIL] Quality scoring validation: Missing")
     
     # Generate recommendations
     recommendations = [
@@ -167,7 +167,7 @@ def analyze_qa_test_coverage():
     
     coverage_analysis["recommendations"] = recommendations
     
-    print(f"\n💡 Recommendations for Improving Coverage:")
+    print(f"\n? Recommendations for Improving Coverage:")
     for i, rec in enumerate(recommendations, 1):
         print(f"   {i}. {rec}")
     
@@ -176,7 +176,7 @@ def analyze_qa_test_coverage():
     with open(report_file, 'w') as f:
         json.dump(coverage_analysis, f, indent=2, default=str)
     
-    print(f"\n📁 Detailed analysis saved: {report_file}")
+    print(f"\n? Detailed analysis saved: {report_file}")
     
     return coverage_analysis
 
@@ -186,7 +186,7 @@ def main():
         analysis = analyze_qa_test_coverage()
         return 0
     except Exception as e:
-        print(f"❌ Coverage analysis failed: {e}")
+        print(f"[FAIL] Coverage analysis failed: {e}")
         return 1
 
 if __name__ == "__main__":

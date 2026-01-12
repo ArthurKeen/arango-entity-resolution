@@ -16,11 +16,11 @@ Consider this real-world scenario:
 - **Record C**: "J. Smith, 123 Main St"
 
 Traditional pairwise matching might find:
-- A ↔ B (similar names, same address) → Score: 0.85
-- A ↔ C (similar names, same address) → Score: 0.75
-- B ↔ C (different name format) → Score: 0.65
+- A <-> B (similar names, same address) -> Score: 0.85
+- A <-> C (similar names, same address) -> Score: 0.75
+- B <-> C (different name format) -> Score: 0.65
 
-If our threshold is 0.7, traditional approaches would miss the B ↔ C connection, resulting in two separate clusters: {A, B} and {A, C}, which doesn't make sense since A appears in both.
+If our threshold is 0.7, traditional approaches would miss the B <-> C connection, resulting in two separate clusters: {A, B} and {A, C}, which doesn't make sense since A appears in both.
 
 ## The Graph Solution
 
@@ -115,10 +115,10 @@ threshold: @minSimilarity
 ### Real-World Example
 
 Consider these similarity relationships:
-- Record A ↔ Record B: 0.85 similarity
-- Record A ↔ Record C: 0.75 similarity 
-- Record D ↔ Record E: 0.90 similarity
-- Record B ↔ Record F: 0.80 similarity
+- Record A <-> Record B: 0.85 similarity
+- Record A <-> Record C: 0.75 similarity 
+- Record D <-> Record E: 0.90 similarity
+- Record B <-> Record F: 0.80 similarity
 
 With threshold 0.7, WCC creates:
 - **Cluster 1**: [A, B, C, F] - all connected through A and B
@@ -127,9 +127,9 @@ With threshold 0.7, WCC creates:
 ### Why WCC vs Simple Clustering?
 
 #### 1. **Transitive Closure**
-- If A → B and B → C, then A, B, C are in same cluster
-- Even if A ↔ C similarity is below threshold individually
-- Handles **chain connections**: A→B→C→D
+- If A -> B and B -> C, then A, B, C are in same cluster
+- Even if A <-> C similarity is below threshold individually
+- Handles **chain connections**: A->B->C->D
 
 #### 2. **Complex Relationship Patterns**
 - **Star patterns**: A connects to B, C, D, E (A is the "hub")
@@ -170,8 +170,8 @@ quality_score: 0.89
 ### Data Flow
 
 ```
-Similarity Scores → UPSERT Edges → WCC Clustering → Quality Validation → Entity Clusters
-↓ ↓ ↓ ↓ ↓
+Similarity Scores -> UPSERT Edges -> WCC Clustering -> Quality Validation -> Entity Clusters
+| | | | |
 Fellegi-Sunter Graph Building Community Coherence Final Clusters
 Framework (idempotent) Detection Checking + Metadata
 ```
@@ -232,7 +232,7 @@ Customer A: "John Doe, john.doe@email.com, 555-1234"
 Customer B: "J. Doe, john.doe@gmail.com, 555-1234" 
 Customer C: "John D., jdoe@email.com, 555-1234"
 ```
-→ WCC clusters all three despite different email formats
+-> WCC clusters all three despite different email formats
 
 ### Healthcare Patient Matching
 ```
@@ -240,7 +240,7 @@ Patient A: "Smith, Mary, DOB: 1985-01-15, SSN: ***-**-1234"
 Patient B: "Mary Smith, DOB: 01/15/1985, Insurance: ABC123"
 Patient C: "M. Smith, DOB: 1/15/85, Phone: 555-9876"
 ```
-→ WCC connects through partial information overlap
+-> WCC connects through partial information overlap
 
 ### Business Entity Resolution
 ```
@@ -248,6 +248,6 @@ Company A: "ABC Corp, 123 Business St, New York"
 Company B: "ABC Corporation, 123 Business Street, NY"
 Company C: "ABC Co., Tax ID: 12-3456789"
 ```
-→ WCC handles name variations and incomplete data
+-> WCC handles name variations and incomplete data
 
 This graph-based approach with UPSERT edge creation and WCC clustering provides a robust, scalable foundation for production entity resolution systems that can handle the complexity and ambiguity of real-world data.

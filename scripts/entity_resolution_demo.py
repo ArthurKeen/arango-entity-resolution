@@ -36,17 +36,17 @@ class EntityResolutionDemo:
     def print_header(self, title):
         """Print a formatted header."""
         print(f"\n{'='*60}")
-        print(f"🎯 {title}")
+        print(f"? {title}")
         print(f"{'='*60}")
     
     def print_step(self, step, description):
         """Print a step with timing."""
-        print(f"\n📋 Step {step}: {description}")
+        print(f"\n? Step {step}: {description}")
         print("-" * 40)
     
     def create_demo_data(self):
         """Create realistic demo data with known duplicates."""
-        print("📊 Creating realistic demo data...")
+        print("? Creating realistic demo data...")
         
         # Create customer data with intentional duplicates and variations
         self.demo_data = [
@@ -131,8 +131,8 @@ class EntityResolutionDemo:
             }
         ]
         
-        print(f"✅ Created {len(self.demo_data)} customer records with intentional duplicates")
-        print("📋 Expected duplicate groups:")
+        print(f"[PASS] Created {len(self.demo_data)} customer records with intentional duplicates")
+        print("? Expected duplicate groups:")
         print("   - Group 1: John Smith (3 variations)")
         print("   - Group 2: Jane Doe (2 variations)")  
         print("   - Group 3: Bob Johnson (unique)")
@@ -147,7 +147,7 @@ class EntityResolutionDemo:
         # Initialize pipeline
         self.pipeline = EntityResolutionPipeline(self.config)
         if not self.pipeline.connect():
-            print("❌ Failed to connect to pipeline")
+            print("[FAIL] Failed to connect to pipeline")
             return False
         
         # Create demo data
@@ -156,25 +156,25 @@ class EntityResolutionDemo:
         # Create collection and load data
         collection_name = "demo_customers"
         if not self.pipeline.data_manager.create_collection(collection_name):
-            print("❌ Failed to create collection")
+            print("[FAIL] Failed to create collection")
             return False
         
         # Load data using batch insert
         collection = self.pipeline.data_manager.database.collection(collection_name)
         try:
             collection.insert_many(demo_data)
-            print(f"✅ Loaded {len(demo_data)} records into '{collection_name}' collection")
+            print(f"[PASS] Loaded {len(demo_data)} records into '{collection_name}' collection")
         except Exception as e:
-            print(f"❌ Failed to load data: {e}")
+            print(f"[FAIL] Failed to load data: {e}")
             return False
         
         # Validate data quality
-        print("\n🔍 Data Quality Analysis:")
+        print("\n? Data Quality Analysis:")
         quality_report = self.pipeline.data_manager.validate_data_quality(collection_name)
         if quality_report:
-            print(f"   📊 Total records: {quality_report.get('total_records', 0)}")
-            print(f"   📊 Issues found: {quality_report.get('issues_found', 0)}")
-            print(f"   📊 Quality score: {quality_report.get('quality_score', 0):.2f}")
+            print(f"   ? Total records: {quality_report.get('total_records', 0)}")
+            print(f"   ? Issues found: {quality_report.get('issues_found', 0)}")
+            print(f"   ? Quality score: {quality_report.get('quality_score', 0):.2f}")
         
         self.results['collection_name'] = collection_name
         self.results['total_records'] = len(demo_data)
@@ -186,19 +186,19 @@ class EntityResolutionDemo:
         
         collection_name = self.results['collection_name']
         
-        print("🔍 Setting up blocking strategies...")
+        print("? Setting up blocking strategies...")
         setup_result = self.pipeline.blocking_service.setup_for_collections([collection_name])
         if not setup_result.get('success', False):
-            print("❌ Blocking setup failed")
+            print("[FAIL] Blocking setup failed")
             return False
         
-        print("✅ Blocking strategies configured:")
+        print("[PASS] Blocking strategies configured:")
         print("   - Exact matching on email and phone")
         print("   - N-gram matching on names and company")
         print("   - Phonetic matching on names")
         
         # Generate candidates for each record
-        print("\n🎯 Generating candidate pairs...")
+        print("\n? Generating candidate pairs...")
         all_candidates = []
         
         collection = self.pipeline.data_manager.database.collection(collection_name)
@@ -212,13 +212,13 @@ class EntityResolutionDemo:
                 if candidate_result.get('success', False):
                     candidates = candidate_result.get('candidates', [])
                     all_candidates.extend(candidates)
-                    print(f"   📋 Record {record['_key']}: {len(candidates)} candidates")
+                    print(f"   ? Record {record['_key']}: {len(candidates)} candidates")
                 else:
-                    print(f"   ⚠️  No candidates for {record['_key']}: {candidate_result.get('error', 'Unknown error')}")
+                    print(f"   [WARN]?  No candidates for {record['_key']}: {candidate_result.get('error', 'Unknown error')}")
             except Exception as e:
-                print(f"   ⚠️  Error generating candidates for {record['_key']}: {e}")
+                print(f"   [WARN]?  Error generating candidates for {record['_key']}: {e}")
         
-        print(f"\n✅ Generated {len(all_candidates)} total candidate pairs")
+        print(f"\n[PASS] Generated {len(all_candidates)} total candidate pairs")
         self.results['candidates'] = all_candidates
         return True
     
@@ -229,7 +229,7 @@ class EntityResolutionDemo:
         collection_name = self.results['collection_name']
         candidates = self.results['candidates']
         
-        print("🧮 Computing similarity scores...")
+        print("? Computing similarity scores...")
         print("   Using Fellegi-Sunter probabilistic framework")
         print("   Field weights: name(50%), email(30%), phone(15%), company(5%)")
         
@@ -259,12 +259,12 @@ class EntityResolutionDemo:
                             'details': similarity.get('details', {})
                         })
                         
-                        print(f"   📊 {candidate_a.get('_id', '')} ↔ {candidate_b.get('_id', '')}: {similarity.get('score', 0):.3f}")
+                        print(f"   ? {candidate_a.get('_id', '')} <-> {candidate_b.get('_id', '')}: {similarity.get('score', 0):.3f}")
                         
                 except Exception as e:
-                    print(f"   ⚠️  Error computing similarity: {e}")
+                    print(f"   [WARN]?  Error computing similarity: {e}")
         
-        print(f"\n✅ Computed similarity scores for {len(similarity_pairs)} pairs")
+        print(f"\n[PASS] Computed similarity scores for {len(similarity_pairs)} pairs")
         self.results['similarity_pairs'] = similarity_pairs
         return True
     
@@ -274,7 +274,7 @@ class EntityResolutionDemo:
         
         similarity_pairs = self.results['similarity_pairs']
         
-        print("🕸️  Building similarity graph...")
+        print("??  Building similarity graph...")
         print("   Using Weakly Connected Components (WCC) algorithm")
         
         # Filter pairs above similarity threshold
@@ -284,20 +284,20 @@ class EntityResolutionDemo:
             if pair['score'] >= threshold
         ]
         
-        print(f"   📊 Pairs above threshold ({threshold}): {len(high_similarity_pairs)}")
+        print(f"   ? Pairs above threshold ({threshold}): {len(high_similarity_pairs)}")
         
         if high_similarity_pairs:
             # Perform clustering
             clusters = self.pipeline.clustering_service.cluster_entities(high_similarity_pairs)
-            print(f"✅ Generated {len(clusters)} entity clusters")
+            print(f"[PASS] Generated {len(clusters)} entity clusters")
             
             # Display clusters
             for i, cluster in enumerate(clusters):
-                print(f"   🎯 Cluster {i+1}: {len(cluster.get('entities', []))} entities")
+                print(f"   ? Cluster {i+1}: {len(cluster.get('entities', []))} entities")
                 for entity in cluster.get('entities', []):
                     print(f"      - {entity}")
         else:
-            print("   ℹ️  No pairs above similarity threshold")
+            print("   [INFO]?  No pairs above similarity threshold")
             clusters = []
         
         self.results['clusters'] = clusters
@@ -310,7 +310,7 @@ class EntityResolutionDemo:
         clusters = self.results['clusters']
         collection_name = self.results['collection_name']
         
-        print("👑 Generating golden records...")
+        print("? Generating golden records...")
         print("   Strategy: Best record selection with data fusion")
         
         golden_records = []
@@ -319,7 +319,7 @@ class EntityResolutionDemo:
         for i, cluster in enumerate(clusters):
             entities = cluster.get('entities', [])
             if len(entities) > 1:
-                print(f"\n   🎯 Cluster {i+1} ({len(entities)} entities):")
+                print(f"\n   ? Cluster {i+1} ({len(entities)} entities):")
                 
                 # Get all records in cluster
                 cluster_records = []
@@ -336,12 +336,12 @@ class EntityResolutionDemo:
                     golden_record = self.create_golden_record(cluster_records)
                     golden_records.append(golden_record)
                     
-                    print(f"      📋 Original records: {len(cluster_records)}")
-                    print(f"      👑 Golden record: {golden_record.get('first_name')} {golden_record.get('last_name')}")
-                    print(f"      📧 Email: {golden_record.get('email')}")
-                    print(f"      📞 Phone: {golden_record.get('phone')}")
+                    print(f"      ? Original records: {len(cluster_records)}")
+                    print(f"      ? Golden record: {golden_record.get('first_name')} {golden_record.get('last_name')}")
+                    print(f"      ? Email: {golden_record.get('email')}")
+                    print(f"      ? Phone: {golden_record.get('phone')}")
         
-        print(f"\n✅ Generated {len(golden_records)} golden records")
+        print(f"\n[PASS] Generated {len(golden_records)} golden records")
         self.results['golden_records'] = golden_records
         return True
     
@@ -369,18 +369,18 @@ class EntityResolutionDemo:
         duplicate_count = sum(len(cluster.get('entities', [])) - 1 for cluster in clusters)
         deduplication_rate = (duplicate_count / total_records) * 100 if total_records > 0 else 0
         
-        print("📊 Business Impact Metrics:")
-        print(f"   📋 Total records processed: {total_records}")
-        print(f"   🔄 Duplicate records found: {duplicate_count}")
-        print(f"   📉 Deduplication rate: {deduplication_rate:.1f}%")
-        print(f"   👑 Golden records created: {len(golden_records)}")
-        print(f"   💰 Data quality improvement: {deduplication_rate:.1f}%")
+        print("? Business Impact Metrics:")
+        print(f"   ? Total records processed: {total_records}")
+        print(f"   ? Duplicate records found: {duplicate_count}")
+        print(f"   ? Deduplication rate: {deduplication_rate:.1f}%")
+        print(f"   ? Golden records created: {len(golden_records)}")
+        print(f"   ? Data quality improvement: {deduplication_rate:.1f}%")
         
         # Business value calculation
-        print("\n💰 Business Value Analysis:")
-        print("   📈 Revenue impact of duplicates: 15-25% of revenue")
-        print(f"   🎯 This system can recover: {deduplication_rate * 0.2:.1f}% of revenue")
-        print("   💡 Key benefits:")
+        print("\n? Business Value Analysis:")
+        print("   ? Revenue impact of duplicates: 15-25% of revenue")
+        print(f"   ? This system can recover: {deduplication_rate * 0.2:.1f}% of revenue")
+        print("   ? Key benefits:")
         print("      - Improved customer experience")
         print("      - Reduced marketing waste")
         print("      - Better analytics and reporting")
@@ -390,21 +390,21 @@ class EntityResolutionDemo:
     
     def cleanup_demo_data(self):
         """Clean up demo data."""
-        print("\n🧹 Cleaning up demo data...")
+        print("\n? Cleaning up demo data...")
         
         try:
             collection_name = self.results.get('collection_name')
             if collection_name:
                 self.pipeline.data_manager.database.delete_collection(collection_name)
-                print(f"✅ Cleaned up collection: {collection_name}")
+                print(f"[PASS] Cleaned up collection: {collection_name}")
         except Exception as e:
-            print(f"⚠️  Cleanup warning: {e}")
+            print(f"[WARN]?  Cleanup warning: {e}")
     
     def run_complete_demo(self):
         """Run the complete Entity Resolution demonstration."""
         self.print_header("Entity Resolution System Demonstration")
         
-        print("🎯 This demonstration showcases the complete Entity Resolution pipeline:")
+        print("? This demonstration showcases the complete Entity Resolution pipeline:")
         print("   1. Data ingestion and validation")
         print("   2. Blocking and candidate generation") 
         print("   3. Similarity computation (Fellegi-Sunter)")
@@ -434,15 +434,15 @@ class EntityResolutionDemo:
             
             # Final summary
             self.print_header("Demonstration Complete")
-            print("🎉 Entity Resolution demonstration completed successfully!")
-            print("✅ All pipeline components working correctly")
-            print("✅ Business value demonstrated")
-            print("✅ System ready for production use")
+            print("? Entity Resolution demonstration completed successfully!")
+            print("[PASS] All pipeline components working correctly")
+            print("[PASS] Business value demonstrated")
+            print("[PASS] System ready for production use")
             
             return True
             
         except Exception as e:
-            print(f"❌ Demonstration failed: {e}")
+            print(f"[FAIL] Demonstration failed: {e}")
             return False
         
         finally:
@@ -456,17 +456,17 @@ def main():
         success = demo.run_complete_demo()
         
         if success:
-            print("\n🎉 Entity Resolution demonstration completed successfully!")
+            print("\n? Entity Resolution demonstration completed successfully!")
             return 0
         else:
-            print("\n❌ Entity Resolution demonstration failed!")
+            print("\n[FAIL] Entity Resolution demonstration failed!")
             return 1
             
     except KeyboardInterrupt:
-        print("\n❌ Demonstration interrupted by user")
+        print("\n[FAIL] Demonstration interrupted by user")
         return 1
     except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
+        print(f"\n[FAIL] Unexpected error: {e}")
         return 1
 
 if __name__ == "__main__":

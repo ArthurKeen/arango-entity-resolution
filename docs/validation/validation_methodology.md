@@ -31,7 +31,7 @@
 **Baseline Configuration:**
 - Name-only Jaro-Winkler similarity
 - Threshold: 0.7
-- Basic acronym expansion (clk→clock, rst→reset, etc.)
+- Basic acronym expansion (clk->clock, rst->reset, etc.)
 
 **Enhanced Configuration:**
 - Baseline + Type Compatibility Filter
@@ -58,7 +58,7 @@ python3 validation/validate_metrics.py
 
 ### Quantitative Metrics
 
-| Metric | Baseline | Enhanced | Δ | % Change |
+| Metric | Baseline | Enhanced | Delta | % Change |
 |--------|----------|----------|---|----------|
 | **Precision** | 0.500 (1/2) | **1.000 (4/4)** | +0.500 | +100% |
 | **Recall** | 0.111 (1/9) | **0.444 (4/9)** | +0.333 | +300% |
@@ -84,10 +84,10 @@ python3 validation/validate_metrics.py
 
 **From 50% to 100%** - No false positives with enhanced matching.
 
-**Why?** Type compatibility filtering prevents nonsensical matches (e.g., signal ↔ instruction).
+**Why?** Type compatibility filtering prevents nonsensical matches (e.g., signal <-> instruction).
 
 **Example:**
-- Baseline incorrectly matched: `add_result` (signal) → `ADD Instruction` (instruction)
+- Baseline incorrectly matched: `add_result` (signal) -> `ADD Instruction` (instruction)
 - Enhanced correctly rejected: Type incompatible
 
 ### 2. Recall Improved But Still Limited
@@ -100,8 +100,8 @@ python3 validation/validate_metrics.py
 - Acronym dictionary is incomplete
 
 **Examples of Missed Matches:**
-- `or1200_mult_mac` → `Multiplier Unit` (score: 0.265, needs better abbreviation handling)
-- `if_insn` → `Instruction Fetch Unit` (score: 0.000, type filter too aggressive)
+- `or1200_mult_mac` -> `Multiplier Unit` (score: 0.265, needs better abbreviation handling)
+- `if_insn` -> `Instruction Fetch Unit` (score: 0.000, type filter too aggressive)
 
 ### 3. F1 Significantly Better
 

@@ -27,12 +27,12 @@
 
 **Current:**
 ```markdown
-- Precision: +35% (72% → 107%→100%) ← 107% is impossible!
+- Precision: +35% (72% -> 107%->100%) <- 107% is impossible!
 ```
 
 **Fixed:**
 ```markdown
-- Precision: 0.72 → 1.00 (+28 percentage points)
+- Precision: 0.72 -> 1.00 (+28 percentage points)
 ```
 
 ---
@@ -98,7 +98,7 @@ interest in integration.
 
 ## Checklist
 
-- [ ] Fix email line 8: Change "72% → 107%→100%" to "0.72 → 1.00"
+- [ ] Fix email line 8: Change "72% -> 107%->100%" to "0.72 -> 1.00"
 - [ ] Add methodology section to VALIDATION_AND_TECHNICAL_SPEC.md
 - [ ] Add note about metrics being production observations to email
 - [ ] Double-check: `PYTHONPATH=. pytest ic_enrichment/tests/ -v` passes

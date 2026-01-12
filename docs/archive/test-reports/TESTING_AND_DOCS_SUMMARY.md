@@ -98,7 +98,7 @@ Full end-to-end testing with real ArangoDB:
 
 5. `TestCompletePipeline`
 - **Full end-to-end workflow**
-- Blocking → Similarity → Edges → Clustering
+- Blocking -> Similarity -> Edges -> Clustering
 - Multi-strategy orchestration
 
 6. `TestPerformanceBenchmarks`

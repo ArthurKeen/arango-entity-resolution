@@ -398,7 +398,7 @@ def example_7_validate_clusters():
         for issue in validation['issues'][:5]:  # Show first 5
             print(f"    - {issue['type']}: {issue}")
     else:
-        print(f"\n  ✅ No issues found - clusters are valid!")
+        print(f"\n  [PASS] No issues found - clusters are valid!")
     
     return validation
 
@@ -492,7 +492,7 @@ def example_8_complete_pipeline():
     print("\n[5/5] Validation - Checking cluster quality...")
     
     validation = clustering.validate_clusters()
-    print(f"  Validation: {'✅ PASSED' if validation['valid'] else '❌ FAILED'}")
+    print(f"  Validation: {'[PASS] PASSED' if validation['valid'] else '[FAIL] FAILED'}")
     
     # Final summary
     print("\n" + "=" * 80)

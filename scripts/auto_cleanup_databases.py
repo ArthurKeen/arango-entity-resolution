@@ -16,14 +16,14 @@ from entity_resolution.utils.database import DatabaseManager
 from entity_resolution.utils.config import Config
 
 def main():
-    print("🧹 Auto-cleanup of Entity Resolution Databases")
+    print("? Auto-cleanup of Entity Resolution Databases")
     print("=" * 50)
     
     config = Config.from_env()
     db_manager = DatabaseManager()
     
     if not db_manager.test_connection():
-        print("❌ Could not connect to database")
+        print("[FAIL] Could not connect to database")
         return False
     
     # Get system database connection
@@ -34,16 +34,16 @@ def main():
     databases = sys_db.databases()
     entity_resolution_dbs = [db for db in databases if 'entity_resolution' in db and db != '_system']
     
-    print(f"🔍 Found {len(entity_resolution_dbs)} entity resolution databases:")
+    print(f"? Found {len(entity_resolution_dbs)} entity resolution databases:")
     for db_name in entity_resolution_dbs:
         print(f"  - {db_name}")
     
     if len(entity_resolution_dbs) <= 1:
-        print("✅ Only one or no entity resolution databases found. No cleanup needed.")
+        print("[PASS] Only one or no entity resolution databases found. No cleanup needed.")
         return True
     
     # Analyze each database
-    print(f"\n📊 Analyzing databases...")
+    print(f"\n? Analyzing databases...")
     db_info = {}
     
     for db_name in entity_resolution_dbs:
@@ -59,35 +59,35 @@ def main():
             }
             
             status = "has data" if db_info[db_name]['has_data'] else "empty"
-            print(f"  📊 {db_name}: {status} ({len(custom_collections)} custom collections)")
+            print(f"  ? {db_name}: {status} ({len(custom_collections)} custom collections)")
             
         except Exception as e:
-            print(f"  ❌ Error analyzing {db_name}: {e}")
+            print(f"  [FAIL] Error analyzing {db_name}: {e}")
             db_info[db_name] = {'error': str(e)}
     
     # Determine cleanup strategy
-    print(f"\n🎯 Cleanup Strategy:")
+    print(f"\n? Cleanup Strategy:")
     
     # Find databases with data to backup
     databases_with_data = [db for db, info in db_info.items() if info.get('has_data', False)]
     empty_databases = [db for db, info in db_info.items() if not info.get('has_data', False) and 'error' not in info]
     
-    print(f"  📋 Databases with data: {len(databases_with_data)}")
+    print(f"  ? Databases with data: {len(databases_with_data)}")
     for db in databases_with_data:
         print(f"    - {db}")
     
-    print(f"  📋 Empty databases: {len(empty_databases)}")
+    print(f"  ? Empty databases: {len(empty_databases)}")
     for db in empty_databases:
         print(f"    - {db}")
     
     # Backup databases with data
     if databases_with_data:
-        print(f"\n💾 Backing up databases with data...")
+        print(f"\n? Backing up databases with data...")
         if not os.path.exists("backups"):
             os.makedirs("backups")
         
         for db_name in databases_with_data:
-            print(f"  📋 Backing up {db_name}...")
+            print(f"  ? Backing up {db_name}...")
             try:
                 db = client.db(db_name)
                 backup_data = {}
@@ -100,7 +100,7 @@ def main():
                         backup_data[col_name] = documents
                         print(f"    - {col_name}: {len(documents)} documents")
                     except Exception as e:
-                        print(f"    ❌ Error backing up {col_name}: {e}")
+                        print(f"    [FAIL] Error backing up {col_name}: {e}")
                 
                 # Save backup
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -109,31 +109,31 @@ def main():
                 with open(backup_file, 'w') as f:
                     json.dump(backup_data, f, indent=2, default=str)
                 
-                print(f"    ✅ Backup saved: {backup_file}")
+                print(f"    [PASS] Backup saved: {backup_file}")
                 
             except Exception as e:
-                print(f"    ❌ Error backing up {db_name}: {e}")
+                print(f"    [FAIL] Error backing up {db_name}: {e}")
     
     # Delete all entity resolution databases
-    print(f"\n🗑️  Deleting entity resolution databases...")
+    print(f"\n??  Deleting entity resolution databases...")
     deleted_count = 0
     
     for db_name in entity_resolution_dbs:
         try:
             if sys_db.has_database(db_name):
-                print(f"  🗑️  Deleting {db_name}...")
+                print(f"  ??  Deleting {db_name}...")
                 sys_db.delete_database(db_name)
-                print(f"  ✅ Deleted {db_name}")
+                print(f"  [PASS] Deleted {db_name}")
                 deleted_count += 1
             else:
-                print(f"  ℹ️  {db_name} already deleted")
+                print(f"  [INFO]?  {db_name} already deleted")
         except Exception as e:
-            print(f"  ❌ Error deleting {db_name}: {e}")
+            print(f"  [FAIL] Error deleting {db_name}: {e}")
     
-    print(f"\n🎉 Cleanup completed!")
-    print(f"  📊 Deleted {deleted_count} databases")
-    print(f"  📁 Backups saved in 'backups/' directory")
-    print(f"  🚀 Ready for fresh test/demo runs")
+    print(f"\n? Cleanup completed!")
+    print(f"  ? Deleted {deleted_count} databases")
+    print(f"  ? Backups saved in 'backups/' directory")
+    print(f"  ? Ready for fresh test/demo runs")
     
     return True
 
@@ -141,13 +141,13 @@ if __name__ == "__main__":
     try:
         success = main()
         if success:
-            print("\n✅ Database cleanup completed successfully!")
+            print("\n[PASS] Database cleanup completed successfully!")
         else:
-            print("\n❌ Database cleanup failed!")
+            print("\n[FAIL] Database cleanup failed!")
             sys.exit(1)
     except KeyboardInterrupt:
-        print("\n❌ Operation cancelled by user")
+        print("\n[FAIL] Operation cancelled by user")
         sys.exit(1)
     except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
+        print(f"\n[FAIL] Unexpected error: {e}")
         sys.exit(1)

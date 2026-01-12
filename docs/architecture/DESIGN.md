@@ -52,7 +52,7 @@ Implement a comprehensive entity resolution system that:
 ```
 
 External Systems 
-• Data Sources • REST Clients • Monitoring • Analytics 
+* Data Sources * REST Clients * Monitoring * Analytics 
 
 
 REST API / HTTP
@@ -233,10 +233,10 @@ Views Algorithms & Edges Optimization
 
 **End-to-End Native ArangoDB Workflow**:
 ```
-Input Data → Data Ingestion → ArangoSearch → Similarity → Graph → WCC → Golden Records
+Input Data -> Data Ingestion -> ArangoSearch -> Similarity -> Graph -> WCC -> Golden Records
 Blocking Scoring Building Clustering 
 
-Raw CSV/JSON → Collections → ArangoSearch → Scored → Similarity → Entity → Unified
+Raw CSV/JSON -> Collections -> ArangoSearch -> Scored -> Similarity -> Entity -> Unified
 Files in ArangoDB Views Pairs Graph Clusters Entities
 
 N-gram Native AQL UPSERT Graph Source
@@ -245,13 +245,13 @@ Analyzers Functions Edges Algorithm Selection
 
 **Detailed Processing Pipeline**:
 
-1. **Data Ingestion**: Raw data → ArangoDB document collections
-2. **ArangoSearch Setup**: Custom analyzers (n-gram, phonetic) → Search views
-3. **Blocking Phase**: ArangoSearch queries → Candidate pairs with BM25 scoring
-4. **Similarity Computation**: Native AQL functions → Fellegi-Sunter scores
-5. **Graph Construction**: UPSERT operations → Similarity edge collection
-6. **Clustering**: Weakly Connected Components → Entity clusters
-7. **Golden Record Synthesis**: Multi-source consolidation → Unified entities
+1. **Data Ingestion**: Raw data -> ArangoDB document collections
+2. **ArangoSearch Setup**: Custom analyzers (n-gram, phonetic) -> Search views
+3. **Blocking Phase**: ArangoSearch queries -> Candidate pairs with BM25 scoring
+4. **Similarity Computation**: Native AQL functions -> Fellegi-Sunter scores
+5. **Graph Construction**: UPSERT operations -> Similarity edge collection
+6. **Clustering**: Weakly Connected Components -> Entity clusters
+7. **Golden Record Synthesis**: Multi-source consolidation -> Unified entities
 
 **Performance Optimizations**:
 - **Database-Native Processing**: All operations within ArangoDB (no export/import)

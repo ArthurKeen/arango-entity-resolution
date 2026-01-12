@@ -164,8 +164,8 @@ python demo_orchestrator.py --records 25000 --auto
 ## Data Quality Issues Demonstrated
 
 ### **Name Variations**
-- Nicknames: Robert → Bob, Jennifer → Jenny
-- Typos: Jon → John, Smyth → Smith
+- Nicknames: Robert -> Bob, Jennifer -> Jenny
+- Typos: Jon -> John, Smyth -> Smith
 - Formatting: "Dr. Sarah Johnson" vs "Sarah Johnson"
 
 ### **Contact Information**

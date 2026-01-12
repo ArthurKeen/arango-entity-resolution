@@ -79,9 +79,9 @@ These two could realistically be accepted into the core library.
 
 **Fix required:**
 Add ONE working example in another domain:
-- Medical terminology (acronyms: MI → Myocardial Infarction)
-- Organization hierarchy (departments → employees)
-- E-commerce (categories → products)
+- Medical terminology (acronyms: MI -> Myocardial Infarction)
+- Organization hierarchy (departments -> employees)
+- E-commerce (categories -> products)
 
 **Time:** 4 hours
 

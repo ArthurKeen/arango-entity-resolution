@@ -161,7 +161,7 @@ tests/test_golden_record_service.py \
 ## What Changed Today
 
 ### 1. Import Errors Fixed 
-- Fixed all `src.entity_resolution.` → `entity_resolution.` imports
+- Fixed all `src.entity_resolution.` -> `entity_resolution.` imports
 - All new test files now import correctly
 
 ### 2. Mock Patch Paths Fixed 

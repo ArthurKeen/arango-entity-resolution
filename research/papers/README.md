@@ -12,7 +12,7 @@ The following papers are specifically referenced in our [Product Requirements Do
 - **Relevance**: Core to our blocking key strategy implementation
 
 ### 2. Scalable Entity Resolution Frameworks  
-- **"The Dedoop Framework for Scalable Entity Resolution"** by S. E. K. M. A. Köpcke and A. Thor
+- **"The Dedoop Framework for Scalable Entity Resolution"** by S. E. K. M. A. K?pcke and A. Thor
 - **Importance**: Distributed computing approach to entity resolution
 - **Relevance**: Scalability considerations for our ArangoDB implementation
 

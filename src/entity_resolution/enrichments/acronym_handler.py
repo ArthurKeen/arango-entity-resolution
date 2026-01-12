@@ -6,10 +6,10 @@ Searches on both the acronym and its expanded form(s) to improve
 both recall (finding more matches) and precision (better disambiguation).
 
 Use Cases:
-- Hardware: ESR → Exception Status Register, Exception State Register
-- Medical: MI → Myocardial Infarction
-- Legal: SLA → Service Level Agreement
-- Business: ROI → Return on Investment
+- Hardware: ESR -> Exception Status Register, Exception State Register
+- Medical: MI -> Myocardial Infarction
+- Legal: SLA -> Service Level Agreement
+- Business: ROI -> Return on Investment
 """
 
 from typing import List, Dict, Set, Optional, Union

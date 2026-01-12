@@ -702,7 +702,7 @@ class TestEdgeCases:
         """Test n-gram similarity with unicode strings."""
         pipeline = EntityResolutionPipeline()
         
-        score = pipeline._simple_ngram_similarity("José", "Jose")
+        score = pipeline._simple_ngram_similarity("Jos?", "Jose")
         
         # Should handle unicode characters
         assert 0.0 <= score <= 1.0

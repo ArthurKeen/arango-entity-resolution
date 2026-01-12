@@ -2,7 +2,7 @@
 
 **Library Version**: arango-entity-resolution v3.0+ 
 **Estimated Effort**: 1-2 weeks 
-**Code Reduction**: ~92% (1,863 lines → 155 lines) 
+**Code Reduction**: ~92% (1,863 lines -> 155 lines) 
 
 ---
 
@@ -10,7 +10,7 @@
 
 This guide provides step-by-step instructions for migrating existing ER implementations to use the enhanced `arango-entity-resolution` library v3.0. The migration will:
 
-- **Reduce code by 92%** (1,863 → 155 lines)
+- **Reduce code by 92%** (1,863 -> 155 lines)
 - **Improve performance by 50-100x** for similarity computation
 - **Standardize ER patterns** across projects
 - **Enable configuration-driven** ER pipelines
@@ -617,7 +617,7 @@ logger.info(f"Performance improvement: {baseline_time / library_time:.1f}x faste
 
 ## Expected Outcomes
 
-**1,863 lines** → **155 lines** (92% reduction) 
+**1,863 lines** -> **155 lines** (92% reduction) 
 **100x faster** similarity computation 
 **6x faster** overall pipeline 
 **Significantly simpler** code 

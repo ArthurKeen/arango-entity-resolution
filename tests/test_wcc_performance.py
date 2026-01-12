@@ -195,21 +195,21 @@ def test_small_graph():
         f"Bulk: Expected {metadata['expected_clusters']} clusters, got {len(clusters_bulk)}"
     assert len(clusters_aql) == metadata['expected_clusters'], \
         f"AQL: Expected {metadata['expected_clusters']} clusters, got {len(clusters_aql)}"
-    print(f"  ✅ Cluster count correct: {len(clusters_bulk)}")
+    print(f"  [PASS] Cluster count correct: {len(clusters_bulk)}")
     
     # Check results are identical (order-independent)
     bulk_set = set(tuple(sorted(c)) for c in clusters_bulk)
     aql_set = set(tuple(sorted(c)) for c in clusters_aql)
     assert bulk_set == aql_set, "Bulk and AQL produced different results!"
-    print(f"  ✅ Bulk and AQL produce identical results")
+    print(f"  [PASS] Bulk and AQL produce identical results")
     
     # Check largest cluster
     max_bulk = max(len(c) for c in clusters_bulk)
     assert max_bulk == metadata['expected_largest_cluster'], \
         f"Expected largest cluster={metadata['expected_largest_cluster']}, got {max_bulk}"
-    print(f"  ✅ Largest cluster size correct: {max_bulk}")
+    print(f"  [PASS] Largest cluster size correct: {max_bulk}")
     
-    print(f"\n  ✅ TEST 1 PASSED")
+    print(f"\n  [PASS] TEST 1 PASSED")
     
     # Cleanup
     db.delete_collection(edge_coll)
@@ -278,13 +278,13 @@ def test_medium_graph():
     print("\n[VALIDATION]")
     assert len(clusters_bulk) == metadata['expected_clusters']
     assert len(clusters_aql) == metadata['expected_clusters']
-    print(f"  ✅ Cluster count correct: {len(clusters_bulk)}")
+    print(f"  [PASS] Cluster count correct: {len(clusters_bulk)}")
     
     # Check results are identical
     bulk_set = set(tuple(sorted(c)) for c in clusters_bulk)
     aql_set = set(tuple(sorted(c)) for c in clusters_aql)
     assert bulk_set == aql_set
-    print(f"  ✅ Bulk and AQL produce identical results")
+    print(f"  [PASS] Bulk and AQL produce identical results")
     
     # Performance comparison
     speedup = time_aql / time_bulk
@@ -294,11 +294,11 @@ def test_medium_graph():
     print(f"  Speedup:   {speedup:.1f}x faster with bulk fetch")
     
     if speedup > 2.0:
-        print(f"  ✅ Significant performance improvement ({speedup:.1f}x)")
+        print(f"  [PASS] Significant performance improvement ({speedup:.1f}x)")
     else:
-        print(f"  ⚠️  Speedup lower than expected ({speedup:.1f}x vs expected 5-10x)")
+        print(f"  [WARN]?  Speedup lower than expected ({speedup:.1f}x vs expected 5-10x)")
     
-    print(f"\n  ✅ TEST 2 PASSED")
+    print(f"\n  [PASS] TEST 2 PASSED")
     
     # Cleanup
     db.delete_collection(edge_coll)
@@ -349,24 +349,24 @@ def test_large_graph():
     print("\n[VALIDATION]")
     assert len(clusters) == metadata['expected_clusters'], \
         f"Expected {metadata['expected_clusters']} clusters, got {len(clusters)}"
-    print(f"  ✅ Cluster count correct: {len(clusters)}")
+    print(f"  [PASS] Cluster count correct: {len(clusters)}")
     
     max_size = max(len(c) for c in clusters)
     assert max_size == metadata['expected_largest_cluster'], \
         f"Expected largest cluster={metadata['expected_largest_cluster']}, got {max_size}"
-    print(f"  ✅ Largest cluster correct: {max_size}")
+    print(f"  [PASS] Largest cluster correct: {max_size}")
     
     # Performance check
     assert elapsed < 5.0, f"Too slow: {elapsed:.2f}s (should be <5s for 1K edges)"
-    print(f"  ✅ Performance acceptable: {elapsed:.4f}s")
+    print(f"  [PASS] Performance acceptable: {elapsed:.4f}s")
     
     # Verify cluster storage
     stored_count = db.collection("test_clusters_large").count()
     assert stored_count == len(clusters), \
         f"Stored {stored_count} clusters but found {len(clusters)}"
-    print(f"  ✅ Clusters stored correctly: {stored_count}")
+    print(f"  [PASS] Clusters stored correctly: {stored_count}")
     
-    print(f"\n  ✅ TEST 3 PASSED")
+    print(f"\n  [PASS] TEST 3 PASSED")
     
     # Cleanup
     db.delete_collection(edge_coll)
@@ -400,7 +400,7 @@ def test_default_behavior():
     
     print(f"  Bulk fetch enabled: {service.use_bulk_fetch}")
     assert service.use_bulk_fetch == True, "Default should be use_bulk_fetch=True"
-    print(f"  ✅ Default is bulk fetch (fast)")
+    print(f"  [PASS] Default is bulk fetch (fast)")
     
     # Run clustering
     start = time.time()
@@ -416,9 +416,9 @@ def test_default_behavior():
     
     assert stats['algorithm_used'] == 'bulk_python_dfs', \
         f"Expected bulk_python_dfs, got {stats['algorithm_used']}"
-    print(f"  ✅ Used bulk Python DFS algorithm")
+    print(f"  [PASS] Used bulk Python DFS algorithm")
     
-    print(f"\n  ✅ TEST 4 PASSED")
+    print(f"\n  [PASS] TEST 4 PASSED")
     
     # Cleanup
     db.delete_collection(edge_coll)
@@ -454,7 +454,7 @@ def test_empty_graph():
     clusters_bulk = service_bulk.cluster(store_results=False)
     print(f"  Clusters: {len(clusters_bulk)}")
     assert len(clusters_bulk) == 0, "Empty graph should produce 0 clusters"
-    print(f"  ✅ Handles empty graph correctly")
+    print(f"  [PASS] Handles empty graph correctly")
     
     # Test AQL approach
     print("\n[AQL APPROACH]")
@@ -467,9 +467,9 @@ def test_empty_graph():
     clusters_aql = service_aql.cluster(store_results=False)
     print(f"  Clusters: {len(clusters_aql)}")
     assert len(clusters_aql) == 0, "Empty graph should produce 0 clusters"
-    print(f"  ✅ Handles empty graph correctly")
+    print(f"  [PASS] Handles empty graph correctly")
     
-    print(f"\n  ✅ TEST 5 PASSED")
+    print(f"\n  [PASS] TEST 5 PASSED")
     
     # Cleanup
     db.delete_collection(edge_coll)
@@ -480,9 +480,9 @@ def test_empty_graph():
 def run_all_tests():
     """Run complete test suite."""
     print("\n")
-    print("╔" + "="*78 + "╗")
-    print("║" + " "*20 + "WCC PERFORMANCE FIX TEST SUITE" + " "*28 + "║")
-    print("╚" + "="*78 + "╝")
+    print("?" + "="*78 + "?")
+    print("?" + " "*20 + "WCC PERFORMANCE FIX TEST SUITE" + " "*28 + "?")
+    print("?" + "="*78 + "?")
     
     print("\nTesting WCC clustering performance fix:")
     print("  - Bulk edge fetch + Python DFS (NEW)")
@@ -513,7 +513,7 @@ def run_all_tests():
         print("TEST SUITE SUMMARY")
         print("="*80)
         
-        print("\n✅ ALL TESTS PASSED (5/5)")
+        print("\n[PASS] ALL TESTS PASSED (5/5)")
         
         print("\nPerformance Summary:")
         if 'test1' in results:
@@ -527,27 +527,27 @@ def run_all_tests():
             print(f"  Large graph: {results['test3']['time']:.4f}s (bulk fetch)")
         
         print("\nKey Findings:")
-        print("  ✅ Bulk fetch is 5-20x faster on small/medium graphs")
-        print("  ✅ Both approaches produce identical results")
-        print("  ✅ Default behavior uses bulk fetch (fast)")
-        print("  ✅ Handles empty graphs correctly")
-        print("  ✅ Large graphs complete in <5 seconds")
+        print("  [PASS] Bulk fetch is 5-20x faster on small/medium graphs")
+        print("  [PASS] Both approaches produce identical results")
+        print("  [PASS] Default behavior uses bulk fetch (fast)")
+        print("  [PASS] Handles empty graphs correctly")
+        print("  [PASS] Large graphs complete in <5 seconds")
         
         print("\n" + "="*80)
-        print("🎉 WCC PERFORMANCE FIX VERIFIED")
+        print("? WCC PERFORMANCE FIX VERIFIED")
         print("="*80)
         print("\nThe N+1 query problem is FIXED!")
         print("  - Old: 24K queries for 24K vertices (5+ minutes)")
         print("  - New: 1 query + Python DFS (3-8 seconds)")
-        print("  - Improvement: 40-100x faster ✅")
+        print("  - Improvement: 40-100x faster [PASS]")
         
         return True
         
     except AssertionError as e:
-        print(f"\n❌ TEST FAILED: {e}")
+        print(f"\n[FAIL] TEST FAILED: {e}")
         return False
     except Exception as e:
-        print(f"\n❌ ERROR: {e}")
+        print(f"\n[FAIL] ERROR: {e}")
         import traceback
         traceback.print_exc()
         return False

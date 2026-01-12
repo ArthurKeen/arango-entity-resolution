@@ -16,7 +16,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 ### User Guides
 - [Migration Guide v3.0](guides/MIGRATION_GUIDE_V3.md) - Upgrade from v1.x or v2.x
 - [Custom Collections Guide](guides/CUSTOM_COLLECTIONS_GUIDE.md) - Work with your own data
-- 🧪 [Testing Guide](guides/TESTING_GUIDE.md) - Run tests and benchmarks
+- ? [Testing Guide](guides/TESTING_GUIDE.md) - Run tests and benchmarks
 
 ### Architecture & Design
 - [System Design](architecture/DESIGN.md) - How the system works
@@ -29,7 +29,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 - [GAE Enhancement Path](development/GAE_ENHANCEMENT_PATH.md) - Future graph engine support
 - [Batch vs Bulk Processing](development/BATCH_VS_BULK_PROCESSING.md) - Performance patterns
 - [Project Evolution](development/PROJECT_EVOLUTION.md) - Project history
-- 🪝 [Git Hooks](development/GIT_HOOKS.md) - Development workflow
+- ? [Git Hooks](development/GIT_HOOKS.md) - Development workflow
 
 ### Research & Papers
 - [Research Directory](../research/README.md) - Research notes and papers

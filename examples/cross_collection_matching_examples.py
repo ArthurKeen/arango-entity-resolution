@@ -6,7 +6,7 @@ This file demonstrates the new cross-collection matching capabilities
 extracted from the dnb_er customer project and generalized for the library.
 
 Examples include:
-1. Cross-collection matching (registrations → companies)
+1. Cross-collection matching (registrations -> companies)
 2. Hybrid blocking (BM25 + Levenshtein)
 3. Geographic blocking (state, city, ZIP)
 4. Graph traversal blocking (shared relationships)
@@ -41,7 +41,7 @@ def example_1_cross_collection_matching():
     to link them based on name and address.
     """
     print("=" * 80)
-    print("Example 1: Cross-Collection Matching (Registrations → Companies)")
+    print("Example 1: Cross-Collection Matching (Registrations -> Companies)")
     print("=" * 80)
     
     # Setup database connection
@@ -95,7 +95,7 @@ def example_1_cross_collection_matching():
         mark_as_inferred=True              # Mark edges as inferred
     )
     
-    print(f"\n✅ Results:")
+    print(f"\n[PASS] Results:")
     print(f"   Edges created: {results['edges_created']:,}")
     print(f"   Candidates evaluated: {results['candidates_evaluated']:,}")
     print(f"   Source records processed: {results['source_records_processed']:,}")
@@ -103,7 +103,7 @@ def example_1_cross_collection_matching():
     
     # Get statistics
     stats = count_inferred_edges(db, "hasCompany")
-    print(f"\n📊 Edge Statistics:")
+    print(f"\n? Edge Statistics:")
     print(f"   Total edges: {stats['total_edges']:,}")
     print(f"   Inferred edges: {stats['inferred_edges']:,}")
     print(f"   Average confidence: {stats['avg_confidence']:.4f}")
@@ -144,14 +144,14 @@ def example_2_hybrid_blocking():
     print("\nGenerating candidates with hybrid blocking...")
     pairs = strategy.generate_candidates()
     
-    print(f"\n✅ Results:")
+    print(f"\n[PASS] Results:")
     print(f"   Candidate pairs: {len(pairs):,}")
     
     # Show sample results
     if pairs:
-        print(f"\n📋 Sample Matches:")
+        print(f"\n? Sample Matches:")
         for i, pair in enumerate(pairs[:3], 1):
-            print(f"   {i}. {pair['doc1_key']} ↔ {pair['doc2_key']}")
+            print(f"   {i}. {pair['doc1_key']} <-> {pair['doc2_key']}")
             print(f"      Levenshtein: {pair['levenshtein_score']:.4f}")
             print(f"      BM25: {pair['bm25_score']:.2f}")
             print(f"      Combined: {pair['combined_score']:.4f}")
@@ -160,7 +160,7 @@ def example_2_hybrid_blocking():
     
     # Get statistics
     stats = strategy.get_statistics()
-    print(f"\n📊 Strategy Statistics:")
+    print(f"\n? Strategy Statistics:")
     print(f"   Avg Levenshtein score: {stats.get('avg_levenshtein_score', 0):.4f}")
     print(f"   Avg BM25 score: {stats.get('avg_bm25_score', 0):.2f}")
     
@@ -217,9 +217,9 @@ def example_3_geographic_blocking():
     
     # Show sample
     if pairs:
-        print(f"\n📋 Sample ZIP Range Matches:")
+        print(f"\n? Sample ZIP Range Matches:")
         for i, pair in enumerate(pairs[:2], 1):
-            print(f"   {i}. {pair['doc1_key']} ↔ {pair['doc2_key']}")
+            print(f"   {i}. {pair['doc1_key']} <-> {pair['doc2_key']}")
             print(f"      Blocking keys: {pair['blocking_keys']}")
             print(f"      Block size: {pair['block_size']}")
     
@@ -259,9 +259,9 @@ def example_4_graph_traversal_blocking():
     
     # Show sample
     if pairs:
-        print(f"\n📋 Sample Phone-Based Matches:")
+        print(f"\n? Sample Phone-Based Matches:")
         for i, pair in enumerate(pairs[:2], 1):
-            print(f"   {i}. {pair['doc1_key']} ↔ {pair['doc2_key']}")
+            print(f"   {i}. {pair['doc1_key']} <-> {pair['doc2_key']}")
             print(f"      Shared phone: {pair['shared_node_key']}")
             print(f"      Total companies with this phone: {pair['node_degree']}")
     
@@ -280,7 +280,7 @@ def example_4_graph_traversal_blocking():
     print(f"   Candidate pairs: {len(pairs):,}")
     
     stats = strategy.get_statistics()
-    print(f"\n📊 Graph Statistics:")
+    print(f"\n? Graph Statistics:")
     print(f"   Unique shared addresses: {stats.get('unique_shared_nodes', 0):,}")
     print(f"   Avg businesses per address: {stats.get('avg_node_degree', 0):.2f}")
     
@@ -340,19 +340,19 @@ def example_5_pipeline_utilities():
         cluster_collection="entity_clusters"
     )
     
-    print(f"\n📊 Entity Statistics:")
+    print(f"\n? Entity Statistics:")
     if 'entities' in stats:
         print(f"   Total entities: {stats['entities']['total']:,}")
         print(f"   Clustered: {stats['entities']['clustered']:,}")
         print(f"   Clustering rate: {stats['entities']['clustering_rate']:.2%}")
     
-    print(f"\n📊 Edge Statistics:")
+    print(f"\n? Edge Statistics:")
     if 'edges' in stats:
         print(f"   Total edges: {stats['edges']['total']:,}")
         print(f"   Inferred: {stats['edges']['inferred']:,}")
         print(f"   Average confidence: {stats['edges']['avg_confidence']:.4f}")
     
-    print(f"\n📊 Cluster Statistics:")
+    print(f"\n? Cluster Statistics:")
     if 'clusters' in stats:
         print(f"   Total clusters: {stats['clusters']['total']:,}")
         print(f"   Average cluster size: {stats['clusters']['avg_size']:.2f}")
@@ -362,7 +362,7 @@ def example_5_pipeline_utilities():
             for size_range, count in stats['clusters']['size_distribution'].items():
                 print(f"      {size_range}: {count:,} clusters")
     
-    print(f"\n📊 Performance Metrics:")
+    print(f"\n? Performance Metrics:")
     if 'performance' in stats:
         print(f"   Pairs reduction: {stats['performance']['pairs_reduction']}")
         print(f"   Match rate: {stats['performance']['match_rate']}")
@@ -392,7 +392,7 @@ def main():
         # example_5_pipeline_utilities()
         
         print("\n" + "=" * 80)
-        print("✅ Examples completed successfully!")
+        print("[PASS] Examples completed successfully!")
         print("=" * 80)
         print("\nTo run these examples with your data:")
         print("1. Modify collection names to match your database")
@@ -402,7 +402,7 @@ def main():
         print("=" * 80)
         
     except Exception as e:
-        print(f"\n❌ Error running examples: {e}")
+        print(f"\n[FAIL] Error running examples: {e}")
         import traceback
         traceback.print_exc()
 

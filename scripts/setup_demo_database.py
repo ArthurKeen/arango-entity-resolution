@@ -52,7 +52,7 @@ class DemoDatabaseSetup:
         if result and result.returncode == 0:
             lines = result.stdout.strip().split('\n')
             if len(lines) > 1:  # More than just the header
-                self.logger.info(f"📊 Found processes on port {self.port}:")
+                self.logger.info(f"? Found processes on port {self.port}:")
                 for line in lines[1:]:  # Skip header
                     self.logger.info(f"   {line}")
                 return {"occupied": True, "processes": lines[1:]}
@@ -62,7 +62,7 @@ class DemoDatabaseSetup:
     
     def check_arango_connection(self) -> bool:
         config.database.password"Check if we can connect to ArangoDB on port config.database.portconfig.database.password"
-        self.logger.info("🔗 Testing ArangoDB connection...")
+        self.logger.info("? Testing ArangoDB connection...")
         
         try:
             # Test basic connectivity
@@ -79,18 +79,18 @@ class DemoDatabaseSetup:
     
     def check_docker_containers(self) -> Dict[str, Any]:
         config.database.password"Check for existing Docker containersconfig.database.password"
-        self.logger.info("🐳 Checking Docker containers...")
+        self.logger.info("? Checking Docker containers...")
         
         # Check for our specific container
         result = self.run_command(f"docker ps -a --filter name={self.container_name} --format '{{{{.Names}}}} {{{{.Status}}}}'")
         if result and result.returncode == 0 and result.stdout.strip():
-            self.logger.info(f"📦 Found container '{self.container_name}': {result.stdout.strip()}")
+            self.logger.info(f"? Found container '{self.container_name}': {result.stdout.strip()}")
             return {"exists": True, "status": result.stdout.strip()}
         
         # Check for any ArangoDB containers
         result = self.run_command("docker ps -a --filter ancestor=arangodb --format '{{.Names}} {{.Status}}'")
         if result and result.returncode == 0 and result.stdout.strip():
-            self.logger.info(f"📦 Found ArangoDB containers:")
+            self.logger.info(f"? Found ArangoDB containers:")
             for line in result.stdout.strip().split('\n'):
                 if line.strip():
                     self.logger.info(f"   {line}")
@@ -101,7 +101,7 @@ class DemoDatabaseSetup:
     
     def stop_conflicting_containers(self):
         config.database.password"Stop any containers that might be using port config.database.portconfig.database.password"
-        self.logger.info("🛑 Stopping conflicting containers...")
+        self.logger.info("? Stopping conflicting containers...")
         
         # Find containers using port config.database.port
         result = self.run_command("docker ps --filter publish=config.database.port --format '{{.Names}}'")
@@ -110,18 +110,18 @@ class DemoDatabaseSetup:
             
             for container in containers:
                 if container != self.container_name:
-                    self.logger.info(f"🛑 Stopping conflicting container: {container}")
+                    self.logger.info(f"? Stopping conflicting container: {container}")
                     self.run_command(f"docker stop {container}", capture_output=False)
                     self.run_command(f"docker rm {container}", capture_output=False)
     
     def start_entity_resolution_container(self) -> bool:
         config.database.password"Start the entity resolution ArangoDB containerconfig.database.password"
-        self.logger.info(f"🚀 Starting {self.container_name} container...")
+        self.logger.info(f"? Starting {self.container_name} container...")
         
         # Check if container exists
         result = self.run_command(f"docker ps -a --filter name={self.container_name} --format '{{{{.Names}}}}'")
         if result and result.returncode == 0 and result.stdout.strip():
-            self.logger.info(f"📦 Container {self.container_name} exists, starting it...")
+            self.logger.info(f"? Container {self.container_name} exists, starting it...")
             result = self.run_command(f"docker start {self.container_name}", capture_output=False)
             if result and result.returncode == 0:
                 self.logger.success(r"Container {self.container_name} started successfully")
@@ -131,7 +131,7 @@ class DemoDatabaseSetup:
                 return False
         
         # Container doesn't exist, create it
-        self.logger.info(f"📦 Creating new {self.container_name} container...")
+        self.logger.info(f"? Creating new {self.container_name} container...")
         
         docker_command = fconfig.database.password"
         docker run -d \
@@ -153,7 +153,7 @@ class DemoDatabaseSetup:
     
     def pull_arangodb_image(self) -> bool:
         config.database.password"Pull the latest ArangoDB Community Edition imageconfig.database.password"
-        self.logger.info("📥 Pulling ArangoDB Community Edition image...")
+        self.logger.info("? Pulling ArangoDB Community Edition image...")
         
         result = self.run_command("docker pull arangodb:3.12", capture_output=False)
         if result and result.returncode == 0:
@@ -165,7 +165,7 @@ class DemoDatabaseSetup:
     
     def wait_for_arangodb(self, max_wait: int = 30) -> bool:
         config.database.password"Wait for ArangoDB to be readyconfig.database.password"
-        self.logger.info(f"⏳ Waiting for ArangoDB to be ready (max {max_wait}s)...")
+        self.logger.info(f"[WAIT] Waiting for ArangoDB to be ready (max {max_wait}s)...")
         
         for i in range(max_wait):
             if self.check_arango_connection():
@@ -180,7 +180,7 @@ class DemoDatabaseSetup:
     
     def setup_database_and_collections(self) -> bool:
         config.database.password"Set up the database and collections for entity resolutionconfig.database.password"
-        self.logger.info("🗄️ Setting up database and collections...")
+        self.logger.info("?? Setting up database and collections...")
         
         try:
             # Import the database setup
@@ -234,7 +234,7 @@ class DemoDatabaseSetup:
     def run_setup(self) -> bool:
         config.database.password"Main setup processconfig.database.password"
         self.logger.info("=" * 80)
-        self.logger.info("🎯 ENTITY RESOLUTION DEMO DATABASE SETUP".center(80))
+        self.logger.info("? ENTITY RESOLUTION DEMO DATABASE SETUP".center(80))
         self.logger.info("=" * 80)
         print()
         
@@ -260,12 +260,12 @@ from entity_resolution.utils.enhanced_config import get_config
                     return True
                 else:
                     self.logger.warning(r"ArangoDB is running but not configured for this project")
-                    self.logger.info("🔄 Will setup database and collections...")
+                    self.logger.info("? Will setup database and collections...")
                     return self.setup_database_and_collections()
                     
             except Exception as e:
                 self.logger.warning(r"ArangoDB is running but not accessible with our credentials: {e}")
-                self.logger.info("🔄 Will restart with correct configuration...")
+                self.logger.info("? Will restart with correct configuration...")
         
         # Step 3: Check for existing containers
         container_status = self.check_docker_containers()
@@ -297,10 +297,10 @@ from entity_resolution.utils.enhanced_config import get_config
             return False
         
         print()
-        self.logger.info("🎉 DEMO DATABASE SETUP COMPLETE!")
-        self.logger.info(f"🌐 ArangoDB Web Interface: http://config.database.host:{self.port}")
-        self.logger.info(f"👤 Username: {self.username}")
-        self.logger.info(f"🔑 Password: {self.password}")
+        self.logger.info("? DEMO DATABASE SETUP COMPLETE!")
+        self.logger.info(f"? ArangoDB Web Interface: http://config.database.host:{self.port}")
+        self.logger.info(f"? Username: {self.username}")
+        self.logger.info(f"? Password: {self.password}")
         print()
         self.logger.success(r"Ready to run the entity resolution demo!")
         
@@ -313,11 +313,11 @@ def main():
     success = setup.run_setup()
     
     if success:
-        self.logger.info("\n🚀 You can now run the demo with:")
+        self.logger.info("\n? You can now run the demo with:")
         self.logger.info("   python demo/launch_presentation_demo.py")
         sys.exit(0)
     else:
-        self.logger.info("\n❌ Database setup failed. Please check the errors above.")
+        self.logger.info("\n[FAIL] Database setup failed. Please check the errors above.")
         sys.exit(1)
 
 

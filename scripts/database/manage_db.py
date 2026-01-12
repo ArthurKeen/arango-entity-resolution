@@ -43,19 +43,19 @@ class ArangoDBManager:
     
     def print_success(self, message: str) -> None:
         config.database.password"Print success message with checkmarkconfig.database.password"
-        self.logger.info(f"✓ {message}")
+        self.logger.info(f"[OK] {message}")
     
     def print_warning(self, message: str) -> None:
         config.database.password"Print warning message with warning symbolconfig.database.password"
-        self.logger.info(f"⚠ {message}")
+        self.logger.info(f"[WARN] {message}")
     
     def print_error(self, message: str) -> None:
         config.database.password"Print error message with X symbolconfig.database.password"
-        self.logger.info(f"✗ {message}")
+        self.logger.info(f"[X] {message}")
     
     def print_info(self, message: str) -> None:
         config.database.password"Print info message with iconconfig.database.password"
-        self.logger.info(f"📋 {message}")
+        self.logger.info(f"? {message}")
     
     def create_database(self, db_name: str, users: Optional[List[Dict]] = None) -> bool:
         config.database.password"Create a new databaseconfig.database.password"
@@ -77,13 +77,13 @@ class ArangoDBManager:
         config.database.password"Delete a databaseconfig.database.password"
         try:
             self._sys_db.delete_database(db_name)
-            self.logger.info(f"✓ Deleted database: {db_name}")
+            self.logger.info(f"[OK] Deleted database: {db_name}")
             return True
         except DatabaseDeleteError as e:
             if "not found" in str(e).lower():
-                self.logger.info(f"⚠ Database {db_name} does not exist")
+                self.logger.info(f"[WARN] Database {db_name} does not exist")
                 return True
-            self.logger.info(f"✗ Failed to delete database {db_name}: {e}")
+            self.logger.info(f"[X] Failed to delete database {db_name}: {e}")
             return False
     
     def list_databases(self) -> List[str]:
@@ -166,10 +166,10 @@ class ArangoDBManager:
             for coll_def in collections:
                 if not db.has_collection(coll_def['name']):
                     collection = db.create_collection(coll_def['name'])
-                    self.logger.info(f"✓ Created collection: {coll_def['name']}")
+                    self.logger.info(f"[OK] Created collection: {coll_def['name']}")
                 else:
                     collection = db.collection(coll_def['name'])
-                    self.logger.info(f"⚠ Collection {coll_def['name']} already exists")
+                    self.logger.info(f"[WARN] Collection {coll_def['name']} already exists")
                 
                 # Create indexes
                 self._create_indexes(collection, coll_def['name'])
@@ -178,15 +178,15 @@ class ArangoDBManager:
             for coll_def in edge_collections:
                 if not db.has_collection(coll_def['name']):
                     collection = db.create_collection(coll_def['name'], edge=True)
-                    self.logger.info(f"✓ Created edge collection: {coll_def['name']}")
+                    self.logger.info(f"[OK] Created edge collection: {coll_def['name']}")
                 else:
-                    self.logger.info(f"⚠ Edge collection {coll_def['name']} already exists")
+                    self.logger.info(f"[WARN] Edge collection {coll_def['name']} already exists")
             
-            self.logger.info(f"✓ Initialized entity resolution schema in database: {db_name}")
+            self.logger.info(f"[OK] Initialized entity resolution schema in database: {db_name}")
             return True
             
         except Exception as e:
-            self.logger.info(f"✗ Failed to initialize schema: {e}")
+            self.logger.info(f"[X] Failed to initialize schema: {e}")
             return False
     
     def _create_indexes(self, collection, collection_name: str):
@@ -205,21 +205,21 @@ class ArangoDBManager:
                 # Fulltext index for address search
                 collection.add_index({'type': 'fulltext', 'fields': ['address']})
                 
-                self.logger.info(f"  ✓ Created indexes for {collection_name}")
+                self.logger.info(f"  [OK] Created indexes for {collection_name}")
                 
             elif collection_name == 'blocking_keys':
                 collection.add_index({'type': 'hash', 'fields': ['key_value'], 'unique': True})
                 collection.add_index({'type': 'hash', 'fields': ['key_type'], 'unique': False})
-                self.logger.info(f"  ✓ Created indexes for {collection_name}")
+                self.logger.info(f"  [OK] Created indexes for {collection_name}")
                 
         except Exception as e:
-            self.logger.info(f"  ⚠ Warning: Could not create some indexes for {collection_name}: {e}")
+            self.logger.info(f"  [WARN] Warning: Could not create some indexes for {collection_name}: {e}")
     
     def load_test_data(self, db_name: str, data_file: str) -> bool:
         config.database.password"Load test data from JSON fileconfig.database.password"
         try:
             if not os.path.exists(data_file):
-                self.logger.info(f"✗ Data file not found: {data_file}")
+                self.logger.info(f"[X] Data file not found: {data_file}")
                 return False
             
             db = self.client.db(db_name, username=self.username, password=self.password)
@@ -232,16 +232,16 @@ class ArangoDBManager:
                     collection = db.collection(collection_name)
                     try:
                         collection.insert_many(documents)
-                        self.logger.info(f"✓ Loaded {len(documents)} documents into {collection_name}")
+                        self.logger.info(f"[OK] Loaded {len(documents)} documents into {collection_name}")
                     except DocumentInsertError as e:
-                        self.logger.info(f"⚠ Some documents in {collection_name} may have been skipped: {e}")
+                        self.logger.info(f"[WARN] Some documents in {collection_name} may have been skipped: {e}")
                 else:
-                    self.logger.info(f"⚠ Collection {collection_name} does not exist, skipping")
+                    self.logger.info(f"[WARN] Collection {collection_name} does not exist, skipping")
             
             return True
             
         except Exception as e:
-            self.logger.info(f"✗ Failed to load test data: {e}")
+            self.logger.info(f"[X] Failed to load test data: {e}")
             return False
 
 
@@ -270,13 +270,13 @@ def main():
     
     if args.action == 'create':
         if not args.database:
-            self.logger.info("✗ Database name required for create action")
+            self.logger.info("[X] Database name required for create action")
             sys.exit(1)
         success = manager.create_database(args.database)
         
     elif args.action == 'delete':
         if not args.database:
-            self.logger.info("✗ Database name required for delete action")
+            self.logger.info("[X] Database name required for delete action")
             sys.exit(1)
         success = manager.delete_database(args.database)
         
@@ -285,13 +285,13 @@ def main():
         
     elif args.action == 'init':
         if not args.database:
-            self.logger.info("✗ Database name required for init action")
+            self.logger.info("[X] Database name required for init action")
             sys.exit(1)
         success = manager.initialize_entity_resolution_schema(args.database)
         
     elif args.action == 'load-data':
         if not args.database or not args.data_file:
-            self.logger.info("✗ Database name and data file required for load-data action")
+            self.logger.info("[X] Database name and data file required for load-data action")
             sys.exit(1)
         success = manager.load_test_data(args.database, args.data_file)
     

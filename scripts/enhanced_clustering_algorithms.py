@@ -80,7 +80,7 @@ class EnhancedClusteringAlgorithms:
     def weighted_connected_components(self, similarity_pairs: List[Dict[str, Any]], 
                                     min_weight: float = 0.7) -> List[List[str]]:
         """Enhanced WCC with similarity score weights."""
-        print("🔍 Running Weighted Connected Components...")
+        print("? Running Weighted Connected Components...")
         
         # Create weighted graph
         G = nx.Graph()
@@ -99,13 +99,13 @@ class EnhancedClusteringAlgorithms:
             if len(component) > 1:  # Only clusters with multiple entities
                 clusters.append(list(component))
         
-        print(f"   📊 Generated {len(clusters)} weighted clusters")
+        print(f"   ? Generated {len(clusters)} weighted clusters")
         return clusters
     
     def hierarchical_clustering(self, similarity_pairs: List[Dict[str, Any]], 
                                distance_threshold: float = 0.3) -> List[List[str]]:
         """Hierarchical clustering implementation."""
-        print("🔍 Running Hierarchical Clustering...")
+        print("? Running Hierarchical Clustering...")
         
         try:
             from sklearn.cluster import AgglomerativeClustering
@@ -158,16 +158,16 @@ class EnhancedClusteringAlgorithms:
                 clusters[label].append(entity)
             
             result_clusters = [cluster for cluster in clusters.values() if len(cluster) > 1]
-            print(f"   📊 Generated {len(result_clusters)} hierarchical clusters")
+            print(f"   ? Generated {len(result_clusters)} hierarchical clusters")
             return result_clusters
             
         except ImportError:
-            print("   ⚠️  scikit-learn not available, falling back to WCC")
+            print("   [WARN]?  scikit-learn not available, falling back to WCC")
             return self.weighted_connected_components(similarity_pairs)
     
     def spectral_clustering(self, similarity_pairs: List[Dict[str, Any]]) -> List[List[str]]:
         """Spectral clustering implementation."""
-        print("🔍 Running Spectral Clustering...")
+        print("? Running Spectral Clustering...")
         
         try:
             from sklearn.cluster import SpectralClustering
@@ -218,17 +218,17 @@ class EnhancedClusteringAlgorithms:
                 clusters[label].append(entity)
             
             result_clusters = [cluster for cluster in clusters.values() if len(cluster) > 1]
-            print(f"   📊 Generated {len(result_clusters)} spectral clusters")
+            print(f"   ? Generated {len(result_clusters)} spectral clusters")
             return result_clusters
             
         except ImportError:
-            print("   ⚠️  scikit-learn not available, falling back to WCC")
+            print("   [WARN]?  scikit-learn not available, falling back to WCC")
             return self.weighted_connected_components(similarity_pairs)
     
     def dbscan_clustering(self, similarity_pairs: List[Dict[str, Any]], 
                          eps: float = 0.5, min_samples: int = 2) -> List[List[str]]:
         """DBSCAN clustering implementation."""
-        print("🔍 Running DBSCAN Clustering...")
+        print("? Running DBSCAN Clustering...")
         
         try:
             from sklearn.cluster import DBSCAN
@@ -282,17 +282,17 @@ class EnhancedClusteringAlgorithms:
             result_clusters = [cluster for cluster in clusters.values() if len(cluster) > 1]
             noise_count = sum(1 for label in cluster_labels if label == -1)
             
-            print(f"   📊 Generated {len(result_clusters)} DBSCAN clusters")
-            print(f"   📊 Noise points: {noise_count}")
+            print(f"   ? Generated {len(result_clusters)} DBSCAN clusters")
+            print(f"   ? Noise points: {noise_count}")
             return result_clusters
             
         except ImportError:
-            print("   ⚠️  scikit-learn not available, falling back to WCC")
+            print("   [WARN]?  scikit-learn not available, falling back to WCC")
             return self.weighted_connected_components(similarity_pairs)
     
     def community_detection(self, similarity_pairs: List[Dict[str, Any]]) -> List[List[str]]:
         """Community detection using graph algorithms."""
-        print("🔍 Running Community Detection...")
+        print("? Running Community Detection...")
         
         try:
             import networkx.algorithms.community as nx_comm
@@ -317,11 +317,11 @@ class EnhancedClusteringAlgorithms:
             # Convert to list format
             clusters = [list(community) for community in communities if len(community) > 1]
             
-            print(f"   📊 Generated {len(clusters)} community clusters")
+            print(f"   ? Generated {len(clusters)} community clusters")
             return clusters
             
         except Exception as e:
-            print(f"   ⚠️  Community detection failed: {e}, falling back to WCC")
+            print(f"   [WARN]?  Community detection failed: {e}, falling back to WCC")
             return self.weighted_connected_components(similarity_pairs)
     
     def evaluate_clustering_quality(self, clusters: List[List[str]], 
@@ -397,7 +397,7 @@ class EnhancedClusteringAlgorithms:
     
     def compare_algorithms(self, similarity_pairs: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Compare all clustering algorithms."""
-        print("🔍 Comparing Enhanced Clustering Algorithms")
+        print("? Comparing Enhanced Clustering Algorithms")
         print("="*60)
         
         results = {
@@ -410,7 +410,7 @@ class EnhancedClusteringAlgorithms:
         algorithm_performances = {}
         
         for algorithm_name, algorithm in self.algorithms.items():
-            print(f"\n📋 Testing {algorithm_name}...")
+            print(f"\n? Testing {algorithm_name}...")
             print(f"   Description: {algorithm.description}")
             
             start_time = time.time()
@@ -454,16 +454,16 @@ class EnhancedClusteringAlgorithms:
                 )
                 algorithm_performances[algorithm_name] = performance_score
                 
-                print(f"   📊 Clusters: {len(clusters)}")
-                print(f"   📊 Entities: {sum(len(cluster) for cluster in clusters)}")
-                print(f"   📊 Execution time: {execution_time:.3f}s")
-                print(f"   📊 Silhouette score: {quality_metrics['silhouette_score']:.3f}")
-                print(f"   📊 Modularity: {quality_metrics['modularity']:.3f}")
-                print(f"   📊 Coverage: {quality_metrics['coverage']:.3f}")
-                print(f"   📊 Performance score: {performance_score:.3f}")
+                print(f"   ? Clusters: {len(clusters)}")
+                print(f"   ? Entities: {sum(len(cluster) for cluster in clusters)}")
+                print(f"   ? Execution time: {execution_time:.3f}s")
+                print(f"   ? Silhouette score: {quality_metrics['silhouette_score']:.3f}")
+                print(f"   ? Modularity: {quality_metrics['modularity']:.3f}")
+                print(f"   ? Coverage: {quality_metrics['coverage']:.3f}")
+                print(f"   ? Performance score: {performance_score:.3f}")
                 
             except Exception as e:
-                print(f"   ❌ Algorithm failed: {e}")
+                print(f"   [FAIL] Algorithm failed: {e}")
                 results["algorithms"][algorithm_name] = {
                     "algorithm": algorithm_name,
                     "error": str(e),
@@ -481,19 +481,19 @@ class EnhancedClusteringAlgorithms:
                 "description": self.algorithms[best_algorithm[0]].description
             }
             
-            print(f"\n🏆 Best Algorithm: {best_algorithm[0]} (score: {best_algorithm[1]:.3f})")
+            print(f"\n? Best Algorithm: {best_algorithm[0]} (score: {best_algorithm[1]:.3f})")
         
         # Generate recommendations
         recommendations = []
         for algorithm_name, score in algorithm_performances.items():
             if score >= 0.8:
-                recommendations.append(f"✅ {algorithm_name}: Excellent performance (score: {score:.3f})")
+                recommendations.append(f"[PASS] {algorithm_name}: Excellent performance (score: {score:.3f})")
             elif score >= 0.6:
-                recommendations.append(f"✅ {algorithm_name}: Good performance (score: {score:.3f})")
+                recommendations.append(f"[PASS] {algorithm_name}: Good performance (score: {score:.3f})")
             elif score >= 0.4:
-                recommendations.append(f"⚠️  {algorithm_name}: Acceptable performance (score: {score:.3f})")
+                recommendations.append(f"[WARN]?  {algorithm_name}: Acceptable performance (score: {score:.3f})")
             else:
-                recommendations.append(f"❌ {algorithm_name}: Needs improvement (score: {score:.3f})")
+                recommendations.append(f"[FAIL] {algorithm_name}: Needs improvement (score: {score:.3f})")
         
         results["recommendations"] = recommendations
         
@@ -501,7 +501,7 @@ class EnhancedClusteringAlgorithms:
     
     def run_enhanced_clustering_analysis(self) -> Dict[str, Any]:
         """Run comprehensive enhanced clustering analysis."""
-        print("🧪 ENHANCED CLUSTERING ALGORITHMS ANALYSIS")
+        print("? ENHANCED CLUSTERING ALGORITHMS ANALYSIS")
         print("="*70)
         print(f"Timestamp: {datetime.now().isoformat()}")
         
@@ -529,7 +529,7 @@ class EnhancedClusteringAlgorithms:
         with open(report_file, 'w') as f:
             json.dump(comparison_results, f, indent=2, default=str)
         
-        print(f"\n📁 Enhanced clustering analysis report saved: {report_file}")
+        print(f"\n? Enhanced clustering analysis report saved: {report_file}")
         
         return comparison_results
 
@@ -540,7 +540,7 @@ def main():
         results = analyzer.run_enhanced_clustering_analysis()
         return 0
     except Exception as e:
-        print(f"❌ Enhanced clustering analysis failed: {e}")
+        print(f"[FAIL] Enhanced clustering analysis failed: {e}")
         return 1
 
 if __name__ == "__main__":

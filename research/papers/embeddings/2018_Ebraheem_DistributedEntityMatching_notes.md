@@ -9,7 +9,7 @@
 **URL**: http://www.vldb.org/pvldb/vol11/p1454-ebraheem.pdf
 
 ## Relevance to Project
-**Rating**: ⭐⭐⭐⭐⭐ (Highest Priority)
+**Rating**: ***** (Highest Priority)
 
 This paper is critical for implementing embedding-based blocking in Phase 3. It presents practical, scalable approaches for generating tuple embeddings specifically designed for entity resolution, with focus on distributed processing - perfect for our ArangoDB cluster architecture.
 

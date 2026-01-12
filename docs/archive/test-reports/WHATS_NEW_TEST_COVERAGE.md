@@ -8,10 +8,10 @@ Test coverage has been **dramatically improved from 16.5% to 60-70%** through th
 
 ## Key Achievements
 
-### [OK] Coverage Increase: 16.5% → 60-70% (+263% relative)
+### [OK] Coverage Increase: 16.5% -> 60-70% (+263% relative)
 ### [OK] New Tests: 142+ comprehensive tests added
-### [OK] Test Code: 388% increase (923 → 3,261 lines)
-### [OK] Test Files: 88% increase (8 → 15 files)
+### [OK] Test Code: 388% increase (923 -> 3,261 lines)
+### [OK] Test Files: 88% increase (8 -> 15 files)
 ### [OK] Performance Validated: 3-5x speedup claims confirmed
 
 ---
@@ -225,7 +225,7 @@ Method: Actual timing comparison
 ### [OK] Network Overhead Reduction
 ```
 Test: test_network_overhead_reduction
-Result: 99.7% reduction (3,319 calls → 1 call)
+Result: 99.7% reduction (3,319 calls -> 1 call)
 Method: API call counting
 ```
 

@@ -12,7 +12,7 @@ from typing import List, Tuple
 
 def fix_todo_comments():
     """Fix all TODO/FIXME comments in the codebase."""
-    print("🔧 FIXING TODO/FIXME COMMENTS")
+    print("? FIXING TODO/FIXME COMMENTS")
     print("="*50)
     
     # Files with TODO/FIXME comments identified in code review
@@ -24,7 +24,7 @@ def fix_todo_comments():
     
     for file_path in files_to_fix:
         if os.path.exists(file_path):
-            print(f"📄 Fixing {file_path}...")
+            print(f"? Fixing {file_path}...")
             
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
@@ -43,27 +43,27 @@ def fix_todo_comments():
                 if content != original_content:
                     with open(file_path, 'w', encoding='utf-8') as f:
                         f.write(content)
-                    print(f"   ✅ Fixed TODO/FIXME comments")
+                    print(f"   [PASS] Fixed TODO/FIXME comments")
                     fixes_applied += 1
                 else:
-                    print(f"   ℹ️  No TODO/FIXME comments found")
+                    print(f"   [INFO]?  No TODO/FIXME comments found")
                     
             except Exception as e:
-                print(f"   ❌ Error fixing {file_path}: {e}")
+                print(f"   [FAIL] Error fixing {file_path}: {e}")
         else:
-            print(f"   ⚠️  File not found: {file_path}")
+            print(f"   [WARN]?  File not found: {file_path}")
     
-    print(f"\n📊 Summary: Fixed {fixes_applied} files")
+    print(f"\n? Summary: Fixed {fixes_applied} files")
     return fixes_applied
 
 def main():
     """Main function to fix TODO/FIXME comments."""
     try:
         fixes = fix_todo_comments()
-        print(f"\n🎉 Successfully fixed TODO/FIXME comments in {fixes} files")
+        print(f"\n? Successfully fixed TODO/FIXME comments in {fixes} files")
         return 0
     except Exception as e:
-        print(f"❌ Error fixing TODO/FIXME comments: {e}")
+        print(f"[FAIL] Error fixing TODO/FIXME comments: {e}")
         return 1
 
 if __name__ == "__main__":

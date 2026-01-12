@@ -44,7 +44,7 @@ def test_blocking_setup():
         
         if setup_result.get("success", False):
             method = setup_result.get("method", "unknown")
-            logger.info(f"✅ Blocking setup completed via {method}")
+            logger.info(f"[PASS] Blocking setup completed via {method}")
             
             analyzers = setup_result.get("analyzers", {})
             views = setup_result.get("views", {})
@@ -65,7 +65,7 @@ def test_blocking_setup():
             
             return True
         else:
-            logger.error(f"❌ Blocking setup failed: {setup_result.get('error')}")
+            logger.error(f"[FAIL] Blocking setup failed: {setup_result.get('error')}")
             return False
             
     except Exception as e:
@@ -395,7 +395,7 @@ def test_blocking_performance():
         # Calculate efficiency metrics
         if total_records > 1:
             all_pairs = (total_records * (total_records - 1)) // 2
-            logger.info(f"\n📊 Efficiency Analysis:")
+            logger.info(f"\n? Efficiency Analysis:")
             logger.info(f"   Total possible pairs: {all_pairs:,}")
             logger.info(f"   Blocking reduces comparisons by >99% (estimated)")
             logger.info(f"   Performance: Suitable for datasets up to 100K+ records")
@@ -430,23 +430,23 @@ def main():
             logger.error("Blocking performance tests failed")
             return False
         
-        logger.info("\n✅ All blocking service tests completed successfully!")
+        logger.info("\n[PASS] All blocking service tests completed successfully!")
         
         # Show summary
         print("\n" + "="*80)
         print("BLOCKING SERVICE IMPLEMENTATION SUMMARY")
         print("="*80)
-        print("✅ Complete blocking strategy framework")
-        print("✅ Multiple blocking algorithms:")
+        print("[PASS] Complete blocking strategy framework")
+        print("[PASS] Multiple blocking algorithms:")
         print("   - Exact match blocking (email, phone, name patterns)")
         print("   - N-gram blocking for fuzzy string matching")
         print("   - Phonetic blocking using Soundex codes")
         print("   - Sorted neighborhood blocking")
-        print("✅ ArangoSearch integration with custom analyzers")
-        print("✅ Multi-strategy candidate generation")
-        print("✅ Comprehensive error handling and fallbacks")
-        print("✅ Performance optimization and statistics")
-        print("✅ Hybrid architecture ready (Foxx service integration)")
+        print("[PASS] ArangoSearch integration with custom analyzers")
+        print("[PASS] Multi-strategy candidate generation")
+        print("[PASS] Comprehensive error handling and fallbacks")
+        print("[PASS] Performance optimization and statistics")
+        print("[PASS] Hybrid architecture ready (Foxx service integration)")
         print("\nThe blocking service is now production-ready!")
         print("Next: Implement clustering service to complete the pipeline")
         

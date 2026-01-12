@@ -10,12 +10,12 @@
 
 | Category | Issues Found | Severity | Status |
 |----------|--------------|----------|--------|
-| **Security** | 5 | 🟡 Medium | Action Required |
-| **Code Duplication** | 8 | 🟠 Medium | Refactor Recommended |
-| **Hardwiring** | 12 | 🟡 Low-Medium | Configuration Needed |
-| **Code Smells** | 10 | 🟢 Low | Quality Improvement |
+| **Security** | 5 | ? Medium | Action Required |
+| **Code Duplication** | 8 | ? Medium | Refactor Recommended |
+| **Hardwiring** | 12 | ? Low-Medium | Configuration Needed |
+| **Code Smells** | 10 | ? Low | Quality Improvement |
 
-**Overall Risk Level:** 🟡 **MEDIUM**
+**Overall Risk Level:** ? **MEDIUM**
 
 ---
 
@@ -56,7 +56,7 @@ raise ValueError("ARANGO_ROOT_PASSWORD environment variable must be set")
 password: str = "" # SECURITY: Must be provided via ARANGO_ROOT_PASSWORD environment variable
 ```
 
-**Risk Level:** 🟡 **MEDIUM** 
+**Risk Level:** ? **MEDIUM** 
 **Impact:** Empty password allows connection without authentication if ArangoDB is misconfigured
 
 **Recommendation:**
@@ -81,7 +81,7 @@ return cls(password=password, ...)
 query_parts = [f"FOR d IN {self.collection}"] # Collection name not parameterized
 ```
 
-**Risk Level:** 🟠 **MEDIUM** 
+**Risk Level:** ? **MEDIUM** 
 **Impact:** If `collection` parameter comes from user input, could allow AQL injection
 
 **Recommendation:**
@@ -102,7 +102,7 @@ self.collection = collection
 **Current Status:** 
 - BM25BlockingStrategy uses `bind_vars` for thresholds (line 155)
 - Collection/field names are directly embedded in f-strings
-- 🟡 Partially safe if inputs come from library code, not user input
+- ? Partially safe if inputs come from library code, not user input
 
 ---
 
@@ -117,7 +117,7 @@ except Exception as e:
 print(f"Error inserting edge batch: {e}") # Exposes internal errors
 ```
 
-**Risk Level:** 🟢 **LOW** 
+**Risk Level:** ? **LOW** 
 **Impact:** Error details exposed to stdout, potential information disclosure
 
 **Recommendation:**
@@ -138,7 +138,7 @@ self.logger.error(f"Error inserting edge batch: {e}", exc_info=True)
 self.blocking_fields = blocking_fields
 ```
 
-**Risk Level:** 🟡 **MEDIUM** 
+**Risk Level:** ? **MEDIUM** 
 **Impact:** If field names come from user input, could cause injection or errors
 
 **Recommendation:**
@@ -204,7 +204,7 @@ return f"{vertex_collection}/{key}"
 return f"vertices/{key}"
 ```
 
-**Impact:** 15 lines × 2 = 30 lines that should be 1 function call
+**Impact:** 15 lines x 2 = 30 lines that should be 1 function call
 
 ---
 
@@ -506,7 +506,7 @@ BATCH_SIZES = {
 
 ---
 
-## 🧹 CODE SMELLS
+## ? CODE SMELLS
 
 ### 1. **Print Statements Instead of Logging** (18 occurrences)
 
@@ -619,10 +619,10 @@ Security Issues: 5 (1 high, 3 medium, 1 low)
 
 | Metric | Score | Target |
 |--------|-------|--------|
-| Code Duplication | 🟡 3% | <5% |
-| Security | 🟡 Medium | High |
-| Test Coverage | 🟢 100% | >80% |
-| Documentation | 🟢 Excellent | Good |
+| Code Duplication | ? 3% | <5% |
+| Security | ? Medium | High |
+| Test Coverage | ? 100% | >80% |
+| Documentation | ? Excellent | Good |
 
 ---
 
@@ -702,4 +702,4 @@ Security Issues: 5 (1 high, 3 medium, 1 low)
 
 **Report Generated:** November 11, 2025 
 **Next Review:** Recommended after security fixes 
-**Status:** 🟡 **MEDIUM RISK - ACTION REQUIRED**
+**Status:** ? **MEDIUM RISK - ACTION REQUIRED**

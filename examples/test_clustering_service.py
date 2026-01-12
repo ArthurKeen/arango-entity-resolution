@@ -310,7 +310,7 @@ def test_cluster_validation():
             
             for validation in validation_results:
                 cluster_id = validation.get("cluster_id", "unknown")
-                is_valid = "✓" if validation.get("is_valid", False) else "✗"
+                is_valid = "[OK]" if validation.get("is_valid", False) else "[X]"
                 quality = validation.get("quality_score", 0)
                 size = validation.get("cluster_size", 0)
                 similarity = validation.get("average_similarity", 0)
@@ -463,22 +463,22 @@ def main():
             logger.error("Clustering performance tests failed")
             return False
         
-        logger.info("\n✅ All clustering service tests completed successfully!")
+        logger.info("\n[PASS] All clustering service tests completed successfully!")
         
         # Show summary
         print("\n" + "="*80)
         print("CLUSTERING SERVICE IMPLEMENTATION SUMMARY")
         print("="*80)
-        print("✅ Complete Weakly Connected Components (WCC) algorithm")
-        print("✅ Graph-based entity clustering:")
+        print("[PASS] Complete Weakly Connected Components (WCC) algorithm")
+        print("[PASS] Graph-based entity clustering:")
         print("   - Similarity graph construction from scored pairs")
         print("   - Connected components detection using DFS")
         print("   - Configurable similarity and size thresholds")
-        print("✅ Cluster quality validation and scoring")
-        print("✅ Performance optimization for large datasets")
-        print("✅ Comprehensive statistics and metrics")
-        print("✅ Hybrid architecture ready (Foxx service integration)")
-        print("✅ Error handling and fallback mechanisms")
+        print("[PASS] Cluster quality validation and scoring")
+        print("[PASS] Performance optimization for large datasets")
+        print("[PASS] Comprehensive statistics and metrics")
+        print("[PASS] Hybrid architecture ready (Foxx service integration)")
+        print("[PASS] Error handling and fallback mechanisms")
         print("\nThe clustering service is now production-ready!")
         print("Next: Complete the end-to-end entity resolution pipeline")
         

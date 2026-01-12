@@ -30,11 +30,11 @@ class ComprehensiveCleanup:
             "action": action,
             "details": details
         })
-        print(f"✅ {action}: {details}")
+        print(f"[PASS] {action}: {details}")
     
     def remove_redundant_files(self):
         """Remove redundant files identified in audit."""
-        print("🧹 Removing redundant files...")
+        print("? Removing redundant files...")
         
         # Files to remove (backup and temporary files)
         files_to_remove = [
@@ -54,7 +54,7 @@ class ComprehensiveCleanup:
                     full_path.unlink()
                     self.log_action("removed_file", f"Removed {file_path}")
                 except Exception as e:
-                    print(f"❌ Failed to remove {file_path}: {e}")
+                    print(f"[FAIL] Failed to remove {file_path}: {e}")
         
         # Remove duplicate test files (keep the most comprehensive ones)
         duplicate_test_files = [
@@ -70,11 +70,11 @@ class ComprehensiveCleanup:
                     full_path.unlink()
                     self.log_action("removed_duplicate_test", f"Removed duplicate {file_path}")
                 except Exception as e:
-                    print(f"❌ Failed to remove {file_path}: {e}")
+                    print(f"[FAIL] Failed to remove {file_path}: {e}")
     
     def consolidate_duplicate_code(self):
         """Consolidate duplicate code patterns."""
-        print("🔧 Consolidating duplicate code...")
+        print("? Consolidating duplicate code...")
         
         # Create shared utilities for common patterns
         shared_utils_content = '''#!/usr/bin/env python3
@@ -104,19 +104,19 @@ class SharedUtilities:
     
     def print_success(self, message: str):
         """Print success message."""
-        print(f"✅ {message}")
+        print(f"[PASS] {message}")
     
     def print_error(self, message: str):
         """Print error message."""
-        print(f"❌ {message}")
+        print(f"[FAIL] {message}")
     
     def print_warning(self, message: str):
         """Print warning message."""
-        print(f"⚠️  {message}")
+        print(f"[WARN]?  {message}")
     
     def print_info(self, message: str):
         """Print info message."""
-        print(f"ℹ️  {message}")
+        print(f"[INFO]?  {message}")
     
     def run_command(self, command: str, capture_output: bool = True) -> Dict[str, Any]:
         """Run a command and return results."""
@@ -177,7 +177,7 @@ shared_utils = SharedUtilities()
     
     def fix_hardcoded_values(self):
         """Fix hardcoded values by moving them to configuration."""
-        print("🔧 Fixing hardcoded values...")
+        print("? Fixing hardcoded values...")
         
         # Update configuration files with missing values
         config_updates = {
@@ -218,11 +218,11 @@ shared_utils = SharedUtilities()
                     
                     self.log_action("updated_config", f"Updated {file_path}")
                 except Exception as e:
-                    print(f"❌ Failed to update {file_path}: {e}")
+                    print(f"[FAIL] Failed to update {file_path}: {e}")
     
     def organize_files(self):
         """Organize files in proper locations."""
-        print("📁 Organizing files...")
+        print("? Organizing files...")
         
         # Move test files to proper location
         test_files_to_move = [
@@ -247,11 +247,11 @@ shared_utils = SharedUtilities()
                     shutil.move(str(source_path), str(dest_path))
                     self.log_action("moved_file", f"Moved {source} to {destination}")
                 except Exception as e:
-                    print(f"❌ Failed to move {source}: {e}")
+                    print(f"[FAIL] Failed to move {source}: {e}")
     
     def create_consolidated_test_suite(self):
         """Create a single, comprehensive test suite."""
-        print("🧪 Creating consolidated test suite...")
+        print("? Creating consolidated test suite...")
         
         consolidated_test_content = '''#!/usr/bin/env python3
 """
@@ -302,7 +302,7 @@ class ConsolidatedTestSuite:
     
     def test_similarity_accuracy(self) -> bool:
         """Test similarity algorithm accuracy."""
-        print("🔍 Testing Similarity Algorithm Accuracy")
+        print("? Testing Similarity Algorithm Accuracy")
         print("="*50)
         
         test_cases = [
@@ -339,21 +339,21 @@ class ConsolidatedTestSuite:
                     score = result.get('normalized_score', 0)
                     
                     if decision == test_case['expected_decision']:
-                        print(f"   ✅ {test_case['name']}: {decision} (score: {score:.3f})")
+                        print(f"   [PASS] {test_case['name']}: {decision} (score: {score:.3f})")
                     else:
-                        print(f"   ❌ {test_case['name']}: Expected {test_case['expected_decision']}, got {decision}")
+                        print(f"   [FAIL] {test_case['name']}: Expected {test_case['expected_decision']}, got {decision}")
                         all_passed = False
                     
                     # Check for 0.000 scores (critical issue)
                     if abs(score) < 0.001:
-                        print(f"   ❌ CRITICAL: Score is 0.000 - similarity algorithm issue!")
+                        print(f"   [FAIL] CRITICAL: Score is 0.000 - similarity algorithm issue!")
                         all_passed = False
                 else:
-                    print(f"   ❌ {test_case['name']}: {result.get('error', 'Unknown error')}")
+                    print(f"   [FAIL] {test_case['name']}: {result.get('error', 'Unknown error')}")
                     all_passed = False
                     
             except Exception as e:
-                print(f"   ❌ {test_case['name']}: Exception - {e}")
+                print(f"   [FAIL] {test_case['name']}: Exception - {e}")
                 all_passed = False
         
         self.test_results["similarity_accuracy"].append({
@@ -365,25 +365,25 @@ class ConsolidatedTestSuite:
     
     def test_blocking_effectiveness(self) -> bool:
         """Test blocking strategy effectiveness."""
-        print("\\n🔍 Testing Blocking Strategy Effectiveness")
+        print("\\n? Testing Blocking Strategy Effectiveness")
         print("="*50)
         
         try:
             # Test blocking setup
             setup_result = self.blocking_service.setup_for_collections(["test_blocking"])
             if setup_result.get('success', False):
-                print("   ✅ Blocking setup successful")
+                print("   [PASS] Blocking setup successful")
                 return True
             else:
-                print(f"   ❌ Blocking setup failed: {setup_result.get('error')}")
+                print(f"   [FAIL] Blocking setup failed: {setup_result.get('error')}")
                 return False
         except Exception as e:
-            print(f"   ❌ Blocking test failed: {e}")
+            print(f"   [FAIL] Blocking test failed: {e}")
             return False
     
     def test_clustering_accuracy(self) -> bool:
         """Test clustering algorithm accuracy."""
-        print("\\n🔍 Testing Clustering Algorithm Accuracy")
+        print("\\n? Testing Clustering Algorithm Accuracy")
         print("="*50)
         
         try:
@@ -392,15 +392,15 @@ class ConsolidatedTestSuite:
             ]
             
             clusters = self.clustering_service.cluster_entities(test_pairs)
-            print(f"   ✅ Generated {len(clusters)} clusters")
+            print(f"   [PASS] Generated {len(clusters)} clusters")
             return True
         except Exception as e:
-            print(f"   ❌ Clustering test failed: {e}")
+            print(f"   [FAIL] Clustering test failed: {e}")
             return False
     
     def test_integration_workflow(self) -> bool:
         """Test end-to-end integration workflow."""
-        print("\\n🔍 Testing Integration Workflow")
+        print("\\n? Testing Integration Workflow")
         print("="*50)
         
         try:
@@ -414,29 +414,29 @@ class ConsolidatedTestSuite:
             # Test similarity
             similarity = pipeline.similarity_service.compute_similarity(test_doc_a, test_doc_b)
             if not similarity.get('success', False):
-                print(f"   ❌ Similarity service failed: {similarity.get('error')}")
+                print(f"   [FAIL] Similarity service failed: {similarity.get('error')}")
                 return False
             
             # Test blocking
             blocking_result = pipeline.blocking_service.setup_for_collections(["test_integration"])
             if not blocking_result.get('success', False):
-                print(f"   ❌ Blocking service failed: {blocking_result.get('error')}")
+                print(f"   [FAIL] Blocking service failed: {blocking_result.get('error')}")
                 return False
             
             # Test clustering
             test_pairs = [{"doc_a": test_doc_a, "doc_b": test_doc_b, "score": 0.8}]
             clusters = pipeline.clustering_service.cluster_entities(test_pairs)
             
-            print("   ✅ All components working correctly")
+            print("   [PASS] All components working correctly")
             return True
             
         except Exception as e:
-            print(f"   ❌ Integration test failed: {e}")
+            print(f"   [FAIL] Integration test failed: {e}")
             return False
     
     def test_performance_benchmarks(self) -> bool:
         """Test performance benchmarks."""
-        print("\\n🔍 Testing Performance Benchmarks")
+        print("\\n? Testing Performance Benchmarks")
         print("="*50)
         
         try:
@@ -462,18 +462,18 @@ class ConsolidatedTestSuite:
                         similarity_count += 1
             
             similarity_time = time.time() - start_time
-            print(f"   ✅ Computed {similarity_count} similarities in {similarity_time:.3f}s")
-            print(f"   📊 Rate: {similarity_count/similarity_time:.1f} similarities/second")
+            print(f"   [PASS] Computed {similarity_count} similarities in {similarity_time:.3f}s")
+            print(f"   ? Rate: {similarity_count/similarity_time:.1f} similarities/second")
             
             return True
             
         except Exception as e:
-            print(f"   ❌ Performance test failed: {e}")
+            print(f"   [FAIL] Performance test failed: {e}")
             return False
     
     def test_edge_cases(self) -> bool:
         """Test edge cases and error handling."""
-        print("\\n🔍 Testing Edge Cases")
+        print("\\n? Testing Edge Cases")
         print("="*50)
         
         edge_cases = [
@@ -491,20 +491,20 @@ class ConsolidatedTestSuite:
                 )
                 
                 if result.get('success', False):
-                    print(f"   ✅ {test_case['name']}: Handled gracefully")
+                    print(f"   [PASS] {test_case['name']}: Handled gracefully")
                 else:
-                    print(f"   ❌ {test_case['name']}: Failed - {result.get('error')}")
+                    print(f"   [FAIL] {test_case['name']}: Failed - {result.get('error')}")
                     all_passed = False
                     
             except Exception as e:
-                print(f"   ❌ {test_case['name']}: Exception - {e}")
+                print(f"   [FAIL] {test_case['name']}: Exception - {e}")
                 all_passed = False
         
         return all_passed
     
     def run_all_tests(self) -> bool:
         """Run all tests in the consolidated suite."""
-        print("🧪 CONSOLIDATED ENTITY RESOLUTION TEST SUITE")
+        print("? CONSOLIDATED ENTITY RESOLUTION TEST SUITE")
         print("="*60)
         print(f"Timestamp: {datetime.now().isoformat()}")
         
@@ -518,19 +518,19 @@ class ConsolidatedTestSuite:
         }
         
         # Summary
-        print(f"\\n📊 TEST RESULTS")
+        print(f"\\n? TEST RESULTS")
         print("="*40)
         
         passed_tests = sum(1 for result in test_results.values() if result)
         total_tests = len(test_results)
         
         for test_name, passed in test_results.items():
-            status = "✅" if passed else "❌"
+            status = "[PASS]" if passed else "[FAIL]"
             print(f"   {status} {test_name.replace('_', ' ').title()}: {'PASSED' if passed else 'FAILED'}")
         
-        print(f"\\n📊 Overall Results:")
-        print(f"   ✅ Passed: {passed_tests}/{total_tests}")
-        print(f"   📊 Success Rate: {passed_tests/total_tests*100:.1f}%")
+        print(f"\\n? Overall Results:")
+        print(f"   [PASS] Passed: {passed_tests}/{total_tests}")
+        print(f"   ? Success Rate: {passed_tests/total_tests*100:.1f}%")
         
         # Save results
         report_file = f"consolidated_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
@@ -541,7 +541,7 @@ class ConsolidatedTestSuite:
                 "timestamp": datetime.now().isoformat()
             }, f, indent=2, default=str)
         
-        print(f"\\n📁 Detailed report saved: {report_file}")
+        print(f"\\n? Detailed report saved: {report_file}")
         
         return passed_tests == total_tests
 
@@ -552,7 +552,7 @@ def main():
         success = tester.run_all_tests()
         return 0 if success else 1
     except Exception as e:
-        print(f"❌ Consolidated testing failed: {e}")
+        print(f"[FAIL] Consolidated testing failed: {e}")
         return 1
 
 if __name__ == "__main__":
@@ -568,7 +568,7 @@ if __name__ == "__main__":
     
     def create_cleanup_summary(self):
         """Create a summary of all cleanup actions."""
-        print("📋 Creating cleanup summary...")
+        print("? Creating cleanup summary...")
         
         summary_content = f'''# Code Quality Cleanup Summary
 
@@ -625,7 +625,7 @@ Timestamp: {datetime.now().isoformat()}
     
     def run_comprehensive_cleanup(self):
         """Run comprehensive cleanup."""
-        print("🧹 COMPREHENSIVE CODE QUALITY CLEANUP")
+        print("? COMPREHENSIVE CODE QUALITY CLEANUP")
         print("="*60)
         print(f"Timestamp: {datetime.now().isoformat()}")
         
@@ -637,13 +637,13 @@ Timestamp: {datetime.now().isoformat()}
             self.create_consolidated_test_suite()
             self.create_cleanup_summary()
             
-            print(f"\\n✅ Cleanup completed successfully!")
-            print(f"📊 Actions performed: {len(self.cleanup_log)}")
+            print(f"\\n[PASS] Cleanup completed successfully!")
+            print(f"? Actions performed: {len(self.cleanup_log)}")
             
             return True
             
         except Exception as e:
-            print(f"❌ Cleanup failed: {e}")
+            print(f"[FAIL] Cleanup failed: {e}")
             return False
 
 def main():
@@ -653,7 +653,7 @@ def main():
         success = cleanup.run_comprehensive_cleanup()
         return 0 if success else 1
     except Exception as e:
-        print(f"❌ Comprehensive cleanup failed: {e}")
+        print(f"[FAIL] Comprehensive cleanup failed: {e}")
         return 1
 
 if __name__ == "__main__":

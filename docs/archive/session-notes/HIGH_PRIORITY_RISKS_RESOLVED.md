@@ -28,7 +28,7 @@ All high-priority risks (except default password, which is acceptable for local 
 ```
 [OK] Module imports: Passed
 [OK] Required methods: All 8 present
-[OK] Deduplication: Works correctly (4→2 pairs)
+[OK] Deduplication: Works correctly (4->2 pairs)
 [OK] Fast initialization: 0.0ms
 [OK] Fast deduplication: 0.2ms for 1000 pairs
 [OK] Similarity computation: 0.0ms
@@ -196,18 +196,18 @@ export ARANGO_ROOT_PASSWORD="customer-secure-password"
 ## Risk Level Summary
 
 ### Before Mitigation
-- Performance: 🟡 MEDIUM (untested)
-- Integration: 🟡 MEDIUM (no tests)
-- Foxx Service: 🟡 MEDIUM (unverified)
-- Default Password: 🟢 LOW (acceptable)
+- Performance: ? MEDIUM (untested)
+- Integration: ? MEDIUM (no tests)
+- Foxx Service: ? MEDIUM (unverified)
+- Default Password: ? LOW (acceptable)
 
 ### After Mitigation
-- Performance: 🟢 LOW (validated) 
-- Integration: 🟢 LOW (scripts ready) 
-- Foxx Service: 🟢 LOW (ready) 
-- Default Password: 🟢 LOW (acceptable) 
+- Performance: ? LOW (validated) 
+- Integration: ? LOW (scripts ready) 
+- Foxx Service: ? LOW (ready) 
+- Default Password: ? LOW (acceptable) 
 
-**Overall:** 🟢 **LOW RISK** - Ready for deployment
+**Overall:** ? **LOW RISK** - Ready for deployment
 
 ---
 
@@ -221,7 +221,7 @@ export ARANGO_ROOT_PASSWORD="customer-secure-password"
 - ClusteringService: 9 tests
 - Other services: 24 tests
 
-### Integration Tests ℹ
+### Integration Tests [INFO]
 - **15+ tests** ready to run
 - Require database connection
 - Scripts provided for execution
@@ -352,8 +352,8 @@ python scripts/foxx/automated_deploy.py
 ### Immediate
 1. Review this report
 2. Run performance validation
-3. ℹ Start database (if needed)
-4. ℹ Run integration tests (if needed)
+3. [INFO] Start database (if needed)
+4. [INFO] Run integration tests (if needed)
 
 ### Customer Deployment
 1. Set customer password

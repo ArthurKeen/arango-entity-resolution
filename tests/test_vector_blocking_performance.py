@@ -105,7 +105,7 @@ class TestEmbeddingGenerationPerformance:
         
         avg_time = elapsed / iterations
         
-        print(f"\n✓ Single embedding generation: {avg_time*1000:.2f} ms")
+        print(f"\n[OK] Single embedding generation: {avg_time*1000:.2f} ms")
         print(f"  Throughput: {1/avg_time:.1f} embeddings/second")
         
         assert embedding.shape[0] == 384  # Verify dimension
@@ -129,7 +129,7 @@ class TestEmbeddingGenerationPerformance:
         
         throughput = len(records) / elapsed
         
-        print(f"\n✓ Batch embedding (100 docs): {elapsed:.2f} seconds")
+        print(f"\n[OK] Batch embedding (100 docs): {elapsed:.2f} seconds")
         print(f"  Throughput: {throughput:.1f} docs/second")
         print(f"  Per-document: {elapsed/len(records)*1000:.2f} ms")
         
@@ -154,7 +154,7 @@ class TestEmbeddingGenerationPerformance:
         
         throughput = len(records) / elapsed
         
-        print(f"\n✓ Batch embedding (1000 docs): {elapsed:.2f} seconds")
+        print(f"\n[OK] Batch embedding (1000 docs): {elapsed:.2f} seconds")
         print(f"  Throughput: {throughput:.1f} docs/second")
         print(f"  Per-document: {elapsed/len(records)*1000:.2f} ms")
         
@@ -184,7 +184,7 @@ class TestEmbeddingGenerationPerformance:
         
         throughput = len(records) / elapsed
         
-        print(f"\n✓ Embedding storage (100 docs): {elapsed:.2f} seconds")
+        print(f"\n[OK] Embedding storage (100 docs): {elapsed:.2f} seconds")
         print(f"  Throughput: {throughput:.1f} docs/second")
         print(f"  Per-document: {elapsed/len(records)*1000:.2f} ms")
         
@@ -222,7 +222,7 @@ class TestVectorBlockingPerformance:
         
         blocking_stats = strategy.get_statistics()
         
-        print(f"\n✓ Vector blocking (100 docs): {elapsed:.2f} seconds")
+        print(f"\n[OK] Vector blocking (100 docs): {elapsed:.2f} seconds")
         print(f"  Pairs found: {len(pairs)}")
         print(f"  Throughput: {100/elapsed:.1f} docs/second")
         print(f"  Avg time per doc: {elapsed/100*1000:.2f} ms")
@@ -253,7 +253,7 @@ class TestVectorBlockingPerformance:
         pairs = strategy.generate_candidates()
         elapsed = time.time() - start
         
-        print(f"\n✓ Vector blocking with geographic constraint: {elapsed:.2f} seconds")
+        print(f"\n[OK] Vector blocking with geographic constraint: {elapsed:.2f} seconds")
         print(f"  Pairs found: {len(pairs)}")
         print(f"  Speedup vs no constraint: TBD (compare with test above)")
         
@@ -280,7 +280,7 @@ class TestVectorBlockingPerformance:
         stats = strategy.get_similarity_distribution(sample_size=50)
         elapsed = time.time() - start
         
-        print(f"\n✓ Similarity distribution analysis: {elapsed:.2f} seconds")
+        print(f"\n[OK] Similarity distribution analysis: {elapsed:.2f} seconds")
         print(f"  Sample size: {stats['sample_size']}")
         print(f"  Mean similarity: {stats['mean_similarity']:.3f}")
         print(f"  Recommended threshold: {stats['recommended_thresholds']['balanced']:.3f}")
@@ -310,8 +310,8 @@ class TestEndToEndPerformance:
         )
         
         embedding_time = time.time() - embedding_start
-        print(f"  ✓ Generated {emb_stats['generated']} embeddings in {embedding_time:.2f}s")
-        print(f"  ✓ Throughput: {emb_stats['generated']/embedding_time:.1f} docs/second")
+        print(f"  [OK] Generated {emb_stats['generated']} embeddings in {embedding_time:.2f}s")
+        print(f"  [OK] Throughput: {emb_stats['generated']/embedding_time:.1f} docs/second")
         
         # Step 2: Vector blocking
         print("\nStep 2: Vector blocking...")
@@ -327,7 +327,7 @@ class TestEndToEndPerformance:
         pairs = strategy.generate_candidates()
         blocking_time = time.time() - blocking_start
         
-        print(f"  ✓ Found {len(pairs)} candidate pairs in {blocking_time:.2f}s")
+        print(f"  [OK] Found {len(pairs)} candidate pairs in {blocking_time:.2f}s")
         
         # Total time
         total_time = embedding_time + blocking_time

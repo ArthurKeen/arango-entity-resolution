@@ -328,9 +328,9 @@ python3 industry_scenarios.py
 **Goal**: Close with compelling ROI
 
 1. **Before/After Comparison**
-   - 10 records → 7 entities
-   - Messy data → Clean golden records
-   - Fragmented view → Customer 360
+   - 10 records -> 7 entities
+   - Messy data -> Clean golden records
+   - Fragmented view -> Customer 360
 
 2. **ROI Calculations**
    - Specific to their company size

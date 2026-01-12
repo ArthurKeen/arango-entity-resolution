@@ -288,7 +288,7 @@ USE_DEFAULT_PASSWORD # Explicit opt-in for local testing
 - `API_EXAMPLES.md` (963 lines) - Extensive examples
 - **Overlap:** ~10% - Basic usage examples
 - **Verdict:** ACCEPTABLE
-- Progressive disclosure: Quick start → Full reference → Deep examples
+- Progressive disclosure: Quick start -> Full reference -> Deep examples
 - Different learning paths
 - **Recommendation:** Current structure is optimal
 

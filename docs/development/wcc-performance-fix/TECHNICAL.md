@@ -38,7 +38,7 @@ cursor = self.db.aql.execute(component_query, ...) # SEPARATE QUERY!
 **Impact:**
 - 24,256 separate database queries for 24K vertices
 - ~60ms network latency per query
-- 24,256 × 60ms = 24 minutes minimum
+- 24,256 x 60ms = 24 minutes minimum
 - Result: **100x slower than necessary**
 
 ---
@@ -212,9 +212,9 @@ clusters = self._find_connected_components_aql() # OLD (slow)
 ### Memory Usage (Bulk Fetch)
 
 **Components:**
-1. Edge list: `edges × 64 bytes`
-2. Graph dict: `vertices × 8 pointers × 8 bytes`
-3. DFS visited set: `vertices × 24 bytes`
+1. Edge list: `edges x 64 bytes`
+2. Graph dict: `vertices x 8 pointers x 8 bytes`
+3. DFS visited set: `vertices x 24 bytes`
 
 **Examples:**
 - 16K edges, 24K vertices: ~3-5 MB
@@ -253,7 +253,7 @@ db, edge_collection='similarTo', use_bulk_fetch=False
 ```
 
 **Deprecated parameters:**
-- Old `algorithm='python_dfs'` parameter → ignored (no error)
+- Old `algorithm='python_dfs'` parameter -> ignored (no error)
 - Migration seamless
 
 ---
@@ -347,7 +347,7 @@ clusters = service.cluster()
 # Should complete in seconds instead of minutes!
 
 stats = service.get_statistics()
-print(f"Algorithm: {stats['algorithm_used']}") # → 'bulk_python_dfs'
+print(f"Algorithm: {stats['algorithm_used']}") # -> 'bulk_python_dfs'
 print(f"Time: {stats['execution_time_seconds']:.2f}s")
 ```
 
@@ -399,7 +399,7 @@ clusters = service.cluster()
 **Scenario:** Extremely large graphs (>10M edges)
 
 **Reason:** Memory constraints
-- 10M edges ≈ 2-3 GB RAM
+- 10M edges ~ 2-3 GB RAM
 - May not fit in memory on small instances
 
 **Solution:**
@@ -412,7 +412,7 @@ db, edge_collection='similarTo', use_bulk_fetch=False
 # Or consider ArangoDB's Pregel framework (Enterprise)
 ```
 
-**Typical ER use case:** <1M edges → Bulk fetch is perfect 
+**Typical ER use case:** <1M edges -> Bulk fetch is perfect 
 
 ---
 

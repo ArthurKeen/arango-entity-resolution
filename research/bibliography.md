@@ -7,7 +7,7 @@ This bibliography contains all academic papers and research materials relevant t
 ### 1. Blocking and Filtering Techniques
 **Papadakis, G., Papapetrou, O., Palpanas, T., & Koubarakis, M.** 
 *"A Survey of Blocking and Filtering Techniques for Entity Resolution"* 
-**Status**: Research notes available → [blocking/2014_Papadakis_BlockingFilteringSurvey_notes.md](papers/blocking/2014_Papadakis_BlockingFilteringSurvey_notes.md) 
+**Status**: Research notes available -> [blocking/2014_Papadakis_BlockingFilteringSurvey_notes.md](papers/blocking/2014_Papadakis_BlockingFilteringSurvey_notes.md) 
 **Importance**: Core blocking strategy foundation
 
 ### 2. Probabilistic Record Linkage Foundation 
@@ -15,11 +15,11 @@ This bibliography contains all academic papers and research materials relevant t
 *"A Theory for Record Linkage"* 
 Journal of the American Statistical Association, 64(328), 1183-1210 
 **DOI**: 10.1080/01621459.1969.10501049 
-**Status**: Research notes available → [similarity/1969_Fellegi_ProbabilisticRecordLinkage_notes.md](papers/similarity/1969_Fellegi_ProbabilisticRecordLinkage_notes.md) 
+**Status**: Research notes available -> [similarity/1969_Fellegi_ProbabilisticRecordLinkage_notes.md](papers/similarity/1969_Fellegi_ProbabilisticRecordLinkage_notes.md) 
 **Importance**: Foundational theoretical framework
 
 ### 3. Scalable Entity Resolution Framework
-**Köpcke, H., & Thor, A.** 
+**K?pcke, H., & Thor, A.** 
 *"The Dedoop Framework for Scalable Entity Resolution"* 
 **Status**: Referenced in PRD, research notes needed 
 **Importance**: Scalability considerations
@@ -34,7 +34,7 @@ Journal of the American Statistical Association, 64(328), 1183-1210
 **Doan, A., Ardalan, A., Naughton, J. R., & Ramakrishnan, R. (2016)** 
 *"Magellan: Toward Building Entity Matching Management Systems"* 
 VLDB Endowment 
-**Status**: Research notes available → [systems/2016_Doan_MagellanEntityMatching_notes.md](papers/systems/2016_Doan_MagellanEntityMatching_notes.md) 
+**Status**: Research notes available -> [systems/2016_Doan_MagellanEntityMatching_notes.md](papers/systems/2016_Doan_MagellanEntityMatching_notes.md) 
 **Importance**: Complete system architecture
 
 ## Modern Survey Papers
@@ -73,7 +73,7 @@ arXiv:1607.00992
 ACM SIGMOD International Conference on Management of Data
 **DOI**: 10.1145/3183713.3196926
 **URL**: https://dl.acm.org/doi/10.1145/3183713.3196926
-**Status**: Research notes available → [embeddings/2018_Mudgal_DeepLearningEntityMatching_notes.md](papers/embeddings/2018_Mudgal_DeepLearningEntityMatching_notes.md)
+**Status**: Research notes available -> [embeddings/2018_Mudgal_DeepLearningEntityMatching_notes.md](papers/embeddings/2018_Mudgal_DeepLearningEntityMatching_notes.md)
 **Importance**: Foundational deep learning architectures for ER
 
 ### Distributed Tuple Embeddings
@@ -82,7 +82,7 @@ ACM SIGMOD International Conference on Management of Data
 Proceedings of the VLDB Endowment, 11(11), 1454-1467
 **DOI**: 10.14778/3236187.3236198
 **URL**: http://www.vldb.org/pvldb/vol11/p1454-ebraheem.pdf
-**Status**: Research notes available → [embeddings/2018_Ebraheem_DistributedEntityMatching_notes.md](papers/embeddings/2018_Ebraheem_DistributedEntityMatching_notes.md)
+**Status**: Research notes available -> [embeddings/2018_Ebraheem_DistributedEntityMatching_notes.md](papers/embeddings/2018_Ebraheem_DistributedEntityMatching_notes.md)
 **Importance**: Practical tuple embedding methods for structured data
 
 ### Deep Learning for Blocking
@@ -91,7 +91,7 @@ Proceedings of the VLDB Endowment, 11(11), 1454-1467
 IEEE International Conference on Data Engineering (ICDE)
 **DOI**: 10.1109/ICDE51399.2021.00095
 **URL**: https://ieeexplore.ieee.org/document/9458727
-**Status**: Research notes available → [blocking/2021_Thirumuruganathan_LearningBlocking_notes.md](papers/blocking/2021_Thirumuruganathan_LearningBlocking_notes.md)
+**Status**: Research notes available -> [blocking/2021_Thirumuruganathan_LearningBlocking_notes.md](papers/blocking/2021_Thirumuruganathan_LearningBlocking_notes.md)
 **Importance**: Critical for embedding-based blocking strategies
 
 ## Specialized Techniques

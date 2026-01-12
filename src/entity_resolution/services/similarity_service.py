@@ -1,7 +1,7 @@
 """
 Similarity Service for Entity Resolution (v1.x Legacy)
 
-⚠️  DEPRECATED: This service is deprecated and will be removed in v3.0.
+[WARN]?  DEPRECATED: This service is deprecated and will be removed in v3.0.
 Use v2.0 BatchSimilarityService instead for better performance.
 
 Note: This is the legacy v1.x SimilarityService. For v2.0+, use:
@@ -24,7 +24,7 @@ class SimilarityService(BaseEntityResolutionService):
     """
     Similarity computation service using Fellegi-Sunter framework
     
-    ⚠️  DEPRECATED: Use BatchSimilarityService instead.
+    [WARN]?  DEPRECATED: Use BatchSimilarityService instead.
     This service will be removed in v3.0.
     
     Can work in two modes:

@@ -162,7 +162,7 @@ openapi.yaml [OpenAPI specification]
 ### Scenario 1: Quick Integration
 **Customer wants to try the API quickly**
 
-→ Start with `API_QUICKSTART.md`
+-> Start with `API_QUICKSTART.md`
 - 5-minute setup
 - Copy-paste examples
 - Immediate results
@@ -170,7 +170,7 @@ openapi.yaml [OpenAPI specification]
 ### Scenario 2: Production Integration
 **Customer building production system**
 
-→ Use `API_REFERENCE.md` + `API_EXAMPLES.md`
+-> Use `API_REFERENCE.md` + `API_EXAMPLES.md`
 - Complete endpoint documentation
 - Integration patterns
 - Error handling
@@ -179,7 +179,7 @@ openapi.yaml [OpenAPI specification]
 ### Scenario 3: Python Application
 **Customer building Python-based system**
 
-→ Focus on `API_PYTHON.md`
+-> Focus on `API_PYTHON.md`
 - Complete SDK reference
 - Type hints for IDE support
 - Advanced usage patterns
@@ -187,7 +187,7 @@ openapi.yaml [OpenAPI specification]
 ### Scenario 4: Custom Client Development
 **Customer needs SDK in another language**
 
-→ Use `openapi.yaml`
+-> Use `openapi.yaml`
 - Generate client in any language
 - Consistent with REST API
 - Type-safe code generation

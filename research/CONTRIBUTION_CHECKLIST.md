@@ -178,7 +178,7 @@
 - [ ] Or remove parameter if not needed
 
 #### Relationship Sweeper
-- [ ] Fix magic number in cycle detection (100 → make configurable)
+- [ ] Fix magic number in cycle detection (100 -> make configurable)
 - [ ] Add tests for edge cases
 
 ---

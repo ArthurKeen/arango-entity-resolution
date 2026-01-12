@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This document outlines a comprehensive plan to enhance the `arango-entity-resolution` library with general-purpose Entity Resolution (ER) functionality extracted from production implementations. The enhancements will enable the library to serve as a complete, production-ready ER solution while allowing consuming projects to reduce code by 92% (1,863 lines → 155 lines).
+This document outlines a comprehensive plan to enhance the `arango-entity-resolution` library with general-purpose Entity Resolution (ER) functionality extracted from production implementations. The enhancements will enable the library to serve as a complete, production-ready ER solution while allowing consuming projects to reduce code by 92% (1,863 lines -> 155 lines).
 
 ### Key Objectives
 
@@ -19,7 +19,7 @@ This document outlines a comprehensive plan to enhance the `arango-entity-resolu
 
 ### Expected Impact
 
-- **92% code reduction** in consuming projects (1,863 → 155 lines)
+- **92% code reduction** in consuming projects (1,863 -> 155 lines)
 - **50-100x performance** improvement for similarity computation
 - **Standardized ER patterns** across all projects
 - **$35K/year cost savings** in maintenance effort

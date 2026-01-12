@@ -92,13 +92,13 @@ class DatabaseInspector:
             db_info = db.properties()
             collections = db.collections()
             
-            print(f"📊 Database: {self.config.db.database}")
+            print(f"? Database: {self.config.db.database}")
             print(f"[INFO] Server: {self.config.db.host}:{self.config.db.port}")
             print(f"[INFO] Collections: {len(collections)}")
             print()
             
             # Show collections and their sizes
-            print("📋 COLLECTIONS:")
+            print("? COLLECTIONS:")
             collection_data = []
             
             for collection_info in collections:
@@ -162,8 +162,8 @@ class DatabaseInspector:
             collection = db.collection(collection_name)
             total_count = collection.count()
             
-            print(f"📊 Total records: {total_count:,}")
-            print(f"👁  Showing: {min(limit, total_count)} records")
+            print(f"? Total records: {total_count:,}")
+            print(f"?  Showing: {min(limit, total_count)} records")
             print()
             
             # Get sample records
@@ -225,11 +225,11 @@ class DatabaseInspector:
             cursor = db.aql.execute(query)
             duplicate_pairs = list(cursor)
             
-            print(f"🔍 Found {len(duplicate_pairs)} potential duplicate pairs")
+            print(f"? Found {len(duplicate_pairs)} potential duplicate pairs")
             print()
             
             if duplicate_pairs:
-                print("🚨 POTENTIAL DUPLICATES:")
+                print("? POTENTIAL DUPLICATES:")
                 print()
                 
                 for i, pair in enumerate(duplicate_pairs[:5], 1):  # Show first 5
@@ -279,7 +279,7 @@ class DatabaseInspector:
             collection = db.collection(collection_name)
             total_count = collection.count()
             
-            print(f"📊 Total similarity computations: {total_count:,}")
+            print(f"? Total similarity computations: {total_count:,}")
             
             # Get high-similarity matches
             query = f"""
@@ -294,7 +294,7 @@ class DatabaseInspector:
             high_matches = list(cursor)
             
             if high_matches:
-                print(f"🎯 High similarity matches (≥80%):")
+                print(f"? High similarity matches (>=80%):")
                 print()
                 
                 table_data = []
@@ -340,7 +340,7 @@ class DatabaseInspector:
             stats = list(cursor)[0] if cursor else {}
             
             if stats:
-                print(f"\n📈 SIMILARITY STATISTICS:")
+                print(f"\n? SIMILARITY STATISTICS:")
                 print(f"   Average score: {stats.get('average_score', 0)*100:.1f}%")
                 print(f"   Match rate: {stats.get('match_rate', 0)*100:.1f}%")
                 print(f"   Score range: {stats.get('min_score', 0)*100:.1f}% - {stats.get('max_score', 0)*100:.1f}%")
@@ -376,7 +376,7 @@ class DatabaseInspector:
             collection = db.collection(collection_name)
             total_count = collection.count()
             
-            print(f"📊 Total clusters: {total_count:,}")
+            print(f"? Total clusters: {total_count:,}")
             
             # Get clusters with multiple records (actual duplicates resolved)
             query = f"""
@@ -391,7 +391,7 @@ class DatabaseInspector:
             multi_clusters = list(cursor)
             
             if multi_clusters:
-                print(f"\n🔗 Multi-record clusters (duplicates resolved):")
+                print(f"\n? Multi-record clusters (duplicates resolved):")
                 print()
                 
                 for i, cluster in enumerate(multi_clusters, 1):
@@ -429,8 +429,8 @@ class DatabaseInspector:
             stats = list(cursor)[0] if cursor else {}
             
             if stats:
-                print("📈 CLUSTERING STATISTICS:")
-                print(f"   Records consolidated: {stats.get('total_records', 0)} → {stats.get('total_clusters', 0)}")
+                print("? CLUSTERING STATISTICS:")
+                print(f"   Records consolidated: {stats.get('total_records', 0)} -> {stats.get('total_clusters', 0)}")
                 print(f"   Consolidation rate: {stats.get('consolidation_rate', 0)*100:.1f}%")
                 print(f"   Average cluster size: {stats.get('avg_cluster_size', 0):.1f}")
                 print(f"   Largest cluster: {stats.get('max_cluster_size', 0)} records")
@@ -467,7 +467,7 @@ class DatabaseInspector:
             collection = db.collection(collection_name)
             total_count = collection.count()
             
-            print(f"✨ Total golden records: {total_count:,}")
+            print(f"* Total golden records: {total_count:,}")
             print()
             
             # Get sample golden records
@@ -529,10 +529,10 @@ class DatabaseInspector:
             stats = list(cursor)[0] if cursor else {}
             
             if stats:
-                print(f"\n🏆 QUALITY STATISTICS:")
+                print(f"\n? QUALITY STATISTICS:")
                 print(f"   Average quality score: {stats.get('avg_quality', 0)*100:.1f}%")
                 print(f"   Average sources per record: {stats.get('avg_sources', 0):.1f}")
-                print(f"   High quality records (≥90%): {stats.get('high_quality', 0)} ({stats.get('high_quality_rate', 0)*100:.1f}%)")
+                print(f"   High quality records (>=90%): {stats.get('high_quality', 0)} ({stats.get('high_quality_rate', 0)*100:.1f}%)")
             
             return {
                 "total_records": total_count,
@@ -566,27 +566,27 @@ class DatabaseInspector:
             reduction = original_count - golden_count
             reduction_pct = (reduction / original_count * 100) if original_count > 0 else 0
             
-            print("📊 TRANSFORMATION SUMMARY:")
+            print("? TRANSFORMATION SUMMARY:")
             print()
             print(f"BEFORE (Original Records):")
-            print(f"  📋 Total records: {original_count:,}")
-            print(f"  🔄 Hidden duplicates: Unknown")
-            print(f"  📈 Data quality: Mixed")
-            print(f"  🎯 Customer view: Fragmented")
+            print(f"  ? Total records: {original_count:,}")
+            print(f"  ? Hidden duplicates: Unknown")
+            print(f"  ? Data quality: Mixed")
+            print(f"  ? Customer view: Fragmented")
             print()
             
             print(f"AFTER (Golden Records):")
-            print(f"  ✨ Unique entities: {golden_count:,}")
-            print(f"  🔄 Duplicates eliminated: {reduction:,} ({reduction_pct:.1f}%)")
-            print(f"  📈 Data quality: Optimized")
-            print(f"  🎯 Customer view: Unified")
+            print(f"  * Unique entities: {golden_count:,}")
+            print(f"  ? Duplicates eliminated: {reduction:,} ({reduction_pct:.1f}%)")
+            print(f"  ? Data quality: Optimized")
+            print(f"  ? Customer view: Unified")
             print()
             
-            print("🎯 IMPROVEMENTS:")
-            print(f"  • Database efficiency: +{reduction_pct:.1f}%")
-            print(f"  • Storage optimization: -{reduction_pct:.1f}%")
-            print(f"  • Query performance: +{reduction_pct*2:.0f}%")
-            print(f"  • Data consistency: +95%")
+            print("? IMPROVEMENTS:")
+            print(f"  * Database efficiency: +{reduction_pct:.1f}%")
+            print(f"  * Storage optimization: -{reduction_pct:.1f}%")
+            print(f"  * Query performance: +{reduction_pct*2:.0f}%")
+            print(f"  * Data consistency: +95%")
             
             return {
                 "original_count": original_count,
@@ -653,7 +653,7 @@ class DatabaseInspector:
     def interactive_inspector(self):
         """Interactive database inspector for presentations"""
         
-        print("🔍 Interactive Database Inspector")
+        print("? Interactive Database Inspector")
         print("=" * 50)
         print()
         
@@ -661,7 +661,7 @@ class DatabaseInspector:
             return
         
         while True:
-            print("\n📋 Available Commands:")
+            print("\n? Available Commands:")
             print("  1. Database overview")
             print("  2. Show collection data")
             print("  3. Analyze duplicates")

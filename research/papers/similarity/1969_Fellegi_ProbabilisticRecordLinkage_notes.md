@@ -29,18 +29,18 @@ This is the foundational paper in probabilistic record linkage that introduces t
 ## Core Concepts for Implementation
 
 ### Comparison Vectors
-For each pair of records, create a comparison vector γ where:
-- γ[i] = 1 if field i agrees between records
-- γ[i] = 0 if field i disagrees between records
+For each pair of records, create a comparison vector ? where:
+- ?[i] = 1 if field i agrees between records
+- ?[i] = 0 if field i disagrees between records
 
 ### Weight Calculation
 ```
-Weight(γ) = Σ γ[i] * log(m[i]/u[i]) + Σ (1-γ[i]) * log((1-m[i])/(1-u[i]))
+Weight(?) = ? ?[i] * log(m[i]/u[i]) + ? (1-?[i]) * log((1-m[i])/(1-u[i]))
 ```
 
 ### Optimal Thresholds
-- **Upper threshold (λ_u)**: Minimizes false positives
-- **Lower threshold (λ_l)**: Minimizes false negatives
+- **Upper threshold (?_u)**: Minimizes false positives
+- **Lower threshold (?_l)**: Minimizes false negatives
 - **Gray area**: Records requiring manual review
 
 ## Relevance to Our ArangoDB Project

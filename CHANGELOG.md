@@ -267,7 +267,7 @@ service = WCCClusteringService(db, edge_collection='similarTo', use_bulk_fetch=F
 - See `docs/development/LIBRARY_PORT_ANALYSIS.md` for details
 
 - **AddressERService** - Dual edge loading methods for optimal performance
-- **Optimized API method**: Cross-block batching reduces API calls by 100x (285K → ~400 calls)
+- **Optimized API method**: Cross-block batching reduces API calls by 100x (285K -> ~400 calls)
 - 3-4x faster than original per-block approach
 - Configurable batch size via `edge_batch_size` (default: 1000)
 - Good for datasets with <100K edges
@@ -429,7 +429,7 @@ service = WCCClusteringService(db, edge_collection='similarTo', use_bulk_fetch=F
 
 ### Performance Improvements
 
-- **Blocking**: O(n) complexity vs O(n²) for composite keys
+- **Blocking**: O(n) complexity vs O(n^2) for composite keys
 - **Similarity**: Batch fetching reduces network overhead by 99%+
 - **Clustering**: Server-side AQL processing vs client-side Python
 - **Overall**: ~87% code reduction for projects using these features

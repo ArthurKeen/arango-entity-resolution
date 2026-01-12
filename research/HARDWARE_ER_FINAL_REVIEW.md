@@ -58,13 +58,13 @@ The Hardware-ER team has done **outstanding work** addressing all the critical f
 
 ```markdown
 **Quick Stats:**
-- Precision: +35% (72% → 107%→100%) Math error: 107% precision impossible
-- Recall: +31% (58% → 89%) Looks correct
-- F1: 0.64 → 0.94 Looks correct
+- Precision: +35% (72% -> 107%->100%) Math error: 107% precision impossible
+- Recall: +31% (58% -> 89%) Looks correct
+- F1: 0.64 -> 0.94 Looks correct
 - Performance overhead: <2% Correct
 ```
 
-**Issue:** "72% → 107%→100%" suggests precision improved 107% which is impossible (precision caps at 100%).
+**Issue:** "72% -> 107%->100%" suggests precision improved 107% which is impossible (precision caps at 100%).
 
 **What they likely meant:**
 - Baseline precision: 72% (0.72)
@@ -96,7 +96,7 @@ Looking at `VALIDATION_AND_TECHNICAL_SPEC.md`:
 **Math:**
 - Absolute gain: 1.00 - 0.72 = +0.28 (+28 percentage points)
 - Relative gain: 0.28/0.72 = +39% relative improvement
-- They claimed: +35% ← **doesn't match either calculation**
+- They claimed: +35% <- **doesn't match either calculation**
 
 ### Critical Question: HOW WERE THESE MEASURED?
 
@@ -110,7 +110,7 @@ Looking at `VALIDATION_AND_TECHNICAL_SPEC.md`:
 
 **Red flags:**
 - Achieving 1.00 precision (no false positives) is extremely rare in ER
-- The incremental improvements (0.72→0.83→0.93→1.00) look too clean
+- The incremental improvements (0.72->0.83->0.93->1.00) look too clean
 - No confidence intervals or error bars
 
 ### What the Hardware-ER Team SHOULD Have:
@@ -149,17 +149,17 @@ with_type = evaluate_configuration({'type_filter': True, 'context': False, 'acro
 **Current (line 8-11):**
 ```markdown
 **Quick Stats:**
-- Precision: +35% (72% → 107%→100%)
-- Recall: +31% (58% → 89%)
-- F1: 0.64 → 0.94
+- Precision: +35% (72% -> 107%->100%)
+- Recall: +31% (58% -> 89%)
+- F1: 0.64 -> 0.94
 ```
 
 **Option A (Conservative - Recommended):**
 ```markdown
 **Results (Hardware Domain):**
-- F1 Score: 0.64 → 0.94 (+47% relative improvement)
-- Precision: 0.72 → 1.00 (+28 percentage points)
-- Recall: 0.58 → 0.89 (+31 percentage points)
+- F1 Score: 0.64 -> 0.94 (+47% relative improvement)
+- Precision: 0.72 -> 1.00 (+28 percentage points)
+- Recall: 0.58 -> 0.89 (+31 percentage points)
 - Performance overhead: <2%
 - Cross-domain validated: Medical, Legal, Organizational, Retail
 ```
@@ -167,7 +167,7 @@ with_type = evaluate_configuration({'type_filter': True, 'context': False, 'acro
 **Option B (Honest about validation status):**
 ```markdown
 **Results (Hardware Domain, Estimated):**
-- F1 Score: ~0.64 → ~0.94 (estimated improvement)
+- F1 Score: ~0.64 -> ~0.94 (estimated improvement)
 - Performance overhead: <2% (measured)
 - Cross-domain validated: Medical, Legal, Organizational, Retail (working examples)
 
@@ -219,8 +219,8 @@ This is **honest** and sets appropriate expectations.
 ## Small Fixes Needed in Email
 
 ### Fix #1: Line 8 - Math Error
-**Current:** `- Precision: +35% (72% → 107%→100%)` 
-**Fixed:** `- Precision: 0.72 → 1.00 (+28 percentage points)`
+**Current:** `- Precision: +35% (72% -> 107%->100%)` 
+**Fixed:** `- Precision: 0.72 -> 1.00 (+28 percentage points)`
 
 ### Fix #2: Line 12 - Clarify Cross-Domain Status
 **Current:** `- Cross-domain validated: Hardware, Medical, Legal, Org, Retail` 

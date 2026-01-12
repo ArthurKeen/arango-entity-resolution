@@ -8,7 +8,7 @@
 **URL**: https://ieeexplore.ieee.org/document/9458727
 
 ## Relevance to Project
-**Rating**: ⭐⭐⭐⭐⭐ (Highest Priority)
+**Rating**: ***** (Highest Priority)
 
 This paper is THE paper for embedding-based blocking - our exact use case! It specifically addresses how to use deep learning for the blocking/candidate generation phase, which is perfectly aligned with combining embeddings with traditional blocking in our Phase 3 roadmap.
 
@@ -24,7 +24,7 @@ This paper presents the first comprehensive study of deep learning techniques sp
 - **High Recall Required**: Must not miss true matches (>95% recall)
 - **Extreme Efficiency**: Must process millions of records quickly
 - **Asymmetric Cost**: False negatives very expensive, false positives cheap
-- **Scalability Critical**: O(n²) → O(n) reduction essential
+- **Scalability Critical**: O(n^2) -> O(n) reduction essential
 
 **Why Standard Embeddings Don't Work for Blocking**:
 - Matching models optimize for precision (not recall)
@@ -384,7 +384,7 @@ FOR key IN all_candidates
 
 ### Critical Insights
 
-1. **Blocking ≠ Matching**
+1. **Blocking != Matching**
    - Different objectives (recall vs. precision)
    - Different constraints (speed vs. accuracy)
    - Need specialized architectures
@@ -413,7 +413,7 @@ FOR key IN all_candidates
    - Tier 2: Traditional blocking (soundex, n-gram)
    - Tier 3: Embedding-based (semantic)
 
-2. **Optimize for recall ≥ 95%**
+2. **Optimize for recall >= 95%**
    - Set threshold to favor recall
    - Better to have extra candidates than miss matches
    - Later similarity computation will filter

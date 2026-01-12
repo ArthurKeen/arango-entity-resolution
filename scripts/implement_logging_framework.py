@@ -16,11 +16,11 @@ class LoggingFrameworkImplementer:
     def __init__(self):
         self.logging_patterns = {
             # Common print patterns to replace
-            'print_success': r'print\(f?"✅\s*([^"]*)"\)',
-            'print_error': r'print\(f?"❌\s*([^"]*)"\)',
-            'print_warning': r'print\(f?"⚠️\s*([^"]*)"\)',
-            'print_info': r'print\(f?"ℹ️\s*([^"]*)"\)',
-            'print_debug': r'print\(f?"🔍\s*([^"]*)"\)',
+            'print_success': r'print\(f?"[PASS]\s*([^"]*)"\)',
+            'print_error': r'print\(f?"[FAIL]\s*([^"]*)"\)',
+            'print_warning': r'print\(f?"[WARN]?\s*([^"]*)"\)',
+            'print_info': r'print\(f?"[INFO]?\s*([^"]*)"\)',
+            'print_debug': r'print\(f?"?\s*([^"]*)"\)',
             'print_generic': r'print\(([^)]+)\)'
         }
         
@@ -103,7 +103,7 @@ class LoggingFrameworkImplementer:
             return False
             
         except Exception as e:
-            print(f"   ❌ Error fixing {file_path}: {e}")
+            print(f"   [FAIL] Error fixing {file_path}: {e}")
             return False
     
     def fix_high_priority_files(self) -> int:
@@ -120,14 +120,14 @@ class LoggingFrameworkImplementer:
         
         for file_path in high_priority_files:
             if os.path.exists(file_path):
-                print(f"📄 Fixing {file_path}...")
+                print(f"? Fixing {file_path}...")
                 if self.fix_file(file_path):
-                    print(f"   ✅ Applied logging framework")
+                    print(f"   [PASS] Applied logging framework")
                     fixes_applied += 1
                 else:
-                    print(f"   ℹ️  No changes needed")
+                    print(f"   [INFO]?  No changes needed")
             else:
-                print(f"   ⚠️  File not found: {file_path}")
+                print(f"   [WARN]?  File not found: {file_path}")
         
         return fixes_applied
     
@@ -249,11 +249,11 @@ if __name__ == "__main__":
         with open('src/entity_resolution/utils/enhanced_logging.py', 'w') as f:
             f.write(logging_util_content)
         
-        print("✅ Created enhanced logging utility")
+        print("[PASS] Created enhanced logging utility")
 
 def main():
     """Main function to implement logging framework."""
-    print("🔧 IMPLEMENTING LOGGING FRAMEWORK")
+    print("? IMPLEMENTING LOGGING FRAMEWORK")
     print("="*50)
     
     implementer = LoggingFrameworkImplementer()
@@ -264,8 +264,8 @@ def main():
     # Fix high-priority files
     fixes_applied = implementer.fix_high_priority_files()
     
-    print(f"\n📊 Summary: Applied logging framework to {fixes_applied} files")
-    print("✅ Logging framework implementation completed")
+    print(f"\n? Summary: Applied logging framework to {fixes_applied} files")
+    print("[PASS] Logging framework implementation completed")
     
     return 0
 

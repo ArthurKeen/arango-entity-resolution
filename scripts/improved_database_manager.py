@@ -47,11 +47,11 @@ class ImprovedDatabaseManager:
     
     def cleanup_old_databases(self, max_age_hours=24):
         """Clean up old entity resolution databases."""
-        print("🧹 Cleaning up old entity resolution databases...")
+        print("? Cleaning up old entity resolution databases...")
         
         try:
             if not self.db_manager.test_connection():
-                print("❌ Could not connect to database")
+                print("[FAIL] Could not connect to database")
                 return False
             
             sys_db = self.db_manager.get_database()
@@ -62,20 +62,20 @@ class ImprovedDatabaseManager:
             entity_resolution_dbs = [db for db in databases if 'entity_resolution' in db and db != '_system']
             
             if not entity_resolution_dbs:
-                print("✅ No old databases to clean up")
+                print("[PASS] No old databases to clean up")
                 return True
             
-            print(f"🔍 Found {len(entity_resolution_dbs)} entity resolution databases")
+            print(f"? Found {len(entity_resolution_dbs)} entity resolution databases")
             
             # Clean up old databases (keep only the current one)
             current_db = self.get_database_name()
             databases_to_delete = [db for db in entity_resolution_dbs if db != current_db]
             
             if not databases_to_delete:
-                print("✅ No old databases to clean up")
+                print("[PASS] No old databases to clean up")
                 return True
             
-            print(f"🗑️  Deleting {len(databases_to_delete)} old databases...")
+            print(f"??  Deleting {len(databases_to_delete)} old databases...")
             
             for db_name in databases_to_delete:
                 try:
@@ -85,31 +85,31 @@ class ImprovedDatabaseManager:
                     custom_collections = [col for col in collections if not col["name"].startswith('_')]
                     
                     if custom_collections:
-                        print(f"  📋 {db_name}: has {len(custom_collections)} custom collections")
+                        print(f"  ? {db_name}: has {len(custom_collections)} custom collections")
                         # Could backup here if needed
                     else:
-                        print(f"  📋 {db_name}: empty")
+                        print(f"  ? {db_name}: empty")
                     
                     # Delete the database
                     if sys_db.has_database(db_name):
                         sys_db.delete_database(db_name)
-                        print(f"  ✅ Deleted {db_name}")
+                        print(f"  [PASS] Deleted {db_name}")
                     
                 except Exception as e:
-                    print(f"  ❌ Error cleaning up {db_name}: {e}")
+                    print(f"  [FAIL] Error cleaning up {db_name}: {e}")
             
-            print("✅ Old database cleanup completed")
+            print("[PASS] Old database cleanup completed")
             return True
             
         except Exception as e:
-            print(f"❌ Error during cleanup: {e}")
+            print(f"[FAIL] Error during cleanup: {e}")
             return False
     
     def ensure_database_exists(self):
         """Ensure the appropriate database exists."""
         try:
             if not self.db_manager.test_connection():
-                print("❌ Could not connect to database")
+                print("[FAIL] Could not connect to database")
                 return False
             
             sys_db = self.db_manager.get_database()
@@ -120,42 +120,42 @@ class ImprovedDatabaseManager:
             
             # Create database if it doesn't exist
             if not sys_db.has_database(db_name):
-                print(f"📊 Creating database: {db_name}")
+                print(f"? Creating database: {db_name}")
                 sys_db.create_database(db_name)
                 self.created_databases.append(db_name)
             else:
-                print(f"📊 Using existing database: {db_name}")
+                print(f"? Using existing database: {db_name}")
             
             # Connect to the database
             client = self.db_manager.client
             db = client.db(db_name)
             
-            print(f"✅ Connected to database: {db.name}")
+            print(f"[PASS] Connected to database: {db.name}")
             return True
             
         except Exception as e:
-            print(f"❌ Error ensuring database exists: {e}")
+            print(f"[FAIL] Error ensuring database exists: {e}")
             return False
     
     def cleanup_on_exit(self):
         """Clean up databases when script exits."""
         if self.created_databases:
-            print(f"\n🧹 Cleaning up {len(self.created_databases)} created databases...")
+            print(f"\n? Cleaning up {len(self.created_databases)} created databases...")
             try:
                 sys_db = self.db_manager.get_database()
                 for db_name in self.created_databases:
                     try:
                         if sys_db.has_database(db_name):
                             sys_db.delete_database(db_name)
-                            print(f"  ✅ Deleted {db_name}")
+                            print(f"  [PASS] Deleted {db_name}")
                     except Exception as e:
-                        print(f"  ❌ Error deleting {db_name}: {e}")
+                        print(f"  [FAIL] Error deleting {db_name}: {e}")
             except Exception as e:
-                print(f"❌ Error during cleanup: {e}")
+                print(f"[FAIL] Error during cleanup: {e}")
     
     def signal_handler(self, signum, frame):
         """Handle interrupt signals."""
-        print(f"\n⚠️  Received signal {signum}, cleaning up...")
+        print(f"\n[WARN]?  Received signal {signum}, cleaning up...")
         self.cleanup_on_exit()
         sys.exit(0)
     
@@ -169,12 +169,12 @@ class ImprovedDatabaseManager:
             db_name = self.get_database_name()
             return client.db(db_name)
         except Exception as e:
-            print(f"❌ Error getting database: {e}")
+            print(f"[FAIL] Error getting database: {e}")
             return None
 
 def main():
     """Example usage of the improved database manager."""
-    print("🚀 Improved Database Manager Demo")
+    print("? Improved Database Manager Demo")
     print("=" * 40)
     
     # Create database manager for testing
@@ -182,21 +182,21 @@ def main():
     
     # Ensure database exists
     if not db_mgr.ensure_database_exists():
-        print("❌ Failed to setup database")
+        print("[FAIL] Failed to setup database")
         return False
     
     # Get database connection
     db = db_mgr.get_database()
     if not db:
-        print("❌ Failed to get database connection")
+        print("[FAIL] Failed to get database connection")
         return False
     
-    print(f"✅ Database manager working correctly")
-    print(f"📊 Database: {db.name}")
+    print(f"[PASS] Database manager working correctly")
+    print(f"? Database: {db.name}")
     
     # List collections
     collections = db.collections()
-    print(f"📋 Collections: {len(collections)}")
+    print(f"? Collections: {len(collections)}")
     
     return True
 
@@ -204,13 +204,13 @@ if __name__ == "__main__":
     try:
         success = main()
         if success:
-            print("\n✅ Improved database manager demo completed!")
+            print("\n[PASS] Improved database manager demo completed!")
         else:
-            print("\n❌ Improved database manager demo failed!")
+            print("\n[FAIL] Improved database manager demo failed!")
             sys.exit(1)
     except KeyboardInterrupt:
-        print("\n❌ Operation cancelled by user")
+        print("\n[FAIL] Operation cancelled by user")
         sys.exit(1)
     except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
+        print(f"\n[FAIL] Unexpected error: {e}")
         sys.exit(1)

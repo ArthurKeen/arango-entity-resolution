@@ -142,7 +142,7 @@
 ## Performance Metrics
 
 ### Blocking
-- **COLLECT Strategy:** 0.004s for 100 documents → 450 pairs
+- **COLLECT Strategy:** 0.004s for 100 documents -> 450 pairs
 - **Complexity:** O(n) as expected
 - **Efficiency:** Validated for production use
 

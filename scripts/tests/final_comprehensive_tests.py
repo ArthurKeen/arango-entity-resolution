@@ -49,7 +49,7 @@ class FinalComprehensiveTester:
         
     def test_similarity_accuracy_comprehensive(self) -> bool:
         """Comprehensive similarity algorithm accuracy testing."""
-        print("🔍 Comprehensive Similarity Algorithm Accuracy Testing")
+        print("? Comprehensive Similarity Algorithm Accuracy Testing")
         print("="*60)
         
         # Comprehensive test cases covering all scenarios
@@ -96,7 +96,7 @@ class FinalComprehensiveTester:
         all_passed = True
         
         for i, test_case in enumerate(test_cases, 1):
-            print(f"\n📋 Test Case {i}: {test_case['name']}")
+            print(f"\n? Test Case {i}: {test_case['name']}")
             
             try:
                 result = self.similarity_service.compute_similarity(
@@ -106,7 +106,7 @@ class FinalComprehensiveTester:
                 )
                 
                 if not result.get('success', False):
-                    print(f"   ❌ Failed: {result.get('error', 'Unknown error')}")
+                    print(f"   [FAIL] Failed: {result.get('error', 'Unknown error')}")
                     all_passed = False
                     continue
                 
@@ -114,40 +114,40 @@ class FinalComprehensiveTester:
                 normalized_score = result.get('normalized_score', 0)
                 decision = result.get('decision', 'unknown')
                 
-                print(f"   📊 Total Score: {total_score:.6f}")
-                print(f"   📊 Normalized Score: {normalized_score:.6f}")
-                print(f"   📊 Decision: {decision}")
+                print(f"   ? Total Score: {total_score:.6f}")
+                print(f"   ? Normalized Score: {normalized_score:.6f}")
+                print(f"   ? Decision: {decision}")
                 
                 # Validate score expectations
                 score_valid = True
                 if 'min_score' in test_case:
                     if normalized_score >= test_case['min_score']:
-                        print(f"   ✅ Score {normalized_score:.3f} >= minimum {test_case['min_score']}")
+                        print(f"   [PASS] Score {normalized_score:.3f} >= minimum {test_case['min_score']}")
                     else:
-                        print(f"   ❌ Score {normalized_score:.3f} below minimum {test_case['min_score']}")
+                        print(f"   [FAIL] Score {normalized_score:.3f} below minimum {test_case['min_score']}")
                         score_valid = False
                 
                 if 'max_score' in test_case:
                     if normalized_score <= test_case['max_score']:
-                        print(f"   ✅ Score {normalized_score:.3f} <= maximum {test_case['max_score']}")
+                        print(f"   [PASS] Score {normalized_score:.3f} <= maximum {test_case['max_score']}")
                     else:
-                        print(f"   ❌ Score {normalized_score:.3f} above maximum {test_case['max_score']}")
+                        print(f"   [FAIL] Score {normalized_score:.3f} above maximum {test_case['max_score']}")
                         score_valid = False
                 
                 # Validate decision
                 decision_valid = (decision == test_case['expected_decision'])
                 if decision_valid:
-                    print(f"   ✅ Decision matches expected: {decision}")
+                    print(f"   [PASS] Decision matches expected: {decision}")
                 else:
-                    print(f"   ❌ Decision {decision} doesn't match expected {test_case['expected_decision']}")
+                    print(f"   [FAIL] Decision {decision} doesn't match expected {test_case['expected_decision']}")
                 
                 # Check for 0.000 scores (critical issue)
                 zero_score = abs(normalized_score) < 0.001
                 if zero_score:
-                    print(f"   ❌ CRITICAL: Score is 0.000 - this is the original issue!")
+                    print(f"   [FAIL] CRITICAL: Score is 0.000 - this is the original issue!")
                     score_valid = False
                 else:
-                    print(f"   ✅ Score is meaningful (not 0.000)")
+                    print(f"   [PASS] Score is meaningful (not 0.000)")
                 
                 test_passed = score_valid and decision_valid and not zero_score
                 if not test_passed:
@@ -167,7 +167,7 @@ class FinalComprehensiveTester:
                 })
                 
             except Exception as e:
-                print(f"   ❌ Exception: {e}")
+                print(f"   [FAIL] Exception: {e}")
                 all_passed = False
                 self.test_results["similarity_accuracy"].append({
                     "test_case": test_case['name'],
@@ -178,48 +178,48 @@ class FinalComprehensiveTester:
         # Summary
         passed_tests = sum(1 for result in self.test_results["similarity_accuracy"] if result.get('passed', False))
         total_tests = len(self.test_results["similarity_accuracy"])
-        print(f"\n📊 Similarity Accuracy Results:")
-        print(f"   ✅ Passed: {passed_tests}/{total_tests}")
-        print(f"   📊 Success Rate: {passed_tests/total_tests*100:.1f}%")
+        print(f"\n? Similarity Accuracy Results:")
+        print(f"   [PASS] Passed: {passed_tests}/{total_tests}")
+        print(f"   ? Success Rate: {passed_tests/total_tests*100:.1f}%")
         
         return all_passed
     
     def test_blocking_effectiveness_comprehensive(self) -> bool:
         """Comprehensive blocking strategy effectiveness testing."""
-        print("\n🔍 Comprehensive Blocking Strategy Effectiveness Testing")
+        print("\n? Comprehensive Blocking Strategy Effectiveness Testing")
         print("="*60)
         
         try:
             # Test blocking setup
-            print("📋 Testing Blocking Setup...")
+            print("? Testing Blocking Setup...")
             collections = ["test_blocking_comprehensive"]
             setup_result = self.blocking_service.setup_for_collections(collections)
             
             if setup_result.get('success', False):
-                print("   ✅ Blocking setup successful")
+                print("   [PASS] Blocking setup successful")
                 setup_success = True
             else:
-                print(f"   ❌ Blocking setup failed: {setup_result.get('error')}")
+                print(f"   [FAIL] Blocking setup failed: {setup_result.get('error')}")
                 setup_success = False
             
             # Test blocking statistics
-            print("📋 Testing Blocking Statistics...")
+            print("? Testing Blocking Statistics...")
             try:
                 stats = self.blocking_service.get_blocking_stats("test_blocking_comprehensive")
-                print(f"   ✅ Retrieved blocking statistics: {stats}")
+                print(f"   [PASS] Retrieved blocking statistics: {stats}")
                 stats_success = True
             except Exception as e:
-                print(f"   ⚠️  Statistics test failed (expected without data): {e}")
+                print(f"   [WARN]?  Statistics test failed (expected without data): {e}")
                 stats_success = True  # Expected without real data
             
             # Test candidate generation
-            print("📋 Testing Candidate Generation...")
+            print("? Testing Candidate Generation...")
             try:
                 candidates = self.blocking_service.generate_candidates("test_collection", "test_record_id")
-                print(f"   ✅ Generated {len(candidates)} candidates")
+                print(f"   [PASS] Generated {len(candidates)} candidates")
                 candidates_success = True
             except Exception as e:
-                print(f"   ⚠️  Candidate generation failed (expected without DB): {e}")
+                print(f"   [WARN]?  Candidate generation failed (expected without DB): {e}")
                 candidates_success = True  # Expected without real database
             
             # Store test result
@@ -234,7 +234,7 @@ class FinalComprehensiveTester:
             return setup_success and stats_success and candidates_success
             
         except Exception as e:
-            print(f"   ❌ Comprehensive blocking test failed: {e}")
+            print(f"   [FAIL] Comprehensive blocking test failed: {e}")
             self.test_results["blocking_effectiveness"].append({
                 "test": "comprehensive_blocking",
                 "passed": False,
@@ -244,7 +244,7 @@ class FinalComprehensiveTester:
     
     def test_clustering_accuracy_comprehensive(self) -> bool:
         """Comprehensive clustering algorithm accuracy testing."""
-        print("\n🔍 Comprehensive Clustering Algorithm Accuracy Testing")
+        print("\n? Comprehensive Clustering Algorithm Accuracy Testing")
         print("="*60)
         
         # Test with various similarity pair scenarios
@@ -279,18 +279,18 @@ class FinalComprehensiveTester:
         all_passed = True
         
         for i, scenario in enumerate(test_scenarios, 1):
-            print(f"\n📋 Scenario {i}: {scenario['name']}")
+            print(f"\n? Scenario {i}: {scenario['name']}")
             
             try:
                 clusters = self.clustering_service.cluster_entities(scenario['pairs'])
-                print(f"   📊 Generated {len(clusters)} clusters")
+                print(f"   ? Generated {len(clusters)} clusters")
                 
                 # Validate cluster count
                 expected = scenario['expected_clusters']
                 if len(clusters) == expected:
-                    print(f"   ✅ Cluster count matches expected: {len(clusters)}")
+                    print(f"   [PASS] Cluster count matches expected: {len(clusters)}")
                 else:
-                    print(f"   ⚠️  Cluster count {len(clusters)} differs from expected {expected}")
+                    print(f"   [WARN]?  Cluster count {len(clusters)} differs from expected {expected}")
                 
                 # Display cluster details
                 for j, cluster in enumerate(clusters):
@@ -308,7 +308,7 @@ class FinalComprehensiveTester:
                 })
                 
             except Exception as e:
-                print(f"   ❌ Clustering test failed: {e}")
+                print(f"   [FAIL] Clustering test failed: {e}")
                 all_passed = False
                 self.test_results["clustering_accuracy"].append({
                     "scenario": scenario['name'],
@@ -320,12 +320,12 @@ class FinalComprehensiveTester:
     
     def test_data_quality_validation(self) -> bool:
         """Test data quality validation functionality."""
-        print("\n🔍 Data Quality Validation Testing")
+        print("\n? Data Quality Validation Testing")
         print("="*60)
         
         try:
             # Test data quality validation
-            print("📋 Testing Data Quality Validation...")
+            print("? Testing Data Quality Validation...")
             
             # Create test data with quality issues
             test_data = [
@@ -370,7 +370,7 @@ class FinalComprehensiveTester:
                     print(f"   Record {i+1}: Quality Score {quality_score:.1f}, Issues: {len(issues)}")
                     
                 except Exception as e:
-                    print(f"   ❌ Quality validation failed for record {i+1}: {e}")
+                    print(f"   [FAIL] Quality validation failed for record {i+1}: {e}")
                     return False
             
             # Store test result
@@ -380,11 +380,11 @@ class FinalComprehensiveTester:
                 "quality_results": quality_results
             })
             
-            print("   ✅ Data quality validation completed successfully")
+            print("   [PASS] Data quality validation completed successfully")
             return True
             
         except Exception as e:
-            print(f"   ❌ Data quality test failed: {e}")
+            print(f"   [FAIL] Data quality test failed: {e}")
             self.test_results["data_quality_validation"].append({
                 "test": "data_quality_validation",
                 "passed": False,
@@ -394,51 +394,51 @@ class FinalComprehensiveTester:
     
     def test_integration_workflow_robust(self) -> bool:
         """Robust end-to-end integration workflow testing."""
-        print("\n🔍 Robust End-to-End Integration Workflow Testing")
+        print("\n? Robust End-to-End Integration Workflow Testing")
         print("="*60)
         
         try:
             # Test pipeline initialization
-            print("📋 Testing Pipeline Initialization...")
+            print("? Testing Pipeline Initialization...")
             pipeline = EntityResolutionPipeline()
             pipeline.connect()
-            print("   ✅ Pipeline initialized and connected")
+            print("   [PASS] Pipeline initialized and connected")
             
             # Test individual components
-            print("📋 Testing Individual Components...")
+            print("? Testing Individual Components...")
             
             # Test similarity service
             test_doc_a = {"first_name": "John", "last_name": "Smith", "email": "john@example.com"}
             test_doc_b = {"first_name": "Jon", "last_name": "Smith", "email": "j@example.com"}
             similarity = pipeline.similarity_service.compute_similarity(test_doc_a, test_doc_b)
             if similarity.get('success', False):
-                print("   ✅ Similarity service working")
+                print("   [PASS] Similarity service working")
             else:
-                print(f"   ❌ Similarity service failed: {similarity.get('error')}")
+                print(f"   [FAIL] Similarity service failed: {similarity.get('error')}")
                 return False
             
             # Test blocking service
             blocking_result = pipeline.blocking_service.setup_for_collections(["test_integration"])
             if blocking_result.get('success', False):
-                print("   ✅ Blocking service working")
+                print("   [PASS] Blocking service working")
             else:
-                print(f"   ❌ Blocking service failed: {blocking_result.get('error')}")
+                print(f"   [FAIL] Blocking service failed: {blocking_result.get('error')}")
                 return False
             
             # Test clustering service
             test_pairs = [{"doc_a": test_doc_a, "doc_b": test_doc_b, "score": 0.8}]
             clusters = pipeline.clustering_service.cluster_entities(test_pairs)
             if clusters:
-                print("   ✅ Clustering service working")
+                print("   [PASS] Clustering service working")
             else:
-                print("   ❌ Clustering service failed")
+                print("   [FAIL] Clustering service failed")
                 return False
             
             # Test data manager
             if pipeline.data_manager:
-                print("   ✅ Data manager working")
+                print("   [PASS] Data manager working")
             else:
-                print("   ❌ Data manager failed")
+                print("   [FAIL] Data manager failed")
                 return False
             
             # Store test result
@@ -448,11 +448,11 @@ class FinalComprehensiveTester:
                 "components_tested": ["similarity", "blocking", "clustering", "data_manager"]
             })
             
-            print("   ✅ All components working correctly")
+            print("   [PASS] All components working correctly")
             return True
             
         except Exception as e:
-            print(f"   ❌ Integration test failed: {e}")
+            print(f"   [FAIL] Integration test failed: {e}")
             self.test_results["integration_workflow"].append({
                 "test": "robust_integration",
                 "passed": False,
@@ -462,7 +462,7 @@ class FinalComprehensiveTester:
     
     def test_performance_benchmarks_comprehensive(self) -> bool:
         """Comprehensive performance benchmarking."""
-        print("\n🔍 Comprehensive Performance Benchmarking")
+        print("\n? Comprehensive Performance Benchmarking")
         print("="*60)
         
         try:
@@ -478,7 +478,7 @@ class FinalComprehensiveTester:
                 })
             
             # Test similarity computation performance
-            print("📋 Testing Similarity Performance...")
+            print("? Testing Similarity Performance...")
             start_time = time.time()
             
             similarity_count = 0
@@ -491,19 +491,19 @@ class FinalComprehensiveTester:
                         similarity_count += 1
             
             similarity_time = time.time() - start_time
-            print(f"   ✅ Computed {similarity_count} similarities in {similarity_time:.3f}s")
-            print(f"   📊 Rate: {similarity_count/similarity_time:.1f} similarities/second")
+            print(f"   [PASS] Computed {similarity_count} similarities in {similarity_time:.3f}s")
+            print(f"   ? Rate: {similarity_count/similarity_time:.1f} similarities/second")
             
             # Test blocking performance
-            print("📋 Testing Blocking Performance...")
+            print("? Testing Blocking Performance...")
             start_time = time.time()
             
             setup_result = self.blocking_service.setup_for_collections(["test_perf_comprehensive"])
             blocking_time = time.time() - start_time
-            print(f"   ✅ Blocking setup in {blocking_time:.3f}s")
+            print(f"   [PASS] Blocking setup in {blocking_time:.3f}s")
             
             # Test clustering performance
-            print("📋 Testing Clustering Performance...")
+            print("? Testing Clustering Performance...")
             start_time = time.time()
             
             # Generate test pairs
@@ -518,8 +518,8 @@ class FinalComprehensiveTester:
             
             clusters = self.clustering_service.cluster_entities(test_pairs)
             clustering_time = time.time() - start_time
-            print(f"   ✅ Clustered {len(test_pairs)} pairs in {clustering_time:.3f}s")
-            print(f"   📊 Generated {len(clusters)} clusters")
+            print(f"   [PASS] Clustered {len(test_pairs)} pairs in {clustering_time:.3f}s")
+            print(f"   ? Generated {len(clusters)} clusters")
             
             # Store test result
             self.test_results["performance_benchmarks"].append({
@@ -535,7 +535,7 @@ class FinalComprehensiveTester:
             return True
             
         except Exception as e:
-            print(f"   ❌ Performance test failed: {e}")
+            print(f"   [FAIL] Performance test failed: {e}")
             self.test_results["performance_benchmarks"].append({
                 "test": "comprehensive_performance",
                 "passed": False,
@@ -545,7 +545,7 @@ class FinalComprehensiveTester:
     
     def test_edge_cases_comprehensive(self) -> bool:
         """Comprehensive edge case testing."""
-        print("\n🔍 Comprehensive Edge Case Testing")
+        print("\n? Comprehensive Edge Case Testing")
         print("="*60)
         
         edge_cases = [
@@ -575,14 +575,14 @@ class FinalComprehensiveTester:
             },
             {
                 "name": "Special Characters",
-                "doc_a": {"first_name": "José", "last_name": "O'Connor"},
+                "doc_a": {"first_name": "Jos?", "last_name": "O'Connor"},
                 "doc_b": {"first_name": "Jose", "last_name": "OConnor"},
                 "should_handle": True
             },
             {
                 "name": "Unicode Characters",
-                "doc_a": {"first_name": "李", "last_name": "王"},
-                "doc_b": {"first_name": "李", "last_name": "王"},
+                "doc_a": {"first_name": "?", "last_name": "?"},
+                "doc_b": {"first_name": "?", "last_name": "?"},
                 "should_handle": True
             }
         ]
@@ -590,7 +590,7 @@ class FinalComprehensiveTester:
         all_passed = True
         
         for i, test_case in enumerate(edge_cases, 1):
-            print(f"\n📋 Edge Case {i}: {test_case['name']}")
+            print(f"\n? Edge Case {i}: {test_case['name']}")
             
             try:
                 result = self.similarity_service.compute_similarity(
@@ -599,24 +599,24 @@ class FinalComprehensiveTester:
                 )
                 
                 if result.get('success', False):
-                    print(f"   ✅ Handled gracefully: {result.get('decision', 'unknown')}")
+                    print(f"   [PASS] Handled gracefully: {result.get('decision', 'unknown')}")
                     handled = True
                 else:
                     if test_case['should_handle']:
-                        print(f"   ❌ Failed to handle: {result.get('error', 'Unknown error')}")
+                        print(f"   [FAIL] Failed to handle: {result.get('error', 'Unknown error')}")
                         handled = False
                         all_passed = False
                     else:
-                        print(f"   ✅ Failed as expected: {result.get('error', 'Unknown error')}")
+                        print(f"   [PASS] Failed as expected: {result.get('error', 'Unknown error')}")
                         handled = True
                 
             except Exception as e:
                 if test_case['should_handle']:
-                    print(f"   ❌ Exception: {e}")
+                    print(f"   [FAIL] Exception: {e}")
                     handled = False
                     all_passed = False
                 else:
-                    print(f"   ✅ Exception as expected: {e}")
+                    print(f"   [PASS] Exception as expected: {e}")
                     handled = True
             
             # Store test result
@@ -630,7 +630,7 @@ class FinalComprehensiveTester:
     
     def test_error_handling_comprehensive(self) -> bool:
         """Comprehensive error handling testing."""
-        print("\n🔍 Comprehensive Error Handling Testing")
+        print("\n? Comprehensive Error Handling Testing")
         print("="*60)
         
         error_scenarios = [
@@ -657,7 +657,7 @@ class FinalComprehensiveTester:
         all_passed = True
         
         for i, scenario in enumerate(error_scenarios, 1):
-            print(f"\n📋 Error Scenario {i}: {scenario['name']}")
+            print(f"\n? Error Scenario {i}: {scenario['name']}")
             
             try:
                 result = self.similarity_service.compute_similarity(
@@ -667,22 +667,22 @@ class FinalComprehensiveTester:
                 
                 if result.get('success', False):
                     if scenario['should_fail']:
-                        print(f"   ❌ Should have failed but succeeded")
+                        print(f"   [FAIL] Should have failed but succeeded")
                         all_passed = False
                     else:
-                        print(f"   ✅ Handled gracefully: {result.get('decision', 'unknown')}")
+                        print(f"   [PASS] Handled gracefully: {result.get('decision', 'unknown')}")
                 else:
                     if scenario['should_fail']:
-                        print(f"   ✅ Failed as expected: {result.get('error', 'Unknown error')}")
+                        print(f"   [PASS] Failed as expected: {result.get('error', 'Unknown error')}")
                     else:
-                        print(f"   ❌ Unexpected failure: {result.get('error', 'Unknown error')}")
+                        print(f"   [FAIL] Unexpected failure: {result.get('error', 'Unknown error')}")
                         all_passed = False
                 
             except Exception as e:
                 if scenario['should_fail']:
-                    print(f"   ✅ Exception as expected: {e}")
+                    print(f"   [PASS] Exception as expected: {e}")
                 else:
-                    print(f"   ❌ Unexpected exception: {e}")
+                    print(f"   [FAIL] Unexpected exception: {e}")
                     all_passed = False
             
             # Store test result
@@ -696,7 +696,7 @@ class FinalComprehensiveTester:
     
     def run_final_comprehensive_tests(self) -> bool:
         """Run all final comprehensive tests."""
-        print("🧪 FINAL COMPREHENSIVE TEST SUITE")
+        print("? FINAL COMPREHENSIVE TEST SUITE")
         print("="*70)
         print(f"Timestamp: {datetime.now().isoformat()}")
         print("This test suite addresses all coverage gaps identified in the original analysis.")
@@ -713,29 +713,29 @@ class FinalComprehensiveTester:
         }
         
         # Summary
-        print(f"\n📊 FINAL COMPREHENSIVE TEST RESULTS")
+        print(f"\n? FINAL COMPREHENSIVE TEST RESULTS")
         print("="*70)
         
         passed_tests = sum(1 for result in test_results.values() if result)
         total_tests = len(test_results)
         
         for test_name, passed in test_results.items():
-            status = "✅" if passed else "❌"
+            status = "[PASS]" if passed else "[FAIL]"
             print(f"   {status} {test_name.replace('_', ' ').title()}: {'PASSED' if passed else 'FAILED'}")
         
-        print(f"\n📊 Overall Results:")
-        print(f"   ✅ Passed: {passed_tests}/{total_tests}")
-        print(f"   📊 Success Rate: {passed_tests/total_tests*100:.1f}%")
+        print(f"\n? Overall Results:")
+        print(f"   [PASS] Passed: {passed_tests}/{total_tests}")
+        print(f"   ? Success Rate: {passed_tests/total_tests*100:.1f}%")
         
         # Coverage analysis
-        print(f"\n📊 Coverage Analysis:")
-        print(f"   ✅ Similarity Algorithm Accuracy: {'COVERED' if test_results['similarity_accuracy'] else 'MISSING'}")
-        print(f"   ✅ Blocking Strategy Effectiveness: {'COVERED' if test_results['blocking_effectiveness'] else 'MISSING'}")
-        print(f"   ✅ Clustering Algorithm Validation: {'COVERED' if test_results['clustering_accuracy'] else 'MISSING'}")
-        print(f"   ✅ Data Quality Metric Validation: {'COVERED' if test_results['data_quality_validation'] else 'MISSING'}")
-        print(f"   ✅ End-to-End Pipeline Workflow: {'COVERED' if test_results['integration_workflow'] else 'MISSING'}")
-        print(f"   ✅ Performance Benchmarking: {'COVERED' if test_results['performance_benchmarks'] else 'MISSING'}")
-        print(f"   ✅ Error Handling and Edge Cases: {'COVERED' if test_results['edge_cases'] and test_results['error_handling'] else 'MISSING'}")
+        print(f"\n? Coverage Analysis:")
+        print(f"   [PASS] Similarity Algorithm Accuracy: {'COVERED' if test_results['similarity_accuracy'] else 'MISSING'}")
+        print(f"   [PASS] Blocking Strategy Effectiveness: {'COVERED' if test_results['blocking_effectiveness'] else 'MISSING'}")
+        print(f"   [PASS] Clustering Algorithm Validation: {'COVERED' if test_results['clustering_accuracy'] else 'MISSING'}")
+        print(f"   [PASS] Data Quality Metric Validation: {'COVERED' if test_results['data_quality_validation'] else 'MISSING'}")
+        print(f"   [PASS] End-to-End Pipeline Workflow: {'COVERED' if test_results['integration_workflow'] else 'MISSING'}")
+        print(f"   [PASS] Performance Benchmarking: {'COVERED' if test_results['performance_benchmarks'] else 'MISSING'}")
+        print(f"   [PASS] Error Handling and Edge Cases: {'COVERED' if test_results['edge_cases'] and test_results['error_handling'] else 'MISSING'}")
         
         # Save detailed results
         report_file = f"final_comprehensive_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
@@ -756,12 +756,12 @@ class FinalComprehensiveTester:
                 "timestamp": datetime.now().isoformat()
             }, f, indent=2, default=str)
         
-        print(f"\n📁 Detailed report saved: {report_file}")
+        print(f"\n? Detailed report saved: {report_file}")
         
         if passed_tests == total_tests:
-            print(f"\n🎉 ALL TESTS PASSED! Coverage gaps have been addressed.")
+            print(f"\n? ALL TESTS PASSED! Coverage gaps have been addressed.")
         else:
-            print(f"\n⚠️  Some tests failed. Review the detailed report for specific issues.")
+            print(f"\n[WARN]?  Some tests failed. Review the detailed report for specific issues.")
         
         return passed_tests == total_tests
 
@@ -772,7 +772,7 @@ def main():
         success = tester.run_final_comprehensive_tests()
         return 0 if success else 1
     except Exception as e:
-        print(f"❌ Final comprehensive testing failed: {e}")
+        print(f"[FAIL] Final comprehensive testing failed: {e}")
         return 1
 
 if __name__ == "__main__":

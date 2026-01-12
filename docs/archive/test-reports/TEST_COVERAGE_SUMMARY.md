@@ -94,7 +94,7 @@ TestPerformanceRegression (2 tests)
 
 **Validates:**
 - 3-5x speedup claim
-- Network overhead reduction (3,319 calls → 1 call)
+- Network overhead reduction (3,319 calls -> 1 call)
 - Linear scalability
 - Consistent performance
 
@@ -398,7 +398,7 @@ export USE_DEFAULT_PASSWORD=true # Use default test password
 
 ## Key Improvements
 
-1. **Coverage Increase:** 16.5% → 60%+ (263% relative increase)
+1. **Coverage Increase:** 16.5% -> 60%+ (263% relative increase)
 2. **New Tests:** 62+ comprehensive tests
 3. **Test Types:** Unit, integration, and performance tests
 4. **Infrastructure:** Fixtures, configuration, and documentation

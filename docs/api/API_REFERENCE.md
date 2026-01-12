@@ -59,13 +59,13 @@ Initialize base blocking strategy.
 }
 ```
 
-#### `generate_candidates()` → List[Dict]
+#### `generate_candidates()` -> List[Dict]
 
 Generate candidate pairs (must be implemented by subclasses).
 
 **Returns:** List of candidate pair dictionaries
 
-#### `get_statistics()` → Dict
+#### `get_statistics()` -> Dict
 
 Get statistics about the blocking operation.
 
@@ -254,7 +254,7 @@ pairs = strategy.generate_candidates()
 - `blocking_field` (str, optional): Field for additional blocking (e.g., 'state', 'category')
 - `filters` (dict, optional): Standard filters (see BlockingStrategy)
 
-#### `generate_candidates()` → List[Dict]
+#### `generate_candidates()` -> List[Dict]
 
 Generate candidate pairs using vector similarity.
 
@@ -271,7 +271,7 @@ Generate candidate pairs using vector similarity.
 ]
 ```
 
-#### `get_similarity_distribution(sample_size=1000)` → Dict
+#### `get_similarity_distribution(sample_size=1000)` -> Dict
 
 Analyze similarity score distribution for threshold tuning.
 
@@ -308,7 +308,7 @@ print(f"Recommended threshold: {stats['recommended_thresholds']['balanced']}")
 
 **Performance:** 
 - Embedding generation: ~100-500 docs/second (CPU), ~1000-5000 (GPU)
-- Query time: O(n²) worst case, but limited by `limit_per_entity`
+- Query time: O(n^2) worst case, but limited by `limit_per_entity`
 - Memory: ~1.5 KB per document (384-dim embeddings)
 
 **Best Practices:**
@@ -369,7 +369,7 @@ print(f"Generated {stats['generated']} embeddings")
 | all-mpnet-base-v2 | 768 | Moderate | Excellent | High accuracy needed |
 | all-distilroberta-v1 | 768 | Moderate | Very Good | Balance speed/quality |
 
-#### `generate_embedding(record, text_fields=None)` → np.ndarray
+#### `generate_embedding(record, text_fields=None)` -> np.ndarray
 
 Generate embedding for a single record.
 
@@ -386,7 +386,7 @@ embedding = service.generate_embedding(record, text_fields=['name', 'company'])
 print(embedding.shape) # (384,)
 ```
 
-#### `generate_embeddings_batch(records, text_fields=None, batch_size=32, show_progress=False)` → np.ndarray
+#### `generate_embeddings_batch(records, text_fields=None, batch_size=32, show_progress=False)` -> np.ndarray
 
 Generate embeddings for multiple records (more efficient).
 
@@ -408,7 +408,7 @@ embeddings = service.generate_embeddings_batch(records, batch_size=32)
 print(embeddings.shape) # (2, 384)
 ```
 
-#### `store_embeddings(collection_name, records, embeddings, database_name=None)` → Dict
+#### `store_embeddings(collection_name, records, embeddings, database_name=None)` -> Dict
 
 Store embeddings in ArangoDB collection.
 
@@ -427,7 +427,7 @@ Store embeddings in ArangoDB collection.
 }
 ```
 
-#### `ensure_embeddings_exist(collection_name, text_fields, database_name=None, batch_size=100, force_regenerate=False)` → Dict
+#### `ensure_embeddings_exist(collection_name, text_fields, database_name=None, batch_size=100, force_regenerate=False)` -> Dict
 
 Ensure all documents in collection have embeddings (generates missing ones).
 
@@ -460,7 +460,7 @@ print(f"Generated {stats['generated']} new embeddings")
 print(f"Coverage: {stats['updated']}/{stats['total_docs']}")
 ```
 
-#### `get_embedding_stats(collection_name, database_name=None)` → Dict
+#### `get_embedding_stats(collection_name, database_name=None)` -> Dict
 
 Get statistics about embeddings in a collection.
 
@@ -573,7 +573,7 @@ matches = service.compute_similarities(pairs, threshold=0.75)
 }
 ```
 
-#### `compute_similarities(candidate_pairs, threshold=0.75, return_all=False)` → List[Tuple]
+#### `compute_similarities(candidate_pairs, threshold=0.75, return_all=False)` -> List[Tuple]
 
 Compute similarities for candidate pairs.
 
@@ -586,7 +586,7 @@ Compute similarities for candidate pairs.
 
 **Performance:** ~100K+ pairs/second for Jaro-Winkler
 
-#### `compute_similarities_detailed(candidate_pairs, threshold=0.75)` → List[Dict]
+#### `compute_similarities_detailed(candidate_pairs, threshold=0.75)` -> List[Dict]
 
 Compute similarities with per-field scores.
 
@@ -608,7 +608,7 @@ Compute similarities with per-field scores.
 ]
 ```
 
-#### `get_statistics()` → Dict
+#### `get_statistics()` -> Dict
 
 Get computation statistics.
 
@@ -672,7 +672,7 @@ metadata={"method": "hybrid", "algorithm": "jaro_winkler"}
 - `auto_create_collection` (bool): Create collection if missing (default: True)
 - `use_deterministic_keys` (bool): Generate deterministic edge keys to prevent duplicates (default: True). When enabled, the same vertex pair always generates the same edge key, making edge creation idempotent. Works for both SmartGraph and non-SmartGraph deployments.
 
-#### `create_edges(matches, metadata=None, bidirectional=False)` → int
+#### `create_edges(matches, metadata=None, bidirectional=False)` -> int
 
 Create similarity edges in bulk.
 
@@ -685,14 +685,14 @@ Create similarity edges in bulk.
 
 **Performance:** ~10K+ edges/second
 
-#### `create_edges_detailed(matches, bidirectional=False)` → int
+#### `create_edges_detailed(matches, bidirectional=False)` -> int
 
 Create edges with per-edge metadata.
 
 **Parameters:**
 - `matches` (List[Dict]): Detailed match records with metadata
 
-#### `clear_edges(method=None, older_than=None)` → int
+#### `clear_edges(method=None, older_than=None)` -> int
 
 Clear similarity edges.
 
@@ -702,7 +702,7 @@ Clear similarity edges.
 
 **Returns:** Number of edges removed
 
-#### `get_statistics()` → Dict
+#### `get_statistics()` -> Dict
 
 Get edge creation statistics.
 
@@ -741,7 +741,7 @@ clusters = service.cluster(store_results=True)
 - `min_cluster_size` (int): Minimum entities per cluster (default: 2)
 - `graph_name` (str, optional): Named graph to use
 
-#### `cluster(store_results=True, truncate_existing=True)` → List[List[str]]
+#### `cluster(store_results=True, truncate_existing=True)` -> List[List[str]]
 
 Run WCC clustering.
 
@@ -753,7 +753,7 @@ Run WCC clustering.
 
 **Performance:** Server-side processing, handles millions of edges
 
-#### `get_cluster_by_member(member_key)` → Dict
+#### `get_cluster_by_member(member_key)` -> Dict
 
 Find cluster containing a specific member.
 
@@ -770,7 +770,7 @@ Find cluster containing a specific member.
 }
 ```
 
-#### `get_statistics()` → Dict
+#### `get_statistics()` -> Dict
 
 Get clustering statistics.
 
@@ -793,7 +793,7 @@ Get clustering statistics.
 }
 ```
 
-#### `validate_clusters()` → Dict
+#### `validate_clusters()` -> Dict
 
 Validate cluster quality and consistency.
 

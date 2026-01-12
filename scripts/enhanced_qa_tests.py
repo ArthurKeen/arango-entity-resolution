@@ -33,7 +33,7 @@ class EnhancedQATestSuite:
         
     def log_test(self, test_name, success, message="", duration=0):
         """Log test result."""
-        status = "✅ PASS" if success else "❌ FAIL"
+        status = "[PASS] PASS" if success else "[FAIL] FAIL"
         self.test_results.append({
             'test': test_name,
             'success': success,
@@ -44,7 +44,7 @@ class EnhancedQATestSuite:
     
     def test_similarity_accuracy(self):
         """Test 1: Similarity computation accuracy with known data."""
-        print("\n🔍 Test 1: Similarity Computation Accuracy")
+        print("\n? Test 1: Similarity Computation Accuracy")
         start_time = time.time()
         
         try:
@@ -94,13 +94,13 @@ class EnhancedQATestSuite:
                     expected_max = test_case["expected_max"]
                     
                     if expected_min <= score <= expected_max:
-                        print(f"  ✅ {test_case['name']}: {score:.3f} (expected {expected_min}-{expected_max})")
+                        print(f"  [PASS] {test_case['name']}: {score:.3f} (expected {expected_min}-{expected_max})")
                     else:
-                        print(f"  ❌ {test_case['name']}: {score:.3f} (expected {expected_min}-{expected_max})")
+                        print(f"  [FAIL] {test_case['name']}: {score:.3f} (expected {expected_min}-{expected_max})")
                         all_passed = False
                         
                 except Exception as e:
-                    print(f"  ❌ {test_case['name']}: Error - {e}")
+                    print(f"  [FAIL] {test_case['name']}: Error - {e}")
                     all_passed = False
             
             duration = time.time() - start_time
@@ -115,7 +115,7 @@ class EnhancedQATestSuite:
     
     def test_end_to_end_pipeline(self):
         """Test 2: Complete end-to-end pipeline with realistic data."""
-        print("\n🔍 Test 2: End-to-End Pipeline")
+        print("\n? Test 2: End-to-End Pipeline")
         start_time = time.time()
         
         try:
@@ -140,7 +140,7 @@ class EnhancedQATestSuite:
             # Load test data
             collection = pipeline.data_manager.database.collection(collection_name)
             collection.insert_many(test_data)
-            print(f"  📊 Loaded {len(test_data)} test records")
+            print(f"  ? Loaded {len(test_data)} test records")
             
             # Test blocking setup
             setup_result = pipeline.blocking_service.setup_for_collections([collection_name])
@@ -159,7 +159,7 @@ class EnhancedQATestSuite:
                     candidates = candidate_result.get('candidates', [])
                     total_candidates += len(candidates)
             
-            print(f"  📊 Generated {total_candidates} total candidates")
+            print(f"  ? Generated {total_candidates} total candidates")
             
             # Test similarity computation
             similarity_pairs = []
@@ -174,14 +174,14 @@ class EnhancedQATestSuite:
                             'doc_b': records[i + 1]['_key'],
                             'score': similarity.get('score', 0)
                         })
-                        print(f"  📊 Similarity {records[i]['_key']} ↔ {records[i + 1]['_key']}: {similarity.get('score', 0):.3f}")
+                        print(f"  ? Similarity {records[i]['_key']} <-> {records[i + 1]['_key']}: {similarity.get('score', 0):.3f}")
                     except Exception as e:
-                        print(f"  ⚠️  Similarity error: {e}")
+                        print(f"  [WARN]?  Similarity error: {e}")
             
             # Test clustering
             if similarity_pairs:
                 clusters = pipeline.clustering_service.cluster_entities(similarity_pairs)
-                print(f"  📊 Generated {len(clusters)} clusters")
+                print(f"  ? Generated {len(clusters)} clusters")
             
             # Cleanup
             pipeline.data_manager.database.delete_collection(collection_name)
@@ -198,7 +198,7 @@ class EnhancedQATestSuite:
     
     def test_error_handling(self):
         """Test 3: Error handling and edge cases."""
-        print("\n🔍 Test 3: Error Handling")
+        print("\n? Test 3: Error Handling")
         start_time = time.time()
         
         try:
@@ -235,9 +235,9 @@ class EnhancedQATestSuite:
                         edge_case["doc_a"], edge_case["doc_b"]
                     )
                     # Should not crash, even with bad data
-                    print(f"  ✅ {edge_case['name']}: Handled gracefully (score: {similarity.get('score', 0):.3f})")
+                    print(f"  [PASS] {edge_case['name']}: Handled gracefully (score: {similarity.get('score', 0):.3f})")
                 except Exception as e:
-                    print(f"  ❌ {edge_case['name']}: Failed to handle - {e}")
+                    print(f"  [FAIL] {edge_case['name']}: Failed to handle - {e}")
                     all_handled = False
             
             duration = time.time() - start_time
@@ -252,7 +252,7 @@ class EnhancedQATestSuite:
     
     def test_data_quality_validation(self):
         """Test 4: Data quality validation functionality."""
-        print("\n🔍 Test 4: Data Quality Validation")
+        print("\n? Test 4: Data Quality Validation")
         start_time = time.time()
         
         try:
@@ -283,16 +283,16 @@ class EnhancedQATestSuite:
                 if quality_report:
                     issues_found = quality_report.get('issues_found', 0)
                     quality_score = quality_report.get('quality_score', 0)
-                    print(f"  📊 Issues found: {issues_found}")
-                    print(f"  📊 Quality score: {quality_score:.2f}")
+                    print(f"  ? Issues found: {issues_found}")
+                    print(f"  ? Quality score: {quality_score:.2f}")
                     
                     # Should find some issues in our test data
                     validation_worked = issues_found > 0 or quality_score < 1.0
                 else:
-                    print("  ⚠️  Quality validation returned no report")
+                    print("  [WARN]?  Quality validation returned no report")
                     validation_worked = False
             except Exception as e:
-                print(f"  ⚠️  Quality validation error: {e}")
+                print(f"  [WARN]?  Quality validation error: {e}")
                 validation_worked = False
             
             # Cleanup
@@ -310,7 +310,7 @@ class EnhancedQATestSuite:
     
     def test_performance_benchmarks(self):
         """Test 5: Performance benchmarks."""
-        print("\n🔍 Test 5: Performance Benchmarks")
+        print("\n? Test 5: Performance Benchmarks")
         start_time = time.time()
         
         try:
@@ -350,8 +350,8 @@ class EnhancedQATestSuite:
             insert_rate = len(performance_data) / insert_time if insert_time > 0 else 0
             retrieve_rate = len(records) / retrieve_time if retrieve_time > 0 else 0
             
-            print(f"  📊 Inserted {len(performance_data)} records in {insert_time:.3f}s ({insert_rate:.0f} records/sec)")
-            print(f"  📊 Retrieved {len(records)} records in {retrieve_time:.3f}s ({retrieve_rate:.0f} records/sec)")
+            print(f"  ? Inserted {len(performance_data)} records in {insert_time:.3f}s ({insert_rate:.0f} records/sec)")
+            print(f"  ? Retrieved {len(records)} records in {retrieve_time:.3f}s ({retrieve_rate:.0f} records/sec)")
             
             # Performance thresholds
             min_insert_rate = 1000  # records per second
@@ -374,9 +374,9 @@ class EnhancedQATestSuite:
     
     def run_all_tests(self):
         """Run all enhanced QA tests."""
-        print("🚀 Starting Enhanced QA Tests")
+        print("? Starting Enhanced QA Tests")
         print("=" * 50)
-        print("🎯 These tests address gaps in the original QA suite:")
+        print("? These tests address gaps in the original QA suite:")
         print("   - Similarity computation accuracy")
         print("   - End-to-end pipeline functionality")
         print("   - Error handling and edge cases")
@@ -401,7 +401,7 @@ class EnhancedQATestSuite:
                 else:
                     failed += 1
             except Exception as e:
-                print(f"❌ Test failed with exception: {e}")
+                print(f"[FAIL] Test failed with exception: {e}")
                 failed += 1
         
         # Generate report
@@ -415,7 +415,7 @@ class EnhancedQATestSuite:
         success_rate = (passed / total_tests) * 100 if total_tests > 0 else 0
         
         print("\n" + "=" * 50)
-        print("📊 ENHANCED QA TEST REPORT")
+        print("? ENHANCED QA TEST REPORT")
         print("=" * 50)
         print(f"Total Tests: {total_tests}")
         print(f"Passed: {passed}")
@@ -423,7 +423,7 @@ class EnhancedQATestSuite:
         print(f"Success Rate: {success_rate:.1f}%")
         
         if failed > 0:
-            print(f"\n❌ Failed Tests:")
+            print(f"\n[FAIL] Failed Tests:")
             for result in self.test_results:
                 if not result['success']:
                     print(f"  - {result['test']}: {result['message']}")
@@ -445,16 +445,16 @@ class EnhancedQATestSuite:
         with open(report_file, 'w') as f:
             json.dump(report_data, f, indent=2, default=str)
         
-        print(f"\n📁 Detailed report saved: {report_file}")
+        print(f"\n? Detailed report saved: {report_file}")
         
         if success_rate >= 90:
-            print("🎉 Excellent! Enhanced QA tests show system is working properly.")
+            print("? Excellent! Enhanced QA tests show system is working properly.")
         elif success_rate >= 75:
-            print("✅ Good! Enhanced QA tests show system is mostly working with minor issues.")
+            print("[PASS] Good! Enhanced QA tests show system is mostly working with minor issues.")
         elif success_rate >= 50:
-            print("⚠️  Fair. Enhanced QA tests show some issues that need attention.")
+            print("[WARN]?  Fair. Enhanced QA tests show some issues that need attention.")
         else:
-            print("❌ Poor. Enhanced QA tests show significant issues that need immediate attention.")
+            print("[FAIL] Poor. Enhanced QA tests show significant issues that need immediate attention.")
 
 def main():
     """Run enhanced QA tests."""
@@ -463,17 +463,17 @@ def main():
         success = qa_suite.run_all_tests()
         
         if success:
-            print("\n🎉 All enhanced QA tests passed!")
+            print("\n? All enhanced QA tests passed!")
             return 0
         else:
-            print("\n❌ Some enhanced QA tests failed!")
+            print("\n[FAIL] Some enhanced QA tests failed!")
             return 1
             
     except KeyboardInterrupt:
-        print("\n❌ Tests interrupted by user")
+        print("\n[FAIL] Tests interrupted by user")
         return 1
     except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
+        print(f"\n[FAIL] Unexpected error: {e}")
         return 1
 
 if __name__ == "__main__":

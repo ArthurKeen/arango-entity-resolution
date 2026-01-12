@@ -305,7 +305,7 @@ class TestCoverageAnalyzer:
     
     def run_comprehensive_coverage_analysis(self) -> Dict[str, Any]:
         """Run comprehensive test coverage analysis."""
-        print("📊 COMPREHENSIVE TEST COVERAGE ANALYSIS")
+        print("? COMPREHENSIVE TEST COVERAGE ANALYSIS")
         print("="*60)
         print(f"Timestamp: {datetime.now().isoformat()}")
         
@@ -320,25 +320,25 @@ class TestCoverageAnalyzer:
                         if file.endswith('.py') and not file.startswith('__'):
                             all_files.append(os.path.join(root, file))
         
-        print(f"📁 Analyzing {len(all_files)} Python files...")
+        print(f"? Analyzing {len(all_files)} Python files...")
         
         # Analyze coverage for each file
         coverage_data = {}
         for file_path in all_files:
-            print(f"   📄 {file_path}")
+            print(f"   ? {file_path}")
             metrics = self.analyze_file_coverage(file_path)
             coverage_data[file_path] = metrics
         
         # Identify test gaps
-        print(f"\n🔍 Identifying test gaps...")
+        print(f"\n? Identifying test gaps...")
         test_gaps = self.identify_test_gaps(coverage_data)
         
         # Analyze component coverage
-        print(f"\n📊 Analyzing component coverage...")
+        print(f"\n? Analyzing component coverage...")
         component_coverage = self.analyze_component_coverage()
         
         # Generate recommendations
-        print(f"\n💡 Generating recommendations...")
+        print(f"\n? Generating recommendations...")
         recommendations = self.generate_test_recommendations(coverage_data, test_gaps)
         
         # Calculate summary statistics
@@ -386,24 +386,24 @@ class TestCoverageAnalyzer:
         self.analysis_results["recommendations"] = recommendations
         
         # Print summary
-        print(f"\n📊 TEST COVERAGE SUMMARY")
+        print(f"\n? TEST COVERAGE SUMMARY")
         print("="*50)
-        print(f"📁 Total files: {total_files}")
-        print(f"✅ Files with tests: {files_with_tests}")
-        print(f"❌ Files without tests: {files_without_tests}")
-        print(f"📊 Average coverage: {avg_coverage:.1f}%")
+        print(f"? Total files: {total_files}")
+        print(f"[PASS] Files with tests: {files_with_tests}")
+        print(f"[FAIL] Files without tests: {files_without_tests}")
+        print(f"? Average coverage: {avg_coverage:.1f}%")
         
-        print(f"\n📊 Coverage distribution:")
-        print(f"   High coverage (≥80%): {self.analysis_results['coverage_summary']['high_coverage_files']}")
+        print(f"\n? Coverage distribution:")
+        print(f"   High coverage (>=80%): {self.analysis_results['coverage_summary']['high_coverage_files']}")
         print(f"   Medium coverage (50-79%): {self.analysis_results['coverage_summary']['medium_coverage_files']}")
         print(f"   Low coverage (<50%): {self.analysis_results['coverage_summary']['low_coverage_files']}")
         print(f"   No coverage (0%): {self.analysis_results['coverage_summary']['no_coverage_files']}")
         
-        print(f"\n📊 Component coverage:")
+        print(f"\n? Component coverage:")
         for component, data in component_coverage.items():
             print(f"   {component}: {data['average_coverage']:.1f}% ({data['files']} files)")
         
-        print(f"\n🔍 Test gaps identified: {len(test_gaps)}")
+        print(f"\n? Test gaps identified: {len(test_gaps)}")
         high_priority = len([g for g in test_gaps if g.priority == "high"])
         medium_priority = len([g for g in test_gaps if g.priority == "medium"])
         low_priority = len([g for g in test_gaps if g.priority == "low"])
@@ -411,7 +411,7 @@ class TestCoverageAnalyzer:
         print(f"   Medium priority: {medium_priority}")
         print(f"   Low priority: {low_priority}")
         
-        print(f"\n💡 Recommendations:")
+        print(f"\n? Recommendations:")
         for rec in recommendations:
             print(f"   {rec}")
         
@@ -420,7 +420,7 @@ class TestCoverageAnalyzer:
         with open(report_file, 'w') as f:
             json.dump(self.analysis_results, f, indent=2, default=str)
         
-        print(f"\n📁 Test coverage analysis report saved: {report_file}")
+        print(f"\n? Test coverage analysis report saved: {report_file}")
         
         return self.analysis_results
 
@@ -431,7 +431,7 @@ def main():
         results = analyzer.run_comprehensive_coverage_analysis()
         return 0
     except Exception as e:
-        print(f"❌ Test coverage analysis failed: {e}")
+        print(f"[FAIL] Test coverage analysis failed: {e}")
         return 1
 
 if __name__ == "__main__":

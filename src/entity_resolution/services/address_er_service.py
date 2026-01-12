@@ -182,7 +182,7 @@ class AddressERService:
             self.logger.info(f"  Waiting {results['view_build_wait_seconds']}s for view to build indices...")
             time.sleep(results['view_build_wait_seconds'])
         
-        self.logger.info("✓ Infrastructure setup complete")
+        self.logger.info("[OK] Infrastructure setup complete")
         
         return results
     
@@ -342,7 +342,7 @@ class AddressERService:
                         analyzer_type=analyzer_def['type'],
                         properties=analyzer_def['properties']
                     )
-                    self.logger.info(f"  ✓ Created analyzer: {name}")
+                    self.logger.info(f"  [OK] Created analyzer: {name}")
                     created.append(name)
                 except Exception as e:
                     if 'duplicate' in str(e).lower() or 'already exists' in str(e).lower():
@@ -459,10 +459,10 @@ class AddressERService:
                     }
                 }
             )
-            self.logger.info(f"  ✓ Created view: {self.search_view_name}")
+            self.logger.info(f"  [OK] Created view: {self.search_view_name}")
             return self.search_view_name
         except Exception as e:
-            self.logger.error(f"  ✗ Failed to create view: {e}")
+            self.logger.error(f"  [X] Failed to create view: {e}")
             return None
     
     def _find_duplicate_addresses(
@@ -534,8 +534,8 @@ class AddressERService:
             blocks[block_key] = addresses
             total_addresses += size
         
-        self.logger.info(f"✓ Found {len(blocks):,} duplicate address groups")
-        self.logger.info(f"✓ Total addresses in groups: {total_addresses:,}")
+        self.logger.info(f"[OK] Found {len(blocks):,} duplicate address groups")
+        self.logger.info(f"[OK] Total addresses in groups: {total_addresses:,}")
         
         return blocks, total_addresses
     
@@ -609,7 +609,7 @@ class AddressERService:
             except Exception as e:
                 self.logger.error(f"Failed to insert final edge batch: {e}", exc_info=True)
         
-        self.logger.info(f"✓ Created {edges_created:,} sameAs edges")
+        self.logger.info(f"[OK] Created {edges_created:,} sameAs edges")
         
         return edges_created
     
@@ -693,7 +693,7 @@ class AddressERService:
                             if edges_written % 100000 == 0:
                                 self.logger.info(f"  Exported {edges_written:,} edges...")
             
-            self.logger.info(f"✓ Exported {edges_written:,} edges to CSV")
+            self.logger.info(f"[OK] Exported {edges_written:,} edges to CSV")
             
         except Exception as e:
             self.logger.error(f"Failed to write CSV file: {e}", exc_info=True)
@@ -781,7 +781,7 @@ class AddressERService:
                 edges_imported = edges_written
                 self.logger.warning("Could not parse arangoimport output, using written count")
             
-            self.logger.info(f"✓ Imported {edges_imported:,} edges via arangoimport")
+            self.logger.info(f"[OK] Imported {edges_imported:,} edges via arangoimport")
             
             # Clean up CSV file
             if cleanup_csv and os.path.exists(csv_path):

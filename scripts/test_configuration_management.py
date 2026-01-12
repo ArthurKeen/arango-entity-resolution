@@ -17,16 +17,16 @@ from entity_resolution.utils.enhanced_config import get_config
 
 def test_configuration_management():
     """Test the enhanced configuration management."""
-    print("🧪 TESTING ENHANCED CONFIGURATION MANAGEMENT")
+    print("? TESTING ENHANCED CONFIGURATION MANAGEMENT")
     print("="*50)
     
     try:
         # Test configuration loading
         config = get_config()
-        print("✅ Configuration loading successful")
+        print("[PASS] Configuration loading successful")
         
         # Test database configuration
-        print("\n📊 Testing database configuration...")
+        print("\n? Testing database configuration...")
         print(f"   Host: {config.database.host}")
         print(f"   Port: {config.database.port}")
         print(f"   Username: {config.database.username}")
@@ -34,40 +34,40 @@ def test_configuration_management():
         print(f"   Timeout: {config.database.timeout}")
         
         # Test service configuration
-        print("\n📊 Testing service configuration...")
+        print("\n? Testing service configuration...")
         print(f"   Blocking Service URL: {config.service.blocking_service_url}")
         print(f"   Similarity Service URL: {config.service.similarity_service_url}")
         print(f"   Clustering Service URL: {config.service.clustering_service_url}")
         print(f"   Service Timeout: {config.service.timeout}")
         
         # Test logging configuration
-        print("\n📊 Testing logging configuration...")
+        print("\n? Testing logging configuration...")
         print(f"   Log Level: {config.logging.level}")
         print(f"   Log Format: {config.logging.format}")
         print(f"   Log File: {config.logging.file_path}")
         
         # Test performance configuration
-        print("\n📊 Testing performance configuration...")
+        print("\n? Testing performance configuration...")
         print(f"   Max Workers: {config.performance.max_workers}")
         print(f"   Batch Size: {config.performance.batch_size}")
         print(f"   Cache Size: {config.performance.cache_size}")
         print(f"   Cache TTL: {config.performance.cache_ttl}")
         
         # Test configuration validation
-        print("\n📊 Testing configuration validation...")
+        print("\n? Testing configuration validation...")
         if config.validate_config():
-            print("✅ Configuration validation passed")
+            print("[PASS] Configuration validation passed")
         else:
-            print("❌ Configuration validation failed")
+            print("[FAIL] Configuration validation failed")
             return False
         
         # Test database URL generation
-        print("\n📊 Testing database URL generation...")
+        print("\n? Testing database URL generation...")
         db_url = config.get_database_url()
         print(f"   Database URL: {db_url}")
         
         # Test service URL generation
-        print("\n📊 Testing service URL generation...")
+        print("\n? Testing service URL generation...")
         blocking_url = config.get_service_url('blocking')
         similarity_url = config.get_service_url('similarity')
         clustering_url = config.get_service_url('clustering')
@@ -76,19 +76,19 @@ def test_configuration_management():
         print(f"   Clustering URL: {clustering_url}")
         
         # Test configuration file existence
-        print("\n📊 Testing configuration file...")
+        print("\n? Testing configuration file...")
         if os.path.exists("config.json"):
             with open("config.json", "r") as f:
                 config_data = json.load(f)
-                print("✅ Configuration file exists and is valid JSON")
+                print("[PASS] Configuration file exists and is valid JSON")
                 print(f"   Database host: {config_data.get('database', {}).get('host', 'N/A')}")
         else:
-            print("⚠️  Configuration file not found")
+            print("[WARN]?  Configuration file not found")
         
         return True
         
     except Exception as e:
-        print(f"❌ Configuration management test failed: {e}")
+        print(f"[FAIL] Configuration management test failed: {e}")
         return False
 
 def main():
@@ -96,10 +96,10 @@ def main():
     success = test_configuration_management()
     
     if success:
-        print("\n🎉 Configuration management test completed successfully!")
+        print("\n? Configuration management test completed successfully!")
         return 0
     else:
-        print("\n❌ Configuration management test failed!")
+        print("\n[FAIL] Configuration management test failed!")
         return 1
 
 if __name__ == "__main__":

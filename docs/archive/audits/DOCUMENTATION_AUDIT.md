@@ -12,10 +12,10 @@ The documentation has **significant issues** that need attention:
 | Issue | Severity | Count |
 |-------|----------|-------|
 | **Root-level docs** | High | 35 files (too many!) |
-| **Duplicate content** | 🟠 Medium | ~15 files |
-| **Outdated docs** | 🟡 Low | Several |
-| **Duplicate images** | 🟡 Low | 3 sets |
-| **Multiple API docs** | 🟠 Medium | 6 files |
+| **Duplicate content** | ? Medium | ~15 files |
+| **Outdated docs** | ? Low | Several |
+| **Duplicate images** | ? Low | 3 sets |
+| **Multiple API docs** | ? Medium | 6 files |
 
 **Overall Status:** **NEEDS CLEANUP**
 
@@ -70,7 +70,7 @@ WHATS_NEW_TEST_COVERAGE.md
 
 ---
 
-### 🟠 Issue #2: Duplicate/Overlapping Content
+### ? Issue #2: Duplicate/Overlapping Content
 
 **Multiple Audit Reports:**
 - `AUDIT_2025_SUMMARY.md`
@@ -97,7 +97,7 @@ WHATS_NEW_TEST_COVERAGE.md
 
 ---
 
-### 🟠 Issue #3: Multiple API Documentation Files
+### ? Issue #3: Multiple API Documentation Files
 
 **In docs/ directory:**
 ```
@@ -115,7 +115,7 @@ API_REFERENCE_V2.md ( Most current)
 
 ---
 
-### 🟡 Issue #4: Duplicate Image Formats
+### ? Issue #4: Duplicate Image Formats
 
 **Same diagrams in multiple formats:**
 ```
@@ -138,7 +138,7 @@ Plus `.mermaid` source files for each.
 
 ---
 
-### 🟡 Issue #5: Potentially Outdated Content
+### ? Issue #5: Potentially Outdated Content
 
 Several files may reference old versions or completed work:
 - `SECURITY_FIXES_NEEDED.md` - Fixes are now applied
@@ -392,9 +392,9 @@ grep -r "\[.*\](.*\.md)" docs/
 
 ### 3. Duplicate Content
 Compare similar files and merge:
-- Multiple audit reports → Keep comprehensive one
-- Multiple test reports → Keep verification report
-- Multiple summaries → Consolidate or delete
+- Multiple audit reports -> Keep comprehensive one
+- Multiple test reports -> Keep verification report
+- Multiple summaries -> Consolidate or delete
 
 ---
 
@@ -405,12 +405,12 @@ Compare similar files and merge:
 2. **Delete duplicate images** - Remove .png versions
 3. **Consolidate API docs** - Single source of truth
 
-### 🟠 Medium Priority (Do Soon)
+### ? Medium Priority (Do Soon)
 4. **Organize docs/** into subdirectories
 5. **Update README** with documentation index
 6. **Fix broken links** after moves
 
-### 🟡 Low Priority (Nice to Have)
+### ? Low Priority (Nice to Have)
 7. **Create docs/README.md** with full index
 8. **Add diagrams/README.md** explaining diagram sources
 9. **Review archive** for truly obsolete files to delete

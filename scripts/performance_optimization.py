@@ -224,7 +224,7 @@ class PerformanceOptimizer:
     def parallel_similarity_computation(self, similarity_pairs: List[Dict[str, Any]], 
                                       max_workers: int = 4) -> List[Dict[str, Any]]:
         """Parallel similarity computation."""
-        print(f"🚀 Running parallel similarity computation with {max_workers} workers...")
+        print(f"? Running parallel similarity computation with {max_workers} workers...")
         
         def compute_similarity_pair(pair_data):
             doc_a = pair_data["doc_a"]
@@ -238,15 +238,15 @@ class PerformanceOptimizer:
         
         execution_time = time.time() - start_time
         
-        print(f"   📊 Processed {len(similarity_pairs)} pairs in {execution_time:.3f}s")
-        print(f"   📊 Rate: {len(similarity_pairs)/execution_time:.1f} pairs/second")
+        print(f"   ? Processed {len(similarity_pairs)} pairs in {execution_time:.3f}s")
+        print(f"   ? Rate: {len(similarity_pairs)/execution_time:.1f} pairs/second")
         
         return results
     
     def batch_similarity_computation(self, similarity_pairs: List[Dict[str, Any]], 
                                    batch_size: int = 100) -> List[Dict[str, Any]]:
         """Batch similarity computation for better performance."""
-        print(f"🚀 Running batch similarity computation (batch size: {batch_size})...")
+        print(f"? Running batch similarity computation (batch size: {batch_size})...")
         
         results = []
         start_time = time.time()
@@ -266,19 +266,19 @@ class PerformanceOptimizer:
             if (i // batch_size + 1) % 10 == 0:
                 elapsed = time.time() - start_time
                 rate = (i + len(batch)) / elapsed
-                print(f"   📊 Processed {i + len(batch)}/{len(similarity_pairs)} pairs ({rate:.1f} pairs/s)")
+                print(f"   ? Processed {i + len(batch)}/{len(similarity_pairs)} pairs ({rate:.1f} pairs/s)")
         
         execution_time = time.time() - start_time
         
-        print(f"   📊 Completed {len(similarity_pairs)} pairs in {execution_time:.3f}s")
-        print(f"   📊 Rate: {len(similarity_pairs)/execution_time:.1f} pairs/second")
+        print(f"   ? Completed {len(similarity_pairs)} pairs in {execution_time:.3f}s")
+        print(f"   ? Rate: {len(similarity_pairs)/execution_time:.1f} pairs/second")
         
         return results
     
     def memory_optimized_processing(self, data: List[Dict[str, Any]], 
                                   chunk_size: int = 1000) -> List[Dict[str, Any]]:
         """Memory-optimized processing for large datasets."""
-        print(f"🚀 Running memory-optimized processing (chunk size: {chunk_size})...")
+        print(f"? Running memory-optimized processing (chunk size: {chunk_size})...")
         
         results = []
         start_time = time.time()
@@ -303,18 +303,18 @@ class PerformanceOptimizer:
             if (i // chunk_size + 1) % 10 == 0:
                 elapsed = time.time() - start_time
                 rate = (i + len(chunk)) / elapsed
-                print(f"   📊 Processed {i + len(chunk)}/{len(data)} items ({rate:.1f} items/s)")
+                print(f"   ? Processed {i + len(chunk)}/{len(data)} items ({rate:.1f} items/s)")
         
         execution_time = time.time() - start_time
         
-        print(f"   📊 Completed {len(data)} items in {execution_time:.3f}s")
-        print(f"   📊 Rate: {len(data)/execution_time:.1f} items/second")
+        print(f"   ? Completed {len(data)} items in {execution_time:.3f}s")
+        print(f"   ? Rate: {len(data)/execution_time:.1f} items/second")
         
         return results
     
     def benchmark_performance(self, test_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Benchmark performance optimizations."""
-        print("🧪 PERFORMANCE OPTIMIZATION BENCHMARKS")
+        print("? PERFORMANCE OPTIMIZATION BENCHMARKS")
         print("="*60)
         print(f"Timestamp: {datetime.now().isoformat()}")
         
@@ -326,7 +326,7 @@ class PerformanceOptimizer:
         }
         
         # Test 1: Baseline (no optimizations)
-        print("\n📋 Test 1: Baseline Performance")
+        print("\n? Test 1: Baseline Performance")
         start_time = time.time()
         
         baseline_results = []
@@ -343,10 +343,10 @@ class PerformanceOptimizer:
             "description": "No optimizations"
         }
         
-        print(f"   📊 Baseline: {baseline_rate:.1f} pairs/second")
+        print(f"   ? Baseline: {baseline_rate:.1f} pairs/second")
         
         # Test 2: Caching optimization
-        print("\n📋 Test 2: Caching Optimization")
+        print("\n? Test 2: Caching Optimization")
         start_time = time.time()
         
         cached_results = []
@@ -364,10 +364,10 @@ class PerformanceOptimizer:
             "description": "With caching optimization"
         }
         
-        print(f"   📊 Caching: {cached_rate:.1f} pairs/second ({((cached_rate - baseline_rate) / baseline_rate * 100):+.1f}% improvement)")
+        print(f"   ? Caching: {cached_rate:.1f} pairs/second ({((cached_rate - baseline_rate) / baseline_rate * 100):+.1f}% improvement)")
         
         # Test 3: Parallel processing
-        print("\n📋 Test 3: Parallel Processing")
+        print("\n? Test 3: Parallel Processing")
         parallel_results = self.parallel_similarity_computation(test_data[:100], max_workers=4)
         
         benchmark_results["optimizations"]["parallel"] = {
@@ -375,7 +375,7 @@ class PerformanceOptimizer:
         }
         
         # Test 4: Batch processing
-        print("\n📋 Test 4: Batch Processing")
+        print("\n? Test 4: Batch Processing")
         batch_results = self.batch_similarity_computation(test_data[:100], batch_size=50)
         
         benchmark_results["optimizations"]["batch"] = {
@@ -383,7 +383,7 @@ class PerformanceOptimizer:
         }
         
         # Test 5: Memory optimization
-        print("\n📋 Test 5: Memory Optimization")
+        print("\n? Test 5: Memory Optimization")
         memory_results = self.memory_optimized_processing(test_data[:100], chunk_size=50)
         
         benchmark_results["optimizations"]["memory"] = {
@@ -400,29 +400,29 @@ class PerformanceOptimizer:
             "total_requests": self.performance_metrics["total_requests"]
         }
         
-        print(f"\n📊 Cache Statistics:")
-        print(f"   📊 Cache hits: {self.performance_metrics['cache_hits']}")
-        print(f"   📊 Cache misses: {self.performance_metrics['cache_misses']}")
-        print(f"   📊 Hit rate: {cache_hit_rate:.1%}")
+        print(f"\n? Cache Statistics:")
+        print(f"   ? Cache hits: {self.performance_metrics['cache_hits']}")
+        print(f"   ? Cache misses: {self.performance_metrics['cache_misses']}")
+        print(f"   ? Hit rate: {cache_hit_rate:.1%}")
         
         # Generate recommendations
         recommendations = []
         
         if cached_rate > baseline_rate * 1.2:
-            recommendations.append("✅ Caching provides significant performance improvement")
+            recommendations.append("[PASS] Caching provides significant performance improvement")
         else:
-            recommendations.append("⚠️  Caching improvement is minimal - consider cache tuning")
+            recommendations.append("[WARN]?  Caching improvement is minimal - consider cache tuning")
         
         if cache_hit_rate > 0.5:
-            recommendations.append("✅ Good cache hit rate - caching is effective")
+            recommendations.append("[PASS] Good cache hit rate - caching is effective")
         else:
-            recommendations.append("⚠️  Low cache hit rate - consider cache key optimization")
+            recommendations.append("[WARN]?  Low cache hit rate - consider cache key optimization")
         
         if len(test_data) > 1000:
-            recommendations.append("✅ Use batch processing for large datasets")
+            recommendations.append("[PASS] Use batch processing for large datasets")
         
         if len(test_data) > 10000:
-            recommendations.append("✅ Use memory-optimized processing for very large datasets")
+            recommendations.append("[PASS] Use memory-optimized processing for very large datasets")
         
         benchmark_results["recommendations"] = recommendations
         
@@ -431,13 +431,13 @@ class PerformanceOptimizer:
         with open(report_file, 'w') as f:
             json.dump(benchmark_results, f, indent=2, default=str)
         
-        print(f"\n📁 Performance benchmark report saved: {report_file}")
+        print(f"\n? Performance benchmark report saved: {report_file}")
         
         return benchmark_results
     
     def run_comprehensive_optimization(self) -> Dict[str, Any]:
         """Run comprehensive performance optimization analysis."""
-        print("🚀 COMPREHENSIVE PERFORMANCE OPTIMIZATION")
+        print("? COMPREHENSIVE PERFORMANCE OPTIMIZATION")
         print("="*70)
         print(f"Timestamp: {datetime.now().isoformat()}")
         
@@ -471,7 +471,7 @@ def main():
         results = optimizer.run_comprehensive_optimization()
         return 0
     except Exception as e:
-        print(f"❌ Performance optimization failed: {e}")
+        print(f"[FAIL] Performance optimization failed: {e}")
         return 1
 
 if __name__ == "__main__":

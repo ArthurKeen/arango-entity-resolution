@@ -387,7 +387,7 @@ curl -X POST "$ARANGO_ENDPOINT/_db/my_database/entity-resolution/setup/views" \
 
 Configure `defaultCollections` in ArangoDB web interface:
 ```
-Settings → Services → entity-resolution → Configuration → defaultCollections = "companies,contacts"
+Settings -> Services -> entity-resolution -> Configuration -> defaultCollections = "companies,contacts"
 ```
 
 ---
@@ -505,8 +505,8 @@ curl "$ARANGO_ENDPOINT/_db/$DB/_api/analyzer" -u "$USER:$PASS"
 
 **ArangoDB Web UI:**
 ```
-Settings → Services → entity-resolution → Configuration
-→ defaultCollections: "companies,contacts,locations"
+Settings -> Services -> entity-resolution -> Configuration
+-> defaultCollections: "companies,contacts,locations"
 ```
 
 ### 4. Test with Small Collections First

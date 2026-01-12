@@ -45,7 +45,7 @@ type_filter = TypeCompatibilityFilter({
 valid_candidates = type_filter.filter_candidates('signal', all_candidates)
 ```
 
-**Impact:** Hardware domain - eliminated all false positives (50% → 100% precision)
+**Impact:** Hardware domain - eliminated all false positives (50% -> 100% precision)
 
 ### 2. Hierarchical Context Resolver
 
@@ -102,8 +102,8 @@ relationships=original_relationships
 ## Validation
 
 Validated on ground truth datasets:
-- **Hardware:** 15 labeled pairs - F1: 0.18 → 0.62
-- **Medical:** 12 labeled pairs - F1: 0.00 → 0.94
+- **Hardware:** 15 labeled pairs - F1: 0.18 -> 0.62
+- **Medical:** 12 labeled pairs - F1: 0.00 -> 0.94
 
 See `docs/validation/` for full methodology and reproducible experiments.
 

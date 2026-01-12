@@ -26,7 +26,7 @@ class FinalCodeQualityCheck:
     
     def check_file_organization(self):
         """Check file organization."""
-        print("📁 Checking file organization...")
+        print("? Checking file organization...")
         
         # Check for proper directory structure
         expected_dirs = [
@@ -43,7 +43,7 @@ class FinalCodeQualityCheck:
                 self.quality_report["checks"].append({
                     "check": "directory_structure",
                     "path": dir_path,
-                    "status": "✅ EXISTS"
+                    "status": "[PASS] EXISTS"
                 })
             else:
                 self.quality_report["issues_found"].append({
@@ -54,7 +54,7 @@ class FinalCodeQualityCheck:
     
     def check_redundant_files(self):
         """Check for remaining redundant files."""
-        print("🔍 Checking for redundant files...")
+        print("? Checking for redundant files...")
         
         # Check for backup files
         backup_files = list(self.project_root.rglob("*.backup"))
@@ -68,7 +68,7 @@ class FinalCodeQualityCheck:
         else:
             self.quality_report["checks"].append({
                 "check": "backup_files",
-                "status": "✅ NONE FOUND"
+                "status": "[PASS] NONE FOUND"
             })
         
         # Check for temporary files
@@ -83,12 +83,12 @@ class FinalCodeQualityCheck:
         else:
             self.quality_report["checks"].append({
                 "check": "temp_files",
-                "status": "✅ NONE FOUND"
+                "status": "[PASS] NONE FOUND"
             })
     
     def check_duplicate_code(self):
         """Check for remaining duplicate code."""
-        print("🔍 Checking for duplicate code...")
+        print("? Checking for duplicate code...")
         
         # Check for duplicate main() functions
         main_functions = []
@@ -114,12 +114,12 @@ class FinalCodeQualityCheck:
             self.quality_report["checks"].append({
                 "check": "main_functions",
                 "count": len(main_functions),
-                "status": "✅ ACCEPTABLE"
+                "status": "[PASS] ACCEPTABLE"
             })
     
     def check_hardcoded_values(self):
         """Check for remaining hardcoded values."""
-        print("🔍 Checking for hardcoded values...")
+        print("? Checking for hardcoded values...")
         
         hardcoded_patterns = [
             r'localhost:\d+',
@@ -161,19 +161,19 @@ class FinalCodeQualityCheck:
         else:
             self.quality_report["checks"].append({
                 "check": "hardcoded_values",
-                "status": "✅ NONE FOUND"
+                "status": "[PASS] NONE FOUND"
             })
     
     def check_test_coverage(self):
         """Check test coverage."""
-        print("🔍 Checking test coverage...")
+        print("? Checking test coverage...")
         
         # Check if consolidated test suite exists and works
         consolidated_test = self.project_root / "scripts" / "consolidated_test_suite.py"
         if consolidated_test.exists():
             self.quality_report["checks"].append({
                 "check": "consolidated_test_suite",
-                "status": "✅ EXISTS"
+                "status": "[PASS] EXISTS"
             })
         else:
             self.quality_report["issues_found"].append({
@@ -188,7 +188,7 @@ class FinalCodeQualityCheck:
             self.quality_report["checks"].append({
                 "check": "test_organization",
                 "test_files": len(test_files),
-                "status": "✅ ORGANIZED"
+                "status": "[PASS] ORGANIZED"
             })
         else:
             self.quality_report["issues_found"].append({
@@ -198,7 +198,7 @@ class FinalCodeQualityCheck:
     
     def check_documentation(self):
         """Check documentation completeness."""
-        print("🔍 Checking documentation...")
+        print("? Checking documentation...")
         
         # Check for key documentation files
         key_docs = [
@@ -214,7 +214,7 @@ class FinalCodeQualityCheck:
                 self.quality_report["checks"].append({
                     "check": "documentation",
                     "file": doc_file,
-                    "status": "✅ EXISTS"
+                    "status": "[PASS] EXISTS"
                 })
             else:
                 self.quality_report["issues_found"].append({
@@ -225,7 +225,7 @@ class FinalCodeQualityCheck:
     
     def check_import_consistency(self):
         """Check import consistency."""
-        print("🔍 Checking import consistency...")
+        print("? Checking import consistency...")
         
         import_patterns = {}
         
@@ -246,7 +246,7 @@ class FinalCodeQualityCheck:
             self.quality_report["checks"].append({
                 "check": "import_consistency",
                 "files_with_entity_resolution_imports": len(import_patterns),
-                "status": "✅ CONSISTENT"
+                "status": "[PASS] CONSISTENT"
             })
         else:
             self.quality_report["issues_found"].append({
@@ -256,7 +256,7 @@ class FinalCodeQualityCheck:
     
     def generate_recommendations(self):
         """Generate recommendations for final improvements."""
-        print("💡 Generating recommendations...")
+        print("? Generating recommendations...")
         
         recommendations = []
         
@@ -300,7 +300,7 @@ class FinalCodeQualityCheck:
     
     def run_final_check(self):
         """Run final code quality check."""
-        print("🧪 FINAL CODE QUALITY CHECK")
+        print("? FINAL CODE QUALITY CHECK")
         print("="*50)
         print(f"Timestamp: {datetime.now().isoformat()}")
         
@@ -317,19 +317,19 @@ class FinalCodeQualityCheck:
         total_checks = len(self.quality_report["checks"])
         total_issues = len(self.quality_report["issues_found"])
         
-        print(f"\n📊 FINAL QUALITY CHECK SUMMARY")
+        print(f"\n? FINAL QUALITY CHECK SUMMARY")
         print("="*50)
-        print(f"✅ Checks Passed: {total_checks}")
-        print(f"❌ Issues Found: {total_issues}")
+        print(f"[PASS] Checks Passed: {total_checks}")
+        print(f"[FAIL] Issues Found: {total_issues}")
         
         if total_issues == 0:
-            print(f"\n🎉 EXCELLENT! Codebase is ready for repository sync.")
+            print(f"\n? EXCELLENT! Codebase is ready for repository sync.")
             print(f"   All quality checks passed with no issues found.")
         elif total_issues <= 3:
-            print(f"\n✅ GOOD! Codebase is ready for repository sync.")
+            print(f"\n[PASS] GOOD! Codebase is ready for repository sync.")
             print(f"   Minor issues found but not blocking.")
         else:
-            print(f"\n⚠️  ATTENTION! Some issues found that should be addressed.")
+            print(f"\n[WARN]?  ATTENTION! Some issues found that should be addressed.")
             print(f"   Review the detailed report before repository sync.")
         
         # Show issues by severity
@@ -338,17 +338,17 @@ class FinalCodeQualityCheck:
         low_issues = [i for i in self.quality_report["issues_found"] if i.get("severity") == "low"]
         
         if high_issues:
-            print(f"\n🔴 High Severity Issues: {len(high_issues)}")
+            print(f"\n? High Severity Issues: {len(high_issues)}")
             for issue in high_issues:
                 print(f"   - {issue['type']}: {issue.get('file', 'N/A')}")
         
         if medium_issues:
-            print(f"\n🟡 Medium Severity Issues: {len(medium_issues)}")
+            print(f"\n? Medium Severity Issues: {len(medium_issues)}")
             for issue in medium_issues:
                 print(f"   - {issue['type']}: {issue.get('file', 'N/A')}")
         
         if low_issues:
-            print(f"\n🟢 Low Severity Issues: {len(low_issues)}")
+            print(f"\n? Low Severity Issues: {len(low_issues)}")
             for issue in low_issues:
                 print(f"   - {issue['type']}: {issue.get('file', 'N/A')}")
         
@@ -357,7 +357,7 @@ class FinalCodeQualityCheck:
         with open(report_file, 'w') as f:
             json.dump(self.quality_report, f, indent=2, default=str)
         
-        print(f"\n📁 Detailed report saved: {report_file}")
+        print(f"\n? Detailed report saved: {report_file}")
         
         return total_issues == 0 or total_issues <= 3
 
@@ -368,7 +368,7 @@ def main():
         success = checker.run_final_check()
         return 0 if success else 1
     except Exception as e:
-        print(f"❌ Final code quality check failed: {e}")
+        print(f"[FAIL] Final code quality check failed: {e}")
         return 1
 
 if __name__ == "__main__":

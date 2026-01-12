@@ -16,7 +16,7 @@ Successfully extracted and generalized production-proven entity resolution patte
 ## What Was Added
 
 ### 1. **CrossCollectionMatchingService** MAJOR ADDITION
-**Purpose:** Match entities between two different collections (e.g., registrations → companies)
+**Purpose:** Match entities between two different collections (e.g., registrations -> companies)
 
 **Key Features:**
 - Configurable field mappings between source and target collections
@@ -66,7 +66,7 @@ Successfully extracted and generalized production-proven entity resolution patte
 - Filter by node degree (avoid noise from common values)
 - Transitive relationship discovery
 
-**Performance:** O(e × d²) where e = edges, d = avg entities per node
+**Performance:** O(e x d^2) where e = edges, d = avg entities per node
 
 ### 5. **Pipeline Utilities**
 **Purpose:** Comprehensive workflow management tools
@@ -88,7 +88,7 @@ Successfully extracted and generalized production-proven entity resolution patte
 ## Key Patterns Extracted
 
 ### 1. Cross-Collection Matching
-**From:** dnb_er matching regs → duns 
+**From:** dnb_er matching regs -> duns 
 **Generalized:** Match any source collection to any target collection
 
 **Pattern:**
@@ -117,7 +117,7 @@ results = service.match_entities(threshold=0.85)
 **Pattern:**
 - BM25 for fast initial candidate generation (~1-2 seconds)
 - Levenshtein for accurate final scoring (~40 seconds/batch)
-- Combined score: (BM25 × 0.2) + (Levenshtein × 0.8)
+- Combined score: (BM25 x 0.2) + (Levenshtein x 0.8)
 - Final threshold applied to Levenshtein score (quality gate)
 
 ### 3. Geographic Blocking
@@ -137,11 +137,11 @@ results = service.match_entities(threshold=0.85)
 
 **Pattern:**
 ```
-Entity1 ← edge → SharedResource ← edge → Entity2
+Entity1 <- edge -> SharedResource <- edge -> Entity2
 Examples:
-- Company1 ← hasTelephone → Phone ← hasTelephone → Company2
-- Business1 ← hasAddress → Address ← hasAddress → Business2
-- Company1 ← hasCEO → Executive ← hasCEO → Company2
+- Company1 <- hasTelephone -> Phone <- hasTelephone -> Company2
+- Business1 <- hasAddress -> Address <- hasAddress -> Business2
+- Company1 <- hasCEO -> Executive <- hasCEO -> Company2
 ```
 
 ### 5. Inferred Edge Tracking
@@ -285,7 +285,7 @@ edge_collection="similarTo"
 
 These new components integrate seamlessly with existing library features:
 
-1. **Works with existing clustering:** Use new blocking strategies → SimilarityEdgeService → WCCClusteringService
+1. **Works with existing clustering:** Use new blocking strategies -> SimilarityEdgeService -> WCCClusteringService
 2. **Compatible with batch similarity:** Use new strategies with BatchSimilarityService
 3. **Leverages existing utilities:** Uses DatabaseManager, validation utilities, etc.
 4. **No breaking changes:** All new components, existing code unaffected
@@ -298,7 +298,7 @@ These new components integrate seamlessly with existing library features:
 |-----------|-------------|----------|
 | CrossCollectionMatchingService | Hybrid scoring | 400x faster initial filtering vs pure Levenshtein |
 | HybridBlockingStrategy | BM25 + Levenshtein | Best accuracy-speed tradeoff |
-| GeographicBlockingStrategy | O(n) complexity | Reduces O(n²) to O(k×m²) where k=regions, m=entities/region |
+| GeographicBlockingStrategy | O(n) complexity | Reduces O(n^2) to O(kxm^2) where k=regions, m=entities/region |
 | GraphTraversalBlockingStrategy | Selective blocking | Fast when high selectivity (few shared relationships) |
 
 ---

@@ -107,10 +107,10 @@
 
 1. **COMPLETED**: Fix AQL injection vulnerability
 2. **COMPLETED**: Add default constants
-3. ⏳ **TODO**: Improve test password security
-4. ⏳ **TODO**: Change password default to None
-5. ⏳ **TODO**: Create StringNormalizer utility (optional)
-6. ⏳ **TODO**: Extract weight normalization (optional)
+3. [WAIT] **TODO**: Improve test password security
+4. [WAIT] **TODO**: Change password default to None
+5. [WAIT] **TODO**: Create StringNormalizer utility (optional)
+6. [WAIT] **TODO**: Extract weight normalization (optional)
 
 ---
 

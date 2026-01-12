@@ -6,10 +6,10 @@ Particularly useful for hierarchical data structures where child entities
 should be semantically related to their parents.
 
 Use Cases:
-- Hardware: Module → Port/Signal hierarchy
-- Organizations: Department → Employee hierarchy  
-- Products: Category → SKU hierarchy
-- File Systems: Directory → File hierarchy
+- Hardware: Module -> Port/Signal hierarchy
+- Organizations: Department -> Employee hierarchy  
+- Products: Category -> SKU hierarchy
+- File Systems: Directory -> File hierarchy
 """
 
 import re

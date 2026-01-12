@@ -285,12 +285,12 @@ def verify_and_fix_view_analyzers(
     
     if is_accessible:
         result['verified'] = True
-        logger.info(f"✓ View '{view_name}' is accessible")
+        logger.info(f"[OK] View '{view_name}' is accessible")
         return result
     
     # View is not accessible
     result['error'] = error_msg
-    logger.warning(f"⚠️  View '{view_name}' may have analyzer name issues: {error_msg}")
+    logger.warning(f"[WARN]?  View '{view_name}' may have analyzer name issues: {error_msg}")
     
     # Auto-fix if enabled
     if auto_fix and ('analyzer' in error_msg.lower() or 'scorers' in error_msg.lower()):

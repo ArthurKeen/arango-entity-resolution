@@ -410,22 +410,22 @@ def main():
             logger.error("Custom field weight tests failed")
             return False
         
-        logger.info("\n✅ All similarity service tests completed successfully!")
+        logger.info("\n[PASS] All similarity service tests completed successfully!")
         
         # Show summary
         print("\n" + "="*80)
         print("SIMILARITY SERVICE IMPLEMENTATION SUMMARY")
         print("="*80)
-        print("✅ Complete Fellegi-Sunter probabilistic framework")
-        print("✅ Multiple similarity algorithms:")
+        print("[PASS] Complete Fellegi-Sunter probabilistic framework")
+        print("[PASS] Multiple similarity algorithms:")
         print("   - N-gram similarity for fuzzy string matching")
         print("   - Levenshtein distance for edit-based similarity")
         print("   - Jaro-Winkler for name-specific matching")
         print("   - Phonetic similarity using Soundex")
-        print("✅ Configurable field weights and thresholds")
-        print("✅ Batch processing capabilities")
-        print("✅ Hybrid architecture ready (Foxx service integration)")
-        print("✅ Comprehensive error handling and logging")
+        print("[PASS] Configurable field weights and thresholds")
+        print("[PASS] Batch processing capabilities")
+        print("[PASS] Hybrid architecture ready (Foxx service integration)")
+        print("[PASS] Comprehensive error handling and logging")
         print("\nThe similarity service is now production-ready!")
         
         return True

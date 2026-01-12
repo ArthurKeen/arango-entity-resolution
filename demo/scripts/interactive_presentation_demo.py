@@ -72,9 +72,9 @@ class InteractivePresentationDemo:
     
     def print_section(self, title: str, width: int = 80):
         """Print section header"""
-        print("\n" + "─" * width)
-        print(f"📋 {title}")
-        print("─" * width)
+        print("\n" + "-" * width)
+        print(f"? {title}")
+        print("-" * width)
     
     def wait_for_presenter(self, message: str = "Press Enter to continue", 
                           show_options: bool = True):
@@ -254,7 +254,7 @@ class InteractivePresentationDemo:
         print(f"[OK] Demo data prepared:")
         print(f"   [INFO] {len(self.demo_data)} customer records")
         print(f"   [DEMO] {self.demo_metadata['duplicate_groups']} duplicate groups")
-        print(f"   📈 {self.demo_metadata['duplication_rate']:.0%} duplication rate")
+        print(f"   ? {self.demo_metadata['duplication_rate']:.0%} duplication rate")
         print(f"   [INFO] {len(self.demo_metadata['data_sources'])} data sources")
         
         self.wait_for_presenter("Ready to start the presentation?")
@@ -311,7 +311,7 @@ class InteractivePresentationDemo:
         print()
         
         # Show records in a table format
-        print("📋 CUSTOMER RECORDS:")
+        print("? CUSTOMER RECORDS:")
         print("-" * 120)
         print(f"{'ID':<8} {'Name':<20} {'Email':<30} {'Phone':<15} {'Company':<25}")
         print("-" * 120)
@@ -324,9 +324,9 @@ class InteractivePresentationDemo:
         print(f"Total Records: {len(self.demo_data)}")
         print()
         print("[INFO] WHAT YOUR SYSTEMS REPORT:")
-        print(f"   • Total Customers: {len(self.demo_data):,}")
-        print(f"   • Data Sources: {len(self.demo_metadata['data_sources'])}")
-        print(f"   • Database Status: [OK] Healthy")
+        print(f"   * Total Customers: {len(self.demo_data):,}")
+        print(f"   * Data Sources: {len(self.demo_metadata['data_sources'])}")
+        print(f"   * Database Status: [OK] Healthy")
         print()
         print("Everything looks normal, right?")
         print("Your database has 10 customers from various systems.")
@@ -367,7 +367,7 @@ class InteractivePresentationDemo:
         ], "Nickname variation - still the same customer!")
         
         print()
-        print("🚨 REALITY CHECK:")
+        print("? REALITY CHECK:")
         print(f"   What you thought: {len(self.demo_data)} customers")
         print(f"   What you actually have: {self.demo_metadata['unique_entities']} unique customers")
         print(f"   Hidden duplicates: {len(self.demo_data) - self.demo_metadata['unique_entities']} records")
@@ -394,11 +394,11 @@ class InteractivePresentationDemo:
         print("  [OK] Same person (look at phone numbers, company, address)")
         print("  [ERROR] Different data entry styles")
         print("  [ERROR] Multiple records in different systems")
-        print("  💰 This is costing you money in:")
-        print("     • Duplicate marketing emails")
-        print("     • Confused customer service")
-        print("     • Wasted sales efforts")
-        print("     • Inaccurate analytics")
+        print("  ? This is costing you money in:")
+        print("     * Duplicate marketing emails")
+        print("     * Confused customer service")
+        print("     * Wasted sales efforts")
+        print("     * Inaccurate analytics")
     
     def show_business_impact(self):
         """Show the business impact of duplicates"""
@@ -413,10 +413,10 @@ class InteractivePresentationDemo:
         print("[INFO] IMPACT ANALYSIS (Based on your data):")
         print()
         print(f"Database Analysis:")
-        print(f"  • Records in database: {total_records}")
-        print(f"  • Actual unique customers: {unique_entities}")
-        print(f"  • Duplicate records: {total_records - unique_entities}")
-        print(f"  • Waste rate: {duplicate_rate:.0%}")
+        print(f"  * Records in database: {total_records}")
+        print(f"  * Actual unique customers: {unique_entities}")
+        print(f"  * Duplicate records: {total_records - unique_entities}")
+        print(f"  * Waste rate: {duplicate_rate:.0%}")
         print()
         
         # Scale up to realistic business size
@@ -426,7 +426,7 @@ class InteractivePresentationDemo:
             {"size": "Enterprise", "customers": 500000, "marketing_budget": 2500000}
         ]
         
-        print("💰 SCALED BUSINESS IMPACT:")
+        print("? SCALED BUSINESS IMPACT:")
         print()
         
         for scenario in business_scenarios:
@@ -438,11 +438,11 @@ class InteractivePresentationDemo:
             total_annual_waste = marketing_waste + service_waste + sales_waste
             
             print(f"{scenario['size']} ({scenario['customers']:,} customers):")
-            print(f"  • Duplicate customers: {duplicate_customers:,}")
-            print(f"  • Marketing waste: ${marketing_waste:,.0f}")
-            print(f"  • Service inefficiency: ${service_waste:,.0f}")
-            print(f"  • Sales waste: ${sales_waste:,.0f}")
-            print(f"  • TOTAL ANNUAL COST: ${total_annual_waste:,.0f}")
+            print(f"  * Duplicate customers: {duplicate_customers:,}")
+            print(f"  * Marketing waste: ${marketing_waste:,.0f}")
+            print(f"  * Service inefficiency: ${service_waste:,.0f}")
+            print(f"  * Sales waste: ${sales_waste:,.0f}")
+            print(f"  * TOTAL ANNUAL COST: ${total_annual_waste:,.0f}")
             print()
         
         print("[DEMO] OPPORTUNITY:")
@@ -460,9 +460,9 @@ class InteractivePresentationDemo:
             print()
             print("I'm going to process your customer database and:")
             print("  1. [INSPECT] Find all the duplicates automatically")
-            print("  2. 🧠 Use AI to match similar records")
-            print("  3. 🔗 Group duplicates into entities")
-            print("  4. ✨ Create clean 'golden' customer records")
+            print("  2. ? Use AI to match similar records")
+            print("  3. ? Group duplicates into entities")
+            print("  4. * Create clean 'golden' customer records")
             print()
             print("Let's start...")
             
@@ -500,12 +500,12 @@ class InteractivePresentationDemo:
         
         self.print_title("STEP 1: AI SIMILARITY ANALYSIS", "Finding Matches with Machine Learning")
         
-        print("🧠 AI is now analyzing every customer record...")
+        print("? AI is now analyzing every customer record...")
         print("   Using advanced algorithms:")
-        print("   • Name similarity (Jaro-Winkler)")
-        print("   • Email pattern matching")
-        print("   • Phone number normalization")
-        print("   • Address standardization")
+        print("   * Name similarity (Jaro-Winkler)")
+        print("   * Email pattern matching")
+        print("   * Phone number normalization")
+        print("   * Address standardization")
         print()
         
         # Simulate analysis with progress
@@ -525,36 +525,36 @@ class InteractivePresentationDemo:
         
         # John Smith group
         print("Group 1 - High Similarity (95%+ match):")
-        print("  • rec_001 'John Smith' ↔ rec_002 'Jon Smith' (96% match)")
-        print("  • rec_001 'John Smith' ↔ rec_003 'Johnny Smith' (89% match)")
-        print("  • rec_002 'Jon Smith' ↔ rec_003 'Johnny Smith' (91% match)")
+        print("  * rec_001 'John Smith' <-> rec_002 'Jon Smith' (96% match)")
+        print("  * rec_001 'John Smith' <-> rec_003 'Johnny Smith' (89% match)")
+        print("  * rec_002 'Jon Smith' <-> rec_003 'Johnny Smith' (91% match)")
         print()
         
         # Sarah Johnson group  
         print("Group 2 - High Similarity (92%+ match):")
-        print("  • rec_004 'Sarah Johnson' ↔ rec_005 'Sara Johnson' (94% match)")
+        print("  * rec_004 'Sarah Johnson' <-> rec_005 'Sara Johnson' (94% match)")
         print()
         
         # Robert Wilson group
         print("Group 3 - High Similarity (97%+ match):")
-        print("  • rec_006 'Robert Wilson' ↔ rec_007 'Bob Wilson' (97% match)")
+        print("  * rec_006 'Robert Wilson' <-> rec_007 'Bob Wilson' (97% match)")
         print()
         
         print("[INFO] SIMILARITY STATISTICS:")
-        print(f"  • Record pairs analyzed: {len(self.demo_data) * (len(self.demo_data) - 1) // 2}")
-        print("  • High-confidence matches: 5")
-        print("  • Processing time: 0.8 seconds")
+        print(f"  * Record pairs analyzed: {len(self.demo_data) * (len(self.demo_data) - 1) // 2}")
+        print("  * High-confidence matches: 5")
+        print("  * Processing time: 0.8 seconds")
     
     def demonstrate_clustering(self):
         """Show clustering in action"""
         
         self.print_title("STEP 2: INTELLIGENT CLUSTERING", "Grouping Related Records")
         
-        print("🔗 AI is now grouping similar records into entities...")
+        print("? AI is now grouping similar records into entities...")
         print("   Using graph-based clustering:")
-        print("   • Connected components analysis")
-        print("   • Confidence threshold filtering")
-        print("   • Transitive relationship detection")
+        print("   * Connected components analysis")
+        print("   * Confidence threshold filtering")
+        print("   * Transitive relationship detection")
         print()
         
         print("Building entity clusters...")
@@ -602,11 +602,11 @@ class InteractivePresentationDemo:
         
         for cluster in clusters:
             record_count = len(cluster["records"])
-            print(f"[DEMO] {cluster['primary_name']} → {record_count} record(s) (confidence: {cluster['confidence']:.1%})")
+            print(f"[DEMO] {cluster['primary_name']} -> {record_count} record(s) (confidence: {cluster['confidence']:.1%})")
             for record_id in cluster["records"]:
                 record = next(r for r in self.demo_data if r["id"] == record_id)
                 source = record["source_system"]
-                print(f"     └─ {record_id} from {source}")
+                print(f"     +- {record_id} from {source}")
             print()
         
         self.results["clusters"] = clusters
@@ -614,22 +614,22 @@ class InteractivePresentationDemo:
         print("[OK] Clustering complete!")
         print()
         print("[INFO] CLUSTERING RESULTS:")
-        print(f"  • Original records: {len(self.demo_data)}")
-        print(f"  • Unique entities found: {len(clusters)}")
-        print(f"  • Duplicate records eliminated: {len(self.demo_data) - len(clusters)}")
-        print(f"  • Average cluster confidence: {sum(c['confidence'] for c in clusters) / len(clusters):.1%}")
+        print(f"  * Original records: {len(self.demo_data)}")
+        print(f"  * Unique entities found: {len(clusters)}")
+        print(f"  * Duplicate records eliminated: {len(self.demo_data) - len(clusters)}")
+        print(f"  * Average cluster confidence: {sum(c['confidence'] for c in clusters) / len(clusters):.1%}")
     
     def demonstrate_golden_records(self):
         """Show golden record creation"""
         
         self.print_title("STEP 3: GOLDEN RECORD CREATION", "Building Perfect Customer Profiles")
         
-        print("✨ Creating golden customer records...")
+        print("* Creating golden customer records...")
         print("   AI selects the best data from each cluster:")
-        print("   • Highest data quality scores")
-        print("   • Most complete information")
-        print("   • Most recent updates")
-        print("   • Standardized formats")
+        print("   * Highest data quality scores")
+        print("   * Most complete information")
+        print("   * Most recent updates")
+        print("   * Standardized formats")
         print()
         
         # Create golden records
@@ -666,7 +666,7 @@ class InteractivePresentationDemo:
             golden_records.append(golden_record)
         
         # Show golden records
-        print("🏆 GOLDEN CUSTOMER RECORDS:")
+        print("? GOLDEN CUSTOMER RECORDS:")
         print("-" * 120)
         print(f"{'Entity':<10} {'Name':<20} {'Email':<30} {'Phone':<15} {'Company':<25} {'Quality':<8}")
         print("-" * 120)
@@ -688,11 +688,11 @@ class InteractivePresentationDemo:
         print("[OK] Golden records created!")
         print()
         print("[INFO] TRANSFORMATION SUMMARY:")
-        print(f"  • Input: {len(self.demo_data)} messy customer records")
-        print(f"  • Output: {len(golden_records)} clean customer entities")
-        print(f"  • Duplicates eliminated: {len(self.demo_data) - len(golden_records)}")
-        print(f"  • Data quality improvement: +{15}%")
-        print(f"  • Processing time: 2.3 seconds")
+        print(f"  * Input: {len(self.demo_data)} messy customer records")
+        print(f"  * Output: {len(golden_records)} clean customer entities")
+        print(f"  * Duplicates eliminated: {len(self.demo_data) - len(golden_records)}")
+        print(f"  * Data quality improvement: +{15}%")
+        print(f"  * Processing time: 2.3 seconds")
     
     def act3_show_results(self):
         """Act 3: Show before/after results and business value"""
@@ -741,7 +741,7 @@ class InteractivePresentationDemo:
         print("[OK] Unified data from all systems")
         print("[OK] Standardized, high-quality data")
         print("[OK] 0% duplication")
-        print("[OK] Complete 360° customer view")
+        print("[OK] Complete 360deg customer view")
         print("[OK] Optimized marketing and operations")
         print()
         
@@ -755,9 +755,9 @@ class InteractivePresentationDemo:
         print()
         print("AFTER - John Smith (1 golden record):")
         print("  Entity: John Smith, john.smith@email.com, 555-123-4567")
-        print("  ↳ Combines best data from all 3 sources")
-        print("  ↳ Links to original records for audit trail")
-        print("  ↳ 95% data quality score")
+        print("  -> Combines best data from all 3 sources")
+        print("  -> Links to original records for audit trail")
+        print("  -> 95% data quality score")
         print()
         
         # Show database efficiency
@@ -766,10 +766,10 @@ class InteractivePresentationDemo:
         final_count = len(self.results["golden_records"])
         reduction = ((original_count - final_count) / original_count) * 100
         
-        print(f"  • Records reduced: {original_count} → {final_count} ({reduction:.0f}% reduction)")
-        print(f"  • Storage savings: ~{reduction:.0f}%")
-        print(f"  • Query performance: +{reduction * 2:.0f}% faster")
-        print(f"  • Data quality: +15% improvement")
+        print(f"  * Records reduced: {original_count} -> {final_count} ({reduction:.0f}% reduction)")
+        print(f"  * Storage savings: ~{reduction:.0f}%")
+        print(f"  * Query performance: +{reduction * 2:.0f}% faster")
+        print(f"  * Data quality: +15% improvement")
     
     def show_business_value(self):
         """Show business value and ROI"""
@@ -778,35 +778,35 @@ class InteractivePresentationDemo:
         
         duplicate_rate = self.demo_metadata['duplication_rate']
         
-        print("💰 IMMEDIATE COST SAVINGS:")
+        print("? IMMEDIATE COST SAVINGS:")
         print()
         
         # Marketing efficiency
-        print("📧 Marketing Efficiency:")
-        print(f"  • Eliminate {duplicate_rate:.0%} duplicate email sends")
-        print(f"  • Improve campaign attribution accuracy")
-        print(f"  • Increase email deliverability rates")
-        print(f"  • Better customer segmentation")
+        print("? Marketing Efficiency:")
+        print(f"  * Eliminate {duplicate_rate:.0%} duplicate email sends")
+        print(f"  * Improve campaign attribution accuracy")
+        print(f"  * Increase email deliverability rates")
+        print(f"  * Better customer segmentation")
         print()
         
         # Customer service improvement
-        print("🎧 Customer Service Improvement:")
-        print("  • Single customer view for agents")
-        print("  • Faster issue resolution")
-        print("  • Reduced agent confusion")
-        print("  • Better customer satisfaction")
+        print("? Customer Service Improvement:")
+        print("  * Single customer view for agents")
+        print("  * Faster issue resolution")
+        print("  * Reduced agent confusion")
+        print("  * Better customer satisfaction")
         print()
         
         # Sales effectiveness
-        print("💼 Sales Effectiveness:")
-        print("  • No duplicate lead processing")
-        print("  • Complete customer history")
-        print("  • Better account planning")
-        print("  • Improved cross-sell opportunities")
+        print("? Sales Effectiveness:")
+        print("  * No duplicate lead processing")
+        print("  * Complete customer history")
+        print("  * Better account planning")
+        print("  * Improved cross-sell opportunities")
         print()
         
         # ROI calculation
-        print("📈 ROI PROJECTION (Annual):")
+        print("? ROI PROJECTION (Annual):")
         
         business_sizes = [
             {"name": "Your Size (10K customers)", "customers": 10000, "roi": "312%"},
@@ -820,17 +820,17 @@ class InteractivePresentationDemo:
             total_savings = duplicate_waste * 1.8  # Include service and sales savings
             
             print(f"  {size['name']}:")
-            print(f"    • Marketing savings: ${duplicate_waste:,.0f}")
-            print(f"    • Total annual savings: ${total_savings:,.0f}")
-            print(f"    • Implementation ROI: {size['roi']}")
+            print(f"    * Marketing savings: ${duplicate_waste:,.0f}")
+            print(f"    * Total annual savings: ${total_savings:,.0f}")
+            print(f"    * Implementation ROI: {size['roi']}")
             print()
         
         print("[QUICK] TECHNICAL ADVANTAGES:")
-        print("  • Processing speed: 250,000+ records/second")
-        print("  • Accuracy: 99.5% precision, 98% recall")
-        print("  • Real-time processing capability")
-        print("  • Scales to billions of records")
-        print("  • Enterprise-grade security")
+        print("  * Processing speed: 250,000+ records/second")
+        print("  * Accuracy: 99.5% precision, 98% recall")
+        print("  * Real-time processing capability")
+        print("  * Scales to billions of records")
+        print("  * Enterprise-grade security")
     
     def run_presentation_demo(self):
         """Run the complete presentation demo"""
@@ -860,10 +860,10 @@ class InteractivePresentationDemo:
             print("  [OK] Significant ROI and business value")
             print()
             print("Next Steps:")
-            print("  📞 Technical deep-dive session")
-            print("  🔬 Proof of concept with your data")
-            print("  📋 Implementation planning")
-            print("  🚀 Production deployment")
+            print("  ? Technical deep-dive session")
+            print("  ? Proof of concept with your data")
+            print("  ? Implementation planning")
+            print("  ? Production deployment")
             print()
             print("Questions & Discussion")
             

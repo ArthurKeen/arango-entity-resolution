@@ -25,19 +25,19 @@ class SharedUtilities:
     
     def print_success(self, message: str):
         """Print success message."""
-        print(f"✅ {message}")
+        print(f"[PASS] {message}")
     
     def print_error(self, message: str):
         """Print error message."""
-        print(f"❌ {message}")
+        print(f"[FAIL] {message}")
     
     def print_warning(self, message: str):
         """Print warning message."""
-        print(f"⚠️  {message}")
+        print(f"[WARN]?  {message}")
     
     def print_info(self, message: str):
         """Print info message."""
-        print(f"ℹ️  {message}")
+        print(f"[INFO]?  {message}")
     
     def run_command(self, command: str, capture_output: bool = True) -> Dict[str, Any]:
         """Run a command and return results."""

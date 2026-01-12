@@ -35,19 +35,19 @@
 - `CollectBlockingStrategy`
 - `BM25BlockingStrategy`
 
-### 🟡 Partially Covered (~60-75%)
+### ? Partially Covered (~60-75%)
 
-- 🟡 **Core Components**
+- ? **Core Components**
 - `EntityResolver` - Has tests but may not cover all paths
 - `ConfigurableERPipeline` - **NO TESTS** (CRITICAL GAP)
 
-- 🟡 **Legacy Services**
+- ? **Legacy Services**
 - `BlockingService` - Has tests
 - `SimilarityService` - Has tests
 - `ClusteringService` - Has tests
 - `GoldenRecordService` - Has tests
 
-- 🟡 **Data Manager**
+- ? **Data Manager**
 - `DataManager` - Has tests
 
 ### Missing Coverage (0-25%)
@@ -92,7 +92,7 @@
 - **Impact**: Database connection management
 - **Priority**: COMPLETED
 
-### 🟡 MEDIUM
+### ? MEDIUM
 
 5. **`logging.py`** (`utils/logging.py`)
 6. **`constants.py`** (`utils/constants.py`)
@@ -102,7 +102,7 @@
 
 ## Test File Mapping
 
-### Source → Test Mapping
+### Source -> Test Mapping
 
 | Source File | Test File | Status |
 |-------------|-----------|--------|

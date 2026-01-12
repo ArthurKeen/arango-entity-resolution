@@ -256,7 +256,7 @@ def sanitize_string_for_display(value: str, max_length: int = 100) -> str:
     
     # Remove control characters except newline/tab
     sanitized = ''.join(
-        char if (char.isprintable() or char in '\n\t') else '�'
+        char if (char.isprintable() or char in '\n\t') else '?'
         for char in value
     )
     

@@ -11,12 +11,12 @@
 
 | Category | Issues Found | Severity | Status |
 |----------|--------------|----------|--------|
-| **Security** | 2 | 🟠 Medium | Needs Attention |
-| **Code Duplication** | 4 | 🟡 Medium | Refactor Recommended |
-| **Hardcoding** | 8 | 🟡 Low-Medium | Use Constants |
-| **Code Quality** | 2 | 🟢 Low | Minor Improvements |
+| **Security** | 2 | ? Medium | Needs Attention |
+| **Code Duplication** | 4 | ? Medium | Refactor Recommended |
+| **Hardcoding** | 8 | ? Low-Medium | Use Constants |
+| **Code Quality** | 2 | ? Low | Minor Improvements |
 
-**Overall Risk Level**: 🟡 **MEDIUM** (down from MEDIUM-HIGH)
+**Overall Risk Level**: ? **MEDIUM** (down from MEDIUM-HIGH)
 
 ---
 
@@ -35,7 +35,7 @@ if os.getenv("USE_DEFAULT_PASSWORD") == "true":
 password = "testpassword123" # Development/testing only
 ```
 
-**Risk Level**: 🟠 **MEDIUM** 
+**Risk Level**: ? **MEDIUM** 
 **Impact**: Could allow unauthorized access if environment variable is set in production
 
 **Recommendation**: Only allow in pytest context:
@@ -70,7 +70,7 @@ raise ValueError("Database password is required...")
 password: str = "" # SECURITY: Must be provided via ARANGO_ROOT_PASSWORD environment variable
 ```
 
-**Risk Level**: 🟠 **MEDIUM** 
+**Risk Level**: ? **MEDIUM** 
 **Impact**: If validation fails, could connect without password
 
 **Recommendation**: Change default to `None` and require explicit configuration:
@@ -89,7 +89,7 @@ return cls(..., password=password or None)
 
 ---
 
-## 🟠 CODE DUPLICATION
+## ? CODE DUPLICATION
 
 ### 1. **String Normalization Logic** (30+ lines duplicated)
 
@@ -223,7 +223,7 @@ return self._stats.copy()
 
 ---
 
-## 🟡 HARDCODED VALUES
+## ? HARDCODED VALUES
 
 ### 1. **Hardcoded Thresholds** (Should use constants)
 

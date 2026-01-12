@@ -103,7 +103,7 @@ Replace with ASCII indicators:
 - `[OK]` instead of 
 - `[ERROR]` instead of 
 - `[WARNING]` instead of 
-- `[INFO]` instead of ℹ
+- `[INFO]` instead of [INFO]
 
 #### 4. Module Import Check
 Verifies that core modules can be imported:

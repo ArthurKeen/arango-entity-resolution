@@ -7,12 +7,12 @@ This document chronicles the evolution of the ArangoDB Entity Resolution System 
 ### Phase 1: Record Blocking Foundation
 **Initial Name**: ArangoDB Entity Resolution with Record Blocking 
 **Focus**: Full-text search-based record blocking for candidate generation 
-**Pipeline**: 5 stages (Ingestion → Blocking → Similarity → Clustering → Golden Records)
+**Pipeline**: 5 stages (Ingestion -> Blocking -> Similarity -> Clustering -> Golden Records)
 
 ### Phase 2: Scope Expansion
 **Current Name**: ArangoDB Advanced Entity Resolution System 
 **Approach**: Multi-technique entity resolution combining traditional and AI/ML methods 
-**Pipeline**: Expanded to support 9 stages (Ingestion → Blocking → Similarity → Graph Analysis → Embeddings → GraphRAG → Geospatial → LLM Curation → Golden Records)
+**Pipeline**: Expanded to support 9 stages (Ingestion -> Blocking -> Similarity -> Graph Analysis -> Embeddings -> GraphRAG -> Geospatial -> LLM Curation -> Golden Records)
 
 ## Implemented Capabilities
 
@@ -192,7 +192,7 @@ This document chronicles the evolution of the ArangoDB Entity Resolution System 
 - Quality assessment methods
 
 5. **Deduplication Frameworks**
-- Köpcke & Thor - Dedoop concepts
+- K?pcke & Thor - Dedoop concepts
 - Scalable processing patterns
 - Performance optimization
 

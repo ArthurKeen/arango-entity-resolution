@@ -251,7 +251,7 @@ if __name__ == "__main__":
         with open('src/entity_resolution/utils/enhanced_config.py', 'w') as f:
             f.write(config_content)
         
-        print("✅ Created enhanced configuration management")
+        print("[PASS] Created enhanced configuration management")
     
     def create_config_file(self) -> None:
         """Create default configuration file."""
@@ -290,7 +290,7 @@ if __name__ == "__main__":
         with open('config.json', 'w') as f:
             json.dump(default_config, f, indent=2)
         
-        print("✅ Created default configuration file")
+        print("[PASS] Created default configuration file")
     
     def fix_hardcoded_values(self) -> int:
         """Fix hardcoded values in high-priority files."""
@@ -305,7 +305,7 @@ if __name__ == "__main__":
         
         for file_path in high_priority_files:
             if os.path.exists(file_path):
-                print(f"📄 Fixing {file_path}...")
+                print(f"? Fixing {file_path}...")
                 
                 try:
                     with open(file_path, 'r', encoding='utf-8') as f:
@@ -341,21 +341,21 @@ if __name__ == "__main__":
                     if content != original_content:
                         with open(file_path, 'w', encoding='utf-8') as f:
                             f.write(content)
-                        print(f"   ✅ Applied configuration management")
+                        print(f"   [PASS] Applied configuration management")
                         fixes_applied += 1
                     else:
-                        print(f"   ℹ️  No hardcoded values found")
+                        print(f"   [INFO]?  No hardcoded values found")
                         
                 except Exception as e:
-                    print(f"   ❌ Error fixing {file_path}: {e}")
+                    print(f"   [FAIL] Error fixing {file_path}: {e}")
             else:
-                print(f"   ⚠️  File not found: {file_path}")
+                print(f"   [WARN]?  File not found: {file_path}")
         
         return fixes_applied
 
 def main():
     """Main function to implement configuration management."""
-    print("🔧 IMPLEMENTING CONFIGURATION MANAGEMENT")
+    print("? IMPLEMENTING CONFIGURATION MANAGEMENT")
     print("="*50)
     
     manager = ConfigurationManager()
@@ -369,8 +369,8 @@ def main():
     # Fix hardcoded values
     fixes_applied = manager.fix_hardcoded_values()
     
-    print(f"\n📊 Summary: Applied configuration management to {fixes_applied} files")
-    print("✅ Configuration management implementation completed")
+    print(f"\n? Summary: Applied configuration management to {fixes_applied} files")
+    print("[PASS] Configuration management implementation completed")
     
     return 0
 

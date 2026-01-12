@@ -1,7 +1,7 @@
 """
 Clustering Service for Entity Resolution (v1.x Legacy)
 
-⚠️  DEPRECATED: This service is deprecated and will be removed in v3.0.
+[WARN]?  DEPRECATED: This service is deprecated and will be removed in v3.0.
 Use v2.0 WCCClusteringService instead for better performance.
 
 Note: This is the legacy v1.x ClusteringService. For v2.0+, use:
@@ -24,7 +24,7 @@ class ClusteringService(BaseEntityResolutionService):
     """
     Entity clustering service using graph-based algorithms
     
-    ⚠️  DEPRECATED: Use WCCClusteringService instead.
+    [WARN]?  DEPRECATED: Use WCCClusteringService instead.
     This service will be removed in v3.0.
     
     Can work in two modes:

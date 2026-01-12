@@ -113,7 +113,7 @@ class AdvancedSimilarityTuner:
     
     def test_scenario_performance(self, scenario_name: str, test_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Test performance of a specific business scenario."""
-        print(f"🔍 Testing {scenario_name} Scenario")
+        print(f"? Testing {scenario_name} Scenario")
         print("="*50)
         
         scenario = self.business_scenarios[scenario_name]
@@ -151,12 +151,12 @@ class AdvancedSimilarityTuner:
                     }
                     
                     results["test_cases"].append(test_result)
-                    print(f"   Test {i+1}: {decision} (score: {score:.3f}) - {'✅' if test_result['correct'] else '❌'}")
+                    print(f"   Test {i+1}: {decision} (score: {score:.3f}) - {'[PASS]' if test_result['correct'] else '[FAIL]'}")
                 else:
-                    print(f"   Test {i+1}: ❌ Failed - {result.get('error', 'Unknown error')}")
+                    print(f"   Test {i+1}: [FAIL] Failed - {result.get('error', 'Unknown error')}")
                     
             except Exception as e:
-                print(f"   Test {i+1}: ❌ Exception - {e}")
+                print(f"   Test {i+1}: [FAIL] Exception - {e}")
         
         # Calculate performance metrics
         correct_predictions = sum(1 for tc in results["test_cases"] if tc.get('correct', False))
@@ -170,14 +170,14 @@ class AdvancedSimilarityTuner:
             "scenario_behavior": scenario.expected_behavior
         }
         
-        print(f"   📊 Accuracy: {accuracy:.1%} ({correct_predictions}/{total_tests})")
-        print(f"   📊 Behavior: {scenario.expected_behavior}")
+        print(f"   ? Accuracy: {accuracy:.1%} ({correct_predictions}/{total_tests})")
+        print(f"   ? Behavior: {scenario.expected_behavior}")
         
         return results
     
     def compare_scenarios(self, test_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Compare performance across all business scenarios."""
-        print("🔍 Comparing All Business Scenarios")
+        print("? Comparing All Business Scenarios")
         print("="*60)
         
         comparison_results = {
@@ -190,7 +190,7 @@ class AdvancedSimilarityTuner:
         scenario_performances = {}
         
         for scenario_name in self.business_scenarios.keys():
-            print(f"\n📋 Testing {scenario_name}...")
+            print(f"\n? Testing {scenario_name}...")
             results = self.test_scenario_performance(scenario_name, test_data)
             comparison_results["scenarios"][scenario_name] = results
             scenario_performances[scenario_name] = results["performance_metrics"]["accuracy"]
@@ -203,19 +203,19 @@ class AdvancedSimilarityTuner:
             "description": self.business_scenarios[best_scenario[0]].description
         }
         
-        print(f"\n🏆 Best Performing Scenario: {best_scenario[0]} ({best_scenario[1]:.1%} accuracy)")
+        print(f"\n? Best Performing Scenario: {best_scenario[0]} ({best_scenario[1]:.1%} accuracy)")
         
         # Generate recommendations
         recommendations = []
         for scenario_name, accuracy in scenario_performances.items():
             if accuracy >= 0.9:
-                recommendations.append(f"✅ {scenario_name}: Excellent performance ({accuracy:.1%})")
+                recommendations.append(f"[PASS] {scenario_name}: Excellent performance ({accuracy:.1%})")
             elif accuracy >= 0.8:
-                recommendations.append(f"✅ {scenario_name}: Good performance ({accuracy:.1%})")
+                recommendations.append(f"[PASS] {scenario_name}: Good performance ({accuracy:.1%})")
             elif accuracy >= 0.7:
-                recommendations.append(f"⚠️  {scenario_name}: Acceptable performance ({accuracy:.1%})")
+                recommendations.append(f"[WARN]?  {scenario_name}: Acceptable performance ({accuracy:.1%})")
             else:
-                recommendations.append(f"❌ {scenario_name}: Needs improvement ({accuracy:.1%})")
+                recommendations.append(f"[FAIL] {scenario_name}: Needs improvement ({accuracy:.1%})")
         
         comparison_results["recommendations"] = recommendations
         
@@ -223,7 +223,7 @@ class AdvancedSimilarityTuner:
     
     def generate_optimized_config(self, scenario_name: str, test_results: Dict[str, Any]) -> Dict[str, Any]:
         """Generate optimized configuration based on test results."""
-        print(f"🔧 Generating Optimized Configuration for {scenario_name}")
+        print(f"? Generating Optimized Configuration for {scenario_name}")
         print("="*60)
         
         scenario = self.business_scenarios[scenario_name]
@@ -270,20 +270,20 @@ class AdvancedSimilarityTuner:
                     "High error rate - consider adjusting m_prob and u_prob values"
                 )
             
-            print(f"   📊 Average correct score: {avg_correct_score:.3f}")
-            print(f"   📊 Average incorrect score: {avg_incorrect_score:.3f}")
-            print(f"   📊 Score separation: {avg_correct_score - avg_incorrect_score:.3f}")
-            print(f"   📊 Optimal upper threshold: {optimized_config['optimized_thresholds']['upper_threshold']:.3f}")
-            print(f"   📊 Optimal lower threshold: {optimized_config['optimized_thresholds']['lower_threshold']:.3f}")
+            print(f"   ? Average correct score: {avg_correct_score:.3f}")
+            print(f"   ? Average incorrect score: {avg_incorrect_score:.3f}")
+            print(f"   ? Score separation: {avg_correct_score - avg_incorrect_score:.3f}")
+            print(f"   ? Optimal upper threshold: {optimized_config['optimized_thresholds']['upper_threshold']:.3f}")
+            print(f"   ? Optimal lower threshold: {optimized_config['optimized_thresholds']['lower_threshold']:.3f}")
             
             return optimized_config
         else:
-            print("   ⚠️  Insufficient data for optimization")
+            print("   [WARN]?  Insufficient data for optimization")
             return {"scenario": scenario_name, "status": "insufficient_data"}
     
     def run_comprehensive_tuning(self) -> Dict[str, Any]:
         """Run comprehensive similarity algorithm tuning."""
-        print("🧪 ADVANCED SIMILARITY ALGORITHM TUNING")
+        print("? ADVANCED SIMILARITY ALGORITHM TUNING")
         print("="*70)
         print(f"Timestamp: {datetime.now().isoformat()}")
         
@@ -330,7 +330,7 @@ class AdvancedSimilarityTuner:
                 "timestamp": datetime.now().isoformat()
             }, f, indent=2, default=str)
         
-        print(f"\n📁 Comprehensive tuning report saved: {report_file}")
+        print(f"\n? Comprehensive tuning report saved: {report_file}")
         
         return {
             "comparison_results": comparison_results,
@@ -344,7 +344,7 @@ def main():
         results = tuner.run_comprehensive_tuning()
         return 0
     except Exception as e:
-        print(f"❌ Advanced similarity tuning failed: {e}")
+        print(f"[FAIL] Advanced similarity tuning failed: {e}")
         return 1
 
 if __name__ == "__main__":

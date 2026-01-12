@@ -78,7 +78,7 @@ The system is being developed in three phases with clear separation of concerns:
 - **Tier 2**: Traditional fuzzy blocking with soundex, n-grams (fast, good recall) - *already implemented*
 - **Tier 3**: Embedding-based semantic blocking with LSH and ANN (comprehensive, handles variations) - *Phase 2 addition*
 - **Multi-Resolution Embeddings**: Store both coarse embeddings (64-dim) for fast filtering and fine embeddings (256-dim) for accurate re-ranking
-- **Recall-Optimized**: Prioritize recall ≥95% at blocking stage, refine precision in later stages
+- **Recall-Optimized**: Prioritize recall >=95% at blocking stage, refine precision in later stages
 
 **Embedding & Vector Search Infrastructure**
 * **Tuple Embeddings for Structured Data:** Generate embeddings specifically designed for database records using hybrid architecture (attribute-level + tuple-level)
@@ -101,7 +101,7 @@ The system is being developed in three phases with clear separation of concerns:
 
 **Graph Algorithm Analysis**
 * **Shared Identifier Detection:** Identify entities connected through common phone numbers, emails, or addresses
-* **Alias Network Discovery:** Use graph traversal to find transitive aliases (if A→B and B→C, then A→C)
+* **Alias Network Discovery:** Use graph traversal to find transitive aliases (if A->B and B->C, then A->C)
 * **Network Metrics:** Calculate centrality, betweenness, and other graph metrics for entities
 * **Community Detection:** Apply advanced clustering algorithms for entity grouping
 
@@ -153,7 +153,7 @@ This project is built upon extensive academic research spanning traditional enti
 2. **"Probabilistic Models of Record Linkage and Deduplication"** by Fellegi and Sunter: Foundational paper on probabilistic record linkage
 3. **"A Comparative Analysis of Approximate Blocking Techniques for Entity Resolution"** by George Papadakis et al.: Practical comparison of blocking methods
 4. **"Magellan: Toward Building Entity Matching Management Systems"** by AnHai Doan et al.: End-to-end entity matching system design
-5. **"The Dedoop Framework for Scalable Entity Resolution"** by Köpcke and Thor: Scalable entity resolution in distributed computing
+5. **"The Dedoop Framework for Scalable Entity Resolution"** by K?pcke and Thor: Scalable entity resolution in distributed computing
 
 **Deep Learning & Embeddings for Entity Resolution**
 6. **"Deep Learning for Entity Matching: A Design Space Exploration"** by Mudgal et al. (2018): Systematic exploration of DL architectures (RNN, Attention, Siamese networks) for entity matching with insights on which architectures work best for different data types

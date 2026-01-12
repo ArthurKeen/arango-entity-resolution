@@ -3,7 +3,7 @@
 **For:** dnb_er Project Team 
 **Date:** December 2, 2025 
 **Status:** **FIXED - READY FOR YOUR TESTING** 
-**Impact:** **Your 5-minute WCC timeout → 3-8 seconds** 
+**Impact:** **Your 5-minute WCC timeout -> 3-8 seconds** 
 
 ---
 
@@ -185,7 +185,7 @@ print(f"Time: {elapsed:.2f}s") # Should be 3-8 seconds!
 
 # Check statistics
 stats = service.get_statistics()
-print(f"Algorithm: {stats['algorithm_used']}") # → 'bulk_python_dfs'
+print(f"Algorithm: {stats['algorithm_used']}") # -> 'bulk_python_dfs'
 ```
 
 **Step 3: Verify results**
@@ -240,8 +240,8 @@ print(f"Speedup: {custom_time / library_time:.1f}x")
 ### Memory Usage
 
 **Your graph:**
-- 16K edges ≈ 3-5 MB RAM
-- 24K vertices ≈ 2 MB RAM
+- 16K edges ~ 3-5 MB RAM
+- 24K vertices ~ 2 MB RAM
 - Total: **~5-7 MB** (negligible!)
 
 **Conclusion:** Memory is NOT a concern for your use case 

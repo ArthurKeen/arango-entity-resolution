@@ -40,7 +40,7 @@ class GraphTraversalBlockingStrategy(BlockingStrategy):
     - Entities with same CEO/executive (related businesses)
     - Any scenario where shared relationships indicate similarity
     
-    Performance: O(e × d²) where e = number of edges, d = avg entities per node
+    Performance: O(e x d^2) where e = number of edges, d = avg entities per node
     
     Example:
         ```python
@@ -157,7 +157,7 @@ class GraphTraversalBlockingStrategy(BlockingStrategy):
                 ...
             ]
         
-        Performance: O(e × d²) where e = edges, d = avg entities per node
+        Performance: O(e x d^2) where e = edges, d = avg entities per node
         Fast when entities share few common resources (high selectivity)
         """
         start_time = time.time()

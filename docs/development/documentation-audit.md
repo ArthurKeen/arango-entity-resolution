@@ -355,13 +355,13 @@ search_view: Optional[str] = None,
 ```
 
 3. Default values match
-- Documentation: `threshold=0.85` → Code: `threshold: float = 0.85`
-- Documentation: `batch_size=100` → Code: `batch_size: int = 100`
-- Documentation: `levenshtein_threshold=0.85` → Code: `levenshtein_threshold: float = 0.85`
+- Documentation: `threshold=0.85` -> Code: `threshold: float = 0.85`
+- Documentation: `batch_size=100` -> Code: `batch_size: int = 100`
+- Documentation: `levenshtein_threshold=0.85` -> Code: `levenshtein_threshold: float = 0.85`
 
 4. Performance claims verified
-- Documentation: "~100-150 records/minute" → Source: dnb_er measurements 
-- Documentation: "100K+ pairs/second" → Source: BatchSimilarityService benchmarks 
+- Documentation: "~100-150 records/minute" -> Source: dnb_er measurements 
+- Documentation: "100K+ pairs/second" -> Source: BatchSimilarityService benchmarks 
 
 ---
 

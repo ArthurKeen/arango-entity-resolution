@@ -28,7 +28,7 @@ class SimilarityDiagnostic:
         
     def test_basic_similarity(self):
         """Test basic similarity computation with known data."""
-        print("🔍 Testing Basic Similarity Computation")
+        print("? Testing Basic Similarity Computation")
         print("="*50)
         
         # Test data with known similarities
@@ -84,7 +84,7 @@ class SimilarityDiagnostic:
         ]
         
         for i, test_case in enumerate(test_cases, 1):
-            print(f"\n📋 Test Case {i}: {test_case['name']}")
+            print(f"\n? Test Case {i}: {test_case['name']}")
             print(f"   Expected: {test_case['expected_score']}")
             
             try:
@@ -100,36 +100,36 @@ class SimilarityDiagnostic:
                 if result.get('success'):
                     score = result.get('total_score', 0)
                     normalized = result.get('normalized_score', 0)
-                    print(f"   ✅ Total Score: {score:.6f}")
-                    print(f"   ✅ Normalized Score: {normalized:.6f}")
-                    print(f"   ✅ Decision: {result.get('decision', 'unknown')}")
+                    print(f"   [PASS] Total Score: {score:.6f}")
+                    print(f"   [PASS] Normalized Score: {normalized:.6f}")
+                    print(f"   [PASS] Decision: {result.get('decision', 'unknown')}")
                     
                     if 'field_scores' in result:
-                        print(f"   📊 Field Scores:")
+                        print(f"   ? Field Scores:")
                         for field, scores in result['field_scores'].items():
                             print(f"      {field}: {scores['similarity']:.3f} (weight: {scores['weight']:.3f})")
                 else:
-                    print(f"   ❌ Error: {result.get('error', 'Unknown error')}")
+                    print(f"   [FAIL] Error: {result.get('error', 'Unknown error')}")
                     
             except Exception as e:
-                print(f"   ❌ Exception: {e}")
+                print(f"   [FAIL] Exception: {e}")
     
     def test_field_weights(self):
         """Test field weights configuration."""
-        print("\n🔍 Testing Field Weights Configuration")
+        print("\n? Testing Field Weights Configuration")
         print("="*50)
         
         try:
             # Get field weights
             field_weights = self.similarity_service.get_field_weights()
-            print(f"📊 Field Weights Configuration:")
+            print(f"? Field Weights Configuration:")
             print(json.dumps(field_weights, indent=2))
             
             # Test with a simple case
             doc_a = {"first_name": "John", "last_name": "Smith"}
             doc_b = {"first_name": "John", "last_name": "Smith"}
             
-            print(f"\n🧪 Testing with simple case:")
+            print(f"\n? Testing with simple case:")
             print(f"   Doc A: {doc_a}")
             print(f"   Doc B: {doc_b}")
             
@@ -137,11 +137,11 @@ class SimilarityDiagnostic:
             print(f"   Result: {json.dumps(result, indent=2)}")
             
         except Exception as e:
-            print(f"❌ Field weights test failed: {e}")
+            print(f"[FAIL] Field weights test failed: {e}")
     
     def test_individual_algorithms(self):
         """Test individual similarity algorithms."""
-        print("\n🔍 Testing Individual Similarity Algorithms")
+        print("\n? Testing Individual Similarity Algorithms")
         print("="*50)
         
         test_strings = [
@@ -154,7 +154,7 @@ class SimilarityDiagnostic:
         ]
         
         for str_a, str_b in test_strings:
-            print(f"\n📋 Testing: '{str_a}' vs '{str_b}'")
+            print(f"\n? Testing: '{str_a}' vs '{str_b}'")
             
             try:
                 # Test n-gram similarity
@@ -174,11 +174,11 @@ class SimilarityDiagnostic:
                 print(f"   Phonetic: {ph_sim:.3f}")
                 
             except Exception as e:
-                print(f"   ❌ Algorithm test failed: {e}")
+                print(f"   [FAIL] Algorithm test failed: {e}")
     
     def test_fellegi_sunter_framework(self):
         """Test the Fellegi-Sunter framework directly."""
-        print("\n🔍 Testing Fellegi-Sunter Framework")
+        print("\n? Testing Fellegi-Sunter Framework")
         print("="*50)
         
         # Test with known similarities
@@ -191,21 +191,21 @@ class SimilarityDiagnostic:
         
         field_weights = self.similarity_service.get_field_weights()
         
-        print(f"📊 Test Similarities: {test_similarities}")
-        print(f"📊 Field Weights: {json.dumps(field_weights, indent=2)}")
+        print(f"? Test Similarities: {test_similarities}")
+        print(f"? Field Weights: {json.dumps(field_weights, indent=2)}")
         
         try:
             result = self.similarity_service._compute_fellegi_sunter_score(
                 test_similarities, field_weights, include_details=True
             )
-            print(f"📊 Fellegi-Sunter Result: {json.dumps(result, indent=2)}")
+            print(f"? Fellegi-Sunter Result: {json.dumps(result, indent=2)}")
             
         except Exception as e:
-            print(f"❌ Fellegi-Sunter test failed: {e}")
+            print(f"[FAIL] Fellegi-Sunter test failed: {e}")
     
     def run_full_diagnosis(self):
         """Run complete similarity diagnosis."""
-        print("🔍 SIMILARITY COMPUTATION DIAGNOSIS")
+        print("? SIMILARITY COMPUTATION DIAGNOSIS")
         print("="*60)
         print(f"Timestamp: {datetime.now().isoformat()}")
         
@@ -215,10 +215,10 @@ class SimilarityDiagnostic:
             self.test_individual_algorithms()
             self.test_fellegi_sunter_framework()
             
-            print(f"\n✅ Diagnosis completed successfully!")
+            print(f"\n[PASS] Diagnosis completed successfully!")
             
         except Exception as e:
-            print(f"❌ Diagnosis failed: {e}")
+            print(f"[FAIL] Diagnosis failed: {e}")
             return False
         
         return True
@@ -230,7 +230,7 @@ def main():
         success = diagnostic.run_full_diagnosis()
         return 0 if success else 1
     except Exception as e:
-        print(f"❌ Diagnostic failed: {e}")
+        print(f"[FAIL] Diagnostic failed: {e}")
         return 1
 
 if __name__ == "__main__":

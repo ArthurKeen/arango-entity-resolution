@@ -441,7 +441,7 @@ class WCCClusteringService:
             self.logger.warning("No edges found in collection")
             return []
         
-        self.logger.info(f"  ✓ Fetched {len(edges):,} edges in one query")
+        self.logger.info(f"  [OK] Fetched {len(edges):,} edges in one query")
         
         # Step 2: Build adjacency graph in memory
         self.logger.info("Building adjacency graph in Python memory...")
@@ -464,7 +464,7 @@ class WCCClusteringService:
             graph[from_id].add(to_id)
             graph[to_id].add(from_id)
         
-        self.logger.info(f"  ✓ Built graph with {len(all_vertices):,} vertices")
+        self.logger.info(f"  [OK] Built graph with {len(all_vertices):,} vertices")
         
         # Step 3: DFS to find connected components
         self.logger.info("Finding connected components using Python DFS...")
@@ -503,7 +503,7 @@ class WCCClusteringService:
             if component_keys:
                 clusters.append(sorted(component_keys))
         
-        self.logger.info(f"  ✓ Found {len(clusters):,} connected components")
+        self.logger.info(f"  [OK] Found {len(clusters):,} connected components")
         
         return clusters
     

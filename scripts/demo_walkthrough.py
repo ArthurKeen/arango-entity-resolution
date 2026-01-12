@@ -31,24 +31,24 @@ class DemoWalkthrough:
         
     def print_section(self, title: str, width: int = 80):
         """Print section header"""
-        print("\n" + "─" * width)
-        print(f"📋 {title}")
-        print("─" * width)
+        print("\n" + "-" * width)
+        print(f"? {title}")
+        print("-" * width)
     
     def print_step(self, step: str, details: str = ""):
         """Print a demo step"""
-        print(f"\n🎯 {step}")
+        print(f"\n? {step}")
         if details:
             print(f"   {details}")
     
     def print_data_example(self, title: str, data: dict):
         """Print a data example"""
-        print(f"\n📊 {title}:")
+        print(f"\n? {title}:")
         print(json.dumps(data, indent=2))
     
     def print_results(self, title: str, results: dict):
         """Print results in a formatted way"""
-        print(f"\n✅ {title}:")
+        print(f"\n[PASS] {title}:")
         if isinstance(results, dict):
             for key, value in results.items():
                 if isinstance(value, (dict, list)):
@@ -61,7 +61,7 @@ class DemoWalkthrough:
     def run_demo(self):
         """Run the complete demo walkthrough"""
         print("=" * 80)
-        print("🎬 ENTITY RESOLUTION DEMO WALKTHROUGH".center(80))
+        print("? ENTITY RESOLUTION DEMO WALKTHROUGH".center(80))
         print("=" * 80)
         print()
         print("This demo shows how AI solves the duplicate customer problem")
@@ -105,26 +105,26 @@ class DemoWalkthrough:
         self.print_data_example("Another Customer Record", sample_customers[1])
         self.print_data_example("Yet Another Customer Record", sample_customers[2])
         
-        print("\n🤔 Wait... These look like different customers, right?")
+        print("\n? Wait... These look like different customers, right?")
         print("   But look closer:")
-        print("   • Same phone number: 555-123-4567")
-        print("   • Same company: Acme Corp (with variations)")
-        print("   • Same person, different systems!")
+        print("   * Same phone number: 555-123-4567")
+        print("   * Same company: Acme Corp (with variations)")
+        print("   * Same person, different systems!")
         
         self.print_step("The Business Impact", "This costs real money every day")
-        print("   • Marketing sends 3 emails to the same person")
-        print("   • Customer service has 3 different profiles")
-        print("   • Sales team can't see complete history")
-        print("   • For 50K customers: $135K annual waste")
+        print("   * Marketing sends 3 emails to the same person")
+        print("   * Customer service has 3 different profiles")
+        print("   * Sales team can't see complete history")
+        print("   * For 50K customers: $135K annual waste")
         
         # Act 2: The Solution
         self.print_section("ACT 2: AI SOLVES THE PROBLEM")
         
         self.print_step("Step 1: AI Similarity Analysis", "Advanced algorithms find matches")
-        print("   • Jaro-Winkler similarity for names")
-        print("   • Phonetic matching (Jon = John)")
-        print("   • Email normalization")
-        print("   • Address standardization")
+        print("   * Jaro-Winkler similarity for names")
+        print("   * Phonetic matching (Jon = John)")
+        print("   * Email normalization")
+        print("   * Address standardization")
         
         # Simulate similarity results
         similarity_results = {
@@ -138,9 +138,9 @@ class DemoWalkthrough:
         self.print_results("Similarity Analysis Results", similarity_results)
         
         self.print_step("Step 2: Intelligent Clustering", "AI groups duplicates using graph theory")
-        print("   • Each record is a node")
-        print("   • Similarity scores are edges")
-        print("   • Connected components become entities")
+        print("   * Each record is a node")
+        print("   * Similarity scores are edges")
+        print("   * Connected components become entities")
         
         # Simulate clustering results
         clustering_results = {
@@ -153,10 +153,10 @@ class DemoWalkthrough:
         self.print_results("Clustering Results", clustering_results)
         
         self.print_step("Step 3: Golden Record Creation", "AI creates perfect customer profiles")
-        print("   • Best email: Longest, most complete")
-        print("   • Best phone: Highest quality score")
-        print("   • Best address: Most standardized")
-        print("   • Complete audit trail maintained")
+        print("   * Best email: Longest, most complete")
+        print("   * Best phone: Highest quality score")
+        print("   * Best address: Most standardized")
+        print("   * Complete audit trail maintained")
         
         # Show golden record example
         golden_record = {
@@ -177,10 +177,10 @@ class DemoWalkthrough:
         self.print_section("ACT 3: BUSINESS VALUE & ROI")
         
         self.print_step("Immediate Benefits", "What you get right away")
-        print("   • Marketing efficiency: 30% fewer duplicate sends")
-        print("   • Customer service: Single customer view")
-        print("   • Sales effectiveness: Complete customer history")
-        print("   • Data quality: 95%+ accuracy")
+        print("   * Marketing efficiency: 30% fewer duplicate sends")
+        print("   * Customer service: Single customer view")
+        print("   * Sales effectiveness: Complete customer history")
+        print("   * Data quality: 95%+ accuracy")
         
         self.print_step("ROI Calculations", "Your return on investment")
         
@@ -209,44 +209,44 @@ class DemoWalkthrough:
         self.print_results("Enterprise ROI", enterprise_roi)
         
         self.print_step("Technical Capabilities", "What makes this possible")
-        print("   • Performance: 250,000+ records/second")
-        print("   • Accuracy: 99.5% precision, 98% recall")
-        print("   • Scalability: Linear scaling to billions")
-        print("   • ArangoDB: Full-text search + graph database")
+        print("   * Performance: 250,000+ records/second")
+        print("   * Accuracy: 99.5% precision, 98% recall")
+        print("   * Scalability: Linear scaling to billions")
+        print("   * ArangoDB: Full-text search + graph database")
         
         # Next Steps
         self.print_section("NEXT STEPS")
         
-        print("🚀 Ready to get started? Here's your path forward:")
+        print("? Ready to get started? Here's your path forward:")
         print()
-        print("1. 📋 Technical Deep Dive (1 week)")
-        print("   • Architecture review")
-        print("   • Integration planning") 
-        print("   • Performance testing")
+        print("1. ? Technical Deep Dive (1 week)")
+        print("   * Architecture review")
+        print("   * Integration planning") 
+        print("   * Performance testing")
         print()
-        print("2. 🧪 Proof of Concept (2-4 weeks)")
-        print("   • Your actual data")
-        print("   • Custom similarity rules")
-        print("   • ROI validation")
+        print("2. ? Proof of Concept (2-4 weeks)")
+        print("   * Your actual data")
+        print("   * Custom similarity rules")
+        print("   * ROI validation")
         print()
-        print("3. 🚀 Pilot Implementation (6-8 weeks)")
-        print("   • Limited production deployment")
-        print("   • Training and onboarding")
-        print("   • Success metrics")
+        print("3. ? Pilot Implementation (6-8 weeks)")
+        print("   * Limited production deployment")
+        print("   * Training and onboarding")
+        print("   * Success metrics")
         print()
-        print("4. 🎯 Full Production (8-12 weeks)")
-        print("   • Complete rollout")
-        print("   • Monitoring and optimization")
-        print("   • Ongoing support")
+        print("4. ? Full Production (8-12 weeks)")
+        print("   * Complete rollout")
+        print("   * Monitoring and optimization")
+        print("   * Ongoing support")
         
         print("\n" + "=" * 80)
-        print("🎉 DEMO COMPLETE!".center(80))
+        print("? DEMO COMPLETE!".center(80))
         print("=" * 80)
         print()
-        print("✅ You've seen how AI solves the duplicate customer problem")
-        print("✅ You understand the business impact and ROI")
-        print("✅ You know the technical capabilities")
-        print("✅ You have a clear path to implementation")
+        print("[PASS] You've seen how AI solves the duplicate customer problem")
+        print("[PASS] You understand the business impact and ROI")
+        print("[PASS] You know the technical capabilities")
+        print("[PASS] You have a clear path to implementation")
         print()
         print("Ready to transform your customer data? Let's talk next steps!")
 

@@ -164,8 +164,8 @@ def create_sample_data(db, collection_name: str):
     for customer in customers:
         collection.insert(customer)
     
-    print(f"✓ Created collection '{collection_name}' with {len(customers)} customers")
-    print(f"✓ Intentional duplicate groups:")
+    print(f"[OK] Created collection '{collection_name}' with {len(customers)} customers")
+    print(f"[OK] Intentional duplicate groups:")
     print(f"  - John Smith (3 variations: cust_001, cust_002, cust_003)")
     print(f"  - Jane Doe (2 variations: cust_004, cust_005)")
     print(f"  - Maria Garcia (2 variations: cust_007, cust_008)")
@@ -195,10 +195,10 @@ def generate_embeddings(db, collection_name: str):
         database_name=db.name
     )
     
-    print(f"✓ Generated embeddings for {stats['generated']} documents")
-    print(f"✓ Embedding dimension: {embedding_service.embedding_dim}")
-    print(f"✓ Model: {embedding_service.model_name}")
-    print(f"✓ Coverage: {stats['updated']}/{stats['total_docs']} documents")
+    print(f"[OK] Generated embeddings for {stats['generated']} documents")
+    print(f"[OK] Embedding dimension: {embedding_service.embedding_dim}")
+    print(f"[OK] Model: {embedding_service.model_name}")
+    print(f"[OK] Coverage: {stats['updated']}/{stats['total_docs']} documents")
     
     return stats
 
@@ -221,11 +221,11 @@ def run_vector_blocking(db, collection_name: str):
     pairs = strategy.generate_candidates()
     
     # Display results
-    print(f"\n✓ Found {len(pairs)} candidate pairs")
+    print(f"\n[OK] Found {len(pairs)} candidate pairs")
     
     stats = strategy.get_statistics()
-    print(f"✓ Execution time: {stats['execution_time_seconds']:.2f} seconds")
-    print(f"✓ Embedding coverage: {stats['embedding_coverage_percent']:.1f}%")
+    print(f"[OK] Execution time: {stats['execution_time_seconds']:.2f} seconds")
+    print(f"[OK] Embedding coverage: {stats['embedding_coverage_percent']:.1f}%")
     
     # Show top pairs by similarity
     print(f"\nTop candidate pairs (sorted by similarity):")
@@ -257,8 +257,8 @@ def run_exact_blocking(db, collection_name: str):
     
     pairs = strategy.generate_candidates()
     
-    print(f"✓ Found {len(pairs)} candidate pairs")
-    print(f"✓ Execution time: {strategy.get_statistics()['execution_time_seconds']:.2f} seconds")
+    print(f"[OK] Found {len(pairs)} candidate pairs")
+    print(f"[OK] Execution time: {strategy.get_statistics()['execution_time_seconds']:.2f} seconds")
     
     return pairs
 
@@ -303,8 +303,8 @@ def run_fuzzy_blocking(db, collection_name: str):
     
     pairs = strategy.generate_candidates()
     
-    print(f"✓ Found {len(pairs)} candidate pairs")
-    print(f"✓ Execution time: {strategy.get_statistics()['execution_time_seconds']:.2f} seconds")
+    print(f"[OK] Found {len(pairs)} candidate pairs")
+    print(f"[OK] Execution time: {strategy.get_statistics()['execution_time_seconds']:.2f} seconds")
     
     return pairs
 
@@ -388,7 +388,7 @@ def analyze_similarity_distribution(db, collection_name: str):
         for bucket_info in sorted(stats['distribution'], key=lambda x: x['bucket'], reverse=True):
             bucket = bucket_info['bucket']
             count = bucket_info['count']
-            bar = '█' * min(count, 50)
+            bar = '#' * min(count, 50)
             print(f"  {bucket:.1f}-{bucket+0.1:.1f}: {bar} ({count})")
     else:
         print(f"Could not analyze distribution: {stats['error']}")
@@ -425,7 +425,7 @@ def demonstrate_geographic_blocking(db, collection_name: str):
     
     pairs = strategy.generate_candidates()
     
-    print(f"✓ Found {len(pairs)} candidate pairs (same state only)")
+    print(f"[OK] Found {len(pairs)} candidate pairs (same state only)")
     print(f"\nThis ensures cross-state duplicates are not matched,")
     print(f"which is useful when records from different states are known to be distinct.")
 
@@ -443,7 +443,7 @@ def main():
     print("\nConnecting to ArangoDB...")
     db_manager = DatabaseManager()
     db = db_manager.get_database('entity_resolution')
-    print(f"✓ Connected to database '{db.name}'")
+    print(f"[OK] Connected to database '{db.name}'")
     
     try:
         # Run the example workflow
@@ -460,7 +460,7 @@ def main():
         
         # Summary
         print_section("Summary")
-        print("✓ Vector blocking successfully demonstrated!")
+        print("[OK] Vector blocking successfully demonstrated!")
         print(f"\nKey Takeaways:")
         print(f"  1. Vector blocking uses semantic similarity (embeddings)")
         print(f"  2. It captures fuzzy matches that exact blocking misses")
@@ -485,14 +485,14 @@ def main():
             db.delete_view(view_name)
         except:
             pass  # View doesn't exist or already deleted
-        print("✓ Cleanup complete")
+        print("[OK] Cleanup complete")
 
 
 if __name__ == '__main__':
     try:
         main()
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\n[FAIL] Error: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

@@ -265,7 +265,7 @@ def main():
         else:
             print("[ERROR] Invalid choice. Please enter 1-6 or q.")
         
-        print("\n" + "─" * 80 + "\n")
+        print("\n" + "-" * 80 + "\n")
 
 
 if __name__ == "__main__":

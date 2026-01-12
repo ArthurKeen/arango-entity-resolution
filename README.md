@@ -131,7 +131,7 @@ Entity resolution is a critical data quality challenge that directly impacts bus
 This system implements a comprehensive, multi-stage entity resolution pipeline that combines traditional and cutting-edge AI/ML techniques:
 
 ### **1. Record Blocking (Foundation)**
-**Full-Text Search for Candidate Generation** - The essential first step that makes large-scale entity resolution computationally feasible by reducing O(n²) comparisons to O(n).
+**Full-Text Search for Candidate Generation** - The essential first step that makes large-scale entity resolution computationally feasible by reducing O(n^2) comparisons to O(n).
 
 ### **2. Graph Algorithms (Network Analysis)**
 **Weakly Connected Components** - Identify entities connected through shared attributes (phone numbers, emails, addresses) to discover potential aliases and entity networks.
@@ -336,34 +336,34 @@ The system leverages ArangoDB's unique multi-model capabilities:
 The entity resolution process follows a comprehensive multi-stage pipeline combining traditional and AI-powered techniques:
 
 **Stage 1: Data Ingestion & Preparation**
-- Multiple data sources (CRM, Marketing, Sales, Support, Documents) → Validate & Normalize → Feature extraction
+- Multiple data sources (CRM, Marketing, Sales, Support, Documents) -> Validate & Normalize -> Feature extraction
 
 **Stage 2: Record Blocking (Foundational Filtering)**
-- Full-text search with ArangoSearch → Generate candidate pairs → 99%+ reduction in comparisons
+- Full-text search with ArangoSearch -> Generate candidate pairs -> 99%+ reduction in comparisons
 - Strategies: Exact matching, Phonetic (Soundex), N-gram, Sorted neighborhood
 
 **Stage 3: Traditional Similarity Computation**
-- Candidate pairs → Field-level similarity (Jaro-Winkler, Levenshtein, Jaccard) → Fellegi-Sunter scoring
+- Candidate pairs -> Field-level similarity (Jaro-Winkler, Levenshtein, Jaccard) -> Fellegi-Sunter scoring
 
 **Stage 4: Graph Algorithm Analysis**
-- Build entity graph → Weakly Connected Components → Identify alias networks through shared identifiers (phone, email, address)
+- Build entity graph -> Weakly Connected Components -> Identify alias networks through shared identifiers (phone, email, address)
 
 **Stage 5: Embedding-Based Similarity**
-- Generate GraphML embeddings (node + edge features) → Vector search → Find semantically similar entities
+- Generate GraphML embeddings (node + edge features) -> Vector search -> Find semantically similar entities
 
 **Stage 6: Document Entity Extraction (GraphRAG)**
-- LLM-based entity extraction from documents → Generate embeddings → Link to existing entities via semantic similarity
+- LLM-based entity extraction from documents -> Generate embeddings -> Link to existing entities via semantic similarity
 
 **Stage 7: Geospatial-Temporal Validation**
-- Location-time analysis → Validate or reject matches based on spatial-temporal feasibility
-- Confirm: Same place, same time → Reject: Proven to be in different locations
+- Location-time analysis -> Validate or reject matches based on spatial-temporal feasibility
+- Confirm: Same place, same time -> Reject: Proven to be in different locations
 
 **Stage 8: LLM-Based Curation**
-- Aggregate evidence from all techniques → LLM evaluation → Final entity resolution decisions
+- Aggregate evidence from all techniques -> LLM evaluation -> Final entity resolution decisions
 - Human-like reasoning over similarity scores, graph connections, embeddings, and spatial-temporal data
 
 **Stage 9: Golden Record Generation**
-- Resolved entity clusters → Data fusion → Master record creation with complete lineage
+- Resolved entity clusters -> Data fusion -> Master record creation with complete lineage
 
 > See the [Entity Resolution Workflow diagram](#entity-resolution-workflow) above for the traditional pipeline. Advanced stages (GraphML, GraphRAG, Geospatial, LLM curation) will be added in future diagram updates.
 
@@ -372,29 +372,29 @@ The entity resolution process follows a comprehensive multi-stage pipeline combi
 The entity resolution process consists of five detailed stages (see [workflow diagram](#entity-resolution-workflow) above):
 
 **Stage 1: Data Ingestion & Preprocessing**
-- Raw data sources → Data quality assessment → Schema normalization → ArangoDB document store
+- Raw data sources -> Data quality assessment -> Schema normalization -> ArangoDB document store
 
 **Stage 2: Record Blocking (Candidate Generation)**
-- Full dataset → Multiple blocking strategies (Exact, Phonetic, N-gram) → Candidate pairs (99% reduction)
+- Full dataset -> Multiple blocking strategies (Exact, Phonetic, N-gram) -> Candidate pairs (99% reduction)
 
 **Stage 3: Similarity Computation & Classification**
-- Candidate pairs → Field-level similarity → Probabilistic scoring (Fellegi-Sunter) → Decision classification
+- Candidate pairs -> Field-level similarity -> Probabilistic scoring (Fellegi-Sunter) -> Decision classification
 
 **Stage 4: Graph-Based Clustering**
-- Similarity graph → Graph construction → Connected components (WCC) → Cluster validation
+- Similarity graph -> Graph construction -> Connected components (WCC) -> Cluster validation
 
 **Stage 5: Golden Record Generation**
-- Entity clusters → Source prioritization → Conflict resolution → Master record creation
+- Entity clusters -> Source prioritization -> Conflict resolution -> Master record creation
 
 ### **Performance & Scalability**
 
 The system demonstrates exceptional scalability through record blocking (see [workflow diagram](#entity-resolution-workflow) for the complete pipeline):
 
 **Scale Analysis:**
-- **10K Records**: Naive 50M pairs → Blocked 500K pairs → 2 seconds
-- **100K Records**: Naive 5B pairs → Blocked 5M pairs → 20 seconds 
-- **1M Records**: Naive 500B pairs → Blocked 50M pairs → 3 minutes
-- **10M Records**: Naive 50T pairs → Blocked 500M pairs → 30 minutes
+- **10K Records**: Naive 50M pairs -> Blocked 500K pairs -> 2 seconds
+- **100K Records**: Naive 5B pairs -> Blocked 5M pairs -> 20 seconds 
+- **1M Records**: Naive 500B pairs -> Blocked 50M pairs -> 3 minutes
+- **10M Records**: Naive 50T pairs -> Blocked 500M pairs -> 30 minutes
 
 **Key Performance Metrics:**
 - **99%+ pair reduction** through intelligent blocking strategies

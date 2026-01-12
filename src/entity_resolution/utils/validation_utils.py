@@ -140,24 +140,24 @@ def validate_er_results(
                 if actual_count == expected_count:
                     validation_result['status'] = 'pass'
                     passed_count += 1
-                    logger.info(f"  ✓ {description}: {actual_count:,} documents (expected: {expected_count:,})")
+                    logger.info(f"  [OK] {description}: {actual_count:,} documents (expected: {expected_count:,})")
                 else:
                     validation_result['status'] = 'fail'
                     failed_count += 1
                     logger.warning(
-                        f"  ⚠ {description}: Count mismatch - "
+                        f"  [WARN] {description}: Count mismatch - "
                         f"expected {expected_count:,}, found {actual_count:,}"
                     )
             else:
                 validation_result['status'] = 'fail'
                 validation_result['error'] = f"Collection '{collection_name}' does not exist"
                 failed_count += 1
-                logger.warning(f"  ⚠ {description}: Collection does not exist")
+                logger.warning(f"  [WARN] {description}: Collection does not exist")
         except Exception as e:
             validation_result['status'] = 'error'
             validation_result['error'] = str(e)
             error_count += 1
-            logger.error(f"  ✗ {description}: Error during validation - {e}")
+            logger.error(f"  [X] {description}: Error during validation - {e}")
         
         validation_results.append(validation_result)
     
@@ -176,10 +176,10 @@ def validate_er_results(
     }
     
     if all_passed:
-        logger.info(f"✓ Validation passed: {passed_count}/{len(validations)} validations passed")
+        logger.info(f"[OK] Validation passed: {passed_count}/{len(validations)} validations passed")
     else:
         logger.warning(
-            f"⚠ Validation issues: {passed_count} passed, "
+            f"[WARN] Validation issues: {passed_count} passed, "
             f"{failed_count} failed, {error_count} errors"
         )
     

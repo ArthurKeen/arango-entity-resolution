@@ -180,10 +180,10 @@ pip install arango-entity-resolution>=3.1.0
 ```
 
 2. **Replace Project Code:**
-- Replace `clean_previous_results()` → `clean_er_results()`
-- Replace view analyzer verification → `verify_and_fix_view_analyzers()`
-- Replace environment checks → `verify_arango_environment()`
-- Replace result validation → `validate_er_results()`
+- Replace `clean_previous_results()` -> `clean_er_results()`
+- Replace view analyzer verification -> `verify_and_fix_view_analyzers()`
+- Replace environment checks -> `verify_arango_environment()`
+- Replace result validation -> `validate_er_results()`
 
 3. **Remove Duplicate Code:**
 - Remove project-specific utility implementations

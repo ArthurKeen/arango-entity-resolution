@@ -2,7 +2,7 @@
 
 ## Overview
 
-Entity blocking is a crucial technique in entity resolution (ER) that drastically reduces the number of comparisons needed to find duplicate records. Instead of comparing every record against every other record (an O(N²) problem), blocking groups similar records into "blocks" using a common key, limiting comparisons to only the records within each block.
+Entity blocking is a crucial technique in entity resolution (ER) that drastically reduces the number of comparisons needed to find duplicate records. Instead of comparing every record against every other record (an O(N^2) problem), blocking groups similar records into "blocks" using a common key, limiting comparisons to only the records within each block.
 
 Using ArangoDB, the best way to implement blocking is by leveraging **ArangoSearch**, the built-in full-text search and ranking engine. Its powerful Analyzers and Views are specifically designed to create the kind of inverted indexes needed for efficient blocking.
 
@@ -125,7 +125,7 @@ RETURN {
 
 ## Evaluation of Your Proposed Approach & Improvements
 
-Your proposed approach—load raw data → perform blocking/ER → export → reload into a knowledge graph—is a viable and logical starting point, but it's not the most efficient or idiomatic way to use ArangoDB's capabilities.
+Your proposed approach--load raw data -> perform blocking/ER -> export -> reload into a knowledge graph--is a viable and logical starting point, but it's not the most efficient or idiomatic way to use ArangoDB's capabilities.
 
 ### Recommended Improvement: A Native Graph-Based Workflow
 

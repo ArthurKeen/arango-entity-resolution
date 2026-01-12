@@ -812,7 +812,7 @@ Each new class will have comprehensive unit tests covering:
 ### Integration Tests
 
 Test complete workflows:
-- End-to-end blocking → similarity → edges → clustering
+- End-to-end blocking -> similarity -> edges -> clustering
 - Multiple strategies combined
 - Large dataset scenarios
 - Different ArangoDB configurations

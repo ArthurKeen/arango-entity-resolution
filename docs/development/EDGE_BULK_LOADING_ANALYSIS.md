@@ -32,8 +32,8 @@ edge_collection.insert_many(edge_docs) # 285K+ API calls!
 ```
 
 3. **Estimated Performance**
-- **Network overhead**: 285,504 calls × ~10ms = ~2,855 seconds (48 minutes)
-- **Insert time**: ~4M edges × ~0.001s = ~4,000 seconds (67 minutes)
+- **Network overhead**: 285,504 calls x ~10ms = ~2,855 seconds (48 minutes)
+- **Insert time**: ~4M edges x ~0.001s = ~4,000 seconds (67 minutes)
 - **Total estimated**: ~115 minutes (1.9 hours) 
 
 ### The Problem
@@ -333,11 +333,11 @@ config={
 
 ### Future Enhancements (Optional)
 
-1. ⏳ Auto-select method based on edge count (>100K → CSV)
-2. ⏳ Resume capability (checkpoint CSV writing)
-3. ⏳ AQL-based edge creation (single query alternative)
-4. ⏳ Streaming support for very large datasets
-5. ⏳ Parallel import support
+1. [WAIT] Auto-select method based on edge count (>100K -> CSV)
+2. [WAIT] Resume capability (checkpoint CSV writing)
+3. [WAIT] AQL-based edge creation (single query alternative)
+4. [WAIT] Streaming support for very large datasets
+5. [WAIT] Parallel import support
 
 ---
 

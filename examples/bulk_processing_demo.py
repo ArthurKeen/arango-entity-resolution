@@ -162,7 +162,7 @@ def demo_bulk_processing(collection_name: str = "customers",
     if result["candidate_pairs"]:
         print("[SEARCH] Sample Candidate Pairs (first 5):")
         for i, pair in enumerate(result["candidate_pairs"][:5], 1):
-            print(f"   {i}. {pair['record_a_id']} ↔ {pair['record_b_id']}")
+            print(f"   {i}. {pair['record_a_id']} <-> {pair['record_b_id']}")
             print(f"      Strategy: {pair['strategy']}, Key: {pair.get('blocking_key', 'N/A')}")
         
         if len(result["candidate_pairs"]) > 5:

@@ -65,7 +65,7 @@ VERSION_INFO = {
 
 | Version | Identifier | Key Features |
 |---------|-----------|--------------|
-| **v3.1.0** | `"3.1.0-stable"` | ← **CURRENT** - Includes ER Enrichments |
+| **v3.1.0** | `"3.1.0-stable"` | <- **CURRENT** - Includes ER Enrichments |
 | v3.0.0 | `"3.0.0-stable"` | All core services, no enrichments |
 | v2.x | `"2.x.x-*"` | Partial services, no address ER |
 | v1.x | `"1.x.x-*"` | Legacy basic ER |

@@ -52,11 +52,11 @@ threshold: float = DEFAULT_SIMILARITY_THRESHOLD
 - Replaced `batch_size: int = 5000` with `batch_size: int = DEFAULT_BATCH_SIZE`
 - Replaced `batch_size: int = 1000` with `batch_size: int = DEFAULT_EDGE_BATCH_SIZE`
 - Updated in:
-- `batch_similarity_service.py` (5000 → DEFAULT_BATCH_SIZE)
-- `similarity_edge_service.py` (1000 → DEFAULT_EDGE_BATCH_SIZE)
-- `wcc_clustering_service.py` (1000 → DEFAULT_EDGE_BATCH_SIZE)
-- `address_er_service.py` (5000 → DEFAULT_BATCH_SIZE)
-- `er_config.py` (5000 → DEFAULT_BATCH_SIZE)
+- `batch_similarity_service.py` (5000 -> DEFAULT_BATCH_SIZE)
+- `similarity_edge_service.py` (1000 -> DEFAULT_EDGE_BATCH_SIZE)
+- `wcc_clustering_service.py` (1000 -> DEFAULT_EDGE_BATCH_SIZE)
+- `address_er_service.py` (5000 -> DEFAULT_BATCH_SIZE)
+- `er_config.py` (5000 -> DEFAULT_BATCH_SIZE)
 
 **Before**:
 ```python
@@ -159,12 +159,12 @@ Default DEFAULT_SIMILARITY_THRESHOLD (0.75).
 
 ## Remaining Quick Wins
 
-### ⏳ Remove Unused Imports (15 min)
+### [WAIT] Remove Unused Imports (15 min)
 - Status: Pending
 - Priority: Low
 - Impact: Code cleanliness
 
-### ⏳ Fix Linting Warnings (15 min)
+### [WAIT] Fix Linting Warnings (15 min)
 - Status: Pending
 - Priority: Low
 - Impact: Code quality
@@ -187,8 +187,8 @@ Default DEFAULT_SIMILARITY_THRESHOLD (0.75).
 2. **Completed**: Hardcoded batch sizes replaced
 3. **Completed**: Docstrings updated
 4. **Completed**: Type hints verified
-5. ⏳ **Pending**: Remove unused imports (if any)
-6. ⏳ **Pending**: Fix linting warnings (if any)
+5. [WAIT] **Pending**: Remove unused imports (if any)
+6. [WAIT] **Pending**: Fix linting warnings (if any)
 
 ---
 
