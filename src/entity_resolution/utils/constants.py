@@ -279,6 +279,8 @@ VERSION_INFO = {
     'release': 'stable'
 }
 
+__version__ = "3.1.0-stable"
+
 def get_version_string() -> str:
     """Get formatted version string"""
     v = VERSION_INFO
