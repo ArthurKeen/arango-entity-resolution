@@ -27,7 +27,7 @@ This multi-faceted approach will provide a single, unified view of each entity w
 
 ### 2.1 Development Phases
 
-The system is being developed in three phases with clear separation of concerns:
+The system is being developed in phased increments with clear separation of concerns:
 
 **Phase 1: Traditional Entity Resolution (COMPLETE)**
 - Status: Production-ready, stable, customer deployments active
@@ -35,19 +35,43 @@ The system is being developed in three phases with clear separation of concerns:
 - Risk: Low - Proven, battle-tested implementation
 - Timeline: Complete
 
-**Phase 2: Hybrid Blocking & Embeddings (NEXT)**
-- Status: Research complete, ready for implementation
-- Core: Add embedding-based blocking (Tier 3), LSH/ANN indexing, tuple embeddings
+**Phase 2: Hybrid Blocking & Embeddings (IN PROGRESS)**
+- Status: Vector blocking implemented, advanced deep blocking and indexing in progress
+- Core: Embedding-based blocking (Tier 3), LSH/ANN indexing, tuple embeddings
 - Risk: Medium - New ML infrastructure, non-breaking additions to existing system
-- Timeline: 6-8 weeks estimated
+- Timeline: 6-8 weeks estimated (advanced components)
 - Value: Improved recall for challenging cases (typos, abbreviations, semantic variations)
 - Strategy: Non-breaking addition, A/B testing, incremental rollout
 
-**Phase 3+: Advanced Capabilities (FUTURE)**
+**Phase 3: Advanced Capabilities (FUTURE)**
 - Status: Future roadmap
 - Core: GraphRAG, LLM integration, geospatial-temporal analysis, advanced graph algorithms
 - Risk: TBD - Research and planning phase
 - Timeline: Post Phase 2, based on customer feedback and business priorities
+
+**Phase 4: Intelligent Automation (FUTURE)**
+- Status: Proposed
+- Core: Active learning, auto-blocking key selection, anti-merge constraints
+- Risk: Medium - Human-in-the-loop workflows and model training
+- Timeline: Post Phase 3, dependent on label workflow readiness
+
+**Phase 5: Structural and Hierarchical Deep Learning (FUTURE)**
+- Status: Proposed
+- Core: Graph neural networks, hierarchical merge rules, context-aware embeddings
+- Risk: Medium-High - New model training and graph feature engineering
+- Timeline: Post Phase 4, aligned with domain-specific needs
+
+**Phase 6: Agentic Workflows and GraphRAG (FUTURE)**
+- Status: Proposed
+- Core: LLM-as-judge, natural language explanations, GraphRAG evidence summaries
+- Risk: High - Reliability, cost, and governance considerations
+- Timeline: Post Phase 5, contingent on explainability requirements
+
+**Phase 7: Operational Superiority (FUTURE)**
+- Status: Proposed
+- Core: Low-latency registry API, WASM or native distance kernels, real-time resolution
+- Risk: Medium - Systems engineering and performance optimization
+- Timeline: Post Phase 6, driven by production latency targets
 
 ### 3. Functional Requirements
 
@@ -65,18 +89,18 @@ The system is being developed in three phases with clear separation of concerns:
 * **Golden Record Creation:** Create master records using rule-based data fusion and conflict resolution
 * **REST API:** Expose API endpoints for entity resolution operations
 
-#### **3.2 Phase 2: Hybrid Blocking & Embeddings (Next Priority)**
+#### **3.2 Phase 2: Hybrid Blocking & Embeddings (In Progress)**
 
-**Status**: Research complete, ready for implementation 
+**Status**: Vector blocking implemented, advanced deep blocking in progress 
 **Risk Level**: Medium - New ML infrastructure, non-breaking additions 
-**Timeline**: 6-8 weeks estimated 
+**Timeline**: 6-8 weeks estimated (advanced components) 
 **Value Proposition**: Improved recall for challenging cases (typos, abbreviations, semantic variations)
 
 **Hybrid Blocking Architecture**
 * **3-Tier Blocking Strategy:** Combine traditional blocking with embedding-based candidate generation:
 - **Tier 1**: Exact matching on email/phone (fastest, highest precision) - *already implemented*
 - **Tier 2**: Traditional fuzzy blocking with soundex, n-grams (fast, good recall) - *already implemented*
-- **Tier 3**: Embedding-based semantic blocking with LSH and ANN (comprehensive, handles variations) - *Phase 2 addition*
+- **Tier 3**: Embedding-based semantic blocking with LSH and ANN (comprehensive, handles variations) - *partially implemented*
 - **Multi-Resolution Embeddings**: Store both coarse embeddings (64-dim) for fast filtering and fine embeddings (256-dim) for accurate re-ranking
 - **Recall-Optimized**: Prioritize recall >=95% at blocking stage, refine precision in later stages
 
@@ -91,19 +115,25 @@ The system is being developed in three phases with clear separation of concerns:
 * **Vector Similarity Search:** ArangoDB native vector search with cosine similarity
 * **Transfer Learning:** Pre-train on general ER datasets, fine-tune on domain-specific data
 
+**Current Implementation Status**
+* **Implemented**: Embedding service using pre-trained models, vector blocking with cosine similarity
+* **Missing**: Multi-resolution embeddings, LSH/HNSW indexing, Siamese networks, tuple embeddings, transfer learning, A/B evaluation framework
+
 **Implementation Strategy**
 * Non-breaking: Add as new blocking tier alongside existing strategies
 * A/B Testing: Compare recall improvements vs traditional-only approach
 * Incremental Rollout: Start with small datasets, measure performance gains
 * Fallback Support: Maintain Python fallback for environments without GPU
 
-#### **3.3 Phase 3+: Advanced Capabilities (Future Roadmap)**
+#### **3.3 Phase 3: Advanced Capabilities (Future Roadmap)**
 
 **Graph Algorithm Analysis**
 * **Shared Identifier Detection:** Identify entities connected through common phone numbers, emails, or addresses
 * **Alias Network Discovery:** Use graph traversal to find transitive aliases (if A->B and B->C, then A->C)
 * **Network Metrics:** Calculate centrality, betweenness, and other graph metrics for entities
 * **Community Detection:** Apply advanced clustering algorithms for entity grouping
+* **Correlation Clustering:** Prevent over-merged clusters by optimizing edge consistency
+* **Density-Based Split Logic:** Break apart high-density false merges (e.g., shared HQ addresses)
 
 **Advanced Embedding Techniques**
 * **GraphML Integration:** Generate node embeddings capturing structural properties of entity graphs
@@ -117,6 +147,7 @@ The system is being developed in three phases with clear separation of concerns:
 * **Semantic Entity Linking:** Link extracted entities to existing records via embedding similarity
 * **LLM-Based Curation:** Use LLMs to evaluate match evidence and make final resolution decisions
 * **Explainable AI:** Provide reasoning for LLM-based entity resolution decisions
+* **Evidence Summaries:** Generate human-readable match narratives across graph paths
 
 **Geospatial-Temporal Analysis**
 * **Location Data Ingestion:** Import and store geospatial data (GeoJSON) for entities
@@ -133,12 +164,56 @@ The system is being developed in three phases with clear separation of concerns:
 * **Conflict Resolution:** Handle disagreements between different techniques
 * **Audit Trail:** Track which techniques contributed to each resolution decision
 
+#### **3.4 Phase 4: Intelligent Automation (Future Roadmap)**
+
+**Active Learning and Auto-Configuration**
+* **Active Learning Service:** Sample uncertain pairs, capture labels, train a lightweight classifier
+* **Auto-Weight Calibration:** Derive similarity weights from labeled data to reduce manual tuning
+* **Auto-Blocking Key Selection:** Select blocking keys using entropy and error profiles
+* **Anti-Merge Rules:** Enforce hard constraints (e.g., mismatched D-U-N-S numbers)
+
+#### **3.5 Phase 5: Structural and Hierarchical Deep Learning (Future Roadmap)**
+
+**Graph-Aware Matching**
+* **Graph Neural Networks:** Embed records with neighborhood context (GraphSAGE/GCN)
+* **Contextual Disambiguation:** Improve matches using relational structure
+* **Hierarchical Merge Logic:** Merge children only if parents merge, or merge parents if >=80% children match
+* **Extended Context Resolver:** Expand hierarchical context weighting across domains
+
+#### **3.6 Phase 6: Agentic Workflows and GraphRAG (Future Roadmap)**
+
+**LLM-Driven Reasoning**
+* **LLM-as-Judge:** Resolve ambiguous pairs with structured reasoning outputs
+* **GraphRAG Explanations:** Natural language explanations based on graph traversals
+* **Explainability API:** Provide traceable evidence for auditors and operators
+* **Safe Output Schemas:** Require structured JSON with confidence and rationale
+
+#### **3.7 Phase 7: Operational Superiority (Future Roadmap)**
+
+**Performance and Reliability**
+* **Real-Time Entity Registry API:** Resolve new records with low-latency checks
+* **WASM or Native Kernels:** Faster similarity computations for heavy workloads
+* **Streaming Ingestion:** Continuous updates with immediate candidate evaluation
+* **Latency Targets:** Sub-200ms decision path for high-throughput systems
+
 ### 4. Non-Functional Requirements
 
 * **Performance:** The blocking and matching process should be scalable to handle millions of records. The system should complete the resolution of a dataset within a specified time frame.
 * **Scalability:** The architecture must be designed to scale horizontally by adding more ArangoDB servers as the data volume increases.
 * **Security:** Access to the ArangoDB database and the REST API must be secured with proper authentication and authorization.
 * **Maintainability:** The code should be well-documented and modular to allow for future enhancements and bug fixes.
+
+### 4.1 Immediate Recommendations by Domain
+
+**For dnb_er (Business Data)**
+* Prioritize active learning to reduce manual weight tuning
+* Add anti-merge rules for authoritative identifiers (D-U-N-S, tax IDs)
+* Increase explainability for compliance and audit workflows
+
+**For cadence-risc-or1200 (Hardware Data)**
+* Enforce strict type compatibility (module vs net vs port)
+* Fine-tune embeddings on hardware-specific corpora (Verilog, docs)
+* Use structural matching with graph context to reduce name collisions
 
 ---
 
