@@ -9,7 +9,8 @@ from .er_config import (
     ERPipelineConfig,
     BlockingConfig,
     SimilarityConfig,
-    ClusteringConfig
+    ClusteringConfig,
+    EmbeddingConfig
 )
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     'BlockingConfig',
     'SimilarityConfig',
     'ClusteringConfig',
+    'EmbeddingConfig',
 ]
 

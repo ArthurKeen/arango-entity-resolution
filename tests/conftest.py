@@ -59,6 +59,11 @@ def db_connection(test_config):
             username=test_config.db.username,
             password=test_config.db.password
         )
+        # Validate connection and permissions up front to avoid auth errors in tests
+        try:
+            db.properties()
+        except Exception as e:
+            pytest.skip(f"Cannot access database (auth/connection): {e}")
         yield db
     except Exception as e:
         pytest.skip(f"Cannot connect to database: {e}")
