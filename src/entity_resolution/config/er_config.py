@@ -409,6 +409,38 @@ class ERPipelineConfig:
             clustering=clustering_config,
             embedding=embedding_config
         )
+
+    def _get_blocking_field_names(self) -> List[str]:
+        """
+        Extract normalized blocking field names from config.
+
+        Supports:
+        - List[str]: ["phone", "state"]
+        - List[dict]: [{"name": "phone"}, {"field": "zip5", "expression": "LEFT(d.postal_code, 5)"}]
+        """
+        blocking_fields: List[str] = []
+
+        for item in (self.blocking.fields or []):
+            if isinstance(item, str):
+                name = item.strip()
+            elif isinstance(item, dict):
+                name = (item.get("name") or item.get("field") or "").strip()
+            else:
+                continue
+
+            if name:
+                blocking_fields.append(name)
+
+        # De-dup while preserving order
+        seen = set()
+        deduped = []
+        for name in blocking_fields:
+            if name in seen:
+                continue
+            seen.add(name)
+            deduped.append(name)
+
+        return deduped
     
     def validate(self) -> List[str]:
         """
@@ -434,8 +466,10 @@ class ERPipelineConfig:
 
         # For exact blocking, fields must be provided so a composite key can be built.
         # Address ER is handled by AddressERService and may ignore the generic blocking config.
-        if self.entity_type != 'address' and self.blocking.strategy == 'exact' and not self.blocking.fields:
-            errors.append("blocking.fields must be provided when blocking.strategy == 'exact'")
+        if self.entity_type != 'address' and self.blocking.strategy == 'exact':
+            blocking_fields = self._get_blocking_field_names()
+            if not blocking_fields:
+                errors.append("blocking.fields must be provided when blocking.strategy == 'exact'")
         
         # Validate similarity
         if not 0.0 <= self.similarity.threshold <= 1.0:

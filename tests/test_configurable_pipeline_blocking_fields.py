@@ -119,3 +119,20 @@ def test_config_validation_requires_blocking_fields_for_exact():
     errors = cfg.validate()
     assert any("blocking.fields" in e for e in errors)
 
+
+def test_config_validation_ignores_blank_blocking_fields():
+    cfg = ERPipelineConfig(
+        entity_type="person",
+        collection_name="Person",
+        edge_collection="similarToPerson",
+        cluster_collection="person_clusters",
+        blocking=BlockingConfig(
+            strategy="exact",
+            fields=["", "  ", {}, {"name": "   "}, {"field": ""}],
+        ),
+        similarity=SimilarityConfig(field_weights={"name": 1.0}),
+        clustering=ClusteringConfig(store_results=False),
+    )
+    errors = cfg.validate()
+    assert any("blocking.fields" in e for e in errors)
+
