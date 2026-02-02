@@ -431,6 +431,11 @@ class ERPipelineConfig:
                 f"blocking.strategy must be 'exact', 'arangosearch', or 'bm25', "
                 f"got: {self.blocking.strategy}"
             )
+
+        # For exact blocking, fields must be provided so a composite key can be built.
+        # Address ER is handled by AddressERService and may ignore the generic blocking config.
+        if self.entity_type != 'address' and self.blocking.strategy == 'exact' and not self.blocking.fields:
+            errors.append("blocking.fields must be provided when blocking.strategy == 'exact'")
         
         # Validate similarity
         if not 0.0 <= self.similarity.threshold <= 1.0:

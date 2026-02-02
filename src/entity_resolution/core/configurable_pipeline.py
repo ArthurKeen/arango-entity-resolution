@@ -281,13 +281,14 @@ class ConfigurableERPipeline:
         
         if strategy == 'exact':
             # Use CollectBlockingStrategy
-            # Note: This is a simplified example - actual implementation
-            # would need field configuration from config.blocking.fields
+            blocking_fields, computed_fields = self._get_blocking_fields()
             blocking_strategy = CollectBlockingStrategy(
                 db=self.db,
                 collection=self.config.collection_name,
-                blocking_fields=[],  # Would come from config
-                max_block_size=self.config.blocking.max_block_size
+                blocking_fields=blocking_fields,
+                max_block_size=self.config.blocking.max_block_size,
+                min_block_size=self.config.blocking.min_block_size,
+                computed_fields=computed_fields or None,
             )
             return list(blocking_strategy.generate_candidates())
         
@@ -306,6 +307,47 @@ class ConfigurableERPipeline:
         else:
             self.logger.warning(f"Unknown blocking strategy: {strategy}")
             return []
+
+    def _get_blocking_fields(self) -> tuple[list, dict]:
+        """
+        Extract blocking field names (and optional computed fields) from config.
+
+        Supported formats for config.blocking.fields:
+        - List[str]: ["phone", "state"]
+        - List[dict]: [{"name": "phone"}, {"name": "zip5", "expression": "LEFT(d.postal_code, 5)"}]
+
+        Returns:
+            (blocking_fields, computed_fields)
+        """
+        blocking_fields: list[str] = []
+        computed_fields: dict[str, str] = {}
+
+        for item in (self.config.blocking.fields or []):
+            if isinstance(item, str):
+                name = item.strip()
+                if name:
+                    blocking_fields.append(name)
+                continue
+
+            if isinstance(item, dict):
+                name = (item.get("name") or item.get("field") or "").strip()
+                if name:
+                    blocking_fields.append(name)
+                expr = item.get("expression") or item.get("aql")
+                if name and isinstance(expr, str) and expr.strip():
+                    computed_fields[name] = expr.strip()
+                continue
+
+        # De-dup while preserving order
+        seen = set()
+        deduped = []
+        for f in blocking_fields:
+            if f in seen:
+                continue
+            seen.add(f)
+            deduped.append(f)
+
+        return deduped, computed_fields
     
     def _run_similarity(self, candidate_pairs: list) -> list:
         """Run similarity phase based on configuration."""
