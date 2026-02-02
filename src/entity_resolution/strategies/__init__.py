@@ -13,6 +13,7 @@ from .hybrid_blocking import HybridBlockingStrategy
 from .geographic_blocking import GeographicBlockingStrategy
 from .graph_traversal_blocking import GraphTraversalBlockingStrategy
 from .vector_blocking import VectorBlockingStrategy
+from .lsh_blocking import LSHBlockingStrategy
 
 __all__ = [
     'BlockingStrategy',
@@ -22,5 +23,6 @@ __all__ = [
     'GeographicBlockingStrategy',
     'GraphTraversalBlockingStrategy',
     'VectorBlockingStrategy',
+    'LSHBlockingStrategy',
 ]
 

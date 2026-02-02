@@ -146,6 +146,109 @@ class ClusteringConfig:
         }
 
 
+class EmbeddingConfig:
+    """Embedding configuration for vector-based blocking."""
+    
+    def __init__(
+        self,
+        model_name: str = 'all-MiniLM-L6-v2',
+        device: str = 'cpu',
+        embedding_field: str = 'embedding_vector',
+        multi_resolution_mode: bool = False,
+        coarse_model_name: Optional[str] = None,
+        fine_model_name: Optional[str] = None,
+        embedding_field_coarse: str = 'embedding_vector_coarse',
+        embedding_field_fine: str = 'embedding_vector_fine',
+        profile: str = 'default',
+        batch_size: int = 32
+    ):
+        """
+        Initialize embedding configuration.
+        
+        Args:
+            model_name: Sentence-transformers model name (legacy mode or fine model)
+            device: Device for inference ('cpu' or 'cuda')
+            embedding_field: Field name for storing embeddings (legacy mode)
+            multi_resolution_mode: Enable multi-resolution embeddings (coarse + fine)
+            coarse_model_name: Model name for coarse embeddings (required if multi_resolution_mode=True)
+            fine_model_name: Model name for fine embeddings (defaults to model_name if None)
+            embedding_field_coarse: Field name for coarse embeddings
+            embedding_field_fine: Field name for fine embeddings
+            profile: Profile name for metadata tracking
+            batch_size: Batch size for embedding generation
+        """
+        self.model_name = model_name
+        self.device = device
+        self.embedding_field = embedding_field
+        self.multi_resolution_mode = multi_resolution_mode
+        self.coarse_model_name = coarse_model_name
+        self.fine_model_name = fine_model_name
+        self.embedding_field_coarse = embedding_field_coarse
+        self.embedding_field_fine = embedding_field_fine
+        self.profile = profile
+        self.batch_size = batch_size
+    
+    @classmethod
+    def from_dict(cls, config_dict: Dict[str, Any]) -> 'EmbeddingConfig':
+        """Create from dictionary."""
+        return cls(
+            model_name=config_dict.get('model_name', 'all-MiniLM-L6-v2'),
+            device=config_dict.get('device', 'cpu'),
+            embedding_field=config_dict.get('embedding_field', 'embedding_vector'),
+            multi_resolution_mode=config_dict.get('multi_resolution_mode', False),
+            coarse_model_name=config_dict.get('coarse_model_name'),
+            fine_model_name=config_dict.get('fine_model_name'),
+            embedding_field_coarse=config_dict.get('embedding_field_coarse', 'embedding_vector_coarse'),
+            embedding_field_fine=config_dict.get('embedding_field_fine', 'embedding_vector_fine'),
+            profile=config_dict.get('profile', 'default'),
+            batch_size=config_dict.get('batch_size', 32)
+        )
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        result = {
+            'model_name': self.model_name,
+            'device': self.device,
+            'embedding_field': self.embedding_field,
+            'multi_resolution_mode': self.multi_resolution_mode,
+            'profile': self.profile,
+            'batch_size': self.batch_size
+        }
+        
+        if self.multi_resolution_mode:
+            result.update({
+                'coarse_model_name': self.coarse_model_name,
+                'fine_model_name': self.fine_model_name,
+                'embedding_field_coarse': self.embedding_field_coarse,
+                'embedding_field_fine': self.embedding_field_fine
+            })
+        
+        return result
+    
+    def validate(self) -> List[str]:
+        """
+        Validate embedding configuration.
+        
+        Returns:
+            List of validation errors (empty if valid)
+        """
+        errors = []
+        
+        if self.multi_resolution_mode:
+            if not self.coarse_model_name:
+                errors.append(
+                    "coarse_model_name is required when multi_resolution_mode=True"
+                )
+        
+        if self.device not in ('cpu', 'cuda'):
+            errors.append(f"device must be 'cpu' or 'cuda', got: {self.device}")
+        
+        if self.batch_size < 1:
+            errors.append(f"batch_size must be >= 1, got: {self.batch_size}")
+        
+        return errors
+
+
 class ERPipelineConfig:
     """
     Complete ER pipeline configuration.
@@ -189,7 +292,8 @@ class ERPipelineConfig:
         cluster_collection: str = "entity_clusters",
         blocking: Optional[BlockingConfig] = None,
         similarity: Optional[SimilarityConfig] = None,
-        clustering: Optional[ClusteringConfig] = None
+        clustering: Optional[ClusteringConfig] = None,
+        embedding: Optional[EmbeddingConfig] = None
     ):
         """
         Initialize ER pipeline configuration.
@@ -202,6 +306,7 @@ class ERPipelineConfig:
             blocking: Blocking configuration
             similarity: Similarity configuration
             clustering: Clustering configuration
+            embedding: Embedding configuration (optional)
         """
         self.entity_type = entity_type
         self.collection_name = collection_name
@@ -211,6 +316,7 @@ class ERPipelineConfig:
         self.blocking = blocking or BlockingConfig()
         self.similarity = similarity or SimilarityConfig()
         self.clustering = clustering or ClusteringConfig()
+        self.embedding = embedding
         
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
     
@@ -289,6 +395,9 @@ class ERPipelineConfig:
         clustering_config = ClusteringConfig.from_dict(
             config_dict.get('clustering', {})
         )
+        embedding_config = None
+        if 'embedding' in config_dict:
+            embedding_config = EmbeddingConfig.from_dict(config_dict.get('embedding', {}))
         
         return cls(
             entity_type=config_dict.get('entity_type', 'entity'),
@@ -297,7 +406,8 @@ class ERPipelineConfig:
             cluster_collection=config_dict.get('cluster_collection', 'entity_clusters'),
             blocking=blocking_config,
             similarity=similarity_config,
-            clustering=clustering_config
+            clustering=clustering_config,
+            embedding=embedding_config
         )
     
     def validate(self) -> List[str]:
@@ -357,11 +467,16 @@ class ERPipelineConfig:
                 f"got: {self.clustering.min_cluster_size}"
             )
         
+        # Validate embedding configuration if present
+        if self.embedding:
+            embedding_errors = self.embedding.validate()
+            errors.extend([f"embedding.{e}" for e in embedding_errors])
+        
         return errors
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
-        return {
+        result = {
             'entity_resolution': {
                 'entity_type': self.entity_type,
                 'collection_name': self.collection_name,
@@ -372,6 +487,11 @@ class ERPipelineConfig:
                 'clustering': self.clustering.to_dict()
             }
         }
+        
+        if self.embedding:
+            result['entity_resolution']['embedding'] = self.embedding.to_dict()
+        
+        return result
     
     def to_yaml(self, output_path: Optional[Union[str, Path]] = None) -> str:
         """

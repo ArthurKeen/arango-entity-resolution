@@ -6,8 +6,10 @@ independently or as part of larger ER pipelines.
 """
 
 from .weighted_field_similarity import WeightedFieldSimilarity
+from .ann_adapter import ANNAdapter
 
 __all__ = [
     'WeightedFieldSimilarity',
+    'ANNAdapter',
 ]
 

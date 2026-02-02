@@ -25,6 +25,7 @@ import numpy as np
 
 from .base_strategy import BlockingStrategy
 from ..utils.validation import validate_collection_name, validate_field_name
+from ..similarity.ann_adapter import ANNAdapter
 
 
 # Constants for vector blocking configuration  
@@ -80,7 +81,9 @@ class VectorBlockingStrategy(BlockingStrategy):
         similarity_threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
         limit_per_entity: int = DEFAULT_LIMIT_PER_ENTITY,
         blocking_field: Optional[str] = None,
-        filters: Optional[Dict[str, Dict[str, Any]]] = None
+        filters: Optional[Dict[str, Dict[str, Any]]] = None,
+        use_ann_adapter: bool = True,
+        force_brute_force: bool = False
     ):
         """
         Initialize vector blocking strategy
@@ -98,6 +101,8 @@ class VectorBlockingStrategy(BlockingStrategy):
             blocking_field: Optional field to block on (e.g., 'state', 'category')
                 If provided, only compares documents with matching blocking_field values
             filters: Optional filters to apply before blocking
+            use_ann_adapter: If True, use ANN adapter for optimized search (default: True)
+            force_brute_force: If True, force brute-force mode (for testing/comparison)
             
         Raises:
             ValueError: If similarity_threshold not in range [0, 1]
@@ -119,14 +124,28 @@ class VectorBlockingStrategy(BlockingStrategy):
         self.similarity_threshold = similarity_threshold
         self.limit_per_entity = limit_per_entity
         self.blocking_field = validate_field_name(blocking_field) if blocking_field else None
+        self.use_ann_adapter = use_ann_adapter
         
         self.logger = logging.getLogger(__name__)
+        
+        # Initialize ANN adapter if requested
+        if self.use_ann_adapter:
+            self.ann_adapter = ANNAdapter(
+                db=db,
+                collection=collection,
+                embedding_field=embedding_field,
+                force_brute_force=force_brute_force
+            )
+        else:
+            self.ann_adapter = None
         
         # Additional stats specific to vector blocking
         self._stats['embedding_field'] = self.embedding_field
         self._stats['similarity_threshold'] = self.similarity_threshold
         self._stats['limit_per_entity'] = self.limit_per_entity
         self._stats['blocking_field'] = self.blocking_field
+        if self.ann_adapter:
+            self._stats['ann_method'] = self.ann_adapter.method
     
     def _check_embeddings_exist(self) -> Dict[str, Any]:
         """
@@ -200,6 +219,45 @@ class VectorBlockingStrategy(BlockingStrategy):
             f"limit={self.limit_per_entity}"
         )
         
+        # Use ANN adapter if enabled, otherwise use legacy method
+        if self.use_ann_adapter and self.ann_adapter:
+            try:
+                pairs = self.ann_adapter.find_all_pairs(
+                    similarity_threshold=self.similarity_threshold,
+                    limit_per_entity=self.limit_per_entity,
+                    blocking_field=self.blocking_field,
+                    filters=self.filters
+                )
+            except Exception as e:
+                self.logger.warning(
+                    f"ANN adapter failed, falling back to legacy method: {e}"
+                )
+                pairs = self._generate_candidates_legacy()
+        else:
+            pairs = self._generate_candidates_legacy()
+        
+        # Normalize pairs (remove duplicates)
+        pairs = self._normalize_pairs(pairs)
+        
+        execution_time = time.time() - start_time
+        
+        # Update statistics
+        self._update_statistics(pairs, execution_time)
+        self._stats['embedding_coverage_percent'] = embedding_stats['coverage_percent']
+        self._stats['documents_with_embeddings'] = embedding_stats['with_embeddings']
+        
+        self.logger.info(
+            f"Generated {len(pairs)} candidate pairs in {execution_time:.2f}s"
+        )
+        
+        return pairs
+    
+    def _generate_candidates_legacy(self) -> List[Dict[str, Any]]:
+        """
+        Legacy brute-force candidate generation (backward compatibility)
+        
+        This method maintains the original implementation for compatibility.
+        """
         # Build filter conditions
         filter_conditions = self._build_filter_conditions(self.filters)
         filter_clause = " AND ".join(filter_conditions) if filter_conditions else "true"
@@ -263,20 +321,6 @@ class VectorBlockingStrategy(BlockingStrategy):
         except Exception as e:
             self.logger.error(f"Vector blocking query failed: {e}")
             raise
-        
-        # Normalize pairs (remove duplicates)
-        pairs = self._normalize_pairs(pairs)
-        
-        execution_time = time.time() - start_time
-        
-        # Update statistics
-        self._update_statistics(pairs, execution_time)
-        self._stats['embedding_coverage_percent'] = embedding_stats['coverage_percent']
-        self._stats['documents_with_embeddings'] = embedding_stats['with_embeddings']
-        
-        self.logger.info(
-            f"Generated {len(pairs)} candidate pairs in {execution_time:.2f}s"
-        )
         
         return pairs
     
