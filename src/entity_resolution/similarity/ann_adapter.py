@@ -125,7 +125,7 @@ class ANNAdapter:
             # Try a simple test query that would use vector search if available
             # We'll check if the collection exists and has at least one document
             collection = self.db.collection(self.collection)
-            if not collection.has():
+            if collection.count() == 0:
                 # Empty collection - can't test, but assume available if version >= 3.10
                 return True
             
