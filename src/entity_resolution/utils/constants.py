@@ -275,11 +275,11 @@ INDUSTRY_CONSTANTS = {
 VERSION_INFO = {
     'major': 3,
     'minor': 1,
-    'patch': 0,
+    'patch': 1,
     'release': ''
 }
 
-__version__ = "3.1.0"
+__version__ = "3.1.1"
 
 def get_version_string() -> str:
     """Get formatted version string"""

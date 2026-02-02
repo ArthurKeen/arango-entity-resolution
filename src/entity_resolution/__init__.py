@@ -38,6 +38,9 @@ def __getattr__(name):
     if name == "GoldenRecordService":
         from .services.golden_record_service import GoldenRecordService
         return GoldenRecordService
+    if name == "GoldenRecordPersistenceService":
+        from .services.golden_record_persistence_service import GoldenRecordPersistenceService
+        return GoldenRecordPersistenceService
     if name == "BaseEntityResolutionService":
         from .services.base_service import BaseEntityResolutionService
         return BaseEntityResolutionService
@@ -116,6 +119,7 @@ __all__ = [
     'SimilarityService',
     'ClusteringService',
     'GoldenRecordService',
+    'GoldenRecordPersistenceService',
     'BaseEntityResolutionService',
     'DataManager',
     
