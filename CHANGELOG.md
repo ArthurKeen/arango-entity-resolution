@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - GoldenRecord persistence + resolvedTo edges
+
+**Feature**: Persist golden records and source-to-golden relationships from clustering output.
+
+**Component**: `GoldenRecordPersistenceService`
+
+- Creates/updates GoldenRecord documents from cluster memberships
+- Creates resolvedTo edges from source entities to GoldenRecord
+- Deterministic/idempotent reruns via deterministic keys + overwrite modes
+
 ### Added - Deterministic Edge Keys
 
 **Feature**: Idempotent edge creation across all deployment types
