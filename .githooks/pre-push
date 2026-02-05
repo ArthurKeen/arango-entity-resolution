@@ -6,7 +6,7 @@
 # Install: ./scripts/setup-git-hooks.sh
 # Or manually: cp .githooks/pre-push .git/hooks/pre-push && chmod +x .git/hooks/pre-push
 
-set -e
+set -euo pipefail
 
 # Colors for output (ASCII only)
 RED='\033[0;31m'
@@ -30,10 +30,10 @@ if [ ! -f "README.md" ] || [ ! -d "src" ]; then
 fi
 
 # Set Python path
-export PYTHONPATH="${PWD}/src:${PYTHONPATH}"
+export PYTHONPATH="${PWD}/src:${PYTHONPATH:-}"
 
 # Check if we should skip tests (for emergency pushes)
-if [ -n "$SKIP_TESTS" ]; then
+if [ -n "${SKIP_TESTS:-}" ]; then
     echo -e "${YELLOW}[WARNING] Skipping tests (SKIP_TESTS environment variable set)${NC}"
     echo "This should only be used in emergencies!"
     exit 0
@@ -60,19 +60,16 @@ run_test_section() {
 # Track failures
 FAILED_TESTS=()
 
-# Test 1: Unit Tests (Core Functionality)
-if ! run_test_section "Core Unit Tests" "python3 -m pytest tests/test_config.py tests/test_constants.py -v --tb=short 2>&1 | tail -20"; then
-    FAILED_TESTS+=("Core Unit Tests")
-fi
-
-# Test 2: Service Tests
-if ! run_test_section "Service Tests" "python3 -m pytest tests/test_blocking_service.py tests/test_similarity_service.py tests/test_clustering_service.py -v --tb=short 2>&1 | tail -20"; then
-    FAILED_TESTS+=("Service Tests")
-fi
-
-# Test 3: Integration Tests
-if ! run_test_section "Integration Tests" "python3 -m pytest tests/test_entity_resolver.py -v --tb=short 2>&1 | tail -20"; then
-    FAILED_TESTS+=("Integration Tests")
+# Test 1: Prefer full suite against a temp ArangoDB container (most reliable)
+if command -v docker >/dev/null 2>&1 && command -v curl >/dev/null 2>&1; then
+    if ! run_test_section "Full Test Suite (temp ArangoDB)" "bash scripts/run_tests_with_temp_arango.sh -q 2>&1 | tail -50"; then
+        FAILED_TESTS+=("Full Test Suite (temp ArangoDB)")
+    fi
+else
+    echo -e "${YELLOW}[WARNING] docker and/or curl not found; running unit tests only${NC}"
+    if ! run_test_section "Unit Tests (no Docker)" "python3 -m pytest -q -m \"not integration and not performance\" 2>&1 | tail -50"; then
+        FAILED_TESTS+=("Unit Tests (no Docker)")
+    fi
 fi
 
 # Test 4: Import Verification
