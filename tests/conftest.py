@@ -16,6 +16,7 @@ from entity_resolution.services.bulk_blocking_service import BulkBlockingService
 
 # Ensure unit tests don't fail due to missing environment variables
 os.environ.setdefault("USE_DEFAULT_PASSWORD", "true")
+os.environ.setdefault("ARANGO_ROOT_PASSWORD", "testpassword123")
 
 
 # Configure pytest

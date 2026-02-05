@@ -38,23 +38,26 @@ class DatabaseConfig:
         # Get password from environment (multiple sources for compatibility)
         password = os.getenv("ARANGO_PASSWORD") or os.getenv("ARANGO_ROOT_PASSWORD")
         
-        # Fall back to default test password ONLY if explicitly set (docker local development)
+        # Do NOT hardcode any passwords in source code (pre-commit enforces this).
+        # For local docker development, set USE_DEFAULT_PASSWORD=true AND provide the
+        # password via environment (e.g., source env.example or export ARANGO_ROOT_PASSWORD).
         if not password:
-            if os.getenv("USE_DEFAULT_PASSWORD") == "true":
-                password = "testpassword123"  # Development/testing only
-                warnings.warn(
-                    "Using default test password. This is INSECURE and should only be "
-                    "used for local docker development. Set ARANGO_ROOT_PASSWORD for production.",
-                    UserWarning,  # Using UserWarning instead of SecurityWarning (not in standard library)
-                    stacklevel=2
-                )
-            else:
-                raise ValueError(
-                    "Database password is required. Set one of:\n"
-                    "  - ARANGO_ROOT_PASSWORD environment variable\n"
-                    "  - ARANGO_PASSWORD environment variable\n"
-                    "  - USE_DEFAULT_PASSWORD=true (local docker development only)"
-                )
+            raise ValueError(
+                "Database password is required. Set one of:\n"
+                "  - ARANGO_ROOT_PASSWORD environment variable\n"
+                "  - ARANGO_PASSWORD environment variable\n"
+                "\n"
+                "For local docker development you can use env.example, e.g.:\n"
+                "  set -a && source env.example && set +a\n"
+            )
+
+        # Optional warning for local docker mode (password is still sourced from env)
+        if os.getenv("USE_DEFAULT_PASSWORD") == "true":
+            warnings.warn(
+                "USE_DEFAULT_PASSWORD=true is enabled. Ensure this is only used for local docker development.",
+                UserWarning,
+                stacklevel=2,
+            )
             
         return cls(
             host=os.getenv("ARANGO_HOST", cls.host),

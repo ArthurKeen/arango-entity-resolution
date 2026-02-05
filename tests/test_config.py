@@ -89,17 +89,18 @@ class TestDatabaseConfig:
         assert config.password == "altpass"
     
     @patch.dict(os.environ, {
-        'USE_DEFAULT_PASSWORD': 'true'
+        'USE_DEFAULT_PASSWORD': 'true',
+        'ARANGO_ROOT_PASSWORD': 'testpassword123'
     }, clear=True)
     def test_from_env_default_password(self):
-        """Test from_env with USE_DEFAULT_PASSWORD."""
+        """Test from_env with USE_DEFAULT_PASSWORD (password must still come from env)."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             config = DatabaseConfig.from_env()
             
             # Check that warning was issued
             assert len(w) > 0
-            assert "default test password" in str(w[0].message).lower()
+            assert "use_default_password" in str(w[0].message).lower()
         
         assert config.password == "testpassword123"
     
