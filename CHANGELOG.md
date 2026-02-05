@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-02-01
+
 ### Added - GoldenRecord persistence + resolvedTo edges
 
 **Feature**: Persist golden records and source-to-golden relationships from clustering output.
