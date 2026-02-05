@@ -35,13 +35,13 @@ The system is being developed in phased increments with clear separation of conc
 - Risk: Low - Proven, battle-tested implementation
 - Timeline: Complete
 
-**Phase 2: Hybrid Blocking & Embeddings (IN PROGRESS)**
-- Status: Vector blocking implemented, advanced deep blocking and indexing in progress
-- Core: Embedding-based blocking (Tier 3), LSH/ANN indexing, tuple embeddings
-- Risk: Medium - New ML infrastructure, non-breaking additions to existing system
-- Timeline: 6-8 weeks estimated (advanced components)
+**Phase 2: Hybrid Blocking & Embeddings (COMPLETE)**
+- Status: Implemented and integrated (vector blocking + LSH + ANN adapter + multi-resolution embeddings + tuple serialization + A/B evaluation)
+- Core: Embedding-based blocking (Tier 3) with deep blocking + indexing support
+- Risk: Medium -> mitigated by fallback paths + strong test coverage
+- Timeline: Complete (Feb 2026)
 - Value: Improved recall for challenging cases (typos, abbreviations, semantic variations)
-- Strategy: Non-breaking addition, A/B testing, incremental rollout
+- Strategy: Non-breaking additions with A/B testing support
 
 **Phase 3: Advanced Capabilities (FUTURE)**
 - Status: Future roadmap
@@ -89,18 +89,18 @@ The system is being developed in phased increments with clear separation of conc
 * **Golden Record Creation:** Create master records using rule-based data fusion and conflict resolution
 * **REST API:** Expose API endpoints for entity resolution operations
 
-#### **3.2 Phase 2: Hybrid Blocking & Embeddings (In Progress)**
+#### **3.2 Phase 2: Hybrid Blocking & Embeddings (Complete)**
 
-**Status**: Vector blocking implemented, advanced deep blocking in progress 
-**Risk Level**: Medium - New ML infrastructure, non-breaking additions 
-**Timeline**: 6-8 weeks estimated (advanced components) 
+**Status**: Complete - vector blocking + LSH + ANN adapter + multi-resolution embeddings + tuple serialization + A/B evaluation
+**Risk Level**: Medium - New ML infrastructure, non-breaking additions (mitigated by fallback support and tests)
+**Timeline**: Complete (Feb 2026)
 **Value Proposition**: Improved recall for challenging cases (typos, abbreviations, semantic variations)
 
 **Hybrid Blocking Architecture**
 * **3-Tier Blocking Strategy:** Combine traditional blocking with embedding-based candidate generation:
 - **Tier 1**: Exact matching on email/phone (fastest, highest precision) - *already implemented*
 - **Tier 2**: Traditional fuzzy blocking with soundex, n-grams (fast, good recall) - *already implemented*
-- **Tier 3**: Embedding-based semantic blocking with LSH and ANN (comprehensive, handles variations) - *partially implemented*
+- **Tier 3**: Embedding-based semantic blocking with LSH and ANN (comprehensive, handles variations) - *implemented*
 - **Multi-Resolution Embeddings**: Store both coarse embeddings (64-dim) for fast filtering and fine embeddings (256-dim) for accurate re-ranking
 - **Recall-Optimized**: Prioritize recall >=95% at blocking stage, refine precision in later stages
 
@@ -116,8 +116,8 @@ The system is being developed in phased increments with clear separation of conc
 * **Transfer Learning:** Pre-train on general ER datasets, fine-tune on domain-specific data
 
 **Current Implementation Status**
-* **Implemented**: Embedding service using pre-trained models, vector blocking with cosine similarity
-* **Missing**: Multi-resolution embeddings, LSH/HNSW indexing, Siamese networks, tuple embeddings, transfer learning, A/B evaluation framework
+* **Implemented**: Embedding service (multi-resolution), vector blocking, LSH blocking, ANN adapter, tuple embedding serializer, A/B evaluation harness
+* **Missing**: Siamese networks, transfer learning and fine-tuning workflows (optional future enhancements)
 
 **Implementation Strategy**
 * Non-breaking: Add as new blocking tier alongside existing strategies
