@@ -30,7 +30,7 @@ if [ ! -f "README.md" ] || [ ! -d "src" ]; then
 fi
 
 # Set Python path
-export PYTHONPATH="${PWD}/src:${PYTHONPATH}"
+export PYTHONPATH="${PWD}/src:${PYTHONPATH:-}"
 
 # Check if we should skip tests (for emergency pushes)
 if [ -n "${SKIP_TESTS:-}" ]; then
