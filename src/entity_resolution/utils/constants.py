@@ -83,6 +83,20 @@ DEFAULT_EDGE_COLLECTION = "similarTo"
 DEFAULT_CLUSTER_COLLECTION = "entity_clusters"
 DEFAULT_ADDRESS_EDGE_COLLECTION = "address_sameAs"
 
+# Phase 3 (prototype) node embedding safety limits
+#
+# These are intentionally conservative defaults to prevent accidental OOM and
+# to keep the Node2Vec-style SVD approach limited to small graphs.
+PHASE3_NODE_EMBEDDING_LIMITS = {
+    # Hard limits (raise ValueError if exceeded)
+    'max_edges_fetched': 50000,
+    'max_nodes': 10000,
+    'max_dimensions': 128,
+    # Warning thresholds (log warnings, continue)
+    'warn_edges_threshold': 20000,
+    'warn_nodes_threshold': 5000,
+}
+
 # Performance Limits
 PERFORMANCE_LIMITS = {
     'max_records_per_batch': 1000,

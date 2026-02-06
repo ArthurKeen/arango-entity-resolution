@@ -59,3 +59,56 @@ def test_empty_edges_returns_empty_embeddings() -> None:
     emb = svc.train_embeddings([], Node2VecParams())
     assert emb == {}
 
+
+def test_train_embeddings_enforces_max_nodes_limit() -> None:
+    # Create a chain of 4 nodes (exceeds max_nodes=3)
+    edges = [("v/1", "v/2", 1.0), ("v/2", "v/3", 1.0), ("v/3", "v/4", 1.0)]
+    svc = Node2VecEmbeddingService(db=None, edge_collection="e", safety_limits={"max_nodes": 3, "warn_nodes_threshold": 2})
+    params = Node2VecParams(dimensions=4, walk_length=4, num_walks=2, window_size=2, seed=1)
+
+    try:
+        svc.train_embeddings(edges, params)
+        assert False, "Expected ValueError for max_nodes safety limit"
+    except ValueError as e:
+        assert "max_nodes" in str(e)
+
+
+def test_train_embeddings_enforces_max_dimensions_limit() -> None:
+    svc = Node2VecEmbeddingService(db=None, edge_collection="e", safety_limits={"max_dimensions": 3})
+    params = Node2VecParams(dimensions=4, walk_length=4, num_walks=2, window_size=2, seed=1)
+    try:
+        svc.train_embeddings(_toy_edges(), params)
+        assert False, "Expected ValueError for max_dimensions safety limit"
+    except ValueError as e:
+        assert "max_dimensions" in str(e)
+
+
+def test_fetch_edges_caps_unbounded_limit_and_enforces_max_edges_fetched() -> None:
+    class _FakeAQL:
+        def execute(self, query, bind_vars=None):
+            # Return 3 edges regardless of limit clause
+            return [
+                {"_from": "v/a", "_to": "v/b", "w": 1.0},
+                {"_from": "v/b", "_to": "v/c", "w": 1.0},
+                {"_from": "v/c", "_to": "v/d", "w": 1.0},
+            ]
+
+    class _FakeDB:
+        def __init__(self):
+            self.aql = _FakeAQL()
+
+        def has_collection(self, name: str) -> bool:
+            return True
+
+    svc = Node2VecEmbeddingService(
+        db=_FakeDB(),
+        edge_collection="e",
+        safety_limits={"max_edges_fetched": 2, "warn_edges_threshold": 1},
+    )
+
+    try:
+        svc.fetch_edges(limit=0)
+        assert False, "Expected ValueError for max_edges_fetched safety limit"
+    except ValueError as e:
+        assert "max_edges_fetched" in str(e)
+

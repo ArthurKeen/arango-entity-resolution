@@ -32,6 +32,8 @@ import numpy as np
 from arango.collection import Collection
 from arango.database import StandardDatabase
 
+from ..utils.constants import PHASE3_NODE_EMBEDDING_LIMITS
+
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +67,7 @@ class Node2VecEmbeddingService:
         embedding_field: str = "node_embedding",
         embedding_meta_field: str = "node_embedding_meta",
         directed: bool = False,
+        safety_limits: Optional[Dict[str, int]] = None,
     ) -> None:
         self.db = db
         self.edge_collection = edge_collection
@@ -72,6 +75,7 @@ class Node2VecEmbeddingService:
         self.embedding_field = embedding_field
         self.embedding_meta_field = embedding_meta_field
         self.directed = directed
+        self.safety_limits = {**PHASE3_NODE_EMBEDDING_LIMITS, **(safety_limits or {})}
 
     def fetch_edges(
         self,
@@ -91,6 +95,19 @@ class Node2VecEmbeddingService:
         Returns:
             List of (from_id, to_id, weight) edges. Weight defaults to 1.0 if no confidence.
         """
+        max_edges = int(self.safety_limits['max_edges_fetched'])
+        warn_edges = int(self.safety_limits['warn_edges_threshold'])
+        if limit and limit > max_edges:
+            raise ValueError(f"limit={limit} exceeds max_edges_fetched={max_edges} (prototype safety limit)")
+
+        # Safe-by-default: if limit is not provided, cap to the hard limit.
+        if not limit or limit <= 0:
+            limit = max_edges
+            logger.warning(
+                "fetch_edges called with limit=0; capping to max_edges_fetched=%s (prototype safety limit)",
+                max_edges,
+            )
+
         if not self.db.has_collection(self.edge_collection):
             raise ValueError(f"Edge collection '{self.edge_collection}' does not exist")
 
@@ -130,6 +147,17 @@ class Node2VecEmbeddingService:
         out: List[Tuple[str, str, float]] = []
         for row in cursor:
             out.append((row["_from"], row["_to"], float(row.get("w", 1.0))))
+
+        if len(out) > max_edges:
+            raise ValueError(
+                f"Fetched {len(out)} edges which exceeds max_edges_fetched={max_edges} (prototype safety limit)"
+            )
+        if len(out) > warn_edges:
+            logger.warning(
+                "Fetched %s edges (warn_edges_threshold=%s). This prototype may be slow or memory-hungry.",
+                len(out),
+                warn_edges,
+            )
         return out
 
     def train_embeddings(
@@ -143,8 +171,11 @@ class Node2VecEmbeddingService:
         Returns:
             dict mapping node_id -> embedding vector (list[float])
         """
+        max_dims = int(self.safety_limits['max_dimensions'])
         if params.dimensions <= 0:
             raise ValueError("dimensions must be > 0")
+        if params.dimensions > max_dims:
+            raise ValueError(f"dimensions={params.dimensions} exceeds max_dimensions={max_dims} (prototype safety limit)")
         if params.walk_length <= 0 or params.num_walks <= 0:
             raise ValueError("walk_length and num_walks must be > 0")
         if params.window_size <= 0:
@@ -154,6 +185,24 @@ class Node2VecEmbeddingService:
         nodes = sorted(adjacency.keys())
         if not nodes:
             return {}
+
+        max_nodes = int(self.safety_limits['max_nodes'])
+        warn_nodes = int(self.safety_limits['warn_nodes_threshold'])
+        if len(nodes) > max_nodes:
+            raise ValueError(f"node_count={len(nodes)} exceeds max_nodes={max_nodes} (prototype safety limit)")
+        if len(nodes) > warn_nodes:
+            logger.warning(
+                "Training embeddings for %s nodes (warn_nodes_threshold=%s). This prototype may be slow or memory-hungry.",
+                len(nodes),
+                warn_nodes,
+            )
+
+        est_bytes = self._estimate_cooccurrence_bytes(len(nodes))
+        logger.info(
+            "Estimated co-occurrence matrix size: ~%s MB for %s nodes (float32)",
+            int(est_bytes / (1024 * 1024)),
+            len(nodes),
+        )
 
         rng = np.random.default_rng(params.seed)
         walks = self._generate_walks(
@@ -322,4 +371,11 @@ class Node2VecEmbeddingService:
         # Symmetrize to stabilize SVD for undirected graphs
         mat = 0.5 * (mat + mat.T)
         return mat
+
+    @staticmethod
+    def _estimate_cooccurrence_bytes(node_count: int) -> int:
+        # float32 co-occurrence matrix: n*n*4 bytes (does not include SVD workspace)
+        if node_count <= 0:
+            return 0
+        return int(node_count) * int(node_count) * 4
 
