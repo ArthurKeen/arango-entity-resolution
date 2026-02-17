@@ -33,6 +33,7 @@ import numpy as np
 
 from .base_strategy import BlockingStrategy
 from ..utils.validation import validate_collection_name, validate_field_name
+from ..utils.aql_builders import build_aql_filter_conditions
 
 
 # Constants for LSH blocking configuration
@@ -306,7 +307,11 @@ class LSHBlockingStrategy(BlockingStrategy):
         )
         
         # Build filter conditions
-        filter_conditions = self._build_filter_conditions(self.filters)
+        filter_conditions, filter_bind_vars = build_aql_filter_conditions(
+            self.filters,
+            var_name="doc",
+            bind_var_prefix="filter",
+        )
         filter_clause = " AND ".join(filter_conditions) if filter_conditions else "true"
         
         # Build blocking clause
@@ -316,6 +321,7 @@ class LSHBlockingStrategy(BlockingStrategy):
         
         # Load all documents with embeddings into memory
         # For large collections, this could be optimized with batching
+        blocking_value_expr = f"doc.{self.blocking_field}" if self.blocking_field else "null"
         query = f"""
             FOR doc IN {self.collection}
             FILTER doc.{self.embedding_field} != null
@@ -323,11 +329,11 @@ class LSHBlockingStrategy(BlockingStrategy):
             RETURN {{
                 _key: doc._key,
                 embedding: doc.{self.embedding_field},
-                blocking_value: doc.{self.blocking_field}  // Will be null if blocking_field not set
+                blocking_value: {blocking_value_expr}  // null if blocking_field not set
             }}
         """
         
-        cursor = self.db.aql.execute(query)
+        cursor = self.db.aql.execute(query, bind_vars=filter_bind_vars)
         documents = list(cursor)
         
         if len(documents) == 0:

@@ -8,6 +8,7 @@ import os
 import warnings
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
+from urllib.parse import urlparse
 
 
 class SecurityWarning(UserWarning):
@@ -21,21 +22,72 @@ class DatabaseConfig:
     host: str = "localhost"
     port: int = 8529
     username: str = "root"
-    password: str = ""  # SECURITY: Must be provided via ARANGO_ROOT_PASSWORD environment variable
+    password: str = ""  # SECURITY: Must be provided via env (ARANGO_PASSWORD recommended)
     database: str = "entity_resolution"
+
+    # Canonical environment variables (preferred):
+    # - ARANGO_HOST, ARANGO_PORT, ARANGO_USERNAME, ARANGO_PASSWORD, ARANGO_DATABASE
+    #
+    # Backwards-compatible aliases supported:
+    # - ARANGO_ENDPOINT (parsed into host/port)
+    # - ARANGO_DB_HOST, ARANGO_DB_PORT
+    # - ARANGO_USER (username)
+    # - ARANGO_ROOT_PASSWORD (password)
+    # - TEST_DB_NAME (database, test-only convenience)
+    #
+    # NOTE: We keep ARANGO_ROOT_PASSWORD/ARANGO_PASSWORD behavior for compatibility.
+
+    @staticmethod
+    def _parse_endpoint(endpoint: str) -> tuple[Optional[str], Optional[int]]:
+        endpoint = (endpoint or "").strip()
+        if not endpoint:
+            return None, None
+        # Accept "host:port" or "http(s)://host:port"
+        if "://" not in endpoint:
+            endpoint = f"http://{endpoint}"
+        parsed = urlparse(endpoint)
+        return parsed.hostname, parsed.port
     
     @classmethod
     def from_env(cls) -> 'DatabaseConfig':
         """
         Create config from environment variables.
         
-        Password is REQUIRED via ARANGO_ROOT_PASSWORD or ARANGO_PASSWORD environment variable.
+        Password is REQUIRED via ARANGO_PASSWORD (canonical) or ARANGO_ROOT_PASSWORD (alias).
         For local docker testing, USE_DEFAULT_PASSWORD=true can be set (development only).
         
         Raises:
             ValueError: If password is not provided and not in test mode
         """
-        # Get password from environment (multiple sources for compatibility)
+        # Resolve aliases (prefer canonical vars when present)
+        endpoint = os.getenv("ARANGO_ENDPOINT")
+        endpoint_host, endpoint_port = cls._parse_endpoint(endpoint) if endpoint else (None, None)
+
+        host = (
+            os.getenv("ARANGO_HOST")
+            or os.getenv("ARANGO_DB_HOST")
+            or endpoint_host
+            or cls.host
+        )
+        port_raw = (
+            os.getenv("ARANGO_PORT")
+            or os.getenv("ARANGO_DB_PORT")
+            or (str(endpoint_port) if endpoint_port is not None else None)
+            or str(cls.port)
+        )
+        username = (
+            os.getenv("ARANGO_USERNAME")
+            or os.getenv("ARANGO_USER")
+            or os.getenv("ARANGO_ROOT_USERNAME")
+            or cls.username
+        )
+        database = (
+            os.getenv("ARANGO_DATABASE")
+            or os.getenv("TEST_DB_NAME")
+            or cls.database
+        )
+
+        # Password (multiple sources for compatibility)
         password = os.getenv("ARANGO_PASSWORD") or os.getenv("ARANGO_ROOT_PASSWORD")
         
         # Do NOT hardcode any passwords in source code (pre-commit enforces this).
@@ -60,11 +112,11 @@ class DatabaseConfig:
             )
             
         return cls(
-            host=os.getenv("ARANGO_HOST", cls.host),
-            port=int(os.getenv("ARANGO_PORT", str(cls.port))),
-            username=os.getenv("ARANGO_USERNAME", cls.username),
+            host=host,
+            port=int(port_raw),
+            username=username,
             password=password,
-            database=os.getenv("ARANGO_DATABASE", cls.database)
+            database=database,
         )
 
 

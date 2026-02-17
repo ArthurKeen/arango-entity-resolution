@@ -25,6 +25,7 @@ import numpy as np
 
 from .base_strategy import BlockingStrategy
 from ..utils.validation import validate_collection_name, validate_field_name
+from ..utils.aql_builders import build_aql_filter_conditions
 from ..similarity.ann_adapter import ANNAdapter
 
 
@@ -259,7 +260,11 @@ class VectorBlockingStrategy(BlockingStrategy):
         This method maintains the original implementation for compatibility.
         """
         # Build filter conditions
-        filter_conditions = self._build_filter_conditions(self.filters)
+        filter_conditions, filter_bind_vars = build_aql_filter_conditions(
+            self.filters,
+            var_name="doc1",
+            bind_var_prefix="filter",
+        )
         filter_clause = " AND ".join(filter_conditions) if filter_conditions else "true"
         
         # Build blocking clause
@@ -314,6 +319,7 @@ class VectorBlockingStrategy(BlockingStrategy):
             'limit_per_entity': self.limit_per_entity,
             'min_magnitude': MINIMUM_VECTOR_MAGNITUDE
         }
+        bind_vars.update(filter_bind_vars)
         
         try:
             cursor = self.db.aql.execute(query, bind_vars=bind_vars)

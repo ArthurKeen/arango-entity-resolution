@@ -33,6 +33,7 @@ from arango.collection import Collection
 from arango.database import StandardDatabase
 
 from ..utils.constants import PHASE3_NODE_EMBEDDING_LIMITS
+from ..utils.validation import validate_collection_name
 
 
 logger = logging.getLogger(__name__)
@@ -70,7 +71,7 @@ class Node2VecEmbeddingService:
         safety_limits: Optional[Dict[str, int]] = None,
     ) -> None:
         self.db = db
-        self.edge_collection = edge_collection
+        self.edge_collection = validate_collection_name(edge_collection)
         self.vertex_collection = vertex_collection
         self.embedding_field = embedding_field
         self.embedding_meta_field = embedding_meta_field

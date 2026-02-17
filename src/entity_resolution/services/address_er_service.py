@@ -13,7 +13,7 @@ from datetime import datetime
 import logging
 
 from .wcc_clustering_service import WCCClusteringService
-from ..utils.validation import validate_collection_name, validate_field_name
+from ..utils.validation import validate_collection_name, validate_field_name, sanitize_string_for_display
 from ..utils.constants import DEFAULT_BATCH_SIZE, DEFAULT_EDGE_BATCH_SIZE
 
 
@@ -747,6 +747,8 @@ class AddressERService:
             return self._create_edges(blocks)  # Fallback
         
         # Build arangoimport command
+        # NOTE: arangoimport accepts passwords via argv. This can be visible in process lists
+        # on some systems. We avoid logging the full command and redact any captured output.
         cmd = [
             'arangoimport',
             '--server.endpoint', f'http://{host}:{port}',
@@ -805,9 +807,27 @@ class AddressERService:
             raise
             
         except subprocess.CalledProcessError as e:
-            self.logger.error(f"arangoimport failed: {e}")
-            self.logger.error(f"stdout: {e.stdout}")
-            self.logger.error(f"stderr: {e.stderr}")
+            def _redact(value: Optional[str]) -> str:
+                if not value:
+                    return ""
+                redacted = value.replace(password, "***") if password else value
+                return sanitize_string_for_display(redacted, max_length=500)
+
+            self.logger.error(
+                "arangoimport failed (returncode=%s) endpoint=http://%s:%s db=%s collection=%s file=%s",
+                e.returncode,
+                host,
+                port,
+                db_name,
+                self.edge_collection,
+                csv_path,
+            )
+            stderr_snippet = _redact(getattr(e, "stderr", None))
+            stdout_snippet = _redact(getattr(e, "stdout", None))
+            if stderr_snippet:
+                self.logger.error("arangoimport stderr (redacted, truncated): %s", stderr_snippet)
+            if stdout_snippet:
+                self.logger.debug("arangoimport stdout (redacted, truncated): %s", stdout_snippet)
             self.logger.info("Falling back to standard insert_many method...")
             if cleanup_csv and os.path.exists(csv_path):
                 os.remove(csv_path)

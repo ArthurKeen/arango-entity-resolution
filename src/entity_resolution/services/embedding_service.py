@@ -32,6 +32,7 @@ except ImportError:
 
 from ..utils.database import DatabaseManager
 from .tuple_embedding_serializer import TupleEmbeddingSerializer
+from ..utils.validation import validate_collection_name, validate_field_name
 
 
 # Constants for embedding service configuration
@@ -721,25 +722,32 @@ class EmbeddingService:
             ... )
             >>> print(f"Generated {stats['generated']} new embeddings")
         """
-        db = self.db_manager.get_database(database_name)
-        collection = db.collection(collection_name)
+        collection_name = validate_collection_name(collection_name)
         
         # Find documents without embeddings based on mode
         if force_regenerate:
             query = f"FOR doc IN {collection_name} RETURN doc"
         elif self.multi_resolution_mode:
+            if self.embedding_field_coarse is None or self.embedding_field_fine is None:
+                raise ValueError("Multi-resolution mode requires embedding_field_coarse and embedding_field_fine")
+            embedding_field_coarse = validate_field_name(self.embedding_field_coarse)
+            embedding_field_fine = validate_field_name(self.embedding_field_fine)
             query = f"""
                 FOR doc IN {collection_name}
-                FILTER doc.{self.embedding_field_coarse} == null 
-                    OR doc.{self.embedding_field_fine} == null
+                FILTER doc.{embedding_field_coarse} == null 
+                    OR doc.{embedding_field_fine} == null
                 RETURN doc
             """
         else:
+            embedding_field = validate_field_name(self.embedding_field)
             query = f"""
                 FOR doc IN {collection_name}
-                FILTER doc.{self.embedding_field} == null
+                FILTER doc.{embedding_field} == null
                 RETURN doc
             """
+        
+        db = self.db_manager.get_database(database_name)
+        collection = db.collection(collection_name)
         
         cursor = db.aql.execute(query)
         documents = list(cursor)
@@ -821,6 +829,8 @@ class EmbeddingService:
         Returns:
             Dictionary with statistics (total, with_embeddings, without_embeddings, etc.)
         """
+        collection_name = validate_collection_name(collection_name)
+        embedding_field = validate_field_name(self.embedding_field)
         db = self.db_manager.get_database(database_name)
         
         # Count total documents
@@ -831,7 +841,7 @@ class EmbeddingService:
         with_embeddings_query = f"""
             RETURN COUNT(
                 FOR doc IN {collection_name}
-                FILTER doc.{self.embedding_field} != null
+                FILTER doc.{embedding_field} != null
                 RETURN 1
             )
         """
@@ -840,7 +850,7 @@ class EmbeddingService:
         # Get embedding metadata from a sample document
         sample_query = f"""
             FOR doc IN {collection_name}
-            FILTER doc.{self.embedding_field} != null
+            FILTER doc.{embedding_field} != null
             LIMIT 1
             RETURN doc.embedding_metadata
         """
