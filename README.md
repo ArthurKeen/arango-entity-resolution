@@ -1,6 +1,6 @@
 # ArangoDB Advanced Entity Resolution System
 
-**Current Version**: 3.1.1 | [Version History](VERSION_HISTORY.md) | [Changelog](CHANGELOG.md)
+**Current Version**: 3.1.2 | [Version History](VERSION_HISTORY.md) | [Changelog](CHANGELOG.md)
 
 ## What's New in v3.1
 
