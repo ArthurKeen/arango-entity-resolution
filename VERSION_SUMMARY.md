@@ -4,15 +4,15 @@
 
 ---
 
-## Current Version: 3.1.0-stable
+## Current Version: 3.1.2
 
-**Released**: January 2026 
+**Released**: February 2026
 **Status**: Production Ready
 
 ### Version String
 ```python
 import entity_resolution
-print(entity_resolution.__version__) # "3.1.0-stable"
+print(entity_resolution.__version__) # "3.1.2"
 ```
 
 ### Version Code Location
@@ -21,8 +21,8 @@ print(entity_resolution.__version__) # "3.1.0-stable"
 VERSION_INFO = {
 'major': 3,
 'minor': 1,
-'patch': 0,
-'release': 'stable'
+'patch': 2,
+'release': ''
 }
 ```
 
@@ -65,7 +65,9 @@ VERSION_INFO = {
 
 | Version | Identifier | Key Features |
 |---------|-----------|--------------|
-| **v3.1.0** | `"3.1.0-stable"` | <- **CURRENT** - Includes ER Enrichments |
+| **v3.1.2** | `"3.1.2"` | <- **CURRENT** - Includes ER Enrichments + Phase 3 Node2Vec prototype + testing/security hardening |
+| v3.1.1 | `"3.1.1"` | Golden record persistence + deterministic edge keys |
+| v3.1.0 | `"3.1.0-stable"` | Historical “stable” identifier used for production-ready 3.1.0 release |
 | v3.0.0 | `"3.0.0-stable"` | All core services, no enrichments |
 | v2.x | `"2.x.x-*"` | Partial services, no address ER |
 | v1.x | `"1.x.x-*"` | Legacy basic ER |
@@ -81,8 +83,8 @@ grep -A 4 "VERSION_INFO" src/entity_resolution/utils/constants.py
 **Python**:
 ```python
 from entity_resolution.utils.constants import VERSION_INFO, get_version_string
-print(get_version_string()) # "3.0.0-stable"
-print(VERSION_INFO) # {'major': 3, 'minor': 0, 'patch': 0, 'release': 'stable'}
+print(get_version_string()) # "3.1.2"
+print(VERSION_INFO) # {'major': 3, 'minor': 1, 'patch': 2, 'release': ''}
 ```
 
 ---
