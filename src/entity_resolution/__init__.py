@@ -76,6 +76,9 @@ def __getattr__(name):
     if name == "EmbeddingService":
         from .services.embedding_service import EmbeddingService
         return EmbeddingService
+    if name in ["Node2VecEmbeddingService", "Node2VecParams"]:
+        from .services.node2vec_embedding_service import Node2VecEmbeddingService, Node2VecParams
+        return Node2VecEmbeddingService if name == "Node2VecEmbeddingService" else Node2VecParams
 
     # Similarity components
     if name == "WeightedFieldSimilarity":
@@ -137,6 +140,8 @@ __all__ = [
     'AddressERService',
     'CrossCollectionMatchingService',
     'EmbeddingService',
+    'Node2VecEmbeddingService',
+    'Node2VecParams',
     
     # Similarity components (v3.0)
     'WeightedFieldSimilarity',

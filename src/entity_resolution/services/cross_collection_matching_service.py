@@ -24,6 +24,8 @@ import time
 from datetime import datetime
 import logging
 
+from ..utils.validation import validate_collection_name, validate_view_name, validate_field_name
+
 
 class CrossCollectionMatchingService:
     """
@@ -105,23 +107,23 @@ class CrossCollectionMatchingService:
                 Default True.
         """
         self.db = db
-        self.source_collection_name = source_collection
-        self.target_collection_name = target_collection
-        self.edge_collection_name = edge_collection
-        self.search_view = search_view
+        self.source_collection_name = validate_collection_name(source_collection)
+        self.target_collection_name = validate_collection_name(target_collection)
+        self.edge_collection_name = validate_collection_name(edge_collection)
+        self.search_view = validate_view_name(search_view) if search_view is not None else None
         
         # Initialize logger
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         
         # Get collections
-        self.source_collection = db.collection(source_collection)
-        self.target_collection = db.collection(target_collection)
+        self.source_collection = db.collection(self.source_collection_name)
+        self.target_collection = db.collection(self.target_collection_name)
         
         # Get or create edge collection
-        if auto_create_edge_collection and not db.has_collection(edge_collection):
-            self.edge_collection: EdgeCollection = db.create_collection(edge_collection, edge=True)
+        if auto_create_edge_collection and not db.has_collection(self.edge_collection_name):
+            self.edge_collection: EdgeCollection = db.create_collection(self.edge_collection_name, edge=True)
         else:
-            self.edge_collection = db.collection(edge_collection)
+            self.edge_collection = db.collection(self.edge_collection_name)
         
         # Configuration
         self.source_fields = {}
@@ -183,6 +185,18 @@ class CrossCollectionMatchingService:
         self.blocking_strategy = blocking_strategy or "exact"
         self.custom_filters = custom_filters or {}
         
+        # Validate any identifiers that will be interpolated into AQL.
+        for logical_field, source_field in self.source_fields.items():
+            validate_field_name(logical_field, allow_nested=False)
+            validate_field_name(source_field, allow_nested=True)
+        for logical_field, target_field in self.target_fields.items():
+            validate_field_name(logical_field, allow_nested=False)
+            validate_field_name(target_field, allow_nested=True)
+        for logical_field in self.field_weights.keys():
+            validate_field_name(logical_field, allow_nested=False)
+        for logical_field in self.blocking_fields:
+            validate_field_name(logical_field, allow_nested=False)
+
         # Validate configuration
         if set(source_fields.keys()) != set(target_fields.keys()):
             raise ValueError("source_fields and target_fields must have same logical field names")
@@ -580,7 +594,8 @@ class CrossCollectionMatchingService:
             if not isinstance(filter_spec, dict):
                 continue
             
-            field_ref = f"{var_name}.{field}"
+            safe_field = validate_field_name(field, allow_nested=True)
+            field_ref = f"{var_name}.{safe_field}"
             
             if filter_spec.get('not_null'):
                 conditions.append(f"{field_ref} != null")

@@ -83,6 +83,20 @@ DEFAULT_EDGE_COLLECTION = "similarTo"
 DEFAULT_CLUSTER_COLLECTION = "entity_clusters"
 DEFAULT_ADDRESS_EDGE_COLLECTION = "address_sameAs"
 
+# Phase 3 (prototype) node embedding safety limits
+#
+# These are intentionally conservative defaults to prevent accidental OOM and
+# to keep the Node2Vec-style SVD approach limited to small graphs.
+PHASE3_NODE_EMBEDDING_LIMITS = {
+    # Hard limits (raise ValueError if exceeded)
+    'max_edges_fetched': 50000,
+    'max_nodes': 10000,
+    'max_dimensions': 128,
+    # Warning thresholds (log warnings, continue)
+    'warn_edges_threshold': 20000,
+    'warn_nodes_threshold': 5000,
+}
+
 # Performance Limits
 PERFORMANCE_LIMITS = {
     'max_records_per_batch': 1000,
@@ -262,10 +276,11 @@ INDUSTRY_CONSTANTS = {
 }
 
 # Version Information
-# v3.1.0-stable: Current production release
+# v3.1.2: Current release
 #   - Includes Entity Resolution Enrichments (TypeCompatibilityFilter, etc.)
 #   - Standalone enrichment modules with lazy config loading
-# v3.0.0-stable: Previous production release
+# v3.1.0-stable: Historical production identifier (used for 3.1.0 release)
+# v3.0.0-stable: Previous production identifier
 #   - Includes AddressERService, CrossCollectionMatchingService
 #   - Vector search (EmbeddingService, VectorBlockingStrategy)
 #   - WCC performance optimization (40-100x speedup)
@@ -275,11 +290,11 @@ INDUSTRY_CONSTANTS = {
 VERSION_INFO = {
     'major': 3,
     'minor': 1,
-    'patch': 1,
+    'patch': 2,
     'release': ''
 }
 
-__version__ = "3.1.1"
+__version__ = "3.1.2"
 
 def get_version_string() -> str:
     """Get formatted version string"""

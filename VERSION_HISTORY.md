@@ -4,11 +4,11 @@ This document provides a clear timeline of major library versions to distinguish
 
 ---
 
-## Version 3.1.0-stable (CURRENT) - January 2026
+## Version 3.1.2 (CURRENT) - February 2026
 
 **Status**: **PRODUCTION READY**
 
-### Major Features
+### Highlights
 
 **Entity Resolution Enrichments**:
 - `TypeCompatibilityFilter` - Pre-filter candidates by type to prevent nonsensical matches
@@ -16,9 +16,10 @@ This document provides a clear timeline of major library versions to distinguish
 - `AcronymExpansionHandler` - Handle domain-specific abbreviations and acronyms during search
 - `RelationshipProvenanceSweeper` - Remap relationships through consolidation with full audit trails
 
-**Improvements**:
-- Standalone enrichment modules with lazy config loading (no database required for utility modules)
-- Cross-domain validation on Hardware ER and Medical domains
+**Improvements since 3.1.1**:
+- Security hardening: validate AQL identifiers (collection/view/field) before interpolation
+- Safer error handling: redact `arangoimport` failure logs to avoid credential leakage
+- Substantial test/coverage lift + Docker-backed Node2Vec integration tests
 
 ---
 

@@ -14,6 +14,7 @@ from datetime import datetime
 import logging
 
 from ..utils.graph_utils import format_vertex_id, extract_key_from_vertex_id
+from ..utils.validation import validate_collection_name
 
 
 class WCCClusteringService:
@@ -89,9 +90,9 @@ class WCCClusteringService:
             For extremely large graphs (>10M edges), set use_bulk_fetch=False.
         """
         self.db = db
-        self.edge_collection_name = edge_collection
-        self.cluster_collection_name = cluster_collection
-        self.vertex_collection = vertex_collection
+        self.edge_collection_name = validate_collection_name(edge_collection)
+        self.cluster_collection_name = validate_collection_name(cluster_collection)
+        self.vertex_collection = validate_collection_name(vertex_collection) if vertex_collection else None
         self.min_cluster_size = min_cluster_size
         self.graph_name = graph_name
         self.use_bulk_fetch = use_bulk_fetch
@@ -100,13 +101,13 @@ class WCCClusteringService:
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         
         # Get collections
-        self.edge_collection: EdgeCollection = db.collection(edge_collection)
+        self.edge_collection: EdgeCollection = db.collection(self.edge_collection_name)
         
         # Create cluster collection if it doesn't exist
-        if not db.has_collection(cluster_collection):
-            self.cluster_collection: StandardCollection = db.create_collection(cluster_collection)
+        if not db.has_collection(self.cluster_collection_name):
+            self.cluster_collection: StandardCollection = db.create_collection(self.cluster_collection_name)
         else:
-            self.cluster_collection = db.collection(cluster_collection)
+            self.cluster_collection = db.collection(self.cluster_collection_name)
         
         # Statistics tracking
         self._stats = {
@@ -541,7 +542,7 @@ class WCCClusteringService:
                     to_collection = to_id.split('/')[0]
                     vertex_collections.add(to_collection)
             
-            return sorted(list(vertex_collections))
+            return [validate_collection_name(c) for c in sorted(list(vertex_collections))]
         
         except Exception as e:
             self.logger.error(f"Failed to detect vertex collections: {e}", exc_info=True)

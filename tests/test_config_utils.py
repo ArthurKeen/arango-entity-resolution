@@ -16,8 +16,9 @@ class TestVerifyArangoEnvironment:
     """Tests for verify_arango_environment function."""
     
     @patch.dict(os.environ, {
-        'ARANGO_ENDPOINT': 'http://localhost:8529',
-        'ARANGO_USER': 'test_user',
+        'ARANGO_HOST': 'localhost',
+        'ARANGO_PORT': '8529',
+        'ARANGO_USERNAME': 'test_user',
         'ARANGO_PASSWORD': 'test_password',
         'ARANGO_DATABASE': 'test_db'
     })
@@ -29,8 +30,9 @@ class TestVerifyArangoEnvironment:
         assert len(missing) == 0
     
     @patch.dict(os.environ, {
-        'ARANGO_ENDPOINT': 'http://localhost:8529',
-        'ARANGO_USER': 'test_user',
+        'ARANGO_HOST': 'localhost',
+        'ARANGO_PORT': '8529',
+        'ARANGO_USERNAME': 'test_user',
         'ARANGO_PASSWORD': '',
         'ARANGO_DATABASE': 'test_db'
     }, clear=True)
@@ -47,9 +49,10 @@ class TestVerifyArangoEnvironment:
         is_valid, missing = verify_arango_environment()
         
         assert is_valid is False
-        assert len(missing) == 4
-        assert 'ARANGO_ENDPOINT' in missing
-        assert 'ARANGO_USER' in missing
+        assert len(missing) == 5
+        assert 'ARANGO_HOST' in missing
+        assert 'ARANGO_PORT' in missing
+        assert 'ARANGO_USERNAME' in missing
         assert 'ARANGO_PASSWORD' in missing
         assert 'ARANGO_DATABASE' in missing
     
@@ -84,8 +87,9 @@ class TestGetArangoConfigFromEnv:
     """Tests for get_arango_config_from_env function."""
     
     @patch.dict(os.environ, {
-        'ARANGO_ENDPOINT': 'http://localhost:8529',
-        'ARANGO_USER': 'test_user',
+        'ARANGO_HOST': 'localhost',
+        'ARANGO_PORT': '8529',
+        'ARANGO_USERNAME': 'test_user',
         'ARANGO_PASSWORD': 'test_password',
         'ARANGO_DATABASE': 'test_db'
     })
@@ -100,8 +104,9 @@ class TestGetArangoConfigFromEnv:
         assert config['database'] == 'test_db'
     
     @patch.dict(os.environ, {
-        'ARANGO_ENDPOINT': 'http://localhost:8529',
-        'ARANGO_USER': 'test_user',
+        'ARANGO_HOST': 'localhost',
+        'ARANGO_PORT': '8529',
+        'ARANGO_USERNAME': 'test_user',
         'ARANGO_PASSWORD': 'test_password',
         'ARANGO_DATABASE': 'test_db',
         'ARANGO_ROOT_PASSWORD': 'root_password'

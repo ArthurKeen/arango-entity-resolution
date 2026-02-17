@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.2] - 2026-02-16
+
+### Security
+
+- Harden AQL identifier validation across services/strategies to reduce injection risk.
+- Redact `arangoimport` failure logging to avoid credential leakage.
+
+### Testing
+
+- Add Docker-backed integration tests for Node2Vec and expand unit test coverage across core modules.
+
 ## [3.1.1] - 2026-02-01
 
 ### Added - GoldenRecord persistence + resolvedTo edges

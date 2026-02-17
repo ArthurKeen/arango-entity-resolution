@@ -26,6 +26,11 @@ class TestWCCClusteringService:
         assert service.cluster_collection_name == "entity_clusters"
         assert service.vertex_collection == "companies"
         assert service.min_cluster_size == 2
+
+    def test_initialization_rejects_invalid_collection_names(self, db):
+        """Test that invalid collection names are rejected early."""
+        with pytest.raises(ValueError, match="collection name"):
+            WCCClusteringService(db=db, edge_collection="bad-name")
     
     def test_format_vertex_id(self, db):
         """Test vertex ID formatting."""

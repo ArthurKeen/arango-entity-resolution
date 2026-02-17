@@ -8,8 +8,10 @@ Handles database-prefixed analyzer names and view accessibility verification.
 from typing import Dict, List, Any, Optional, Tuple
 from arango.database import StandardDatabase
 import logging
+import time
 
 from .logging import get_logger
+from .validation import validate_view_name
 
 
 def resolve_analyzer_name(db: StandardDatabase, analyzer_name: str) -> str:
@@ -93,6 +95,7 @@ def verify_view_analyzers(
         - error_message: Error message if view is not accessible, None if accessible
     """
     logger = get_logger(__name__)
+    view_name = validate_view_name(view_name)
     
     # Check if view exists
     try:

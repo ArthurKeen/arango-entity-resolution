@@ -1,95 +1,57 @@
 ?==========================================================================?
 ?              CODE COVERAGE AUDIT - QUICK REFERENCE                       ?
-?                     November 12, 2025                                    ?
+?                     February 16, 2026                                    ?
 ?==========================================================================?
 
-OVERALL: 19% (2,761 statements, 2,231 missed)
+OVERALL: 67% (6,071 statements, 1,999 missed)
 
-? COVERAGE BY COMPONENT:
+BRANCH: feature/phase3-node-embeddings
+TESTS: 502 passed, 17 skipped, 2 warnings  (pytest --cov=src --cov-report=json -q)
 
-[PASS] EXCELLENT (>70%)
-  +- __init__.py (main)        100% ########################
-  +- utils/logging.py           88% ######################..
-  +- utils/config.py            81% ####################....
-  +- utils/constants.py         72% #################.......
+? HIGHLIGHTS (NEW / IMPORTANT)
 
-[WARN]?  MODERATE (30-70%)
-  +- services/base_service.py   48% ############............
-  +- utils/database.py          33% ########................
-  +- demo/demo_manager.py       28% #######.................
-  +- utils/graph_utils.py       26% ######..................
+[PASS] NEW FEATURE COVERAGE
+  +- services/node2vec_embedding_service.py     92% ######################..
 
-? LOW (<30%) - v2.0 SERVICES (CRITICAL!)
-  +- batch_similarity_service   13% ###..................... ? HIGH PRIORITY
-  +- similarity_edge_service    16% ####.................... ? HIGH PRIORITY
-  +- wcc_clustering_service     16% ####.................... ? HIGH PRIORITY
-  +- collect_blocking.py        16% ####.................... ? HIGH PRIORITY
-  +- bm25_blocking.py           15% ###..................... ? HIGH PRIORITY
-  +- utils/validation.py        14% ###..................... ? SECURITY RISK!
+[PASS] STRONG COVERAGE (>70%)
+  +- services/bulk_blocking_service.py          99% ########################
+  +- services/ab_evaluation_harness.py          98% ########################
+  +- services/similarity_edge_service.py        90% ######################..
+  +- services/golden_record_persistence...      88% #####################...
+  +- services/golden_record_service.py          71% #################.......
+  +- strategies/lsh_blocking.py                 91% ######################..
+  +- utils/aql_builders.py                      76% ##################......
+  +- utils/validation.py                        97% ########################
+  +- services/address_er_service.py             73% ##################.......
+  +- services/cross_collection_matching...      91% ######################..
+  +- utils/view_utils.py                        82% ####################....
+  +- strategies/vector_blocking.py              90% ######################..
+  +- similarity/ann_adapter.py                  83% ####################....
+  +- core/configurable_pipeline.py              77% ###################.....
+  +- services/similarity_service.py             78% ###################.....
+  +- services/blocking_service.py               57% ##############..........
+  +- core/entity_resolver.py                    49% ###########.............
+  +- data/data_manager.py                       43% ##########..............
 
-? LOW (<30%) - LEGACY (Low Priority - Deprecated)
-  +- blocking_service.py        10% ##...................... (v1.x legacy)
-  +- similarity_service.py      10% ##...................... (v1.x legacy)
-  +- clustering_service.py      12% ###..................... (v1.x legacy)
-  +- golden_record_service.py   10% ##......................
-  +- bulk_blocking_service.py   11% ###.....................
+[WARN] MODERATE (30-70%)
+  +- services/embedding_service.py              66% ################.......
+  +- utils/database.py                          41% ##########..............
+  +- core/configurable_pipeline.py              38% #########...............
 
-[FAIL] ZERO COVERAGE (Dead Code?)
-  +- utils/enhanced_config.py    0% ........................ ? Unused?
-  +- utils/enhanced_logging.py   0% ........................ ? Unused?
+? LOW (<30%) - INVESTIGATE / PRIORITIZE
+  +- strategies/vector_blocking.py              22% #####...................
+  +- similarity/ann_adapter.py                  13% ###.....................
+  +- core/entity_resolver.py                    13% ###.....................
+  +- data/data_manager.py                       13% ###.....................
 
-? BROKEN TESTS (Import Errors)
-  +- test_algorithms.py          [FAIL] Module path outdated
-  +- test_base_service.py        [FAIL] Module path outdated
-  +- test_config.py              [FAIL] Module path outdated
-  +- test_constants.py           [FAIL] Module path outdated
-  +- test_data_manager.py        [FAIL] Module path outdated
-  +- test_database.py            [FAIL] Module path outdated
-  +- test_demo_manager.py        [FAIL] Module path outdated
-  +- test_entity_resolver.py     [FAIL] Module path outdated
-  +- test_logging.py             [FAIL] Module path outdated
-
-========================================================================
-
-? IMMEDIATE ACTIONS (This Week):
-
-1. Fix 9 broken test files (2-4 hours)
-   +- Update import paths from old structure
-   +- Expected gain: +10-15% coverage
-
-2. Add security tests for validation.py (4 hours)
-   +- AQL injection tests
-   +- Target: 80% coverage
-
-3. Remove or document dead code (1 hour)
-   +- enhanced_config.py, enhanced_logging.py
+[INFO] SKIPPED TESTS
+  +- tests/test_ann_adapter.py                  15 skipped (env/integration-gated)
+  +- tests/test_node2vec_embedding_service_integration.py 2 skipped (requires Docker ArangoDB)
 
 ========================================================================
 
-? COVERAGE GOALS:
+? NOTES
 
-Current:     19% ####....................  Grade: D+
-Week 1:      30% #######.................  Grade: C-  (Fix broken tests)
-Month 1:     50% ############............  Grade: B   (v2.0 service tests)
-Quarter 1:   70% #################.......  Grade: A-  (Comprehensive tests)
-Target:      80% ####################....  Grade: A   (Production ready)
-
-========================================================================
-
-[WARN]?  RISKS:
-
-? HIGH:   Security validation (14%) - AQL injection risk
-? HIGH:   v2.0 services (13-16%) - Production bugs possible
-? HIGH:   Broken tests (9 files) - Unknown coverage gaps
-
-? MEDIUM: Core components (13%) - Pipeline failures
-? MEDIUM: Utility functions - Edge case bugs
-
-? LOW:    Legacy services (10-12%) - Deprecated anyway
-? LOW:    Demo code (28%) - Not critical
-
-========================================================================
-
-? DETAILED REPORT: CODE_COVERAGE_AUDIT.md
-? HTML REPORT: htmlcov/index.html (run pytest with --cov-report=html)
+- This file reflects the current `coverage.json` output from pytest-cov.
+- "missed" counts are coverage's missing lines for measured statements.
 
