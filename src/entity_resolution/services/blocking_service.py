@@ -122,13 +122,8 @@ class BlockingService(BaseEntityResolutionService):
     def _setup_via_python(self, collections: List[str]) -> Dict[str, Any]:
         """Set up analyzers and views via Python (fallback)"""
         try:
-            from arango import ArangoClient
-            
-            # Create ArangoDB client
-            client = ArangoClient(hosts=f"http://{self.config.db.host}:{self.config.db.port}")
-            db = client.db(self.config.db.database, username=self.config.db.username, 
-                          password=self.config.db.password)
-            
+            db = self.database
+
             setup_results = {
                 "analyzers": {},
                 "views": {},
@@ -295,15 +290,11 @@ class BlockingService(BaseEntityResolutionService):
                                       strategies: List[str], limit: int) -> Dict[str, Any]:
         """Generate candidates via Python implementation using AQL queries"""
         try:
-            from arango import ArangoClient
             import time
-            
+
             start_time = time.time()
-            
-            # Create ArangoDB client
-            client = ArangoClient(hosts=f"http://{self.config.db.host}:{self.config.db.port}")
-            db = client.db(self.config.db.database, username=self.config.db.username, 
-                          password=self.config.db.password)
+
+            db = self.database
             
             # Get target record
             target_record = db.collection(collection).get(target_record_id)

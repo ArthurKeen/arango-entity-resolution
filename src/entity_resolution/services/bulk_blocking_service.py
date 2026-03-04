@@ -19,12 +19,12 @@ Why Set-Based is Faster:
 
 import time
 from typing import Dict, List, Any, Optional, Iterator
-from arango import ArangoClient
 from ..utils.config import Config, get_config
 from ..utils.logging import get_logger
+from ..utils.database import DatabaseMixin
 
 
-class BulkBlockingService:
+class BulkBlockingService(DatabaseMixin):
     """
     Bulk blocking service optimized for batch processing
     
@@ -45,22 +45,16 @@ class BulkBlockingService:
     def __init__(self, config: Optional[Config] = None):
         self.config = config or get_config()
         self.logger = get_logger(__name__)
-        self.db = None
-        self.client = None
+        super().__init__()
         
     def connect(self) -> bool:
-        """Initialize database connection"""
+        """Verify database connectivity via the centralized DatabaseManager."""
         try:
-            self.client = ArangoClient(
-                hosts=f"http://{self.config.db.host}:{self.config.db.port}"
-            )
-            self.db = self.client.db(
-                self.config.db.database,
-                username=self.config.db.username,
-                password=self.config.db.password
-            )
-            self.logger.info("Bulk blocking service connected to database")
-            return True
+            if self.test_connection():
+                self.logger.info("Bulk blocking service connected to database")
+                return True
+            self.logger.error("Bulk blocking service failed to connect to database")
+            return False
         except Exception as e:
             self.logger.error(f"Failed to connect to database: {e}")
             return False
@@ -103,19 +97,16 @@ class BulkBlockingService:
             ... )
             >>> print(f"Found {result['statistics']['total_pairs']} candidate pairs")
         """
-        if not self.db:
-            return {"success": False, "error": "Not connected to database"}
-        
-        if not self.db.has_collection(collection_name):
-            return {
-                "success": False,
-                "error": f"Collection '{collection_name}' does not exist"
-            }
-        
         strategies = strategies or ["exact", "ngram"]
         start_time = time.time()
-        
+
         try:
+            if not self.database.has_collection(collection_name):
+                return {
+                    "success": False,
+                    "error": f"Collection '{collection_name}' does not exist"
+                }
+
             all_pairs = []
             strategy_stats = {}
             
@@ -202,7 +193,13 @@ class BulkBlockingService:
             ...     # Process this batch while more pairs are being generated
             ...     process_pairs(batch)
         """
-        if not self.db:
+        try:
+            db = self.database
+        except Exception as e:
+            self.logger.error(f"Not connected to database: {e}")
+            return
+
+        if not db:
             self.logger.error("Not connected to database")
             return
         
@@ -261,7 +258,7 @@ class BulkBlockingService:
         """
         
         try:
-            cursor = self.db.aql.execute(
+            cursor = self.database.aql.execute(
                 phone_query,
                 bind_vars={
                     "@collection": collection_name,
@@ -295,7 +292,7 @@ class BulkBlockingService:
         """
         
         try:
-            cursor = self.db.aql.execute(
+            cursor = self.database.aql.execute(
                 email_query,
                 bind_vars={
                     "@collection": collection_name,
@@ -341,7 +338,7 @@ class BulkBlockingService:
         """
         
         try:
-            cursor = self.db.aql.execute(
+            cursor = self.database.aql.execute(
                 query,
                 bind_vars={
                     "@collection": collection_name,
@@ -382,7 +379,7 @@ class BulkBlockingService:
         """
         
         try:
-            cursor = self.db.aql.execute(
+            cursor = self.database.aql.execute(
                 query,
                 bind_vars={
                     "@collection": collection_name,
@@ -429,11 +426,11 @@ class BulkBlockingService:
         Returns:
             Dictionary with collection statistics
         """
-        if not self.db or not self.db.has_collection(collection_name):
-            return {"success": False, "error": "Collection not found"}
-        
         try:
-            collection = self.db.collection(collection_name)
+            if not self.database.has_collection(collection_name):
+                return {"success": False, "error": "Collection not found"}
+            
+            collection = self.database.collection(collection_name)
             count = collection.count()
             
             # Estimate comparison complexity
@@ -453,4 +450,5 @@ class BulkBlockingService:
         except Exception as e:
             self.logger.error(f"Failed to get collection stats: {e}")
             return {"success": False, "error": str(e)}
+
 

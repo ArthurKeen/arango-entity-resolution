@@ -6,8 +6,8 @@ Centralized configuration that can work with both Python and Foxx services.
 
 import os
 import warnings
-from typing import Dict, Any, Optional
-from dataclasses import dataclass
+from typing import Dict, Any, Optional, List
+from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
 
@@ -146,7 +146,7 @@ class EntityResolutionConfig:
     quality_score_threshold: float = 0.6
     
     # Collection and view names
-    default_collections: list = None
+    default_collections: List[str] = field(default_factory=lambda: ['customers', 'entities', 'persons'])
     default_source_collection: str = "customers"
     edge_collection: str = "similarities"
     cluster_collection: str = "entity_clusters"

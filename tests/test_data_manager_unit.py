@@ -144,3 +144,84 @@ def test_load_data_from_dataframe_returns_error_when_pandas_unavailable(monkeypa
     assert out["success"] is False
     assert "pandas not available" in out["error"]
 
+
+def test_validate_data_quality_returns_error_when_collection_missing() -> None:
+    fake_db = _FakeDB()
+    dm = _make_manager(fake_db)
+    out = dm.validate_data_quality("no_col")
+    assert out["success"] is False
+
+
+def test_validate_data_quality_returns_error_when_no_records() -> None:
+    fake_db = _FakeDB()
+    fake_db._colls["empty_col"] = _FakeCollection()
+    fake_db.aql = _FakeAQL([])  # empty result
+    dm = _make_manager(fake_db)
+    out = dm.validate_data_quality("empty_col")
+    assert out["success"] is False
+    assert "no records" in out["error"].lower()
+
+
+def test_validate_data_quality_returns_score_for_complete_data() -> None:
+    fake_db = _FakeDB()
+    fake_db._colls["customers"] = _FakeCollection()
+    sample = [
+        {"name": "Alice", "city": "NYC"},
+        {"name": "Bob", "city": "LA"},
+        {"name": "Carol", "city": "Chicago"},
+    ]
+    fake_db.aql = _FakeAQL(sample)
+    dm = _make_manager(fake_db)
+    out = dm.validate_data_quality("customers")
+    assert out["success"] is True
+    assert 0.0 <= out["overall_quality_score"] <= 100.0
+    assert "field_analysis" in out
+    assert "recommendations" in out
+
+
+def test_initialize_test_collections_creates_all_standard_collections() -> None:
+    fake_db = _FakeDB()
+    dm = _make_manager(fake_db)
+    out = dm.initialize_test_collections()
+    assert out["success"] is True
+    assert len(out["created"]) == 5
+    assert out["errors"] == []
+    for name in ("customers", "entities", "similarities", "entity_clusters", "golden_records"):
+        assert fake_db.has_collection(name)
+
+
+def test_generate_quality_recommendations_high_null_flagged() -> None:
+    dm = DataManager.__new__(DataManager)
+    analysis = {
+        "sparse": {"null_percentage": 80, "unique_count": 3, "total_count": 100}
+    }
+    recs = dm._generate_quality_recommendations(analysis)
+    assert any("sparse" in r for r in recs)
+
+
+def test_generate_quality_recommendations_all_unique_flagged() -> None:
+    dm = DataManager.__new__(DataManager)
+    analysis = {
+        "uid": {"null_percentage": 0, "unique_count": 50, "total_count": 50}
+    }
+    recs = dm._generate_quality_recommendations(analysis)
+    assert any("uid" in r for r in recs)
+
+
+def test_generate_quality_recommendations_single_value_flagged() -> None:
+    dm = DataManager.__new__(DataManager)
+    analysis = {
+        "status": {"null_percentage": 0, "unique_count": 1, "total_count": 100}
+    }
+    recs = dm._generate_quality_recommendations(analysis)
+    assert any("status" in r for r in recs)
+
+
+def test_load_data_from_file_returns_error_for_unsupported_format(tmp_path: Path) -> None:
+    fake_db = _FakeDB()
+    dm = _make_manager(fake_db)
+    p = tmp_path / "bad.json"
+    p.write_text("42")  # not a list or dict
+    out = dm.load_data_from_file(str(p), "customers")
+    assert out["success"] is False
+

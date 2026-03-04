@@ -7,7 +7,7 @@ name = "arango-entity-resolution"
 dynamic = ["version"]
 description = "A production-ready entity resolution system for ArangoDB using record blocking, graph algorithms, and AI."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = "Apache-2.0"
 authors = [
     { name = "Entity Resolution Team" },

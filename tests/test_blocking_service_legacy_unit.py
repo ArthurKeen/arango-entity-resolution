@@ -117,8 +117,9 @@ def test_exact_ngram_phonetic_and_sorted_neighborhood_build_queries() -> None:
     assert "customers/9" in sorted_nb
 
 
-def test_generate_candidates_via_python_uses_strategies_and_fetches_docs(monkeypatch) -> None:
-    # Build fake arango module for the internal import: `from arango import ArangoClient`
+def test_generate_candidates_via_python_uses_strategies_and_fetches_docs() -> None:
+    # The method now uses self.database (from DatabaseMixin) rather than
+    # creating an inline ArangoClient, so we inject via the mixin attribute.
     docs = {
         "customers/1": {"_id": "customers/1", "_key": "1"},
         "customers/2": {"_id": "customers/2", "_key": "2"},
@@ -127,17 +128,11 @@ def test_generate_candidates_via_python_uses_strategies_and_fetches_docs(monkeyp
 
     fake_db = _FakeDB(docs)
 
-    class _FakeArangoClient:
-        def __init__(self, hosts: str):
-            self.hosts = hosts
-
-        def db(self, *_args, **_kwargs):
-            return fake_db
-
-    monkeypatch.setitem(sys.modules, "arango", SimpleNamespace(ArangoClient=_FakeArangoClient))
-
     with pytest.warns(DeprecationWarning):
         svc = BlockingService()
+
+    # Inject the fake database directly via the DatabaseMixin property
+    svc._database = fake_db  # type: ignore[attr-defined]
 
     # Avoid exercising blocking strategy internals here; focus on orchestration.
     svc._apply_blocking_strategy = lambda *_a, **_k: ["customers/2", "customers/3"]  # type: ignore[assignment]
@@ -146,4 +141,5 @@ def test_generate_candidates_via_python_uses_strategies_and_fetches_docs(monkeyp
     assert out["success"] is True
     assert out["statistics"]["unique_candidates"] == 2
     assert len(out["candidates"]) == 2
+
 
