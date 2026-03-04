@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
 
 import pytest
 
@@ -11,6 +12,11 @@ from entity_resolution.core.configurable_pipeline import ConfigurableERPipeline
 @dataclass
 class _BlockingCfg:
     max_block_size: int = 100
+    min_block_size: int = 2
+    strategy: str = "exact"
+    fields: list = field(default_factory=list)
+    search_field: Optional[str] = None
+    blocking_field: Optional[str] = None
 
 
 @dataclass
@@ -25,11 +31,12 @@ class _ClusteringCfg:
 
 
 class _FakeConfig:
-    def __init__(self, entity_type: str = "company", store_clusters: bool = True):
+    def __init__(self, entity_type: str = "company", store_clusters: bool = True,
+                 blocking: Optional[_BlockingCfg] = None):
         self.entity_type = entity_type
         self.collection_name = "customers"
         self.edge_collection = "similarTo"
-        self.blocking = _BlockingCfg()
+        self.blocking = blocking if blocking is not None else _BlockingCfg()
         self.similarity = _SimilarityCfg()
         self.clustering = _ClusteringCfg(store_results=store_clusters)
         self.edges = object()
@@ -101,4 +108,72 @@ def test_run_standard_pipeline_handles_no_candidates(monkeypatch) -> None:
     assert out["similarity"]["matches_found"] == 0
     assert out["edges"]["edges_created"] == 0
     assert out["clustering"]["clusters_found"] == 0
+
+
+# ---------------------------------------------------------------------------
+# Tests for #5 — BM25 blocking field resolution
+# ---------------------------------------------------------------------------
+
+class _FakeBM25Strategy:
+    """Captures the fields passed to BM25BlockingStrategy for assertion."""
+    captured: dict = {}
+
+    def __init__(self, db, collection, search_view, search_field, blocking_field):
+        _FakeBM25Strategy.captured = {
+            "search_field": search_field,
+            "blocking_field": blocking_field,
+        }
+
+    def generate_candidates(self):
+        return [{"doc1_key": "a", "doc2_key": "b"}]
+
+
+def test_bm25_reads_search_field_from_blocking_config(monkeypatch) -> None:
+    """search_field / blocking_field explicit attrs take precedence."""
+    import entity_resolution.core.configurable_pipeline as mod
+    monkeypatch.setattr(mod, "BM25BlockingStrategy", _FakeBM25Strategy)
+
+    blocking = _BlockingCfg(
+        strategy="bm25",
+        search_field="company_name",
+        blocking_field="state",
+    )
+    cfg = _FakeConfig(blocking=blocking)
+    pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
+
+    result = pipe._run_blocking()
+    assert _FakeBM25Strategy.captured["search_field"] == "company_name"
+    assert _FakeBM25Strategy.captured["blocking_field"] == "state"
+    assert len(result) == 1
+
+
+def test_bm25_falls_back_to_fields_list(monkeypatch) -> None:
+    """Falls back to first/second entries in blocking.fields when explicit attrs absent."""
+    import entity_resolution.core.configurable_pipeline as mod
+    monkeypatch.setattr(mod, "BM25BlockingStrategy", _FakeBM25Strategy)
+
+    blocking = _BlockingCfg(
+        strategy="bm25",
+        fields=["full_name", "city"],
+        # search_field and blocking_field intentionally left None
+    )
+    cfg = _FakeConfig(blocking=blocking)
+    pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
+
+    pipe._run_blocking()
+    assert _FakeBM25Strategy.captured["search_field"] == "full_name"
+    assert _FakeBM25Strategy.captured["blocking_field"] == "city"
+
+
+def test_bm25_raises_if_no_search_field(monkeypatch) -> None:
+    """Raises ValueError when neither search_field nor fields is provided."""
+    import entity_resolution.core.configurable_pipeline as mod
+    monkeypatch.setattr(mod, "BM25BlockingStrategy", _FakeBM25Strategy)
+
+    blocking = _BlockingCfg(strategy="bm25")  # no fields, no search_field
+    cfg = _FakeConfig(blocking=blocking)
+    pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
+
+    with pytest.raises(ValueError, match="search_field"):
+        pipe._run_blocking()
 

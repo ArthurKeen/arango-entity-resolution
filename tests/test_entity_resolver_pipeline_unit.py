@@ -120,3 +120,65 @@ def test_run_entity_resolution_happy_path_compiles_results() -> None:
     assert out["entity_clusters"] == 1
     assert "entity_resolution" in p.pipeline_stats
 
+
+class _FakeBlockingServiceWithCandidates:
+    """Blocking service stub that returns configurable candidates."""
+
+    def __init__(self, candidates_by_id: dict):
+        # Map target_record_id -> list of candidate dicts
+        self._candidates = candidates_by_id
+
+    def connect(self) -> bool:
+        return True
+
+    def generate_candidates(self, collection: str, target_record_id: str, **kwargs):
+        candidates = self._candidates.get(target_record_id, [])
+        return {"success": True, "candidates": candidates}
+
+
+def test_run_blocking_stage_delegates_to_blocking_service() -> None:
+    """_run_blocking_stage should call blocking_service.generate_candidates,
+    not fall back to the old O(n²) Python loop."""
+    with pytest.warns(DeprecationWarning):
+        p = EntityResolutionPipeline()
+    p.connected = True
+
+    rec_a = {"_id": "col/1", "_key": "1", "first_name": "Alice"}
+    rec_b = {"_id": "col/2", "_key": "2", "first_name": "Alicia"}
+
+    # blocking service returns rec_b as a candidate for rec_a (and nothing for rec_b)
+    p.blocking_service = _FakeBlockingServiceWithCandidates({
+        "col/1": [{"_id": "col/2", "document": rec_b}],
+        "col/2": [],
+    })
+
+    result = p._run_blocking_stage([rec_a, rec_b], "col")
+
+    assert result["success"] is True
+    assert len(result["candidate_pairs"]) == 1
+    pair = result["candidate_pairs"][0]
+    # Keys should be normalised: smaller lexicographically first
+    assert pair["record_a_id"] <= pair["record_b_id"]
+
+
+def test_run_blocking_stage_deduplicates_pairs() -> None:
+    """Pairs found from multiple records should be deduplicated."""
+    with pytest.warns(DeprecationWarning):
+        p = EntityResolutionPipeline()
+    p.connected = True
+
+    rec_a = {"_id": "col/1", "_key": "1"}
+    rec_b = {"_id": "col/2", "_key": "2"}
+
+    # Both records discover each other — would yield (col/1,col/2) twice without dedup
+    p.blocking_service = _FakeBlockingServiceWithCandidates({
+        "col/1": [{"_id": "col/2", "document": rec_b}],
+        "col/2": [{"_id": "col/1", "document": rec_a}],
+    })
+
+    result = p._run_blocking_stage([rec_a, rec_b], "col")
+
+    assert result["success"] is True
+    assert len(result["candidate_pairs"]) == 1
+
+

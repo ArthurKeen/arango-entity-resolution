@@ -22,7 +22,9 @@ class BlockingConfig:
         strategy: str = "exact",
         max_block_size: int = 100,
         min_block_size: int = 2,
-        fields: Optional[List[Dict[str, Any]]] = None
+        fields: Optional[List[Dict[str, Any]]] = None,
+        search_field: Optional[str] = None,
+        blocking_field: Optional[str] = None,
     ):
         """
         Initialize blocking configuration.
@@ -32,11 +34,18 @@ class BlockingConfig:
             max_block_size: Maximum addresses per block
             min_block_size: Minimum addresses per block
             fields: List of field configurations for blocking
+            search_field: Field to run BM25 search against (bm25 strategy only).
+                Defaults to the first entry in ``fields`` when not provided.
+            blocking_field: Hard-filter field used as a pre-partition in BM25 blocking
+                (e.g. ``"state"``).  Defaults to the second entry in ``fields`` when
+                not provided.  Set to ``None`` to disable the pre-partition filter.
         """
         self.strategy = strategy
         self.max_block_size = max_block_size
         self.min_block_size = min_block_size
         self.fields = fields or []
+        self.search_field = search_field
+        self.blocking_field = blocking_field
     
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> 'BlockingConfig':
@@ -45,17 +54,25 @@ class BlockingConfig:
             strategy=config_dict.get('strategy', 'exact'),
             max_block_size=config_dict.get('max_block_size', 100),
             min_block_size=config_dict.get('min_block_size', 2),
-            fields=config_dict.get('fields', [])
+            fields=config_dict.get('fields', []),
+            search_field=config_dict.get('search_field'),
+            blocking_field=config_dict.get('blocking_field'),
         )
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
-        return {
+        result: Dict[str, Any] = {
             'strategy': self.strategy,
             'max_block_size': self.max_block_size,
             'min_block_size': self.min_block_size,
-            'fields': self.fields
+            'fields': self.fields,
         }
+        if self.search_field is not None:
+            result['search_field'] = self.search_field
+        if self.blocking_field is not None:
+            result['blocking_field'] = self.blocking_field
+        return result
+
 
 
 class SimilarityConfig:

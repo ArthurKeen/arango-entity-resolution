@@ -292,20 +292,42 @@ class ConfigurableERPipeline:
             return list(blocking_strategy.generate_candidates())
         
         elif strategy == 'bm25':
-            # Use BM25BlockingStrategy
-            # Note: Requires search view configuration
+            # Resolve search_field and blocking_field from config.
+            # Explicit attributes on BlockingConfig take precedence; fall back to
+            # the first two entries in the generic `fields` list so callers that
+            # don't know about the BM25-specific keys still work.
+            generic_fields, _ = self._get_blocking_fields()
+
+            search_field = (
+                self.config.blocking.search_field
+                or (generic_fields[0] if generic_fields else None)
+            )
+            blocking_field = (
+                self.config.blocking.blocking_field
+                if self.config.blocking.blocking_field is not None
+                else (generic_fields[1] if len(generic_fields) > 1 else None)
+            )
+
+            if not search_field:
+                raise ValueError(
+                    "BM25 blocking strategy requires a search_field. "
+                    "Set blocking.search_field in your config, or provide at least "
+                    "one entry in blocking.fields."
+                )
+
             blocking_strategy = BM25BlockingStrategy(
                 db=self.db,
                 collection=self.config.collection_name,
                 search_view=f"{self.config.collection_name}_search",
-                search_field='name',  # Would come from config
-                blocking_field='state'  # Would come from config
+                search_field=search_field,
+                blocking_field=blocking_field,
             )
             return list(blocking_strategy.generate_candidates())
         
         else:
             self.logger.warning(f"Unknown blocking strategy: {strategy}")
             return []
+
 
     def _get_blocking_fields(self) -> tuple[list, dict]:
         """

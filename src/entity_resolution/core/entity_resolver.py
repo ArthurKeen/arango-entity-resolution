@@ -7,9 +7,14 @@ Coordinates the complete entity resolution pipeline:
 3. Similarity computation
 4. Graph-based clustering
 5. Golden record generation
+
+.. deprecated::
+    Use :class:`entity_resolution.core.configurable_pipeline.ConfigurableERPipeline`
+    instead.  This class will be removed in v4.0.
 """
 
 import time
+import warnings
 from typing import Dict, List, Any, Optional, Union
 try:
     import pandas as pd
@@ -40,6 +45,13 @@ class EntityResolutionPipeline:
     """
     
     def __init__(self, config: Optional[Config] = None):
+        warnings.warn(
+            "EntityResolutionPipeline is deprecated and will be removed in v4.0. "
+            "Use ConfigurableERPipeline from entity_resolution.core.configurable_pipeline "
+            "instead, which supports the full v3 strategy pattern.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.config = config or get_config()
         self.logger = get_logger(__name__)
         
@@ -265,45 +277,68 @@ class EntityResolutionPipeline:
             self.logger.error(f"Entity resolution pipeline failed: {e}")
             return {"success": False, "error": str(e)}
     
-    def _run_blocking_stage(self, records: List[Dict[str, Any]], 
+    def _run_blocking_stage(self, records: List[Dict[str, Any]],
                            collection_name: str) -> Dict[str, Any]:
-        """Run the blocking stage to generate candidate pairs"""
+        """Run the blocking stage using the BlockingService to generate candidate pairs."""
         try:
             self.logger.info("Starting blocking stage...")
-            
-            # For now, use simple pairwise blocking until Foxx services are working
-            candidate_pairs = []
-            
-            # Generate pairs for each record against a subset of others
-            max_candidates = self.config.er.max_candidates_per_record
-            
-            for i, record_a in enumerate(records):
-                candidates_found = 0
-                for j, record_b in enumerate(records):
-                    if i >= j:  # Skip self and already processed pairs
+
+            candidate_pairs: List[Dict[str, Any]] = []
+
+            for record in records:
+                record_id = record.get("_id")
+                if not record_id:
+                    continue
+
+                result = self.blocking_service.generate_candidates(
+                    collection=collection_name,
+                    target_record_id=record_id,
+                )
+
+                if not result.get("success"):
+                    self.logger.warning(
+                        f"Candidate generation failed for {record_id}: "
+                        f"{result.get('error', 'unknown error')}"
+                    )
+                    continue
+
+                for candidate in result.get("candidates", []):
+                    candidate_id = candidate.get("_id")
+                    if not candidate_id or candidate_id == record_id:
                         continue
-                    
-                    if candidates_found >= max_candidates:
-                        break
-                    
-                    # Simple blocking: check if records share any common fields
-                    if self._simple_blocking_check(record_a, record_b):
-                        candidate_pairs.append({
-                            "record_a": record_a,
-                            "record_b": record_b,
-                            "record_a_id": record_a.get("_id", f"record_{i}"),
-                            "record_b_id": record_b.get("_id", f"record_{j}")
-                        })
-                        candidates_found += 1
-            
-            self.logger.info(f"Blocking stage completed: {len(candidate_pairs)} candidate pairs generated")
-            
+
+                    # Normalise order so (A,B) and (B,A) are treated as one pair
+                    key_a, key_b = sorted([record_id, candidate_id])
+                    candidate_pairs.append({
+                        "record_a": record,
+                        "record_b": candidate.get("document", {}),
+                        "record_a_id": key_a,
+                        "record_b_id": key_b,
+                    })
+
+            # Deduplicate pairs (the blocking service may surface the same pair
+            # from multiple strategies)
+            seen: set = set()
+            deduped_pairs: List[Dict[str, Any]] = []
+            for pair in candidate_pairs:
+                pair_key = (pair["record_a_id"], pair["record_b_id"])
+                if pair_key not in seen:
+                    seen.add(pair_key)
+                    deduped_pairs.append(pair)
+
+            total_possible = (len(records) * (len(records) - 1)) / 2
+            reduction_ratio = 1.0 - (len(deduped_pairs) / total_possible) if total_possible > 0 else 0.0
+
+            self.logger.info(
+                f"Blocking stage completed: {len(deduped_pairs)} candidate pairs generated"
+            )
+
             return {
                 "success": True,
-                "candidate_pairs": candidate_pairs,
-                "reduction_ratio": 1 - (len(candidate_pairs) / ((len(records) * (len(records) - 1)) / 2))
+                "candidate_pairs": deduped_pairs,
+                "reduction_ratio": reduction_ratio,
             }
-            
+
         except Exception as e:
             self.logger.error(f"Blocking stage failed: {e}")
             return {"success": False, "error": str(e)}
