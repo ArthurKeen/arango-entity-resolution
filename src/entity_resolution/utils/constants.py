@@ -347,5 +347,4 @@ TEST_DATABASE_NAME = 'entity_resolution_test'
 DEMO_DATABASE_NAME = 'entity_resolution_demo'
 # Service constants
 DEFAULT_FOXX_TIMEOUT = 30
-DEFAULT_SIMILARITY_THRESHOLD = 0.5
 DEFAULT_BLOCKING_THRESHOLD = 0.7

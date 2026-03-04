@@ -11,7 +11,6 @@ import logging
 import time
 
 from ..config.er_config import ERPipelineConfig
-from ..services.blocking_service import BlockingService
 from ..services.batch_similarity_service import BatchSimilarityService
 from ..services.similarity_edge_service import SimilarityEdgeService
 from ..services.wcc_clustering_service import WCCClusteringService

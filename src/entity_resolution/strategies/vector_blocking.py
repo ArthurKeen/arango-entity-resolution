@@ -24,14 +24,15 @@ from arango.database import StandardDatabase
 import numpy as np
 
 from .base_strategy import BlockingStrategy
+from ..utils.constants import DEFAULT_SIMILARITY_THRESHOLD
 from ..utils.validation import validate_collection_name, validate_field_name
 from ..utils.aql_builders import build_aql_filter_conditions
 from ..similarity.ann_adapter import ANNAdapter
 
 
-# Constants for vector blocking configuration  
+# Constants for vector blocking configuration
 DEFAULT_EMBEDDING_FIELD = 'embedding_vector'
-DEFAULT_SIMILARITY_THRESHOLD = 0.7
+# DEFAULT_SIMILARITY_THRESHOLD imported from utils.constants (canonical value)
 DEFAULT_LIMIT_PER_ENTITY = 20
 MINIMUM_VECTOR_MAGNITUDE = 1e-10  # Prevent division by zero
 
