@@ -4,7 +4,10 @@ arango-entity-resolution MCP Server
 Exposes entity resolution as MCP tools and resources so AI agents can
 perform ER through natural language without writing any code.
 
-Entry point: `arango-er-mcp` (stdio) or `arango-er-mcp --transport sse`
+Entry points:
+    arango-er-mcp                  # stdio (Claude Desktop / Cursor)
+    arango-er-mcp --transport sse  # HTTP SSE for remote agents
+    arango-er-mcp --demo           # quickstart with sample data
 """
 from __future__ import annotations
 
@@ -259,7 +262,20 @@ def main() -> None:
     )
     parser.add_argument("--port", type=int, default=8080, help="Port for SSE transport")
     parser.add_argument("--host", default="0.0.0.0", help="Host for SSE transport")
+    parser.add_argument(
+        "--demo",
+        action="store_true",
+        help=(
+            "Run in demo mode: start ArangoDB (Docker if needed), load sample data, "
+            "run the ER pipeline, print Claude Desktop config, then start the MCP server."
+        ),
+    )
     args = parser.parse_args()
+
+    if args.demo:
+        from entity_resolution.mcp.demo import run_demo
+        run_demo()
+        return
 
     if args.transport == "sse":
         mcp.settings.port = args.port
