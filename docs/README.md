@@ -113,9 +113,9 @@ Historical documentation is preserved in [`archive/`](archive/):
 
 ## Version Information
 
-- **Current Version:** 3.1.2
+- **Current Version:** 3.2.0
 - **API Version:** v3
-- **Last Updated:** February 17, 2026
+- **Last Updated:** March 5, 2026
 
 For version history, see [CHANGELOG.md](../CHANGELOG.md)
 

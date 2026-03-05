@@ -1,33 +1,57 @@
 graph LR
     subgraph "Data Sources"
-        Sources[Multiple Data Sources<br/>CRM, Marketing, Sales, Support]
+        Sources[CRM · Marketing · Sales<br/>Support · External APIs<br/>Streaming Records]
     end
 
     subgraph "Entity Resolution Engine"
-        Engine[ArangoDB Multi-Model<br/>Processing Engine]
+        subgraph "Blocking"
+            B[Exact · BM25 · Vector<br/>Geographic · Graph · LSH]
+        end
+        subgraph "Similarity"
+            S[Jaro-Winkler · Levenshtein<br/>Jaccard · Fellegi-Sunter]
+        end
+        subgraph "LLM Verification"
+            L[Ambiguous Pairs 0.55–0.80<br/>OpenRouter · OpenAI · Ollama]
+        end
+        subgraph "Clustering"
+            C[WCC — Python DFS + AQL<br/>Graph-Based Entity Groups]
+        end
+        subgraph "Golden Records"
+            G[Master Record Creation<br/>Conflict Resolution<br/>Lineage Preservation]
+        end
+        B --> S --> L --> C --> G
     end
 
     subgraph "Output & Integration"
-        Outputs[Golden Records<br/>Analytics & Reports<br/>API Endpoints]
+        GR[Golden Records<br/>Entity Clusters<br/>Analytics & Reports]
+        API[REST API<br/>CLI — arango-er]
     end
 
-    subgraph "Presentation"
-        Demo[Demo & Presentation<br/>Interactive Tools]
+    subgraph "AI Agent Integration"
+        MCP[MCP Server<br/>arango-er-mcp<br/>stdio · SSE]
+        Agents[Claude · Cursor<br/>Gemini · GPT-4<br/>Any MCP Client]
+        MCP <--> Agents
     end
 
-    %% Simple flow
-    Sources --> Engine
-    Engine --> Outputs
-    Engine --> Demo
-    Outputs --> Demo
+    subgraph "Real-Time Path"
+        INC[Incremental Resolver<br/>Single-Record Matching<br/>No batch re-run needed]
+    end
+
+    Sources --> B
+    G --> GR
+    GR --> API
+    GR --> MCP
+    Sources --> INC --> MCP
 
     %% Styling
     classDef dataSource fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    classDef engine fill:#e8f5e8,stroke:#1b5e20,stroke-width:3px
+    classDef engine fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
     classDef output fill:#fff3e0,stroke:#e65100,stroke-width:3px
-    classDef demo fill:#fce4ec,stroke:#880e4f,stroke-width:3px
+    classDef ai fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef realtime fill:#f9fbe7,stroke:#827717,stroke-width:2px
 
     class Sources dataSource
-    class Engine engine
-    class Outputs output
-    class Demo demo
+    class B,S,L,C,G engine
+    class GR,API output
+    class MCP,Agents ai
+    class INC realtime

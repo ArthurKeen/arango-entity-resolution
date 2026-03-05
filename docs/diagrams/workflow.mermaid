@@ -1,6 +1,6 @@
 graph TD
     Start([Raw Data Sources]) --> Ingestion[Stage 1: Data Ingestion]
-    
+
     subgraph "Stage 1: Data Ingestion & Preprocessing"
         Ingestion --> Validation{Data Quality<br/>Assessment}
         Validation -->|Pass| Normalization[Schema Normalization<br/>Field Standardization]
@@ -12,40 +12,43 @@ graph TD
     LoadDB --> Blocking[Stage 2: Record Blocking]
 
     subgraph "Stage 2: Record Blocking (Candidate Generation)"
-        Blocking --> ExactBlock[Exact Blocking<br/>Email, Phone]
-        Blocking --> PhoneticBlock[Phonetic Blocking<br/>Soundex Names]
-        Blocking --> NgramBlock[N-gram Blocking<br/>Company Names]
-        
+        Blocking --> ExactBlock[Exact / COLLECT<br/>Email, Phone, ID]
+        Blocking --> BM25Block[BM25 / ArangoSearch<br/>Fuzzy Text — 400x faster]
+        Blocking --> VectorBlock[Vector / ANN<br/>Semantic Embeddings]
+        Blocking --> GeoBlock[Geographic<br/>Location-Based]
+        Blocking --> GraphBlock[Graph Traversal<br/>Relationship Networks]
+
         ExactBlock --> CandidateGen[Candidate Pair<br/>Generation]
-        PhoneticBlock --> CandidateGen
-        NgramBlock --> CandidateGen
-        
-        CandidateGen --> Reduction{99% Pair<br/>Reduction?}
+        BM25Block --> CandidateGen
+        VectorBlock --> CandidateGen
+        GeoBlock --> CandidateGen
+        GraphBlock --> CandidateGen
+
+        CandidateGen --> Reduction{99%+ Pair<br/>Reduction}
         Reduction -->|Yes| CandidatePairs[Candidate Pairs<br/>Ready for Analysis]
-        Reduction -->|No| OptimizeBlocking[Optimize Blocking<br/>Strategies]
+        Reduction -->|No| OptimizeBlocking[Tune Blocking<br/>Strategies]
         OptimizeBlocking --> Blocking
     end
 
     CandidatePairs --> Similarity[Stage 3: Similarity Computation]
 
     subgraph "Stage 3: Similarity Computation & Classification"
-        Similarity --> FieldSim[Field-Level Similarity<br/>Jaro-Winkler, Levenshtein]
-        FieldSim --> ProbScore[Probabilistic Scoring<br/>Fellegi-Sunter Framework]
-        ProbScore --> Classification{Classification<br/>Decision}
-        Classification -->|Match| MatchPairs[Match Pairs<br/>High Confidence]
-        Classification -->|Non-Match| NonMatchPairs[Non-Match Pairs<br/>Low Confidence]
-        Classification -->|Possible| ReviewPairs[Review Pairs<br/>Manual Check]
-        
-        ReviewPairs --> ManualReview{Manual Review}
-        ManualReview -->|Match| MatchPairs
-        ManualReview -->|Non-Match| NonMatchPairs
+        Similarity --> FieldSim[Field-Level Similarity<br/>Jaro-Winkler, Levenshtein, Jaccard]
+        FieldSim --> ProbScore[Weighted Scoring<br/>Fellegi-Sunter Framework]
+        ProbScore --> Classification{Confidence<br/>Score}
+        Classification -->|>= 0.80| MatchPairs[Match Pairs<br/>High Confidence]
+        Classification -->|< 0.55| NonMatchPairs[Non-Match Pairs<br/>Low Confidence]
+        Classification -->|0.55 – 0.80| LLMVerify[LLM Match Verifier<br/>OpenRouter / OpenAI / Ollama]
+
+        LLMVerify -->|match| MatchPairs
+        LLMVerify -->|no_match| NonMatchPairs
     end
 
     MatchPairs --> GraphConstruction[Stage 4: Graph Construction]
-    
+
     subgraph "Stage 4: Graph-Based Clustering"
         GraphConstruction --> SimilarityGraph[Build Similarity Graph<br/>Nodes=Records, Edges=Similarity]
-        SimilarityGraph --> WCC[Weakly Connected<br/>Components Algorithm]
+        SimilarityGraph --> WCC[Weakly Connected<br/>Components — Python DFS or AQL]
         WCC --> ClusterValidation{Cluster Quality<br/>Validation}
         ClusterValidation -->|Valid| EntityClusters[Valid Entity<br/>Clusters]
         ClusterValidation -->|Invalid| ClusterRefinement[Cluster Refinement<br/>Split Large Clusters]
@@ -56,24 +59,38 @@ graph TD
 
     subgraph "Stage 5: Golden Record Generation"
         GoldenGeneration --> SourceRanking[Source Prioritization<br/>Quality, Recency, Reliability]
-        SourceRanking --> ConflictResolution[Conflict Resolution<br/>Business Rules, ML Models]
-        ConflictResolution --> MasterCreation[Master Record Creation<br/>Best Available Data]
-        MasterCreation --> AuditTrail[Audit Trail Creation<br/>Lineage Preservation]
+        SourceRanking --> ConflictResolution[Conflict Resolution<br/>most_complete / newest / first]
+        ConflictResolution --> MasterCreation[Golden Record<br/>Best Available Data]
+        MasterCreation --> AuditTrail[resolvedTo Edges<br/>Full Lineage Preserved]
     end
 
-    AuditTrail --> Output[Golden Records & Reports]
+    AuditTrail --> Output[Golden Records & Clusters]
+
+    subgraph "Stage 6: Real-Time / Incremental Path"
+        NewRecord([New Incoming Record]) --> IncrementalResolver[IncrementalResolver<br/>Prefix Blocking + Scoring]
+        IncrementalResolver --> SingleMatch[Ranked Match Candidates<br/>No DB writes — read-only]
+    end
+
+    subgraph "MCP Agent Integration"
+        MCPServer[arango-er-mcp<br/>MCP Server]
+        MCPServer -->|find_duplicates| Blocking
+        MCPServer -->|resolve_entity| IncrementalResolver
+        MCPServer -->|explain_match| FieldSim
+        MCPServer -->|get_clusters| EntityClusters
+        MCPServer -->|merge_entities| GoldenGeneration
+        AIAgent([AI Agent<br/>Claude / Cursor / Gemini]) --> MCPServer
+    end
+
+    Output --> MCPServer
 
     subgraph "Performance Metrics"
         PerfMetrics[Performance Monitoring]
-        PerfMetrics --> Throughput[Throughput: 1000+ records/sec]
-        PerfMetrics --> Accuracy[Accuracy: 99.5% precision]
-        PerfMetrics --> Efficiency[Efficiency: 99%+ pair reduction]
+        PerfMetrics --> Throughput[Throughput: 1,000+ records/sec]
+        PerfMetrics --> Accuracy[99%+ pair reduction via blocking]
+        PerfMetrics --> Tests[567 tests, 0 skipped]
     end
 
     Output --> PerfMetrics
-    
-    NonMatchPairs -.-> PerfMetrics
-    EntityClusters -.-> PerfMetrics
 
     %% Styling
     classDef startEnd fill:#e3f2fd,stroke:#0d47a1,stroke-width:3px
@@ -81,9 +98,13 @@ graph TD
     classDef decision fill:#fff3e0,stroke:#e65100,stroke-width:2px
     classDef data fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
     classDef metrics fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef ai fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef llm fill:#f9fbe7,stroke:#827717,stroke-width:2px,stroke-dasharray: 4 3
 
-    class Start,Output startEnd
-    class Ingestion,Normalization,Cleanup,Blocking,ExactBlock,PhoneticBlock,NgramBlock,CandidateGen,Similarity,FieldSim,ProbScore,GraphConstruction,SimilarityGraph,WCC,GoldenGeneration,SourceRanking,ConflictResolution,MasterCreation,AuditTrail,OptimizeBlocking,ClusterRefinement process
-    class Validation,Reduction,Classification,ManualReview,ClusterValidation decision
-    class LoadDB,CandidatePairs,MatchPairs,NonMatchPairs,ReviewPairs,EntityClusters data
-    class PerfMetrics,Throughput,Accuracy,Efficiency metrics
+    class Start,Output,NewRecord,AIAgent startEnd
+    class Ingestion,Normalization,Cleanup,Blocking,ExactBlock,BM25Block,VectorBlock,GeoBlock,GraphBlock,CandidateGen,Similarity,FieldSim,ProbScore,GraphConstruction,SimilarityGraph,WCC,GoldenGeneration,SourceRanking,ConflictResolution,MasterCreation,AuditTrail,OptimizeBlocking,ClusterRefinement,IncrementalResolver,SingleMatch process
+    class Validation,Reduction,Classification,ClusterValidation decision
+    class LoadDB,CandidatePairs,MatchPairs,NonMatchPairs,EntityClusters data
+    class PerfMetrics,Throughput,Accuracy,Tests metrics
+    class MCPServer,AIAgent ai
+    class LLMVerify llm

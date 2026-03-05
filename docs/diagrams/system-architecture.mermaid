@@ -4,92 +4,127 @@ graph TB
         Marketing[Marketing Platform]
         Sales[Sales Database]
         Support[Support System]
-        External[External APIs]
+        External[External APIs / Streams]
     end
 
     subgraph "Entity Resolution Engine"
-        subgraph "ArangoDB Multi-Model Database"
-            Documents[(Document Store<br/>Raw Records<br/>Golden Records)]
-            Graph[(Graph Database<br/>Similarity Edges<br/>Entity Clusters)]
-            Search[(Search Engine<br/>Blocking Indexes<br/>Text Analysis)]
+        subgraph "ArangoDB 3.12+ Multi-Model"
+            Documents[(Document Store<br/>Raw Records · Golden Records<br/>Embeddings · Metadata)]
+            Graph[(Graph Database<br/>Similarity Edges<br/>resolvedTo Edges · Clusters)]
+            Search[(ArangoSearch<br/>BM25 · Phonetic · N-gram<br/>Vector ANN Index)]
         end
-        
+
         subgraph "Core Services"
-            BlockingService[Blocking Service<br/>Candidate Generation]
-            SimilarityService[Similarity Service<br/>Fellegi-Sunter Framework]
-            ClusteringService[Clustering Service<br/>Graph Algorithms]
-            GoldenService[Golden Record Service<br/>Master Creation]
+            BlockingService[Blocking Service<br/>Exact · BM25 · Vector · Geo · Graph · LSH]
+            SimilarityService[Similarity Service<br/>WeightedFieldSimilarity<br/>Fellegi-Sunter Scoring]
+            LLMVerifier[LLM Match Verifier<br/>Uncertain Pairs 0.55–0.80<br/>OpenRouter · OpenAI · Ollama]
+            ClusteringService[Clustering Service<br/>WCC — Python DFS + AQL Graph]
+            GoldenService[Golden Record Service<br/>most_complete · newest · first]
+            EmbeddingService[Embedding Service<br/>Node2Vec · sentence-transformers<br/>ANN Vector Search]
+            IncrementalResolver[Incremental Resolver<br/>Real-time single-record matching]
         end
-        
-        subgraph "Infrastructure"
-            DataManager[Data Manager<br/>Ingestion & Validation]
-            DatabaseManager[Database Manager<br/>Connection & Transaction]
-            FoxxServices[Foxx Microservices<br/>High-Performance Computing]
+
+        subgraph "MCP Layer"
+            MCPServer[arango-er-mcp<br/>FastMCP Server<br/>stdio · SSE transports]
+            MCPTools[7 Tools<br/>find_duplicates · resolve_entity<br/>explain_match · get_clusters<br/>merge_entities · pipeline_status<br/>list_collections]
+            MCPResources[2 Resources<br/>collection summary<br/>cluster detail]
+        end
+
+        subgraph "Configuration"
+            ConfigPipeline[ERPipelineConfig<br/>ConfigurableERPipeline<br/>YAML / JSON driven]
         end
     end
 
+    subgraph "AI Agents & Clients"
+        Claude[Claude Desktop]
+        Cursor[Cursor]
+        CustomAgent[Custom MCP Client]
+    end
+
     subgraph "Output Systems"
-        GoldenRecords[Golden Records<br/>Master Customer Data]
-        Clusters[Entity Clusters<br/>Relationship Groups]
-        Reports[Analytics Reports<br/>Quality Metrics]
-        API[REST API<br/>Integration Endpoints]
+        GoldenRecords[Golden Records<br/>Master Entity Data]
+        Clusters[Entity Clusters<br/>Resolved Groups]
+        Reports[Analytics · Quality Metrics]
+        RESTAPI[REST API · CLI<br/>arango-er · arango-er-mcp]
     end
 
     subgraph "Demo & Presentation"
         InteractiveDemo[Interactive Demos<br/>Stakeholder Presentations]
         DatabaseInspector[Database Inspector<br/>Real-time Visualization]
-        BusinessAnalytics[Business Analytics<br/>ROI Calculations]
     end
 
-    %% Data Flow
-    CRM --> DataManager
-    Marketing --> DataManager
-    Sales --> DataManager
-    Support --> DataManager
-    External --> DataManager
+    %% Ingest
+    CRM --> Documents
+    Marketing --> Documents
+    Sales --> Documents
+    Support --> Documents
+    External --> Documents
 
-    DataManager --> Documents
-    DataManager --> BlockingService
-
-    Documents <--> Graph
-    Graph <--> Search
-    Documents <--> Search
-
+    %% Core pipeline
+    Documents --> BlockingService
     BlockingService --> SimilarityService
+    SimilarityService --> LLMVerifier
+    LLMVerifier --> SimilarityService
     SimilarityService --> ClusteringService
     ClusteringService --> GoldenService
+    EmbeddingService --> BlockingService
 
+    %% ArangoDB integration
     BlockingService -.-> Search
     SimilarityService -.-> Documents
     ClusteringService -.-> Graph
     GoldenService -.-> Documents
+    EmbeddingService -.-> Search
+    Documents <--> Graph
+    Graph <--> Search
 
-    DatabaseManager -.-> Documents
-    DatabaseManager -.-> Graph
-    DatabaseManager -.-> Search
+    %% Incremental path
+    External --> IncrementalResolver
+    IncrementalResolver -.-> Search
 
-    FoxxServices -.-> BlockingService
-    FoxxServices -.-> SimilarityService
-    FoxxServices -.-> ClusteringService
+    %% MCP wiring
+    MCPServer --> MCPTools
+    MCPServer --> MCPResources
+    MCPTools --> BlockingService
+    MCPTools --> SimilarityService
+    MCPTools --> ClusteringService
+    MCPTools --> GoldenService
+    MCPTools --> IncrementalResolver
+    Claude --> MCPServer
+    Cursor --> MCPServer
+    CustomAgent --> MCPServer
 
+    %% Config
+    ConfigPipeline --> BlockingService
+    ConfigPipeline --> SimilarityService
+    ConfigPipeline --> ClusteringService
+
+    %% Outputs
     GoldenService --> GoldenRecords
     ClusteringService --> Clusters
     GoldenService --> Reports
-    GoldenService --> API
+    GoldenService --> RESTAPI
+    MCPServer --> RESTAPI
 
+    %% Demo
     Documents --> InteractiveDemo
     Graph --> DatabaseInspector
-    Reports --> BusinessAnalytics
 
     %% Styling
     classDef dataSource fill:#e1f5fe,stroke:#01579b,stroke-width:2px
     classDef database fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
     classDef service fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef mcp fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
+    classDef llm fill:#f9fbe7,stroke:#827717,stroke-width:2px
     classDef output fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef agent fill:#e8eaf6,stroke:#283593,stroke-width:2px
     classDef demo fill:#fce4ec,stroke:#880e4f,stroke-width:2px
 
     class CRM,Marketing,Sales,Support,External dataSource
     class Documents,Graph,Search database
-    class BlockingService,SimilarityService,ClusteringService,GoldenService,DataManager,DatabaseManager,FoxxServices service
-    class GoldenRecords,Clusters,Reports,API output
-    class InteractiveDemo,DatabaseInspector,BusinessAnalytics demo
+    class BlockingService,SimilarityService,ClusteringService,GoldenService,EmbeddingService,IncrementalResolver,ConfigPipeline service
+    class LLMVerifier llm
+    class MCPServer,MCPTools,MCPResources mcp
+    class GoldenRecords,Clusters,Reports,RESTAPI output
+    class Claude,Cursor,CustomAgent agent
+    class InteractiveDemo,DatabaseInspector demo

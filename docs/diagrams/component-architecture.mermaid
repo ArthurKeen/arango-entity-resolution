@@ -1,4 +1,15 @@
 graph TB
+    subgraph "AI Agent Layer"
+        AIAgents[AI Agents<br/>Claude / Cursor / Gemini / GPT-4]
+        MCPServer[MCP Server<br/>arango-er-mcp<br/>7 tools · 2 resources]
+        AIAgents <--> MCPServer
+    end
+
+    subgraph "Reasoning Layer"
+        LLMVerifier[LLM Match Verifier<br/>OpenRouter · OpenAI · Anthropic · Ollama]
+        IncrementalResolver[Incremental Resolver<br/>Real-time single-record matching]
+    end
+
     subgraph "Presentation Layer"
         InteractiveDemo[Interactive Demos<br/>Stakeholder Presentations]
         DatabaseInspector[Database Inspector<br/>Real-time Visualization]
@@ -6,52 +17,76 @@ graph TB
     end
 
     subgraph "Core Services Layer"
-        BlockingService[Blocking Service<br/>Candidate Generation]
-        SimilarityService[Similarity Service<br/>Fellegi-Sunter Framework]
-        ClusteringService[Clustering Service<br/>Graph Algorithms]
-        GoldenService[Golden Record Service<br/>Master Creation]
+        BlockingService[Blocking Service<br/>Exact · BM25 · Vector · Geo · Graph · LSH]
+        SimilarityService[Similarity Service<br/>Jaro-Winkler · Levenshtein · Jaccard<br/>Weighted Fellegi-Sunter Scoring]
+        ClusteringService[Clustering Service<br/>WCC — Python DFS + AQL Graph]
+        GoldenService[Golden Record Service<br/>most_complete · newest · first]
+        EmbeddingService[Embedding Service<br/>Node2Vec · sentence-transformers<br/>Vector Storage & ANN Search]
     end
 
     subgraph "Data Management Layer"
         DataManager[Data Manager<br/>Ingestion & Validation]
         DatabaseManager[Database Manager<br/>Connection & Transaction]
-        FoxxServices[Foxx Microservices<br/>High-Performance Computing]
+        ConfigSystem[Config System<br/>ERPipelineConfig · YAML/JSON]
     end
 
     subgraph "Infrastructure Layer"
-        ArangoDBCore[ArangoDB Core<br/>Document + Graph + Search]
-        ArangoSearch[ArangoSearch<br/>Full-Text Search & Indexing]
-        GraphAlgorithms[Graph Algorithms<br/>WCC, Traversals, Communities]
-        Configuration[Configuration<br/>Environment Management]
+        ArangoDBCore[ArangoDB 3.12+<br/>Document + Graph + Search]
+        ArangoSearch[ArangoSearch<br/>BM25 · Phonetic · N-gram · Vector ANN]
+        GraphAlgorithms[Graph Algorithms<br/>WCC · Traversals · Communities]
+        VectorIndex[Vector Index<br/>ANN Search · Cosine Similarity]
     end
 
-    %% Data flow connections
+    %% AI Agent layer → Core Services
+    MCPServer --> BlockingService
+    MCPServer --> ClusteringService
+    MCPServer --> GoldenService
+    MCPServer --> SimilarityService
+
+    %% Reasoning layer
+    MCPServer --> IncrementalResolver
+    SimilarityService --> LLMVerifier
+    LLMVerifier -->|score_override| SimilarityService
+    IncrementalResolver --> BlockingService
+
+    %% Presentation layer
     InteractiveDemo --> BlockingService
     DatabaseInspector --> ClusteringService
     BusinessAnalytics --> GoldenService
 
+    %% Core Services pipeline
     BlockingService --> SimilarityService
     SimilarityService --> ClusteringService
     ClusteringService --> GoldenService
+    EmbeddingService --> BlockingService
 
+    %% Data Management
     DataManager --> BlockingService
     DatabaseManager --> ArangoDBCore
-    FoxxServices --> BlockingService
-    FoxxServices --> SimilarityService
-    FoxxServices --> ClusteringService
+    ConfigSystem --> BlockingService
+    ConfigSystem --> SimilarityService
+    ConfigSystem --> ClusteringService
 
+    %% Infrastructure
     ArangoDBCore --> ArangoSearch
     ArangoDBCore --> GraphAlgorithms
-    Configuration --> ArangoDBCore
-    Configuration --> ArangoSearch
+    ArangoDBCore --> VectorIndex
+    BlockingService -.-> ArangoSearch
+    ClusteringService -.-> GraphAlgorithms
+    EmbeddingService -.-> VectorIndex
+    SimilarityService -.-> ArangoDBCore
 
     %% Styling
+    classDef aiLayer fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef reasoning fill:#f9fbe7,stroke:#827717,stroke-width:2px
     classDef presentation fill:#fce4ec,stroke:#880e4f,stroke-width:2px
     classDef core fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
     classDef data fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
     classDef infrastructure fill:#fff3e0,stroke:#e65100,stroke-width:2px
 
+    class AIAgents,MCPServer aiLayer
+    class LLMVerifier,IncrementalResolver reasoning
     class InteractiveDemo,DatabaseInspector,BusinessAnalytics presentation
-    class BlockingService,SimilarityService,ClusteringService,GoldenService core
-    class DataManager,DatabaseManager,FoxxServices data
-    class ArangoDBCore,ArangoSearch,GraphAlgorithms,Configuration infrastructure
+    class BlockingService,SimilarityService,ClusteringService,GoldenService,EmbeddingService core
+    class DataManager,DatabaseManager,ConfigSystem data
+    class ArangoDBCore,ArangoSearch,GraphAlgorithms,VectorIndex infrastructure
