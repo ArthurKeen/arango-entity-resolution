@@ -298,16 +298,10 @@ VERSION_INFO = {
     'release': ''
 }
 
-__version__: str
-try:
-    from importlib.metadata import version as _pkg_version
-    __version__ = _pkg_version("entity-resolution")
-except Exception:
-    # Fallback for editable installs that lack package metadata
-    _v = VERSION_INFO
-    __version__ = f"{_v['major']}.{_v['minor']}.{_v['patch']}"
-    if _v.get('release'):
-        __version__ += f"-{_v['release']}"
+# Single source of version truth — hatchling reads this via regex in pyproject.toml.
+# To release a new version: bump VERSION_INFO above AND this string, then create a
+# GitHub Release. The publish.yml workflow will build and upload to PyPI automatically.
+__version__ = "3.1.2"
 
 def get_version_string() -> str:
     """Get formatted version string"""
