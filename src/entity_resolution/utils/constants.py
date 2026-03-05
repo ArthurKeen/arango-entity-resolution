@@ -293,15 +293,15 @@ INDUSTRY_CONSTANTS = {
 # See VERSION_HISTORY.md for detailed version timeline
 VERSION_INFO = {
     'major': 3,
-    'minor': 1,
-    'patch': 2,
+    'minor': 2,
+    'patch': 0,
     'release': ''
 }
 
 # Single source of version truth — hatchling reads this via regex in pyproject.toml.
 # To release a new version: bump VERSION_INFO above AND this string, then create a
 # GitHub Release. The publish.yml workflow will build and upload to PyPI automatically.
-__version__ = "3.1.2"
+__version__ = "3.2.0"
 
 def get_version_string() -> str:
     """Get formatted version string"""
