@@ -7,7 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.1.2] - 2026-02-16
+## [3.2.0] - 2026-03-05
+
+### Security
+- **AQL injection prevention** across all blocking strategy filter conditions (`base_strategy.py`,
+  `collect_blocking.py`, `graph_traversal_blocking.py`, `geographic_blocking.py`,
+  `pipeline_utils.py`). Dynamic string values are now placed in AQL bind variables,
+  never interpolated inline (C1 \u2014 pipeline_utils, C2 \u2014 strategies).
+
+### Added \u2014 MCP Server
+- New `entity_resolution.mcp` package exposing entity resolution as MCP tools and resources.
+- **Entry point**: `arango-er-mcp` (stdio for Claude Desktop / Cursor; `--transport sse` for HTTP).
+- **7 tools**: `list_collections`, `find_duplicates`, `pipeline_status`, `resolve_entity`,
+  `explain_match`, `get_clusters`, `merge_entities`.
+- **2 resources**: `arango://collections/{name}/summary`, `arango://clusters/{collection}/{key}`.
+- New optional dependency group: `mcp = ["mcp>=1.0.0"]`.
+
+### Added \u2014 Incremental Resolver
+- `IncrementalResolver` (`src/entity_resolution/core/incremental_resolver.py`):
+  find matches for a single new record without re-running the full batch pipeline.
+  Uses prefix-based blocking to avoid full collection scans.
+
+### Added \u2014 LLM Match Verification
+- `LLMMatchVerifier` (`src/entity_resolution/reasoning/llm_verifier.py`):
+  calls an LLM only for pairs in the uncertain score range (default 0.55\u20130.80).
+  High/low-confidence pairs are fast-path (no LLM call).
+  Supports OpenRouter, OpenAI, Anthropic, and local Ollama via `litellm`.
+- New optional dependency group: `llm = ["litellm>=1.0.0"]`.
+
+### Changed
+- `BlockingConfig.parse_fields()` \u2014 single canonical field-parsing method replaces duplicated
+  logic in `ERPipelineConfig` and `ConfigurableERPipeline` (H3).
+- `arangosearch` blocking strategy now aliases `bm25` instead of silently returning empty
+  results (H1).
+- Configurable `DEFAULT_BLOCKING_RECORD_LIMIT` replaces hardcoded `limit=10000`; a
+  `UserWarning` is now emitted when the limit is reached (H2).
+- `count_inferred_edges` reduced from 3 to 2 AQL round-trips by combining count + average
+  into a single `COLLECT AGGREGATE` query (M6).
+- Python version requirement bumped from 3.8+ to 3.10+ (to match actual code usage).
+- `__version__` restored to a static string in `constants.py` so hatchling's regex-based
+  version scraping continues to work during builds.
+
+### Fixed
+- `validate_edge_quality` now counts distinct defective edges via a single OR-condition AQL
+  query instead of double-counting (L1).
+- Dead private methods `_simple_blocking_check` and `_simple_ngram_similarity` removed from
+  `EntityResolutionPipeline` (H4).
+- Unused `import requests` removed from `base_service.py` (M2).
+- Duplicate flat DB connection constants removed from `constants.py` (M4).
+- `self.logger` removed from `ERPipelineConfig` \u2014 config objects are plain data containers (M5).
+
+### Testing
+- `db_connection` fixture in `conftest.py` rewritten with 3-tier resolution:
+  env vars \u2192 labelled container \u2192 auto-spin `arangodb:3.12`. Previously 17 integration
+  tests were always skipped due to hardcoded credentials.
+- **567 tests pass, 0 skipped** (was 549 passing, 17 skipped in 3.1.x).
+- New test files: `test_mcp_tools.py` (8 tests), `test_llm_verifier.py` (10 tests).
+
 
 ### Security
 

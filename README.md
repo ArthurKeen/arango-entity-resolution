@@ -1,17 +1,106 @@
 # ArangoDB Advanced Entity Resolution System
 
-**Current Version**: 3.1.2 | [Version History](VERSION_HISTORY.md) | [Changelog](CHANGELOG.md)
+**Current Version**: 3.2.0 | [Version History](VERSION_HISTORY.md) | [Changelog](CHANGELOG.md) | [PyPI](https://pypi.org/project/arango-entity-resolution/)
+
+## What's New in v3.2
+
+### MCP Server — AI Agent Integration
+
+Any MCP-compatible AI agent (Claude, Gemini, GPT-4, Cursor) can now perform entity resolution
+through natural language using the new `arango-er-mcp` server:
+
+```bash
+# Install with MCP support
+pip install "arango-entity-resolution[mcp]"
+
+# Start the server (stdio for Claude Desktop / Cursor)
+arango-er-mcp
+
+# Or as an HTTP SSE server for remote agents
+arango-er-mcp --transport sse --port 8080
+```
+
+**7 tools exposed**: `list_collections`, `find_duplicates`, `pipeline_status`,
+`resolve_entity`, `explain_match`, `get_clusters`, `merge_entities`
+
+**2 resources**: `arango://collections/{name}/summary`, `arango://clusters/{collection}/{key}`
+
+**Claude Desktop config** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "entity-resolution": {
+      "command": "arango-er-mcp",
+      "env": {
+        "ARANGO_HOST": "localhost",
+        "ARANGO_PORT": "8529",
+        "ARANGO_PASSWORD": "your-password",
+        "ARANGO_DATABASE": "your-db"
+      }
+    }
+  }
+}
+```
+
+### Incremental / Real-Time Resolution
+
+Resolve a single new record against an existing collection without re-running the full batch pipeline:
+
+```python
+from entity_resolution.core.incremental_resolver import IncrementalResolver
+
+resolver = IncrementalResolver(db, collection="companies", fields=["name", "city"])
+matches = resolver.resolve({"name": "Acme Corp", "city": "Boston"}, top_k=5)
+# → [{"_key": "...", "score": 0.94, "field_scores": {...}, "match": True}]
+```
+
+Uses prefix-based blocking so it never scans the full collection.
+
+### LLM-Powered Match Verification
+
+For pairs in the uncertain confidence range (default 0.55–0.80), automatically call an LLM
+to make a binary match/no-match decision:
+
+```python
+from entity_resolution.reasoning.llm_verifier import LLMMatchVerifier
+
+verifier = LLMMatchVerifier()  # reads OPENROUTER_API_KEY from env
+result = verifier.verify(record_a, record_b, score=0.70, field_scores=breakdown)
+# → {"decision": "match", "confidence": 0.92, "reasoning": "...", "score_override": 0.87}
+```
+
+Supports OpenRouter, OpenAI, Anthropic, and local Ollama via `litellm`.
+Only calls the LLM for ambiguous pairs — high/low confidence is a fast-path.
+
+```bash
+pip install "arango-entity-resolution[llm]"
+```
+
+### Security
+- **AQL injection prevention** across all blocking strategy filter conditions — dynamic
+  string values are now placed in AQL bind variables, never interpolated inline.
+
+### Other Improvements (v3.2.0)
+- `BlockingConfig.parse_fields()` — single canonical field-parsing method (no more duplication)
+- `arangosearch` strategy now aliases `bm25` instead of silently returning empty results
+- Configurable record limit with `UserWarning` when truncation occurs
+- `count_inferred_edges` now executes 2 AQL round-trips instead of 3
+- Correct distinct count in `validate_edge_quality`
+- Dead code removed from `EntityResolutionPipeline`
+- **549 tests pass (0 skipped)** — integration tests auto-spin an ArangoDB 3.12 Docker
+  container when no dedicated test DB is configured
+
+---
 
 ## What's New in v3.1
 
-Version 3.1 introduces **Entity Resolution Enrichments** - specialized components for technical, hierarchical, and domain-specific entity resolution:
+Version 3.1 introduced **Entity Resolution Enrichments** — specialized components for technical,
+hierarchical, and domain-specific entity resolution:
 
-### Entity Resolution Enrichments
-- **`TypeCompatibilityFilter`** - Pre-filter candidates by compatibility matrix to prevent nonsensical matches
-- **`HierarchicalContextResolver`** - Use parent context to disambiguate similar names in hierarchical data
-- **`AcronymExpansionHandler`** - Handle domain-specific abbreviations and acronyms during search
-- **`RelationshipProvenanceSweeper`** - Remap relationships through consolidation with full audit trails
-- **Cross-Domain Support** - Validated on Hardware ER and Medical domains
+- **`TypeCompatibilityFilter`** — Pre-filter candidates by compatibility matrix
+- **`HierarchicalContextResolver`** — Use parent context to disambiguate similar names
+- **`AcronymExpansionHandler`** — Handle domain-specific abbreviations
+- **`RelationshipProvenanceSweeper`** — Remap relationships through consolidation with audit trails
 
 [Enrichments Guide](docs/enrichments.md) | [Examples](examples/enrichments/domain_agnostic_examples.py)
 
@@ -19,44 +108,13 @@ Version 3.1 introduces **Entity Resolution Enrichments** - specialized component
 
 ## What's New in v3.0
 
-Version 3.0 introduces **general-purpose ER components** extracted from production implementations, enabling configuration-driven ER pipelines:
+Version 3.0 introduced **general-purpose ER components** extracted from production implementations:
+- **`WeightedFieldSimilarity`** — Standalone reusable similarity computation
+- **`WCCClusteringService`** — Python DFS + AQL Graph options, 40-100x speedup
+- **`AddressERService`** — Complete address deduplication pipeline
+- **`ERPipelineConfig`** / **`ConfigurableERPipeline`** — YAML/JSON-driven pipelines
 
-### Core Similarity Component
-- **`WeightedFieldSimilarity`** - Standalone reusable similarity computation component
-- Multiple algorithms (Jaro-Winkler, Levenshtein, Jaccard)
-- Configurable field weights and null handling
-- String normalization options
-- Can be used independently or with batch services
-
-### Enhanced Clustering
-- **`WCCClusteringService`** - Now supports multiple algorithms:
-- **Python DFS** - Reliable across all ArangoDB versions, uses bulk edge fetching
-- **AQL Graph** (default) - Server-side processing for large graphs
-- Eliminates N+1 query problems with single bulk edge fetch
-
-### Address Entity Resolution
-- **`AddressERService`** - Complete address deduplication pipeline
-- Custom analyzer setup for address normalization
-- ArangoSearch view configuration
-- Blocking with registered agent handling
-- Edge creation and optional clustering
-- Configurable field mapping (works with any address schema)
-
-### Configuration-Driven ER
-- **`ERPipelineConfig`** - YAML/JSON-based ER pipeline configuration
-- **`ConfigurableERPipeline`** - Run complete ER pipelines from configuration files
-- Automatic service instantiation
-- Validation and error handling
-- Standardized ER patterns
-
-### Key Benefits
-- **92% code reduction** - Consuming projects reduce from 1,863 to 155 lines
-- **50-100x performance** improvement for similarity computation
-- **Standardized ER patterns** across all projects
-- **Configuration-driven** - No code changes needed to tune ER parameters
-- **Production-proven** - Battle-tested components from real-world implementations
-
-[See Migration Guide](docs/guides/MIGRATION_GUIDE_V3.md) | [API Reference](docs/api/API_REFERENCE.md) | [Examples](examples/enhanced_er_examples.py)
+[See Migration Guide](docs/guides/MIGRATION_GUIDE_V3.md) | [API Reference](docs/api/API_REFERENCE.md)
 
 ---
 
@@ -430,55 +488,64 @@ The system demonstrates exceptional scalability through record blocking (see [wo
 The project is organized into logical modules for maintainability and scalability:
 
 **Core Implementation (`src/`)**:
-- `entity_resolution/` - Main package with core services, data management, and utilities
-- `core/` - Entity resolver orchestration and pipeline coordination
-- `services/` - Blocking, similarity, clustering, and golden record services
-- `data/` - Data management, ingestion, and validation
-- `utils/` - Configuration, logging, database utilities, and constants
+- `entity_resolution/` — Main package with core services, data management, and utilities
+  - `core/` — Entity resolver, configurable pipeline, **incremental resolver**
+  - `services/` — Blocking, similarity, clustering, golden record, embedding services
+  - `strategies/` — Exact, BM25, vector, geographic, graph-traversal, LSH blocking
+  - `mcp/` — **MCP server** with 7 tools and 2 resources for AI agent integration
+  - `reasoning/` — **LLM match verifier** (OpenRouter / OpenAI / Anthropic / Ollama)
+  - `enrichments/` — Type compatibility, hierarchical context, acronym, provenance sweeper
+  - `utils/` — Configuration, logging, pipeline utilities, constants
 
 **Demo & Presentation (`demo/`)**:
-- `scripts/` - Interactive and automated demo scripts
-- `data/` - Demo datasets and industry scenarios
-- `templates/` - Presentation templates and dashboards
-- `PRESENTATION_SCRIPT.md` - Complete presentation guide
-
-**High-Performance Services (`foxx-services/`)**:
-- `entity-resolution/` - ArangoDB Foxx microservices for native performance
+- `scripts/` — Interactive and automated demo scripts
+- `data/` — Demo datasets and industry scenarios
+- `templates/` — Presentation templates and dashboards
 
 **Documentation (`docs/`)**:
-- `PRD.md` - Product Requirements Document
-- `TESTING.md` - Comprehensive testing guide (setup, strategies, automation)
-- `diagrams/` - Mermaid diagrams for architecture and workflows
+- `PRD.md` — Product Requirements Document
+- `TESTING.md` — Testing guide (setup, strategies, automation)
 
 **Research & Utilities**:
-- `research/` - Academic papers and research materials
-- `scripts/` - Database management, testing, and deployment tools
-- `foxx/` - Foxx deployment automation
-- `benchmarks/` - Performance testing tools
-- `examples/` - Usage examples and integration demos
-- `tests/` - Test framework and validation
-- `config/` - Configuration files and templates
-- `docker-compose.yml` - ArangoDB container configuration
+- `research/` — Academic papers and research materials
+- `examples/` — Usage examples and integration demos
+- `tests/` — 567 tests, 0 skipped (auto-Docker integration harness)
+- `config/` — Configuration files and templates
+- `docker-compose.yml` — ArangoDB container configuration
 
 ## Key Features
 
 ### **[IMPLEMENTED] Foundation: Traditional Entity Resolution**
-- **Data Management**: Import and manage customer data from multiple sources
-- **Record Blocking**: Multi-strategy blocking (exact, n-gram, phonetic) with 99%+ efficiency
-- **Bulk Processing**: 3-5x faster for large datasets (50K+ records) using set-based AQL operations
-- **Similarity Matching**: Fellegi-Sunter probabilistic framework with configurable metrics
-- **Graph-Based Clustering**: Weakly Connected Components for entity grouping
+- **Record Blocking**: Multi-strategy (exact/COLLECT, BM25/ArangoSearch, Vector/ANN, Geographic, Graph-Traversal, LSH)
+- **Similarity Matching**: Fellegi-Sunter probabilistic framework (Jaro-Winkler, Levenshtein, Jaccard)
+- **Graph-Based Clustering**: Weakly Connected Components (Python DFS + AQL Graph modes)
 - **Golden Record Generation**: Automated master record creation with conflict resolution
-- **Data Quality Scoring**: Comprehensive validation and quality assessment
+- **Bulk Processing**: 3-5x faster for large datasets using set-based AQL operations
 
-### **[IMPLEMENTED] Core Infrastructure** 
+### **[IMPLEMENTED] AI & Agent Integration (v3.2)**
+- **MCP Server** (`arango-er-mcp`): 7 tools + 2 resources for Claude, Gemini, GPT-4, Cursor
+- **Incremental Resolver**: Real-time single-record resolution without batch re-run
+- **LLM Match Verification**: Auto-calls LLM for ambiguous pairs (0.55–0.80 range); fast-path otherwise
+- **Vector/Semantic Blocking**: sentence-transformers + ArangoDB 3.12 vector search
+- **Node2Vec Embeddings**: Graph structural embeddings for relationship-aware matching
+
+### **[IMPLEMENTED] Security & Code Quality (v3.2)**
+- **AQL Injection Prevention**: All dynamic values in bind variables across all strategies
+- **`BlockingConfig.parse_fields()`**: Single canonical field-parsing API
+- **Configurable Limits**: Record limit with `UserWarning` on truncation
+- **Optimized AQL**: `count_inferred_edges` uses 2 queries instead of 3
+
+### **[IMPLEMENTED] v3.1 Enrichments**
+- **`TypeCompatibilityFilter`**: Pre-filter by compatibility matrix
+- **`HierarchicalContextResolver`**: Disambiguate similar names via parent context
+- **`AcronymExpansionHandler`**: Domain-specific abbreviation expansion
+- **`RelationshipProvenanceSweeper`**: Remap relationships with full audit trail
+
+### **[IMPLEMENTED] Configuration & Infrastructure**
+- **`ERPipelineConfig` / `ConfigurableERPipeline`**: YAML/JSON-driven pipelines
+- **`AddressERService`**: Complete address deduplication pipeline
+- **Auto-Docker Test Harness**: Integration tests spin up ArangoDB 3.12 on demand
 - **ArangoSearch Integration**: Native full-text search for blocking operations
-- **Graph Algorithms**: Built-in WCC and relationship discovery (Python DFS and AQL options)
-- **Foxx Microservices**: High-performance ArangoDB-native services
-- **Batch & Bulk Processing**: Dual-mode architecture (real-time + batch optimization)
-- **Configuration Management**: Environment-based settings with validation
-- **YAML/JSON Configuration**: Configuration-driven ER pipelines (v3.0)
-- **Performance Optimization**: 1,000+ records/second processing capability
 
 ### **[IMPLEMENTED] v3.0 General-Purpose Components**
 - **WeightedFieldSimilarity**: Standalone similarity computation component
@@ -524,54 +591,60 @@ The project is organized into logical modules for maintainability and scalabilit
 
 ### **Core Platform**
 - **Database**: ArangoDB 3.12+ (multi-model: document + graph + search)
-- **Language**: Python 3.8+ (with comprehensive type hints)
+- **Language**: Python 3.10+ (with comprehensive type hints)
 - **Driver**: python-arango 8.0.0 (full ArangoDB 3.12 compatibility)
 - **Microservices**: ArangoDB Foxx Services (JavaScript/V8)
 
-### **Infrastructure & Deployment**
-- **Containerization**: Docker & Docker Compose
-- **Configuration**: Environment-based with validation
+### **AI & Agent Integration**
+- **MCP Server**: `mcp>=1.0.0` — expose ER as tools to any MCP-compatible AI agent
+- **LLM Verification**: `litellm>=1.0.0` — OpenRouter / OpenAI / Anthropic / Ollama
+- **Vector Embeddings**: `sentence-transformers`, `torch` for semantic blocking
+- **Node2Vec**: Graph embedding service for structural similarity
+
+### **Algorithms & Similarity**
+- **Blocking**: Exact (COLLECT), BM25/ArangoSearch, Vector/ANN, Geographic, GraphTraversal
+- **Similarity**: Jaro-Winkler, Levenshtein, Jaccard, Fellegi-Sunter probabilistic scoring
+- **Clustering**: Weakly Connected Components (Python DFS + AQL Graph modes)
+- **LLM Curation**: Automated match evaluation for ambiguous pairs (0.55–0.80 confidence range)
+
+### **Infrastructure**
+- **Containerization**: Docker & Docker Compose (tests auto-spin containers as needed)
+- **Configuration**: Environment-based with `.env` support
 - **Logging**: Structured logging with multiple output formats
-- **Monitoring**: Performance metrics and health checks
-
-### **Algorithms & AI**
-
-**Traditional Techniques (Implemented)**
-- **Similarity**: Fellegi-Sunter probabilistic framework
-- **Blocking**: Multi-strategy (exact, n-gram, phonetic, sorted neighborhood)
-- **Clustering**: Graph-based Weakly Connected Components
-- **Search**: ArangoSearch with custom analyzers (Soundex, n-gram)
-- **Quality**: Data quality scoring and validation frameworks
-
-**Advanced AI/ML (Roadmap)**
-- **Embeddings**: GraphML for node/edge embeddings, behavioral pattern vectors
-- **Vector Search**: ArangoSearch vector similarity, ANN (Approximate Nearest Neighbor)
-- **LLM Integration**: Entity extraction, semantic linking, automated curation
-- **GraphRAG**: Document understanding with knowledge graph construction
-- **Geospatial**: GeoJSON support, spatial-temporal validation
-- **Deep Learning**: Graph Neural Networks for entity matching
-
-### **Development & Testing**
-- **Architecture**: Modular service-oriented design
-- **Testing**: Comprehensive test framework with validation
-- **Documentation**: API documentation and presentation materials
-- **Code Quality**: Centralized configuration, no duplication, type safety
+- **Testing**: 567 tests, 0 skipped, auto-Docker integration harness
 
 ## Installation
 
-### As a Library (Recommended)
-You can install the system directly from the repository using `pip`:
+### From PyPI (Recommended)
 
 ```bash
-# Basic installation
+# Core installation
 pip install arango-entity-resolution
 
-# With ML features (for vector search)
+# With MCP server support (Claude Desktop, Cursor, AI agents)
+pip install "arango-entity-resolution[mcp]"
+
+# With LLM match verification (OpenRouter, OpenAI, Anthropic, Ollama)
+pip install "arango-entity-resolution[llm]"
+
+# With vector/ML features (sentence-transformers, torch)
 pip install "arango-entity-resolution[ml]"
 
+# Everything
+pip install "arango-entity-resolution[mcp,llm,ml]"
+
 # For development
-pip install -e ".[dev,test]"
+pip install -e ".[dev,test,mcp,llm]"
 ```
+
+### Entry Points
+
+| Command | Description |
+|---------|-------------|
+| `arango-er` | CLI for running ER pipelines from config files |
+| `arango-er-demo` | Interactive demo launcher |
+| `arango-er-mcp` | MCP server for AI agent integration |
+
 
 ## Getting Started
 
