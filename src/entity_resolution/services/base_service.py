@@ -10,7 +10,6 @@ Provides common functionality for all entity resolution services:
 Note: v1.x legacy service. v2.0+ uses strategy pattern (see strategies/ directory).
 """
 
-import requests
 from typing import Dict, Any, Optional
 from abc import ABC, abstractmethod
 

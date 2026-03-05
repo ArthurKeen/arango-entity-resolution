@@ -225,9 +225,13 @@ class GeographicBlockingStrategy(BlockingStrategy):
         
         # Add filters
         if self.filters:
-            conditions = self._build_filter_conditions(self.filters, {})
+            conditions, filter_bind_vars = self._build_filter_conditions(self.filters, {})
+            # store for use in _build_bind_vars
+            self._filter_bind_vars = filter_bind_vars
             for condition in conditions:
                 query_parts.append(f"    FILTER {condition}")
+        else:
+            self._filter_bind_vars = {}
         
         # Add ZIP range filter if specified
         if self.blocking_type == "zip_range":
@@ -325,57 +329,55 @@ class GeographicBlockingStrategy(BlockingStrategy):
         return ', '.join(parts)
     
     def _build_bind_vars(self) -> Dict[str, Any]:
-        """Build bind variables for the query."""
-        # Currently no bind vars needed, but keeping method for future use
-        return {}
+        """Build bind variables for the query (includes filter bind vars)."""
+        return getattr(self, '_filter_bind_vars', {})
     
-    def _build_filter_conditions(self, field_filters: Dict[str, Any],
-                                 computed_field_map: Optional[Dict[str, str]] = None) -> List[str]:
+    def _build_filter_conditions(
+        self,
+        field_filters: Dict[str, Any],
+        computed_field_map: Optional[Dict[str, str]] = None,
+    ) -> tuple[list[str], dict]:
         """
         Build AQL filter conditions.
-        
-        Args:
-            field_filters: Filter specifications for fields
-            computed_field_map: Not used in this strategy but kept for interface compatibility
-        
+
+        String values are placed in bind vars to prevent AQL injection (C2).
+
         Returns:
-            List of AQL filter condition strings
+            A 2-tuple of (conditions list, bind_vars dict).
         """
-        conditions = []
-        
+        conditions: list[str] = []
+        bind_vars: dict = {}
+
         for field_name, filters in field_filters.items():
             if not isinstance(filters, dict):
                 continue
-            
+
             field_ref = f"d.{field_name}"
-            
+
             # Not null filter
             if filters.get('not_null'):
                 conditions.append(f"{field_ref} != null")
-            
+
             # Not equal filter
             if 'not_equal' in filters:
                 not_equal_values = filters['not_equal']
                 if isinstance(not_equal_values, list):
-                    for value in not_equal_values:
-                        if isinstance(value, str):
-                            conditions.append(f'{field_ref} != "{value}"')
-                        else:
-                            conditions.append(f'{field_ref} != {value}')
-            
+                    for i, value in enumerate(not_equal_values):
+                        var = f"_ne_{field_name}_{i}"
+                        bind_vars[var] = value
+                        conditions.append(f"{field_ref} != @{var}")
+
             # Equals filter
             if 'equals' in filters:
-                value = filters['equals']
-                if isinstance(value, str):
-                    conditions.append(f'{field_ref} == "{value}"')
-                else:
-                    conditions.append(f'{field_ref} == {value}')
-            
+                var = f"_eq_{field_name}"
+                bind_vars[var] = filters['equals']
+                conditions.append(f"{field_ref} == @{var}")
+
             # Min length filter
             if 'min_length' in filters:
-                conditions.append(f"LENGTH({field_ref}) >= {filters['min_length']}")
-        
-        return conditions
+                conditions.append(f"LENGTH({field_ref}) >= {int(filters['min_length'])}")
+
+        return conditions, bind_vars
     
     def _estimate_blocks_processed(self, pairs: List[Dict[str, Any]]) -> int:
         """

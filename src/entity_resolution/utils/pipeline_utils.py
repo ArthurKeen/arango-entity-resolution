@@ -18,6 +18,8 @@ from arango.collection import Collection
 import logging
 from datetime import datetime
 
+from .validation import validate_collection_name
+
 
 logger = logging.getLogger(__name__)
 
@@ -77,65 +79,67 @@ def clean_er_results(
     
     for coll_name in collections:
         try:
-            if not db.has_collection(coll_name):
-                logger.warning(f"Collection '{coll_name}' does not exist, skipping")
+            # Validate before interpolating into AQL (C1 — AQL injection guard)
+            validated_name = validate_collection_name(coll_name)
+            if not db.has_collection(validated_name):
+                logger.warning(f"Collection '{validated_name}' does not exist, skipping")
                 continue
-            
-            coll = db.collection(coll_name)
+
+            coll = db.collection(validated_name)
             
             if keep_last_n is None and older_than is None:
                 # Simple truncate
                 before_count = coll.count()
                 coll.truncate()
-                removed_counts[coll_name] = before_count
-                kept_counts[coll_name] = 0
-                logger.info(f"Truncated {before_count} documents from {coll_name}")
-            
+                removed_counts[validated_name] = before_count
+                kept_counts[validated_name] = 0
+                logger.info(f"Truncated {before_count} documents from {validated_name}")
+
             elif older_than:
                 # Remove by timestamp
                 query = f"""
-                FOR doc IN {coll_name}
+                FOR doc IN {validated_name}
                     FILTER doc.timestamp < @older_than
-                    REMOVE doc IN {coll_name}
+                    REMOVE doc IN {validated_name}
                     RETURN OLD
                 """
                 cursor = db.aql.execute(query, bind_vars={'older_than': older_than})
                 removed = list(cursor)
-                removed_counts[coll_name] = len(removed)
-                kept_counts[coll_name] = coll.count()
-                logger.info(f"Removed {len(removed)} documents older than {older_than} from {coll_name}")
-            
+                removed_counts[validated_name] = len(removed)
+                kept_counts[validated_name] = coll.count()
+                logger.info(f"Removed {len(removed)} documents older than {older_than} from {validated_name}")
+
             elif keep_last_n:
                 # Keep last N runs (by timestamp)
                 # First, get the Nth newest timestamp
                 query = f"""
-                FOR doc IN {coll_name}
+                FOR doc IN {validated_name}
                     SORT doc.timestamp DESC
                     LIMIT @n, 1
                     RETURN doc.timestamp
                 """
-                cursor = db.aql.execute(query, bind_vars={'n': keep_last_n})
+                cursor = db.aql.execute(query, bind_vars={'n': int(keep_last_n)})
                 results = list(cursor)
-                
+
                 if results:
                     cutoff_timestamp = results[0]
                     # Remove everything older than the cutoff
                     query = f"""
-                    FOR doc IN {coll_name}
+                    FOR doc IN {validated_name}
                         FILTER doc.timestamp < @cutoff
-                        REMOVE doc IN {coll_name}
+                        REMOVE doc IN {validated_name}
                         RETURN OLD
                     """
                     cursor = db.aql.execute(query, bind_vars={'cutoff': cutoff_timestamp})
                     removed = list(cursor)
-                    removed_counts[coll_name] = len(removed)
-                    kept_counts[coll_name] = coll.count()
-                    logger.info(f"Kept last {keep_last_n} runs, removed {len(removed)} from {coll_name}")
+                    removed_counts[validated_name] = len(removed)
+                    kept_counts[validated_name] = coll.count()
+                    logger.info(f"Kept last {keep_last_n} runs, removed {len(removed)} from {validated_name}")
                 else:
                     # Fewer than keep_last_n documents exist
-                    removed_counts[coll_name] = 0
-                    kept_counts[coll_name] = coll.count()
-                    logger.info(f"Collection {coll_name} has fewer than {keep_last_n} documents, kept all")
+                    removed_counts[validated_name] = 0
+                    kept_counts[validated_name] = coll.count()
+                    logger.info(f"Collection {validated_name} has fewer than {keep_last_n} documents, kept all")
         
         except Exception as e:
             logger.error(f"Error cleaning collection {coll_name}: {e}", exc_info=True)
@@ -191,63 +195,52 @@ def count_inferred_edges(
         print(f"Found {stats['inferred_edges']} inferred edges")
         ```
     """
+    # C1 — validate identifier and coerce numeric param before interpolation
+    edge_collection = validate_collection_name(edge_collection)
+    if confidence_threshold is not None:
+        confidence_threshold = float(confidence_threshold)
+        if not 0.0 <= confidence_threshold <= 1.0:
+            raise ValueError(f"confidence_threshold must be between 0.0 and 1.0, got {confidence_threshold}")
+
     if not db.has_collection(edge_collection):
         raise ValueError(f"Edge collection '{edge_collection}' does not exist")
-    
+
     coll = db.collection(edge_collection)
-    
-    # Count total edges
-    total_edges = coll.count()
-    
-    # Count inferred edges
-    query = f"""
+
+    # M6 — combine count + avg into a single AQL round-trip
+    inferred_query = f"""
     FOR e IN {edge_collection}
         FILTER e.inferred == true
+        {'FILTER e.confidence >= @threshold' if confidence_threshold is not None else ''}
+        COLLECT AGGREGATE cnt = COUNT(1), avg_conf = AVG(e.confidence)
+        RETURN {{cnt, avg_conf}}
     """
-    
+    inferred_bind: Dict[str, Any] = {}
     if confidence_threshold is not None:
-        query += f" FILTER e.confidence >= {confidence_threshold}"
-    
-    query += " COLLECT WITH COUNT INTO cnt RETURN cnt"
-    
-    cursor = db.aql.execute(query)
-    inferred_edges = list(cursor)[0] if cursor else 0
-    
+        inferred_bind['threshold'] = confidence_threshold
+
+    cursor = db.aql.execute(inferred_query, bind_vars=inferred_bind)
+    agg = list(cursor)
+    agg_row = agg[0] if agg else {'cnt': 0, 'avg_conf': None}
+    inferred_edges = agg_row.get('cnt', 0) or 0
+    avg_confidence = agg_row.get('avg_conf')
+
+    # Count total edges (still needs a separate call — no inferred filter here)
+    total_edges = coll.count()
     direct_edges = total_edges - inferred_edges
     
-    # Calculate average confidence
-    confidence_query = f"""
-    FOR e IN {edge_collection}
-        FILTER e.inferred == true
-        FILTER e.confidence != null
-    """
-    
-    if confidence_threshold is not None:
-        confidence_query += f" FILTER e.confidence >= {confidence_threshold}"
-    
-    confidence_query += " COLLECT AGGREGATE avg_conf = AVG(e.confidence) RETURN avg_conf"
-    
-    cursor = db.aql.execute(confidence_query)
-    avg_confidence = list(cursor)[0] if cursor else None
-    
-    # Confidence distribution
+    # Confidence distribution (kept as a separate query; bucketing doesn't compose with AGGREGATE)
     dist_query = f"""
     FOR e IN {edge_collection}
         FILTER e.inferred == true
         FILTER e.confidence != null
-    """
-    
-    if confidence_threshold is not None:
-        dist_query += f" FILTER e.confidence >= {confidence_threshold}"
-    
-    dist_query += """
+        {'FILTER e.confidence >= @threshold' if confidence_threshold is not None else ''}
         LET range = FLOOR(e.confidence * 20) / 20
         COLLECT bucket = range WITH COUNT INTO cnt
         SORT bucket
-        RETURN {bucket: bucket, count: cnt}
+        RETURN {{bucket: bucket, count: cnt}}
     """
-    
-    cursor = db.aql.execute(dist_query)
+    cursor = db.aql.execute(dist_query, bind_vars=inferred_bind)
     distribution_raw = list(cursor)
     
     # Format distribution
@@ -307,66 +300,66 @@ def validate_edge_quality(
             "timestamp": "2025-12-02T10:30:00"
         }
     """
+    # C1 — validate identifier and coerce numerics before interpolation
+    edge_collection = validate_collection_name(edge_collection)
+    min_confidence = float(min_confidence)
+    sample_size = int(sample_size)
+
     if not db.has_collection(edge_collection):
         raise ValueError(f"Edge collection '{edge_collection}' does not exist")
-    
+
     coll = db.collection(edge_collection)
     total_edges = coll.count()
     issues = []
-    
-    # Check for missing confidence
-    query = f"""
+
+    # L1 — single query counting edges with ≥1 defect (eliminates double-counting)
+    defect_query = f"""
     FOR e IN {edge_collection}
         FILTER e.confidence == null
+            OR e.confidence < @threshold
+            OR e._from == e._to
         COLLECT WITH COUNT INTO cnt
         RETURN cnt
     """
-    cursor = db.aql.execute(query)
-    missing_confidence = list(cursor)[0] if cursor else 0
-    if missing_confidence > 0:
-        issues.append({
-            'type': 'missing_confidence',
-            'count': missing_confidence,
-            'severity': 'warning'
-        })
-    
-    # Check for below threshold
-    query = f"""
+    cursor = db.aql.execute(defect_query, bind_vars={'threshold': min_confidence})
+    invalid_edges = (list(cursor) or [0])[0]
+
+    # Individual issue queries for structured reporting
+    missing_confidence_q = f"""
     FOR e IN {edge_collection}
-        FILTER e.confidence < {min_confidence}
-        COLLECT WITH COUNT INTO cnt
-        RETURN cnt
+        FILTER e.confidence == null
+        COLLECT WITH COUNT INTO cnt RETURN cnt
     """
-    cursor = db.aql.execute(query)
-    below_threshold = list(cursor)[0] if cursor else 0
+    cursor = db.aql.execute(missing_confidence_q)
+    missing_confidence = (list(cursor) or [0])[0]
+    if missing_confidence > 0:
+        issues.append({'type': 'missing_confidence', 'count': missing_confidence, 'severity': 'warning'})
+
+    below_threshold_q = f"""
+    FOR e IN {edge_collection}
+        FILTER e.confidence != null AND e.confidence < @threshold
+        COLLECT WITH COUNT INTO cnt RETURN cnt
+    """
+    cursor = db.aql.execute(below_threshold_q, bind_vars={'threshold': min_confidence})
+    below_threshold = (list(cursor) or [0])[0]
     if below_threshold > 0:
-        issues.append({
-            'type': 'below_threshold',
-            'count': below_threshold,
-            'threshold': min_confidence,
-            'severity': 'warning'
-        })
-    
-    # Check for self-loops
-    query = f"""
+        issues.append({'type': 'below_threshold', 'count': below_threshold,
+                       'threshold': min_confidence, 'severity': 'warning'})
+
+    self_loop_q = f"""
     FOR e IN {edge_collection}
         FILTER e._from == e._to
-        COLLECT WITH COUNT INTO cnt
-        RETURN cnt
+        COLLECT WITH COUNT INTO cnt RETURN cnt
     """
-    cursor = db.aql.execute(query)
-    self_loops = list(cursor)[0] if cursor else 0
+    cursor = db.aql.execute(self_loop_q)
+    self_loops = (list(cursor) or [0])[0]
     if self_loops > 0:
-        issues.append({
-            'type': 'self_loop',
-            'count': self_loops,
-            'severity': 'error'
-        })
-    
+        issues.append({'type': 'self_loop', 'count': self_loops, 'severity': 'error'})
+
     # Sample edges for detailed validation
-    query = f"""
+    sample_query = f"""
     FOR e IN {edge_collection}
-        LIMIT {sample_size}
+        LIMIT @limit
         RETURN {{
             _from: e._from,
             _to: e._to,
@@ -375,11 +368,9 @@ def validate_edge_quality(
             has_match_details: e.match_details != null
         }}
     """
-    cursor = db.aql.execute(query)
+    cursor = db.aql.execute(sample_query, bind_vars={'limit': sample_size})
     sample_details = list(cursor)
-    
-    # Calculate valid/invalid counts
-    invalid_edges = missing_confidence + below_threshold + self_loops
+
     valid_edges = total_edges - invalid_edges
     
     return {

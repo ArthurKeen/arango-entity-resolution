@@ -52,13 +52,16 @@ class TestBlockingStrategy:
             "field4": {"equals": "exact_value"}
         }
         
-        conditions = strategy._build_filter_conditions(filters)
-        
+        conditions, bind_vars = strategy._build_filter_conditions(filters)
+
         assert "d.field1 != null" in conditions
         assert "LENGTH(d.field2) >= 5" in conditions
-        assert 'd.field3 != "val1"' in conditions
-        assert 'd.field3 != "val2"' in conditions
-        assert 'd.field4 == "exact_value"' in conditions
+        assert any("d.field3 != @" in c for c in conditions)
+        assert any("d.field4 == @" in c for c in conditions)
+        # String values must be in bind_vars, not interpolated into query strings
+        assert any(v == "val1" for v in bind_vars.values())
+        assert any(v == "val2" for v in bind_vars.values())
+        assert any(v == "exact_value" for v in bind_vars.values())
     
     def test_normalize_pairs(self, db):
         """Test pair normalization."""
@@ -153,7 +156,7 @@ class TestCollectBlockingStrategy:
             min_block_size=2
         )
         
-        query = strategy._build_collect_query()
+        query, bind_vars = strategy._build_collect_query()
         
         # Check query contains expected components
         assert "FOR d IN test_collection" in query
@@ -176,7 +179,7 @@ class TestCollectBlockingStrategy:
             computed_fields={"zip5": "LEFT(d.postal_code, 5)"}
         )
         
-        query = strategy._build_collect_query()
+        query, bind_vars = strategy._build_collect_query()
         
         assert "LET _computed_zip5 = LEFT(d.postal_code, 5)" in query
         assert "COLLECT zip5 = _computed_zip5, state = d.state" in query

@@ -160,10 +160,9 @@ def test_count_inferred_edges_missing_collection_raises() -> None:
 
 def test_count_inferred_edges_basic_counts_avg_and_distribution() -> None:
     def dispatch(query: str, bind_vars: Optional[Dict[str, Any]]) -> Iterable[Any]:
-        if "COLLECT WITH COUNT INTO cnt RETURN cnt" in query and "FILTER e.inferred == true" in query:
-            return [3]
-        if "AGGREGATE avg_conf = AVG" in query:
-            return [0.91234]
+        # M6: the first query now combines count + avg via COLLECT AGGREGATE
+        if "COLLECT AGGREGATE cnt = COUNT(1), avg_conf = AVG" in query:
+            return [{"cnt": 3, "avg_conf": 0.91234}]
         if "LET range = FLOOR" in query:
             return [{"bucket": 0.9, "count": 2}, {"bucket": 0.95, "count": 1}]
         return []
@@ -181,12 +180,11 @@ def test_count_inferred_edges_basic_counts_avg_and_distribution() -> None:
 
 def test_count_inferred_edges_with_threshold_filters_queries() -> None:
     def dispatch(query: str, bind_vars: Optional[Dict[str, Any]]) -> Iterable[Any]:
-        # All three queries should include the threshold filter
-        assert "FILTER e.confidence >= 0.85" in query
-        if "COLLECT WITH COUNT INTO cnt RETURN cnt" in query:
-            return [1]
-        if "AGGREGATE avg_conf = AVG" in query:
-            return [0.9]
+        # M6: threshold is now passed as a bind var @threshold, not interpolated
+        if bind_vars and bind_vars.get("threshold") is not None:
+            assert bind_vars["threshold"] == 0.85
+        if "COLLECT AGGREGATE cnt = COUNT(1), avg_conf = AVG" in query:
+            return [{"cnt": 1, "avg_conf": 0.9}]
         if "LET range = FLOOR" in query:
             return []
         return []
@@ -201,14 +199,16 @@ def test_count_inferred_edges_with_threshold_filters_queries() -> None:
 
 def test_validate_edge_quality_aggregates_issues_and_limits_sample_details() -> None:
     def dispatch(query: str, bind_vars: Optional[Dict[str, Any]]) -> Iterable[Any]:
+        # L1: first query counts DISTINCT edges with >=1 defect (OR logic)
+        if "OR e.confidence <" in query or ("OR e._from == e._to" in query and "OR e.confidence" in query):
+            return [3]  # 3 distinct defective edges (not a sum)
         if "FILTER e.confidence == null" in query:
             return [1]
-        if "FILTER e.confidence < 0.75" in query:
+        if "FILTER e.confidence != null AND e.confidence <" in query:
             return [2]
         if "FILTER e._from == e._to" in query:
             return [1]
-        if "LIMIT 100" in query and "has_match_details" in query:
-            # Return 12, but API should only return first 10
+        if "LIMIT @limit" in query and "has_match_details" in query:
             return [{"_from": "a", "_to": "b", "confidence": 0.9, "method": "x", "has_match_details": False}] * 12
         return []
 
@@ -217,8 +217,8 @@ def test_validate_edge_quality_aggregates_issues_and_limits_sample_details() -> 
 
     result = pipeline_utils.validate_edge_quality(db, edge_collection="similarTo", min_confidence=0.75, sample_size=100)
     assert result["total_edges"] == 10
-    assert result["invalid_edges"] == 4
-    assert result["valid_edges"] == 6
+    assert result["invalid_edges"] == 3   # L1 fix: distinct count, not sum
+    assert result["valid_edges"] == 7
     assert result["valid"] is False
     assert {i["type"] for i in result["issues"]} == {"missing_confidence", "below_threshold", "self_loop"}
     assert len(result["sample_details"]) == 10

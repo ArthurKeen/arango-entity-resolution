@@ -163,10 +163,10 @@ class GraphTraversalBlockingStrategy(BlockingStrategy):
         start_time = time.time()
         
         # Build the AQL query
-        query = self._build_graph_traversal_query()
-        
+        query, bind_vars = self._build_graph_traversal_query()
+
         # Execute query
-        cursor = self.db.aql.execute(query)
+        cursor = self.db.aql.execute(query, bind_vars=bind_vars)
         pairs = list(cursor)
         
         # Normalize pairs
@@ -189,23 +189,26 @@ class GraphTraversalBlockingStrategy(BlockingStrategy):
         
         return normalized_pairs
     
-    def _build_graph_traversal_query(self) -> str:
+    def _build_graph_traversal_query(self) -> tuple[str, dict]:
         """
         Build the AQL query for graph traversal blocking.
-        
+
         Returns:
-            AQL query string
+            Tuple of (AQL query string, bind_vars dict)
         """
         query_parts = [
             f"WITH {self.collection}",
             f"FOR node IN {self.intermediate_collection}"
         ]
-        
+
+        bind_vars: dict = {}
         # Add filters for intermediate nodes
         if self.intermediate_filters:
-            for condition in self._build_filter_conditions(self.intermediate_filters):
+            conditions, filter_bind_vars = self._build_filter_conditions(self.intermediate_filters)
+            bind_vars.update(filter_bind_vars)
+            for condition in conditions:
                 query_parts.append(f"    FILTER {condition}")
-        
+
         # Traverse to find connected entities
         query_parts.append(
             f"    LET connected_entities = ("
@@ -219,15 +222,15 @@ class GraphTraversalBlockingStrategy(BlockingStrategy):
         query_parts.append(
             "    )"
         )
-        
+
         # Filter by node degree (number of connected entities)
         query_parts.append(f"    FILTER LENGTH(connected_entities) >= {self.min_entities_per_node}")
         query_parts.append(f"    FILTER LENGTH(connected_entities) <= {self.max_entities_per_node}")
-        
+
         # Generate all pairs within this node
         query_parts.append("    FOR i IN 0..LENGTH(connected_entities)-2")
         query_parts.append("        FOR j IN (i+1)..LENGTH(connected_entities)-1")
-        
+
         # Return pair with metadata
         return_clause = f"""            RETURN {{
                 doc1_key: connected_entities[i],
@@ -238,57 +241,56 @@ class GraphTraversalBlockingStrategy(BlockingStrategy):
                 method: "graph_traversal_blocking",
                 edge_collection: "{self.edge_collection}"
             }}"""
-        
+
         query_parts.append(return_clause)
-        
-        return "\n".join(query_parts)
+
+        return "\n".join(query_parts), bind_vars
     
-    def _build_filter_conditions(self, field_filters: Dict[str, Any]) -> List[str]:
+    def _build_filter_conditions(
+        self,
+        field_filters: Dict[str, Any],
+    ) -> tuple[list[str], dict]:
         """
-        Build AQL filter conditions for intermediate nodes.
-        
-        Args:
-            field_filters: Filter specifications for fields
-        
+        Build AQL filter conditions for intermediate nodes (uses ``node.`` prefix).
+
         Returns:
-            List of AQL filter condition strings
+            A 2-tuple of (conditions list, bind_vars dict). String values are
+            placed in bind vars to prevent AQL injection (C2).
         """
-        conditions = []
-        
+        conditions: list[str] = []
+        bind_vars: dict = {}
+
         for field_name, filters in field_filters.items():
             if not isinstance(filters, dict):
                 continue
-            
+
             field_ref = f"node.{field_name}"
-            
+
             # Not null filter
             if filters.get('not_null'):
                 conditions.append(f"{field_ref} != null")
-            
+
             # Not equal filter
             if 'not_equal' in filters:
                 not_equal_values = filters['not_equal']
                 if not isinstance(not_equal_values, list):
                     not_equal_values = [not_equal_values]
-                for value in not_equal_values:
-                    if isinstance(value, str):
-                        conditions.append(f'{field_ref} != "{value}"')
-                    else:
-                        conditions.append(f'{field_ref} != {value}')
-            
+                for i, value in enumerate(not_equal_values):
+                    var = f"_ne_{field_name}_{i}"
+                    bind_vars[var] = value
+                    conditions.append(f"{field_ref} != @{var}")
+
             # Equals filter
             if 'equals' in filters:
-                value = filters['equals']
-                if isinstance(value, str):
-                    conditions.append(f'{field_ref} == "{value}"')
-                else:
-                    conditions.append(f'{field_ref} == {value}')
-            
+                var = f"_eq_{field_name}"
+                bind_vars[var] = filters['equals']
+                conditions.append(f"{field_ref} == @{var}")
+
             # Min length filter
             if 'min_length' in filters:
-                conditions.append(f"LENGTH({field_ref}) >= {filters['min_length']}")
-        
-        return conditions
+                conditions.append(f"LENGTH({field_ref}) >= {int(filters['min_length'])}")
+
+        return conditions, bind_vars
     
     def _count_unique_shared_nodes(self, pairs: List[Dict[str, Any]]) -> int:
         """

@@ -291,7 +291,8 @@ class ConfigurableERPipeline:
             )
             return list(blocking_strategy.generate_candidates())
         
-        elif strategy == 'bm25':
+        elif strategy in ('bm25', 'arangosearch'):
+            # Note: 'arangosearch' is a deprecated alias for 'bm25'.
             # Resolve search_field and blocking_field from config.
             # Explicit attributes on BlockingConfig take precedence; fall back to
             # the first two entries in the generic `fields` list so callers that
@@ -333,42 +334,14 @@ class ConfigurableERPipeline:
         """
         Extract blocking field names (and optional computed fields) from config.
 
-        Supported formats for config.blocking.fields:
-        - List[str]: ["phone", "state"]
-        - List[dict]: [{"name": "phone"}, {"name": "zip5", "expression": "LEFT(d.postal_code, 5)"}]
+        Delegates to ``BlockingConfig.parse_fields()`` (H3 — single canonical
+        implementation shared with ERPipelineConfig; no local duplication).
 
         Returns:
-            (blocking_fields, computed_fields)
+            (field_names, computed_fields)
         """
-        blocking_fields: list[str] = []
-        computed_fields: dict[str, str] = {}
+        return self.config.blocking.parse_fields()
 
-        for item in (self.config.blocking.fields or []):
-            if isinstance(item, str):
-                name = item.strip()
-                if name:
-                    blocking_fields.append(name)
-                continue
-
-            if isinstance(item, dict):
-                name = (item.get("name") or item.get("field") or "").strip()
-                if name:
-                    blocking_fields.append(name)
-                expr = item.get("expression") or item.get("aql")
-                if name and isinstance(expr, str) and expr.strip():
-                    computed_fields[name] = expr.strip()
-                continue
-
-        # De-dup while preserving order
-        seen = set()
-        deduped = []
-        for f in blocking_fields:
-            if f in seen:
-                continue
-            seen.add(f)
-            deduped.append(f)
-
-        return deduped, computed_fields
     
     def _run_similarity(self, candidate_pairs: list) -> list:
         """Run similarity phase based on configuration."""

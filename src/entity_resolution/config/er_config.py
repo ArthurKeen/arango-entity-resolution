@@ -9,7 +9,6 @@ from typing import Dict, List, Any, Optional, Union
 from pathlib import Path
 import yaml
 import json
-import logging
 
 from ..utils.constants import DEFAULT_SIMILARITY_THRESHOLD, DEFAULT_BATCH_SIZE
 
@@ -28,11 +27,14 @@ class BlockingConfig:
     ):
         """
         Initialize blocking configuration.
-        
+
         Args:
-            strategy: Blocking strategy ("exact", "arangosearch", "bm25")
-            max_block_size: Maximum addresses per block
-            min_block_size: Minimum addresses per block
+            strategy: Blocking strategy.
+                - ``"bm25"`` — ArangoSearch BM25 (recommended)
+                - ``"arangosearch"`` — deprecated alias for ``"bm25"``
+                - ``"exact"`` — COLLECT-based exact field matching
+            max_block_size: Maximum documents per block
+            min_block_size: Minimum documents per block
             fields: List of field configurations for blocking
             search_field: Field to run BM25 search against (bm25 strategy only).
                 Defaults to the first entry in ``fields`` when not provided.
@@ -47,6 +49,53 @@ class BlockingConfig:
         self.search_field = search_field
         self.blocking_field = blocking_field
     
+    def parse_fields(self) -> tuple[list[str], dict[str, str]]:
+        """
+        Parse ``self.fields`` into (field_names, computed_fields).
+
+        This is the **canonical** implementation shared by both
+        ``ERPipelineConfig._get_blocking_field_names`` and
+        ``ConfigurableERPipeline._get_blocking_fields``.  Keeping the
+        logic here (on the config object that owns the data) means there
+        is only one place to update if the field schema changes (H3).
+
+        Supported item formats:
+        - ``str``  → plain field name, no computed expression.
+        - ``dict`` → must have ``"name"`` or ``"field"`` key; optional
+          ``"expression"``/``"aql"`` key for AQL computed-field expressions.
+
+        Returns:
+            A 2-tuple of:
+            - ``field_names``: de-duplicated, order-preserving list of field names.
+            - ``computed_fields``: mapping of ``{field_name: aql_expression}``
+              for fields that carry an expression.
+        """
+        field_names: list[str] = []
+        computed_fields: dict[str, str] = {}
+
+        for item in (self.fields or []):
+            if isinstance(item, str):
+                name = item.strip()
+            elif isinstance(item, dict):
+                name = (item.get("name") or item.get("field") or "").strip()
+                expr = item.get("expression") or item.get("aql")
+                if name and isinstance(expr, str) and expr.strip():
+                    computed_fields[name] = expr.strip()
+            else:
+                continue
+            if name:
+                field_names.append(name)
+
+        # De-dup while preserving order
+        seen: set[str] = set()
+        deduped: list[str] = []
+        for name in field_names:
+            if name not in seen:
+                seen.add(name)
+                deduped.append(name)
+
+        return deduped, computed_fields
+
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> 'BlockingConfig':
         """Create from dictionary."""
@@ -329,13 +378,11 @@ class ERPipelineConfig:
         self.collection_name = collection_name
         self.edge_collection = edge_collection
         self.cluster_collection = cluster_collection
-        
+
         self.blocking = blocking or BlockingConfig()
         self.similarity = similarity or SimilarityConfig()
         self.clustering = clustering or ClusteringConfig()
         self.embedding = embedding
-        
-        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
     
     @classmethod
     def from_yaml(cls, config_path: Union[str, Path]) -> 'ERPipelineConfig':
@@ -429,35 +476,13 @@ class ERPipelineConfig:
 
     def _get_blocking_field_names(self) -> List[str]:
         """
-        Extract normalized blocking field names from config.
+        Extract normalised blocking field names from config.
 
-        Supports:
-        - List[str]: ["phone", "state"]
-        - List[dict]: [{"name": "phone"}, {"field": "zip5", "expression": "LEFT(d.postal_code, 5)"}]
+        Delegates to ``BlockingConfig.parse_fields()`` (H3 — single canonical
+        implementation; no local duplication).
         """
-        blocking_fields: List[str] = []
-
-        for item in (self.blocking.fields or []):
-            if isinstance(item, str):
-                name = item.strip()
-            elif isinstance(item, dict):
-                name = (item.get("name") or item.get("field") or "").strip()
-            else:
-                continue
-
-            if name:
-                blocking_fields.append(name)
-
-        # De-dup while preserving order
-        seen = set()
-        deduped = []
-        for name in blocking_fields:
-            if name in seen:
-                continue
-            seen.add(name)
-            deduped.append(name)
-
-        return deduped
+        names, _ = self.blocking.parse_fields()
+        return names
     
     def validate(self) -> List[str]:
         """

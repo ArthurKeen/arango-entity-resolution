@@ -18,6 +18,23 @@ class _BlockingCfg:
     search_field: Optional[str] = None
     blocking_field: Optional[str] = None
 
+    def parse_fields(self) -> tuple:
+        """Minimal implementation matching BlockingConfig.parse_fields() contract."""
+        field_names: list = []
+        computed_fields: dict = {}
+        for item in (self.fields or []):
+            if isinstance(item, str):
+                name = item.strip()
+            elif isinstance(item, dict):
+                name = (item.get("name") or item.get("field") or "").strip()
+            else:
+                continue
+            if name:
+                field_names.append(name)
+        seen: set = set()
+        deduped = [f for f in field_names if not (f in seen or seen.add(f))]
+        return deduped, computed_fields
+
 
 @dataclass
 class _SimilarityCfg:

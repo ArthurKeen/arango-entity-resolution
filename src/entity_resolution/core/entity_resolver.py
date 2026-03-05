@@ -204,10 +204,24 @@ class EntityResolutionPipeline:
         pipeline_start = time.time()
         
         try:
-            # Get all records from collection
-            records = self.data_manager.sample_records(collection_name, limit=10000)  # Adjust limit as needed
+            # H2: Use a named constant limit and warn callers when we hit it.
+            # For large collections prefer ConfigurableERPipeline which operates
+            # at the ArangoDB layer without loading records into Python memory.
+            from ..utils.constants import DEFAULT_BLOCKING_RECORD_LIMIT
+            records = self.data_manager.sample_records(
+                collection_name, limit=DEFAULT_BLOCKING_RECORD_LIMIT
+            )
             if not records:
                 return {"success": False, "error": f"No records found in {collection_name}"}
+            if len(records) == DEFAULT_BLOCKING_RECORD_LIMIT:
+                import warnings
+                warnings.warn(
+                    f"Record fetch was capped at {DEFAULT_BLOCKING_RECORD_LIMIT} records from "
+                    f"'{collection_name}'. Results may be incomplete for larger collections. "
+                    "Consider using ConfigurableERPipeline for production use.",
+                    UserWarning,
+                    stacklevel=2,
+                )
             
             self.logger.info(f"Starting entity resolution for {len(records)} records")
             
@@ -342,44 +356,6 @@ class EntityResolutionPipeline:
         except Exception as e:
             self.logger.error(f"Blocking stage failed: {e}")
             return {"success": False, "error": str(e)}
-    
-    def _simple_blocking_check(self, record_a: Dict[str, Any], 
-                              record_b: Dict[str, Any]) -> bool:
-        """Simple blocking check based on field similarity"""
-        # Check for exact matches in key fields
-        key_fields = ["email", "phone"]
-        for field in key_fields:
-            val_a = record_a.get(field, "").strip().lower()
-            val_b = record_b.get(field, "").strip().lower()
-            if val_a and val_b and val_a == val_b:
-                return True
-        
-        # Check for name similarity
-        name_a = f"{record_a.get('first_name', '')} {record_a.get('last_name', '')}".strip().lower()
-        name_b = f"{record_b.get('first_name', '')} {record_b.get('last_name', '')}".strip().lower()
-        
-        if name_a and name_b:
-            # Simple n-gram similarity
-            return self._simple_ngram_similarity(name_a, name_b) > 0.6
-        
-        return False
-    
-    def _simple_ngram_similarity(self, str1: str, str2: str, n: int = 3) -> float:
-        """Simple n-gram similarity calculation"""
-        if not str1 or not str2:
-            return 0.0
-        
-        # Generate n-grams
-        ngrams1 = set(str1[i:i+n] for i in range(len(str1)-n+1))
-        ngrams2 = set(str2[i:i+n] for i in range(len(str2)-n+1))
-        
-        if not ngrams1 or not ngrams2:
-            return 0.0
-        
-        intersection = len(ngrams1.intersection(ngrams2))
-        union = len(ngrams1.union(ngrams2))
-        
-        return intersection / union if union > 0 else 0.0
     
     def _run_similarity_stage(self, candidate_pairs: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Run similarity computation on candidate pairs"""

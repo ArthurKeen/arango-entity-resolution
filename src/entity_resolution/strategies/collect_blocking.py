@@ -169,12 +169,12 @@ class CollectBlockingStrategy(BlockingStrategy):
         Performance: O(n) where n = number of documents
         """
         start_time = time.time()
-        
+
         # Build the AQL query
-        query = self._build_collect_query()
-        
+        query, bind_vars = self._build_collect_query()
+
         # Execute query
-        cursor = self.db.aql.execute(query)
+        cursor = self.db.aql.execute(query, bind_vars=bind_vars)
         pairs = list(cursor)
         
         # Normalize pairs
@@ -194,138 +194,134 @@ class CollectBlockingStrategy(BlockingStrategy):
         
         return normalized_pairs
     
-    def _build_filter_conditions(self, field_filters: Dict[str, Any], 
-                                 computed_field_map: Optional[Dict[str, str]] = None) -> List[str]:
+    def _build_filter_conditions(
+        self,
+        field_filters: Dict[str, Any],
+        computed_field_map: Optional[Dict[str, str]] = None,
+    ) -> tuple[list[str], dict]:
         """
         Build AQL filter conditions, handling both document fields and computed fields.
-        
+
         Overrides base implementation to support computed fields.
-        
-        Args:
-            field_filters: Filter specifications for fields
-            computed_field_map: Mapping of computed field names to their temporary variable names
-        
+        String values are placed in bind vars to prevent AQL injection (C2).
+
         Returns:
-            List of AQL filter condition strings
+            A 2-tuple of (conditions list, bind_vars dict).
         """
-        conditions = []
+        conditions: list[str] = []
+        bind_vars: dict = {}
         computed_field_map = computed_field_map or {}
-        
+
         for field_name, filters in field_filters.items():
             if not isinstance(filters, dict):
                 continue
-            
+
             # Determine if this is a computed field and get the correct reference
             if field_name in computed_field_map:
-                # Use the temporary variable name for computed fields
                 field_ref = computed_field_map[field_name]
             elif field_name in self.computed_fields:
-                # Fallback to field name if not in map (shouldn't happen)
                 field_ref = field_name
             else:
-                # Regular document field
                 field_ref = f"d.{field_name}"
-            
+
             # Not null filter
             if filters.get('not_null'):
                 conditions.append(f"{field_ref} != null")
-            
+
             # Not equal filter (list of values to exclude)
             if 'not_equal' in filters:
                 not_equal_values = filters['not_equal']
                 if isinstance(not_equal_values, list):
-                    for value in not_equal_values:
-                        if isinstance(value, str):
-                            conditions.append(f'{field_ref} != "{value}"')
-                        else:
-                            conditions.append(f'{field_ref} != {value}')
-            
+                    for i, value in enumerate(not_equal_values):
+                        var = f"_ne_{field_name}_{i}"
+                        bind_vars[var] = value
+                        conditions.append(f"{field_ref} != @{var}")
+
             # Equals filter
             if 'equals' in filters:
-                value = filters['equals']
-                if isinstance(value, str):
-                    conditions.append(f'{field_ref} == "{value}"')
-                else:
-                    conditions.append(f'{field_ref} == {value}')
-            
+                var = f"_eq_{field_name}"
+                bind_vars[var] = filters['equals']
+                conditions.append(f"{field_ref} == @{var}")
+
             # Min length filter
             if 'min_length' in filters:
-                conditions.append(f"LENGTH({field_ref}) >= {filters['min_length']}")
-            
+                conditions.append(f"LENGTH({field_ref}) >= {int(filters['min_length'])}")
+
             # Max length filter
             if 'max_length' in filters:
-                conditions.append(f"LENGTH({field_ref}) <= {filters['max_length']}")
-            
+                conditions.append(f"LENGTH({field_ref}) <= {int(filters['max_length'])}")
+
             # Contains filter
             if 'contains' in filters:
-                value = filters['contains']
-                conditions.append(f'CONTAINS({field_ref}, "{value}")')
-            
+                var = f"_contains_{field_name}"
+                bind_vars[var] = filters['contains']
+                conditions.append(f"CONTAINS({field_ref}, @{var})")
+
             # Regex filter
             if 'regex' in filters:
-                pattern = filters['regex']
-                conditions.append(f'REGEX_TEST({field_ref}, "{pattern}")')
-        
-        return conditions
+                var = f"_regex_{field_name}"
+                bind_vars[var] = filters['regex']
+                conditions.append(f"REGEX_TEST({field_ref}, @{var})")
+
+        return conditions, bind_vars
     
-    def _build_collect_query(self) -> str:
+    def _build_collect_query(self) -> tuple[str, dict]:
         """
         Build the AQL query for COLLECT-based blocking.
-        
+
         Returns:
-            AQL query string
+            A 2-tuple of (AQL query string, bind_vars dict).
         """
         # Start building query
         query_parts = [f"FOR d IN {self.collection}"]
-        
+
         # Add computed fields with temporary variable names to avoid COLLECT conflicts
-        # Use _computed_ prefix to create intermediate variables
         computed_field_map = {}
         for field_name, expression in self.computed_fields.items():
             temp_var = f"_computed_{field_name}"
             query_parts.append(f"    LET {temp_var} = {expression}")
             computed_field_map[field_name] = temp_var
-        
+
+        bind_vars: dict = {}
         # Add filter conditions
         if self.filters:
-            conditions = self._build_filter_conditions(self.filters, computed_field_map)
+            conditions, filter_bind_vars = self._build_filter_conditions(self.filters, computed_field_map)
+            bind_vars.update(filter_bind_vars)
             for condition in conditions:
                 query_parts.append(f"    FILTER {condition}")
-        
+
         # Build COLLECT clause
         collect_vars = []
         for field in self.blocking_fields:
-            # Check if it's a computed field
             if field in self.computed_fields:
-                # Reference the temporary computed variable
                 temp_var = computed_field_map[field]
                 collect_vars.append(f"{field} = {temp_var}")
             else:
                 collect_vars.append(f"{field} = d.{field}")
-        
+
         collect_clause = f"    COLLECT {', '.join(collect_vars)}"
         query_parts.append(collect_clause)
-        
+
         # Add INTO clause to keep documents
         query_parts.append("    INTO group")
         query_parts.append("    KEEP d")
-        
+
         # Extract document keys
         query_parts.append("    LET doc_keys = group[*].d._key")
-        
+
         # Filter by block size
         query_parts.append(f"    FILTER LENGTH(doc_keys) >= {self.min_block_size}")
         query_parts.append(f"    FILTER LENGTH(doc_keys) <= {self.max_block_size}")
-        
+
         # Generate pairs within block
         query_parts.append("    FOR i IN 0..LENGTH(doc_keys)-2")
         query_parts.append("        FOR j IN (i+1)..LENGTH(doc_keys)-1")
-        
+
         # Build return object with blocking key values
         blocking_key_obj = []
         for field in self.blocking_fields:
             blocking_key_obj.append(f'"{field}": {field}')
-        
+
         return_clause = f"""            RETURN {{
                 doc1_key: doc_keys[i],
                 doc2_key: doc_keys[j],
@@ -333,10 +329,10 @@ class CollectBlockingStrategy(BlockingStrategy):
                 block_size: LENGTH(doc_keys),
                 method: "collect_blocking"
             }}"""
-        
+
         query_parts.append(return_clause)
-        
-        return "\n".join(query_parts)
+
+        return "\n".join(query_parts), bind_vars
     
     def _estimate_blocks_processed(self, pairs: List[Dict[str, Any]]) -> int:
         """

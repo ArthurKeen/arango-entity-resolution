@@ -78,6 +78,10 @@ DEFAULT_MIN_CLUSTER_SIZE = 2
 DEFAULT_VIEW_BUILD_WAIT_SECONDS = 10
 DEFAULT_PROGRESS_CALLBACK_INTERVAL = 10000
 
+# Maximum records loaded into Python memory by the deprecated EntityResolutionPipeline.
+# Prefer ConfigurableERPipeline for large collections (operates at ArangoDB layer).
+DEFAULT_BLOCKING_RECORD_LIMIT = 10_000
+
 # Default Collection Names
 DEFAULT_EDGE_COLLECTION = "similarTo"
 DEFAULT_CLUSTER_COLLECTION = "entity_clusters"
@@ -294,7 +298,16 @@ VERSION_INFO = {
     'release': ''
 }
 
-__version__ = "3.1.2"
+__version__: str
+try:
+    from importlib.metadata import version as _pkg_version
+    __version__ = _pkg_version("entity-resolution")
+except Exception:
+    # Fallback for editable installs that lack package metadata
+    _v = VERSION_INFO
+    __version__ = f"{_v['major']}.{_v['minor']}.{_v['patch']}"
+    if _v.get('release'):
+        __version__ += f"-{_v['release']}"
 
 def get_version_string() -> str:
     """Get formatted version string"""
@@ -337,12 +350,9 @@ def get_business_impact_estimate(customer_count: int, duplicate_rate: float,
     
     return impact
 
-# Database connection constants
-DEFAULT_DATABASE_HOST = 'localhost'
-DEFAULT_DATABASE_PORT = 8529
-DEFAULT_DATABASE_USERNAME = 'root'
-DEFAULT_DATABASE_PASSWORD = ''  # Password must be configured via environment variable
-# Test database constants
+# Database connection constants — use DEFAULT_DATABASE_CONFIG dict above instead
+# of these individual aliases to reduce duplication.
+# Test / demo database names
 TEST_DATABASE_NAME = 'entity_resolution_test'
 DEMO_DATABASE_NAME = 'entity_resolution_demo'
 # Service constants

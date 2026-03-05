@@ -100,66 +100,77 @@ class BlockingStrategy(ABC):
         """
         return self._stats.copy()
     
-    def _build_filter_conditions(self, field_filters: Dict[str, Any]) -> List[str]:
+    def _build_filter_conditions(
+        self,
+        field_filters: Dict[str, Any],
+    ) -> tuple[list[str], dict[str, Any]]:
         """
         Build AQL filter conditions from filter specification.
-        
+
         Args:
             field_filters: Filter specifications for fields
-        
+
         Returns:
-            List of AQL filter condition strings
+            A 2-tuple of:
+            - List of AQL filter condition strings (may reference ``@var`` placeholders)
+            - Dict of bind variables to merge into the caller's ``bind_vars``
+
+        Security note (C2):
+            All string values are placed into bind variables rather than
+            being interpolated directly into the query string, which prevents
+            AQL injection attacks.
         """
-        conditions = []
-        
+        conditions: list[str] = []
+        bind_vars: dict[str, Any] = {}
+
         for field_name, filters in field_filters.items():
             if not isinstance(filters, dict):
                 continue
-            
+
             # Validate field name to prevent AQL injection
             validate_field_name(field_name)
-            
+
             # Not null filter
             if filters.get('not_null'):
                 conditions.append(f"d.{field_name} != null")
-            
+
             # Not equal filter (list of values to exclude)
             if 'not_equal' in filters:
                 not_equal_values = filters['not_equal']
                 if isinstance(not_equal_values, list):
-                    for value in not_equal_values:
-                        if isinstance(value, str):
-                            conditions.append(f'd.{field_name} != "{value}"')
-                        else:
-                            conditions.append(f'd.{field_name} != {value}')
-            
+                    for i, value in enumerate(not_equal_values):
+                        var = f"_ne_{field_name}_{i}"
+                        bind_vars[var] = value
+                        conditions.append(f"d.{field_name} != @{var}")
+
             # Equals filter
             if 'equals' in filters:
-                value = filters['equals']
-                if isinstance(value, str):
-                    conditions.append(f'd.{field_name} == "{value}"')
-                else:
-                    conditions.append(f'd.{field_name} == {value}')
-            
+                var = f"_eq_{field_name}"
+                bind_vars[var] = filters['equals']
+                conditions.append(f"d.{field_name} == @{var}")
+
             # Min length filter
             if 'min_length' in filters:
-                conditions.append(f"LENGTH(d.{field_name}) >= {filters['min_length']}")
-            
+                conditions.append(f"LENGTH(d.{field_name}) >= {int(filters['min_length'])}")
+
             # Max length filter
             if 'max_length' in filters:
-                conditions.append(f"LENGTH(d.{field_name}) <= {filters['max_length']}")
-            
+                conditions.append(f"LENGTH(d.{field_name}) <= {int(filters['max_length'])}")
+
             # Contains filter
             if 'contains' in filters:
-                value = filters['contains']
-                conditions.append(f'CONTAINS(d.{field_name}, "{value}")')
-            
+                var = f"_contains_{field_name}"
+                bind_vars[var] = filters['contains']
+                conditions.append(f"CONTAINS(d.{field_name}, @{var})")
+
             # Regex filter
             if 'regex' in filters:
-                pattern = filters['regex']
-                conditions.append(f'REGEX_TEST(d.{field_name}, "{pattern}")')
-        
-        return conditions
+                var = f"_regex_{field_name}"
+                bind_vars[var] = filters['regex']
+                conditions.append(f"REGEX_TEST(d.{field_name}, @{var})")
+
+        return conditions, bind_vars
+
     
     def _update_statistics(self, pairs: List[Dict[str, Any]], execution_time: float):
         """
