@@ -119,7 +119,15 @@ def _start_demo_container() -> Dict[str, Any]:
     if proc.returncode != 0:
         raise RuntimeError(f"Docker failed: {proc.stderr}")
 
-    # Wait for it to be ready
+    # Wait for it to be ready — suppress urllib3 retry warnings during
+    # startup: ConnectionResetError is expected while ArangoDB initialises
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    import logging as _logging
+    _urllib3_logger = _logging.getLogger("urllib3.connectionpool")
+    _prev_level = _urllib3_logger.level
+    _urllib3_logger.setLevel(_logging.ERROR)
+
     print("  Waiting for ArangoDB to be ready", end="", flush=True)
     for _ in range(30):
         time.sleep(2)
@@ -128,11 +136,13 @@ def _start_demo_container() -> Dict[str, Any]:
             client = ArangoClient(hosts=f"http://localhost:{port}")
             db = client.db("_system", username="root", password=password)
             db.collections()
+            _urllib3_logger.setLevel(_prev_level)
             print(" ready!")
             return {"host": "localhost", "port": port, "password": password, "container": container_name}
         except Exception:
             print(".", end="", flush=True)
 
+    _urllib3_logger.setLevel(_prev_level)
     raise RuntimeError("ArangoDB did not become ready within 60 seconds")
 
 
@@ -185,11 +195,12 @@ def run_demo() -> None:
         )
         from entity_resolution.core.configurable_pipeline import ConfigurableERPipeline
 
+        edge_coll = "company_similarity_edges"
         cfg = ERPipelineConfig(
             entity_type="company",
             collection_name="companies",
             blocking=BlockingConfig(strategy="exact", fields=["name", "city"], max_block_size=500),
-            similarity=SimilarityConfig(threshold=0.75, edge_collection="company_similarity_edges"),
+            similarity=SimilarityConfig(threshold=0.75),
             clustering=ClusteringConfig(store_results=True, cluster_collection="company_clusters"),
         )
         pipeline = ConfigurableERPipeline(db=db, config=cfg)
