@@ -201,7 +201,7 @@ def run_demo() -> None:
             collection_name="companies",
             blocking=BlockingConfig(strategy="exact", fields=["name", "city"], max_block_size=500),
             similarity=SimilarityConfig(threshold=0.75),
-            clustering=ClusteringConfig(store_results=True, cluster_collection="company_clusters"),
+            clustering=ClusteringConfig(store_results=True),
         )
         pipeline = ConfigurableERPipeline(db=db, config=cfg)
         results = pipeline.run()
