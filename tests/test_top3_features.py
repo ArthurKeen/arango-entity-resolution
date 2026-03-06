@@ -258,6 +258,22 @@ class TestDemoHelpers:
         assert callable(getattr(mod, "run_demo", None))
         assert isinstance(mod.SAMPLE_COMPANIES, list)
 
+    def test_run_sse_server_uses_fastmcp_transport(self):
+        from entity_resolution.mcp import server as server_module
+
+        original_host = server_module.mcp.settings.host
+        original_port = server_module.mcp.settings.port
+        try:
+            with patch.object(server_module.mcp, "run") as mock_run:
+                server_module.run_sse_server(host="127.0.0.1", port=8080)
+
+            assert server_module.mcp.settings.host == "127.0.0.1"
+            assert server_module.mcp.settings.port == 8080
+            mock_run.assert_called_once_with(transport="sse")
+        finally:
+            server_module.mcp.settings.host = original_host
+            server_module.mcp.settings.port = original_port
+
     def test_reasoning_exports(self):
         """reasoning/__init__.py exports all four classes."""
         from entity_resolution import reasoning

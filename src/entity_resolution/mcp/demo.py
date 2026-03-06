@@ -230,7 +230,8 @@ def run_demo() -> None:
     DEMO_HOST = "127.0.0.1"
 
     print(f"\nStarting MCP server (SSE / HTTP) on http://{DEMO_HOST}:{DEMO_PORT}/sse")
-    print("Claude Desktop and Cursor can connect via the SSE config above.")
+    print("Use the SSE config above only with clients that support remote HTTP MCP connections.")
+    print("For Claude Desktop production use, prefer the stdio config shown above.")
     print("Press Ctrl+C to stop.\n")
 
     os.environ["ARANGO_HOST"] = conn["host"]
@@ -238,21 +239,9 @@ def run_demo() -> None:
     os.environ["ARANGO_PASSWORD"] = conn["password"]
     os.environ["ARANGO_DATABASE"] = db_name
 
-    # Run uvicorn directly so we control host/port without conflicting with
-    # FastMCP's TransportSecuritySettings (baked in at singleton construction).
-    import uvicorn
-    from entity_resolution.mcp.server import mcp
+    from entity_resolution.mcp.server import run_sse_server
 
-    starlette_app = mcp.sse_app()
-    config = uvicorn.Config(
-        starlette_app,
-        host=DEMO_HOST,
-        port=DEMO_PORT,
-        log_level="warning",   # suppress uvicorn info chatter in demo
-    )
-    server = uvicorn.Server(config)
-    import asyncio
-    asyncio.run(server.serve())
+    run_sse_server(host=DEMO_HOST, port=DEMO_PORT)
 
 
 # ---------------------------------------------------------------------------
@@ -263,7 +252,7 @@ def _banner() -> None:
     print("""
 ╔══════════════════════════════════════════════════════════╗
 ║     ArangoDB Entity Resolution — MCP Demo Quickstart     ║
-║                     v3.2.1                               ║
+║                     v3.2.2                               ║
 ╚══════════════════════════════════════════════════════════╝
 
 This demo will:

@@ -6,7 +6,7 @@ perform ER through natural language without writing any code.
 
 Entry points:
     arango-er-mcp                  # stdio (Claude Desktop / Cursor)
-    arango-er-mcp --transport sse  # HTTP SSE for remote agents
+    arango-er-mcp --transport sse  # HTTP SSE for remote MCP-capable clients
     arango-er-mcp --demo           # quickstart with sample data
 """
 from __future__ import annotations
@@ -31,6 +31,13 @@ mcp = FastMCP(
         "collection to use."
     ),
 )
+
+
+def run_sse_server(*, host: str, port: int) -> None:
+    """Run the FastMCP server using its supported SSE transport."""
+    mcp.settings.host = host
+    mcp.settings.port = port
+    mcp.run(transport="sse")
 
 def _conn() -> Dict[str, Any]:
     """Read connection settings from environment variables."""
@@ -199,7 +206,7 @@ def merge_entities(
     strategy: str = "most_complete",
 ) -> Dict[str, Any]:
     """
-    Merge multiple entity records into a single golden record.
+    Merge multiple entity records into a single deterministic golden-record preview.
 
     Args:
         collection: Collection containing the entities.
@@ -278,9 +285,7 @@ def main() -> None:
         return
 
     if args.transport == "sse":
-        mcp.settings.port = args.port
-        mcp.settings.host = args.host
-        mcp.run(transport="sse")
+        run_sse_server(host=args.host, port=args.port)
     else:
         mcp.run(transport="stdio")
 

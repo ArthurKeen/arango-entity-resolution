@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.2] - Unreleased
+
+### Fixed
+- `merge_entities` now produces a deterministic golden-record preview directly from the MCP path
+  instead of calling an incompatible service constructor.
+- Demo SSE startup now uses the supported FastMCP SSE transport path instead of constructing a
+  separate `sse_app()` server manually.
+
+### Documentation
+- Added a release checklist for `3.2.2` that explicitly documents GitHub Release -> PyPI publish.
+- Clarified SSE usage guidance: prefer `stdio` for Claude Desktop/local IDE integrations and use SSE
+  for remote HTTP MCP-capable clients.
+
 ## [3.2.0] - 2026-03-05
 
 ### Security

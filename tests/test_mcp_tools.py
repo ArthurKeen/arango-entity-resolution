@@ -214,3 +214,90 @@ class TestListCollections:
         assert "companies" in names
         assert "_system_col" not in names
         assert any(c["type"] == "edge" for c in result)
+
+
+# ---------------------------------------------------------------------------
+# MCP tool: merge_entities
+# ---------------------------------------------------------------------------
+
+class TestMergeEntities:
+    @patch("entity_resolution.mcp.tools.cluster.ArangoClient")
+    def test_merge_entities_uses_most_complete_and_backfills_missing_fields(self, mock_client_cls):
+        from entity_resolution.mcp.tools.cluster import run_merge_entities
+
+        doc_a = {"_key": "a1", "_id": "companies/a1", "name": "Acme", "phone": "6175551234"}
+        doc_b = {"_key": "b1", "_id": "companies/b1", "name": "Acme Corp", "city": "Boston", "email": "hello@acme.com"}
+
+        mock_coll = MagicMock()
+        mock_coll.get.side_effect = [doc_a, doc_b]
+
+        mock_db = MagicMock()
+        mock_db.collection.return_value = mock_coll
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        result = run_merge_entities(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            collection="companies",
+            entity_keys=["a1", "b1"],
+            strategy="most_complete",
+        )
+
+        assert result["canonical_key"] == "b1"
+        assert result["strategy_used"] == "most_complete"
+        assert result["golden_record"]["name"] == "Acme Corp"
+        assert result["golden_record"]["phone"] == "6175551234"
+        assert result["golden_record"]["city"] == "Boston"
+
+    @patch("entity_resolution.mcp.tools.cluster.ArangoClient")
+    def test_merge_entities_newest_prefers_latest_timestamp(self, mock_client_cls):
+        from entity_resolution.mcp.tools.cluster import run_merge_entities
+
+        older = {"_key": "a1", "_id": "companies/a1", "name": "Acme", "updatedAt": "2026-03-01T10:00:00Z"}
+        newer = {"_key": "b1", "_id": "companies/b1", "name": "Acme Corporation", "updatedAt": "2026-03-05T12:30:00Z"}
+
+        mock_coll = MagicMock()
+        mock_coll.get.side_effect = [older, newer]
+
+        mock_db = MagicMock()
+        mock_db.collection.return_value = mock_coll
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        result = run_merge_entities(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            collection="companies",
+            entity_keys=["a1", "b1"],
+            strategy="newest",
+        )
+
+        assert result["canonical_key"] == "b1"
+        assert result["golden_record"]["name"] == "Acme Corporation"
+
+    @patch("entity_resolution.mcp.tools.cluster.ArangoClient")
+    def test_merge_entities_rejects_missing_docs(self, mock_client_cls):
+        from entity_resolution.mcp.tools.cluster import run_merge_entities
+
+        mock_coll = MagicMock()
+        mock_coll.get.side_effect = [None]
+
+        mock_db = MagicMock()
+        mock_db.collection.return_value = mock_coll
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="Documents not found"):
+            run_merge_entities(
+                host="localhost",
+                port=8529,
+                username="root",
+                password="pass",
+                database="test",
+                collection="companies",
+                entity_keys=["missing"],
+            )

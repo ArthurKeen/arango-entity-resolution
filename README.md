@@ -1,8 +1,8 @@
 # ArangoDB Advanced Entity Resolution System
 
-**Current Version**: 3.2.0 | [Version History](VERSION_HISTORY.md) | [Changelog](CHANGELOG.md) | [PyPI](https://pypi.org/project/arango-entity-resolution/)
+**Current Version**: 3.2.2 | [Version History](VERSION_HISTORY.md) | [Changelog](CHANGELOG.md) | [PyPI](https://pypi.org/project/arango-entity-resolution/)
 
-## What's New in v3.2
+## What's New in v3.2.2
 
 ### MCP Server — AI Agent Integration
 
@@ -16,9 +16,11 @@ pip install "arango-entity-resolution[mcp]"
 # Start the server (stdio for Claude Desktop / Cursor)
 arango-er-mcp
 
-# Or as an HTTP SSE server for remote agents
+# Or as an HTTP SSE server for remote MCP-capable clients
 arango-er-mcp --transport sse --port 8080
 ```
+
+Use `stdio` for Claude Desktop and local IDE integrations. Use SSE only with clients that support remote HTTP MCP connections.
 
 **7 tools exposed**: `list_collections`, `find_duplicates`, `pipeline_status`,
 `resolve_entity`, `explain_match`, `get_clusters`, `merge_entities`
@@ -80,7 +82,7 @@ pip install "arango-entity-resolution[llm]"
 - **AQL injection prevention** across all blocking strategy filter conditions — dynamic
   string values are now placed in AQL bind variables, never interpolated inline.
 
-### Other Improvements (v3.2.0)
+### Other Improvements (v3.2.2)
 - `BlockingConfig.parse_fields()` — single canonical field-parsing method (no more duplication)
 - `arangosearch` strategy now aliases `bm25` instead of silently returning empty results
 - Configurable record limit with `UserWarning` when truncation occurs
