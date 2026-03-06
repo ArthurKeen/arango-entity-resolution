@@ -139,6 +139,43 @@ class TestPipelineStatus:
         assert "cluster_count" in result
 
 
+class TestFindDuplicates:
+    @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
+    @patch("entity_resolution.mcp.tools.pipeline._get_db")
+    def test_find_duplicates_passes_active_learning_config(self, mock_get_db, mock_pipeline_cls):
+        from entity_resolution.mcp.tools.pipeline import run_find_duplicates
+
+        mock_get_db.return_value = MagicMock()
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = {"ok": True}
+        mock_pipeline_cls.return_value = mock_pipeline
+
+        result = run_find_duplicates(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            collection="companies",
+            fields=["name"],
+            enable_active_learning=True,
+            feedback_collection="companies_feedback",
+            active_learning_refresh_every=5,
+            active_learning_model="openrouter/test",
+            active_learning_low_threshold=0.6,
+            active_learning_high_threshold=0.82,
+        )
+
+        cfg = mock_pipeline_cls.call_args.kwargs["config"]
+        assert cfg.active_learning.enabled is True
+        assert cfg.active_learning.feedback_collection == "companies_feedback"
+        assert cfg.active_learning.refresh_every == 5
+        assert cfg.active_learning.model == "openrouter/test"
+        assert cfg.active_learning.low_threshold == 0.6
+        assert cfg.active_learning.high_threshold == 0.82
+        assert result == {"ok": True}
+
+
 # ---------------------------------------------------------------------------
 # MCP tool: explain_match
 # ---------------------------------------------------------------------------

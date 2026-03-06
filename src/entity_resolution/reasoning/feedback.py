@@ -314,6 +314,8 @@ class AdaptiveLLMVerifier:
         self,
         feedback_store: FeedbackStore,
         refresh_every: int = 100,
+        optimizer_target_precision: float = 0.95,
+        optimizer_min_samples: int = 20,
         **kwargs,
     ) -> None:
         from entity_resolution.reasoning.llm_verifier import LLMMatchVerifier
@@ -321,7 +323,11 @@ class AdaptiveLLMVerifier:
         self.store = feedback_store
         self.refresh_every = refresh_every
         self._call_count = 0
-        self._optimizer = ThresholdOptimizer(feedback_store)
+        self._optimizer = ThresholdOptimizer(
+            feedback_store,
+            target_precision=optimizer_target_precision,
+            min_samples=optimizer_min_samples,
+        )
         self._verifier = LLMMatchVerifier(**kwargs)
 
     # ------------------------------------------------------------------

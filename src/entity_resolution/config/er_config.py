@@ -315,6 +315,84 @@ class EmbeddingConfig:
         return errors
 
 
+class ActiveLearningConfig:
+    """Opt-in active learning / LLM verification configuration."""
+
+    def __init__(
+        self,
+        enabled: bool = False,
+        feedback_collection: Optional[str] = None,
+        refresh_every: int = 100,
+        model: Optional[str] = None,
+        low_threshold: float = 0.55,
+        high_threshold: float = 0.80,
+        optimizer_target_precision: float = 0.95,
+        optimizer_min_samples: int = 20,
+    ):
+        self.enabled = enabled
+        self.feedback_collection = feedback_collection
+        self.refresh_every = refresh_every
+        self.model = model
+        self.low_threshold = low_threshold
+        self.high_threshold = high_threshold
+        self.optimizer_target_precision = optimizer_target_precision
+        self.optimizer_min_samples = optimizer_min_samples
+
+    @classmethod
+    def from_dict(cls, config_dict: Dict[str, Any]) -> 'ActiveLearningConfig':
+        """Create from dictionary."""
+        return cls(
+            enabled=config_dict.get('enabled', False),
+            feedback_collection=config_dict.get('feedback_collection'),
+            refresh_every=config_dict.get('refresh_every', 100),
+            model=config_dict.get('model'),
+            low_threshold=config_dict.get('low_threshold', 0.55),
+            high_threshold=config_dict.get('high_threshold', 0.80),
+            optimizer_target_precision=config_dict.get('optimizer_target_precision', 0.95),
+            optimizer_min_samples=config_dict.get('optimizer_min_samples', 20),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        result: Dict[str, Any] = {
+            'enabled': self.enabled,
+            'refresh_every': self.refresh_every,
+            'low_threshold': self.low_threshold,
+            'high_threshold': self.high_threshold,
+            'optimizer_target_precision': self.optimizer_target_precision,
+            'optimizer_min_samples': self.optimizer_min_samples,
+        }
+        if self.feedback_collection is not None:
+            result['feedback_collection'] = self.feedback_collection
+        if self.model is not None:
+            result['model'] = self.model
+        return result
+
+    def validate(self) -> List[str]:
+        """Validate active learning configuration."""
+        errors = []
+        if self.refresh_every < 1:
+            errors.append(f"refresh_every must be >= 1, got: {self.refresh_every}")
+        if not 0.0 <= self.low_threshold <= 1.0:
+            errors.append(f"low_threshold must be between 0.0 and 1.0, got: {self.low_threshold}")
+        if not 0.0 <= self.high_threshold <= 1.0:
+            errors.append(f"high_threshold must be between 0.0 and 1.0, got: {self.high_threshold}")
+        if self.low_threshold >= self.high_threshold:
+            errors.append(
+                f"low_threshold ({self.low_threshold}) must be < high_threshold ({self.high_threshold})"
+            )
+        if not 0.0 < self.optimizer_target_precision <= 1.0:
+            errors.append(
+                "optimizer_target_precision must be > 0.0 and <= 1.0, "
+                f"got: {self.optimizer_target_precision}"
+            )
+        if self.optimizer_min_samples < 1:
+            errors.append(
+                f"optimizer_min_samples must be >= 1, got: {self.optimizer_min_samples}"
+            )
+        return errors
+
+
 class ERPipelineConfig:
     """
     Complete ER pipeline configuration.
@@ -359,7 +437,8 @@ class ERPipelineConfig:
         blocking: Optional[BlockingConfig] = None,
         similarity: Optional[SimilarityConfig] = None,
         clustering: Optional[ClusteringConfig] = None,
-        embedding: Optional[EmbeddingConfig] = None
+        embedding: Optional[EmbeddingConfig] = None,
+        active_learning: Optional[ActiveLearningConfig] = None,
     ):
         """
         Initialize ER pipeline configuration.
@@ -373,6 +452,7 @@ class ERPipelineConfig:
             similarity: Similarity configuration
             clustering: Clustering configuration
             embedding: Embedding configuration (optional)
+            active_learning: Active learning configuration (optional)
         """
         self.entity_type = entity_type
         self.collection_name = collection_name
@@ -383,6 +463,7 @@ class ERPipelineConfig:
         self.similarity = similarity or SimilarityConfig()
         self.clustering = clustering or ClusteringConfig()
         self.embedding = embedding
+        self.active_learning = active_learning or ActiveLearningConfig()
     
     @classmethod
     def from_yaml(cls, config_path: Union[str, Path]) -> 'ERPipelineConfig':
@@ -462,6 +543,9 @@ class ERPipelineConfig:
         embedding_config = None
         if 'embedding' in config_dict:
             embedding_config = EmbeddingConfig.from_dict(config_dict.get('embedding', {}))
+        active_learning_config = None
+        if 'active_learning' in config_dict:
+            active_learning_config = ActiveLearningConfig.from_dict(config_dict.get('active_learning', {}))
         
         return cls(
             entity_type=config_dict.get('entity_type', 'entity'),
@@ -471,7 +555,8 @@ class ERPipelineConfig:
             blocking=blocking_config,
             similarity=similarity_config,
             clustering=clustering_config,
-            embedding=embedding_config
+            embedding=embedding_config,
+            active_learning=active_learning_config,
         )
 
     def _get_blocking_field_names(self) -> List[str]:
@@ -552,6 +637,9 @@ class ERPipelineConfig:
         if self.embedding:
             embedding_errors = self.embedding.validate()
             errors.extend([f"embedding.{e}" for e in embedding_errors])
+        if self.active_learning:
+            active_learning_errors = self.active_learning.validate()
+            errors.extend([f"active_learning.{e}" for e in active_learning_errors])
         
         return errors
     
@@ -571,6 +659,8 @@ class ERPipelineConfig:
         
         if self.embedding:
             result['entity_resolution']['embedding'] = self.embedding.to_dict()
+        if self.active_learning:
+            result['entity_resolution']['active_learning'] = self.active_learning.to_dict()
         
         return result
     

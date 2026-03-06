@@ -82,6 +82,13 @@ class ConfigurableERPipeline:
         
         # Initialize logger
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self._active_learning_stats: Dict[str, Any] = {
+            'enabled': bool(getattr(self.config, 'active_learning', None) and self.config.active_learning.enabled),
+            'pairs_reviewed': 0,
+            'llm_calls': 0,
+            'score_overrides': 0,
+            'feedback_collection': None,
+        }
     
     def run(self) -> Dict[str, Any]:
         """
@@ -161,7 +168,8 @@ class ConfigurableERPipeline:
             results['similarity'] = {
                 'matches_found': len(matches),
                 'pairs_processed': len(candidate_pairs),
-                'runtime_seconds': round(similarity_time, 2)
+                'runtime_seconds': round(similarity_time, 2),
+                'active_learning': self._active_learning_stats.copy(),
             }
             self.logger.info(f"[OK] Found {len(matches):,} matches")
         else:
@@ -169,7 +177,8 @@ class ConfigurableERPipeline:
             results['similarity'] = {
                 'matches_found': 0,
                 'pairs_processed': 0,
-                'runtime_seconds': 0.0
+                'runtime_seconds': 0.0,
+                'active_learning': self._active_learning_stats.copy(),
             }
         
         # Phase 3: Edge Creation
@@ -374,12 +383,96 @@ class ConfigurableERPipeline:
         else:
             pair_tuples = candidate_pairs
 
+        active_learning_cfg = getattr(self.config, 'active_learning', None)
+        if active_learning_cfg and active_learning_cfg.enabled:
+            return self._run_similarity_with_active_learning(similarity_service, pair_tuples)
+
         matches = similarity_service.compute_similarities(
             candidate_pairs=pair_tuples,
             threshold=self.config.similarity.threshold
         )
 
         return matches
+
+    def _run_similarity_with_active_learning(
+        self,
+        similarity_service: BatchSimilarityService,
+        pair_tuples: list[tuple[str, str]],
+    ) -> list:
+        """Run similarity plus optional LLM verification for uncertain pairs."""
+        verifier = self._build_active_learning_verifier()
+        active_cfg = self.config.active_learning
+        threshold = min(self.config.similarity.threshold, active_cfg.low_threshold)
+        detailed_matches = similarity_service.compute_similarities_detailed(
+            candidate_pairs=pair_tuples,
+            threshold=threshold,
+        )
+
+        doc_cache = similarity_service._batch_fetch_documents(  # noqa: SLF001 - intentional reuse
+            list({key for pair in pair_tuples for key in pair})
+        )
+
+        matches = []
+        self._active_learning_stats = {
+            'enabled': True,
+            'pairs_reviewed': 0,
+            'llm_calls': 0,
+            'score_overrides': 0,
+            'feedback_collection': verifier.store.collection,
+        }
+
+        for item in detailed_matches:
+            score = item['weighted_score']
+            final_score = score
+            self._active_learning_stats['pairs_reviewed'] += 1
+
+            if verifier._verifier.needs_verification(score):  # noqa: SLF001 - narrow pipeline integration
+                field_scores = self._format_field_scores_for_llm(item['field_scores'])
+                result = verifier.verify(
+                    doc_cache.get(item['doc1_key'], {'_key': item['doc1_key']}),
+                    doc_cache.get(item['doc2_key'], {'_key': item['doc2_key']}),
+                    score=score,
+                    field_scores=field_scores,
+                )
+                if result.get('llm_called'):
+                    self._active_learning_stats['llm_calls'] += 1
+                if result.get('score_override') is not None:
+                    final_score = result['score_override']
+                    self._active_learning_stats['score_overrides'] += 1
+
+            if final_score >= self.config.similarity.threshold:
+                matches.append((item['doc1_key'], item['doc2_key'], round(final_score, 4)))
+
+        matches.sort(key=lambda x: x[2], reverse=True)
+        return matches
+
+    def _build_active_learning_verifier(self):
+        """Construct the active learning verifier for this pipeline run."""
+        from entity_resolution.reasoning.feedback import AdaptiveLLMVerifier, FeedbackStore
+
+        cfg = self.config.active_learning
+        feedback_collection = cfg.feedback_collection or f"{self.config.collection_name}_llm_feedback"
+        store = FeedbackStore(self.db, collection=feedback_collection)
+        return AdaptiveLLMVerifier(
+            feedback_store=store,
+            refresh_every=cfg.refresh_every,
+            model=cfg.model,
+            low_threshold=cfg.low_threshold,
+            high_threshold=cfg.high_threshold,
+            entity_type=self.config.entity_type,
+            optimizer_target_precision=cfg.optimizer_target_precision,
+            optimizer_min_samples=cfg.optimizer_min_samples,
+        )
+
+    def _format_field_scores_for_llm(self, field_scores: Dict[str, float]) -> Dict[str, Dict[str, Any]]:
+        """Convert plain per-field scores into the structure expected by LLM prompts."""
+        return {
+            field: {
+                'score': score,
+                'method': self.config.similarity.algorithm,
+            }
+            for field, score in field_scores.items()
+        }
 
 
     def _run_edge_creation(self, matches: list) -> int:

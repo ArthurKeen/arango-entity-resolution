@@ -17,7 +17,8 @@ from entity_resolution.config.er_config import (
     ERPipelineConfig,
     BlockingConfig,
     SimilarityConfig,
-    ClusteringConfig
+    ClusteringConfig,
+    ActiveLearningConfig,
 )
 
 
@@ -132,6 +133,36 @@ class TestClusteringConfig:
         assert config.wcc_algorithm == 'aql_graph'
 
 
+class TestActiveLearningConfig:
+    """Test cases for ActiveLearningConfig."""
+
+    def test_initialization_defaults(self):
+        config = ActiveLearningConfig()
+        assert config.enabled is False
+        assert config.refresh_every == 100
+        assert config.low_threshold == 0.55
+        assert config.high_threshold == 0.80
+
+    def test_from_dict(self):
+        config = ActiveLearningConfig.from_dict({
+            'enabled': True,
+            'feedback_collection': 'companies_feedback',
+            'refresh_every': 5,
+            'model': 'openrouter/test',
+            'low_threshold': 0.6,
+            'high_threshold': 0.82,
+        })
+        assert config.enabled is True
+        assert config.feedback_collection == 'companies_feedback'
+        assert config.refresh_every == 5
+        assert config.model == 'openrouter/test'
+
+    def test_validate_invalid_thresholds(self):
+        config = ActiveLearningConfig(enabled=True, low_threshold=0.85, high_threshold=0.80)
+        errors = config.validate()
+        assert any('low_threshold' in e for e in errors)
+
+
 class TestERPipelineConfig:
     """Test cases for ERPipelineConfig."""
     
@@ -176,6 +207,10 @@ class TestERPipelineConfig:
                 'similarity': {
                     'algorithm': 'jaro_winkler',
                     'threshold': 0.75
+                },
+                'active_learning': {
+                    'enabled': True,
+                    'refresh_every': 10,
                 }
             }
         }
@@ -185,6 +220,8 @@ class TestERPipelineConfig:
         assert config.entity_type == 'company'
         assert config.blocking.strategy == 'exact'
         assert config.similarity.algorithm == 'jaro_winkler'
+        assert config.active_learning.enabled is True
+        assert config.active_learning.refresh_every == 10
     
     def test_from_yaml(self):
         """Test loading from YAML file."""
@@ -284,6 +321,16 @@ entity_resolution:
         assert 'entity_resolution' in config_dict
         assert config_dict['entity_resolution']['entity_type'] == 'address'
         assert config_dict['entity_resolution']['collection_name'] == 'addresses'
+
+    def test_to_dict_includes_active_learning(self):
+        config = ERPipelineConfig(
+            entity_type='company',
+            collection_name='companies',
+            active_learning=ActiveLearningConfig(enabled=True, refresh_every=5),
+        )
+        config_dict = config.to_dict()
+        assert config_dict['entity_resolution']['active_learning']['enabled'] is True
+        assert config_dict['entity_resolution']['active_learning']['refresh_every'] == 5
     
     def test_to_yaml(self):
         """Test conversion to YAML."""

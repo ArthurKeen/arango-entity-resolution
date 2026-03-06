@@ -75,6 +75,12 @@ def find_duplicates(
     max_block_size: int = 500,
     store_clusters: bool = True,
     edge_collection: Optional[str] = None,
+    enable_active_learning: bool = False,
+    feedback_collection: Optional[str] = None,
+    active_learning_refresh_every: int = 100,
+    active_learning_model: Optional[str] = None,
+    active_learning_low_threshold: float = 0.55,
+    active_learning_high_threshold: float = 0.80,
 ) -> Dict[str, Any]:
     """
     Run the full entity resolution pipeline on a collection.
@@ -90,6 +96,12 @@ def find_duplicates(
         max_block_size: Maximum block size for blocking phase.
         store_clusters: Whether to persist cluster results to ArangoDB.
         edge_collection: Target edge collection name (default: {collection}_similarity_edges).
+        enable_active_learning: Enable opt-in LLM verification for uncertain pairs.
+        feedback_collection: Optional collection for persisted LLM feedback.
+        active_learning_refresh_every: Calls between threshold refresh checks.
+        active_learning_model: Optional litellm model override for active learning.
+        active_learning_low_threshold: Lower bound of the uncertain-score band.
+        active_learning_high_threshold: Upper bound of the uncertain-score band.
     """
     from entity_resolution.mcp.tools.pipeline import run_find_duplicates
     return run_find_duplicates(
@@ -101,6 +113,12 @@ def find_duplicates(
         max_block_size=max_block_size,
         store_clusters=store_clusters,
         edge_collection=edge_collection,
+        enable_active_learning=enable_active_learning,
+        feedback_collection=feedback_collection,
+        active_learning_refresh_every=active_learning_refresh_every,
+        active_learning_model=active_learning_model,
+        active_learning_low_threshold=active_learning_low_threshold,
+        active_learning_high_threshold=active_learning_high_threshold,
     )
 
 

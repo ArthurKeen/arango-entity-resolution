@@ -78,6 +78,27 @@ Only calls the LLM for ambiguous pairs — high/low confidence is a fast-path.
 pip install "arango-entity-resolution[llm]"
 ```
 
+Enable persisted active learning in configuration-driven pipelines:
+
+```yaml
+entity_resolution:
+  entity_type: "company"
+  collection_name: "companies"
+  blocking:
+    strategy: "exact"
+    fields: ["name", "city"]
+  similarity:
+    threshold: 0.85
+  active_learning:
+    enabled: true
+    feedback_collection: "companies_llm_feedback"
+    refresh_every: 25
+    low_threshold: 0.55
+    high_threshold: 0.80
+```
+
+When enabled, uncertain pairs are reviewed by `AdaptiveLLMVerifier`, LLM verdicts are saved to the feedback collection, and thresholds are refreshed from accumulated feedback over time.
+
 ### Security
 - **AQL injection prevention** across all blocking strategy filter conditions — dynamic
   string values are now placed in AQL bind variables, never interpolated inline.

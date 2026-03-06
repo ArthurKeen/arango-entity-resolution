@@ -30,6 +30,12 @@ def run_find_duplicates(
     max_block_size: int = 500,
     store_clusters: bool = True,
     edge_collection: str | None = None,
+    enable_active_learning: bool = False,
+    feedback_collection: str | None = None,
+    active_learning_refresh_every: int = 100,
+    active_learning_model: str | None = None,
+    active_learning_low_threshold: float = 0.55,
+    active_learning_high_threshold: float = 0.80,
 ) -> Dict[str, Any]:
     """
     Run the full blocking → similarity → edge-creation → clustering pipeline
@@ -40,6 +46,7 @@ def run_find_duplicates(
         ClusteringConfig,
         ERPipelineConfig,
         SimilarityConfig,
+        ActiveLearningConfig,
     )
     from entity_resolution.core.configurable_pipeline import ConfigurableERPipeline
 
@@ -61,6 +68,14 @@ def run_find_duplicates(
         ),
         clustering=ClusteringConfig(
             store_results=store_clusters,
+        ),
+        active_learning=ActiveLearningConfig(
+            enabled=enable_active_learning,
+            feedback_collection=feedback_collection,
+            refresh_every=active_learning_refresh_every,
+            model=active_learning_model,
+            low_threshold=active_learning_low_threshold,
+            high_threshold=active_learning_high_threshold,
         ),
     )
 
