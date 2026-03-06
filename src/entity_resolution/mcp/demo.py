@@ -225,21 +225,33 @@ def run_demo() -> None:
         print("\n  NOTE: Demo ArangoDB container 'arango-er-demo' is still running.")
         print("  Stop it when done with:  docker rm -f arango-er-demo\n")
 
-    print("\nStarting MCP server (SSE / HTTP mode) on http://localhost:8080/sse")
-    print("Claude Desktop and Cursor can connect via the config above.")
-    print("Press Ctrl+C to stop the server.\n")
+    DEMO_PORT = 8080
+    DEMO_HOST = "127.0.0.1"
 
-    # SSE transport — HTTP server that Claude Desktop, Cursor, or any
-    # MCP-compatible client can connect to directly
+    print(f"\nStarting MCP server (SSE / HTTP) on http://{DEMO_HOST}:{DEMO_PORT}/sse")
+    print("Claude Desktop and Cursor can connect via the SSE config above.")
+    print("Press Ctrl+C to stop.\n")
+
     os.environ["ARANGO_HOST"] = conn["host"]
     os.environ["ARANGO_PORT"] = str(conn["port"])
     os.environ["ARANGO_PASSWORD"] = conn["password"]
     os.environ["ARANGO_DATABASE"] = db_name
 
+    # Run uvicorn directly so we control host/port without conflicting with
+    # FastMCP's TransportSecuritySettings (baked in at singleton construction).
+    import uvicorn
     from entity_resolution.mcp.server import mcp
-    mcp.settings.port = 8080
-    mcp.settings.host = "127.0.0.1"
-    mcp.run(transport="sse")
+
+    starlette_app = mcp.sse_app()
+    config = uvicorn.Config(
+        starlette_app,
+        host=DEMO_HOST,
+        port=DEMO_PORT,
+        log_level="warning",   # suppress uvicorn info chatter in demo
+    )
+    server = uvicorn.Server(config)
+    import asyncio
+    asyncio.run(server.serve())
 
 
 # ---------------------------------------------------------------------------
