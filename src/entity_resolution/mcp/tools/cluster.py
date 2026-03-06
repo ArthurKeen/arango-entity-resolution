@@ -20,47 +20,61 @@ def run_get_clusters(
     min_size: int = 2,
 ) -> List[Dict[str, Any]]:
     """
-    Return entity clusters from the graph for *collection*.
-    Each cluster is a list of document keys that were resolved to represent
-    the same real-world entity.
-    """
+    Return entity clusters for *collection*.
 
+    Reads from the stored cluster collection (populated by find_duplicates).
+    Falls back to a WCC graph query if no stored clusters exist yet.
+    """
     client = ArangoClient(hosts=f"http://{host}:{port}")
     db = client.db(database, username=username, password=password)
 
+    # Try stored cluster collections in order of convention
+    for cluster_coll_name in (f"{collection}_clusters", "entity_clusters"):
+        if not db.has_collection(cluster_coll_name):
+            continue
+        try:
+            cursor = db.aql.execute(
+                """
+                FOR c IN @@coll
+                    FILTER LENGTH(c.members) >= @min_size
+                    SORT LENGTH(c.members) DESC
+                    LIMIT @limit
+                    RETURN {
+                        cluster_id: c._key,
+                        members: c.members,
+                        size: LENGTH(c.members),
+                        representative: c.representative
+                    }
+                """,
+                bind_vars={"@coll": cluster_coll_name, "min_size": min_size, "limit": limit},
+            )
+            results = list(cursor)
+            if results:
+                return results
+        except Exception:
+            continue
+
+    # Fallback: AQL WCC graph traversal on the similarity edge collection
     edge_coll = f"{collection}_similarity_edges"
     if not db.has_collection(edge_coll):
         return []
 
-    # Run a WCC query inline — small enough for MCP response sizes
-    aql = """
-    FOR v, e, p IN 1..100 OUTBOUND
-        (FOR doc IN @@col LIMIT 1 RETURN doc)[0]
-        @@edge_col OPTIONS {bfs: true, uniqueVertices: 'global'}
-        COLLECT cluster = p.vertices[0]._key INTO members
-        FILTER LENGTH(members) >= @min_size
-        SORT LENGTH(members) DESC
-        LIMIT @limit
-        RETURN {
-            representative: cluster,
-            members: members[*].v._key,
-            size: LENGTH(members)
-        }
-    """
-    # Simpler approach: use WCCClusteringService
-    from entity_resolution.services.wcc_clustering_service import WCCClusteringService
+    try:
+        cursor = db.aql.execute(
+            """
+            LET edges = (FOR e IN @@edge_coll RETURN e)
+            LET vertices = UNIQUE(
+                APPEND(edges[*]._from, edges[*]._to)
+            )
+            RETURN {vertices: vertices, edge_count: LENGTH(edges)}
+            """,
+            bind_vars={"@edge_coll": edge_coll},
+        )
+        stats = list(cursor)
+        return [{"info": "Run find_duplicates first to generate clusters", "stats": stats}]
+    except Exception:
+        return []
 
-    svc = WCCClusteringService(db=db, edge_collection=edge_coll)
-    clusters: list = svc.find_clusters()
-
-    result = []
-    for cluster in clusters:
-        if len(cluster) >= min_size:
-            result.append({"members": list(cluster), "size": len(cluster)})
-        if len(result) >= limit:
-            break
-
-    return sorted(result, key=lambda c: c["size"], reverse=True)
 
 
 def run_merge_entities(

@@ -49,6 +49,8 @@ def run_find_duplicates(
     cfg = ERPipelineConfig(
         entity_type="generic",
         collection_name=collection,
+        edge_collection=edge_coll,
+        cluster_collection=f"{collection}_clusters",
         blocking=BlockingConfig(
             strategy=strategy,
             fields=fields or [],
@@ -56,11 +58,9 @@ def run_find_duplicates(
         ),
         similarity=SimilarityConfig(
             threshold=confidence_threshold,
-            edge_collection=edge_coll,
         ),
         clustering=ClusteringConfig(
             store_results=store_clusters,
-            cluster_collection=f"{collection}_clusters",
         ),
     )
 

@@ -189,14 +189,15 @@ class ConfigurableERPipeline:
                 'edges_created': 0,
                 'runtime_seconds': 0.0
             }
-        
-        # Phase 4: Clustering
-        if self.config.clustering.store_results:
+
+        # Phase 4: Clustering — only run when edges actually exist
+        edges_created = results.get('edges', {}).get('edges_created', 0)
+        if self.config.clustering.store_results and edges_created > 0:
             self.logger.info("Phase 4: Clustering...")
             cluster_start = time.time()
             clusters = self._run_clustering()
             cluster_time = time.time() - cluster_start
-            
+
             results['clustering'] = {
                 'clusters_found': len(clusters),
                 'runtime_seconds': round(cluster_time, 2)
@@ -347,22 +348,40 @@ class ConfigurableERPipeline:
         """Run similarity phase based on configuration."""
         if not candidate_pairs:
             return []
-        
+
+        # Derive field weights: use configured weights, or fall back to equal
+        # weights across every blocking field so BatchSimilarityService does not
+        # reject an empty dict.
+        field_weights = self.config.similarity.field_weights
+        if not field_weights:
+            blocking_field_names, _ = self.config.blocking.parse_fields()
+            if blocking_field_names:
+                weight = 1.0 / len(blocking_field_names)
+                field_weights = {f: weight for f in blocking_field_names}
+
         similarity_service = BatchSimilarityService(
             db=self.db,
             collection=self.config.collection_name,
-            field_weights=self.config.similarity.field_weights,
+            field_weights=field_weights,
             similarity_algorithm=self.config.similarity.algorithm,
             batch_size=self.config.similarity.batch_size
         )
-        
+
+        # BatchSimilarityService.compute_similarities expects (key1, key2) tuples;
+        # blocking strategies return rich dicts — normalise at the boundary.
+        if candidate_pairs and isinstance(candidate_pairs[0], dict):
+            pair_tuples = [(p["doc1_key"], p["doc2_key"]) for p in candidate_pairs]
+        else:
+            pair_tuples = candidate_pairs
+
         matches = similarity_service.compute_similarities(
-            candidate_pairs=candidate_pairs,
+            candidate_pairs=pair_tuples,
             threshold=self.config.similarity.threshold
         )
-        
+
         return matches
-    
+
+
     def _run_edge_creation(self, matches: list) -> int:
         """Run edge creation phase."""
         if not matches:

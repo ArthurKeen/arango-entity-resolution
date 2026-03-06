@@ -195,12 +195,13 @@ def run_demo() -> None:
         )
         from entity_resolution.core.configurable_pipeline import ConfigurableERPipeline
 
-        edge_coll = "company_similarity_edges"
         cfg = ERPipelineConfig(
             entity_type="company",
             collection_name="companies",
-            blocking=BlockingConfig(strategy="exact", fields=["name", "city"], max_block_size=500),
-            similarity=SimilarityConfig(threshold=0.75),
+            edge_collection="companies_similarity_edges",
+            cluster_collection="companies_clusters",
+            blocking=BlockingConfig(strategy="exact", fields=["name"], max_block_size=500),
+            similarity=SimilarityConfig(threshold=0.70),
             clustering=ClusteringConfig(store_results=True),
         )
         pipeline = ConfigurableERPipeline(db=db, config=cfg)
