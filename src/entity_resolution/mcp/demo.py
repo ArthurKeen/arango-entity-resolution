@@ -225,16 +225,21 @@ def run_demo() -> None:
         print("\n  NOTE: Demo ArangoDB container 'arango-er-demo' is still running.")
         print("  Stop it when done with:  docker rm -f arango-er-demo\n")
 
-    print("\nStarting MCP server (stdio mode)... Claude Desktop can now connect.\n")
+    print("\nStarting MCP server (SSE / HTTP mode) on http://localhost:8080/sse")
+    print("Claude Desktop and Cursor can connect via the config above.")
+    print("Press Ctrl+C to stop the server.\n")
 
-    # Hand off to the real MCP server with env set
+    # SSE transport — HTTP server that Claude Desktop, Cursor, or any
+    # MCP-compatible client can connect to directly
     os.environ["ARANGO_HOST"] = conn["host"]
     os.environ["ARANGO_PORT"] = str(conn["port"])
     os.environ["ARANGO_PASSWORD"] = conn["password"]
     os.environ["ARANGO_DATABASE"] = db_name
 
     from entity_resolution.mcp.server import mcp
-    mcp.run(transport="stdio")
+    mcp.settings.port = 8080
+    mcp.settings.host = "127.0.0.1"
+    mcp.run(transport="sse")
 
 
 # ---------------------------------------------------------------------------
@@ -257,11 +262,21 @@ This demo will:
 
 
 def _print_claude_config(conn: Dict[str, Any]) -> None:
-    config = {
+    # Demo uses SSE transport — Claude Desktop connects via HTTP URL,
+    # no subprocess launch needed.
+    sse_config = {
         "mcpServers": {
             "entity-resolution-demo": {
+                "url": "http://localhost:8080/sse",
+            }
+        }
+    }
+
+    # Also show the stdio config for production use
+    stdio_config = {
+        "mcpServers": {
+            "entity-resolution": {
                 "command": "arango-er-mcp",
-                "args": [],
                 "env": {
                     "ARANGO_HOST": conn["host"],
                     "ARANGO_PORT": str(conn["port"]),
@@ -276,9 +291,12 @@ def _print_claude_config(conn: Dict[str, Any]) -> None:
         "~/Library/Application Support/Claude/claude_desktop_config.json"
     )
 
-    print("  Add this to your Claude Desktop config:")
+    print("  Demo server (SSE) — add to Claude Desktop config:")
     print(f"  ({claude_config_path})")
     print()
-    print(json.dumps(config, indent=2))
+    print(json.dumps(sse_config, indent=2))
+    print()
+    print("  For production (stdio, Claude Desktop launches the process):")
+    print(json.dumps(stdio_config, indent=2))
     print()
     print("  Then tell Claude:  'List the entity clusters in my companies collection'")
