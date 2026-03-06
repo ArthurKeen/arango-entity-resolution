@@ -301,7 +301,7 @@ VERSION_INFO = {
 # Single source of version truth — hatchling reads this via regex in pyproject.toml.
 # To release a new version: bump VERSION_INFO above AND this string, then create a
 # GitHub Release. The publish.yml workflow will build and upload to PyPI automatically.
-__version__ = "3.2.0"
+__version__ = "3.2.1"
 
 def get_version_string() -> str:
     """Get formatted version string"""
