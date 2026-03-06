@@ -25,6 +25,11 @@ Use `stdio` for Claude Desktop and local IDE integrations. Use SSE only with cli
 **7 tools exposed**: `list_collections`, `find_duplicates`, `pipeline_status`,
 `resolve_entity`, `explain_match`, `get_clusters`, `merge_entities`
 
+`get_clusters` now returns cluster quality signals when available, including
+`edge_count`, `average_similarity`, `min_similarity`, `max_similarity`, `density`,
+and a composite `quality_score` to help distinguish strong clusters from
+human-review candidates.
+
 **2 resources**: `arango://collections/{name}/summary`, `arango://clusters/{collection}/{key}`
 
 **Claude Desktop config** (`~/Library/Application Support/Claude/claude_desktop_config.json`):

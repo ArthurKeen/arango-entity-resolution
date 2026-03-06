@@ -120,6 +120,29 @@ class TestWCCClusteringService:
         assert "similarTo" in repr_str
         assert "3" in repr_str
 
+    def test_store_clusters_persists_quality_metadata(self, db):
+        service = WCCClusteringService(
+            db=db,
+            edge_collection="similarTo",
+            cluster_collection="entity_clusters",
+            vertex_collection="companies",
+        )
+
+        db.aql.edges = [
+            {"from": "companies/a", "to": "companies/b", "similarity": 0.9},
+            {"from": "companies/b", "to": "companies/a", "similarity": 0.9},
+        ]
+
+        service._store_clusters([["a", "b"]])
+
+        stored = db.collection("entity_clusters").docs[0]
+        assert stored["edge_count"] == 1
+        assert stored["average_similarity"] == 0.9
+        assert stored["min_similarity"] == 0.9
+        assert stored["max_similarity"] == 0.9
+        assert stored["density"] == 1.0
+        assert stored["quality_score"] > 0.0
+
 
 # Mock fixtures for testing
 @pytest.fixture
@@ -144,7 +167,12 @@ def db():
             return iter(self.docs)
     
     class MockAQL:
+        def __init__(self):
+            self.edges = []
+
         def execute(self, query, bind_vars=None):
+            if "similarity: e.similarity" in query:
+                return list(self.edges)
             # Return empty results for test
             return []
     

@@ -207,6 +207,8 @@ def get_clusters(
 
     Each cluster is a group of document keys that were resolved to
     represent the same real-world entity, sorted by cluster size descending.
+    When available, includes quality metadata such as density and similarity
+    summary statistics to help distinguish strong clusters from review candidates.
 
     Args:
         collection: Document collection name.

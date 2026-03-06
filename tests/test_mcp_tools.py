@@ -254,6 +254,112 @@ class TestListCollections:
 
 
 # ---------------------------------------------------------------------------
+# MCP tool: get_clusters
+# ---------------------------------------------------------------------------
+
+class TestGetClusters:
+    @patch("entity_resolution.mcp.tools.cluster.ArangoClient")
+    def test_get_clusters_returns_quality_fields_when_present(self, mock_client_cls):
+        from entity_resolution.mcp.tools.cluster import run_get_clusters
+
+        mock_db = MagicMock()
+        mock_db.has_collection.side_effect = lambda name: name == "companies_clusters"
+        mock_db.aql.execute.return_value = iter([
+            {
+                "cluster_id": "cluster_000001",
+                "members": ["companies/a1", "companies/b1"],
+                "size": 2,
+                "representative": "companies/a1",
+                "edge_count": 1,
+                "average_similarity": 0.91,
+                "min_similarity": 0.91,
+                "max_similarity": 0.91,
+                "density": 1.0,
+                "quality_score": 0.946,
+            }
+        ])
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        result = run_get_clusters(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            collection="companies",
+        )
+
+        assert result[0]["edge_count"] == 1
+        assert result[0]["average_similarity"] == 0.91
+        assert result[0]["density"] == 1.0
+        assert "quality_score" in result[0]
+
+    @patch("entity_resolution.mcp.tools.cluster.ArangoClient")
+    def test_get_clusters_preserves_older_docs_without_quality_fields(self, mock_client_cls):
+        from entity_resolution.mcp.tools.cluster import run_get_clusters
+
+        mock_db = MagicMock()
+        mock_db.has_collection.side_effect = lambda name: name == "companies_clusters"
+        mock_db.aql.execute.return_value = iter([
+            {
+                "cluster_id": "cluster_000001",
+                "members": ["companies/a1", "companies/b1"],
+                "size": 2,
+                "representative": None,
+                "edge_count": None,
+                "average_similarity": None,
+                "min_similarity": None,
+                "max_similarity": None,
+                "density": None,
+                "quality_score": None,
+            }
+        ])
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        result = run_get_clusters(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            collection="companies",
+        )
+
+        assert result[0]["edge_count"] is None
+        assert result[0]["average_similarity"] is None
+        assert result[0]["quality_score"] is None
+
+    @patch("entity_resolution.mcp.tools.cluster.ArangoClient")
+    def test_get_clusters_fallback_includes_similarity_stats(self, mock_client_cls):
+        from entity_resolution.mcp.tools.cluster import run_get_clusters
+
+        mock_db = MagicMock()
+        mock_db.has_collection.side_effect = lambda name: name == "companies_similarity_edges"
+        mock_db.aql.execute.return_value = iter([
+            {
+                "vertices": ["companies/a1", "companies/b1"],
+                "edge_count": 1,
+                "average_similarity": 0.88,
+                "min_similarity": 0.88,
+                "max_similarity": 0.88,
+            }
+        ])
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        result = run_get_clusters(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            collection="companies",
+        )
+
+        assert result[0]["stats"][0]["average_similarity"] == 0.88
+        assert result[0]["stats"][0]["min_similarity"] == 0.88
+
+
+# ---------------------------------------------------------------------------
 # MCP tool: merge_entities
 # ---------------------------------------------------------------------------
 

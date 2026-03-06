@@ -556,9 +556,10 @@ class WCCClusteringService:
             clusters: List of clusters to store
         """
         cluster_docs = []
+        quality_by_members = self._compute_cluster_quality(clusters)
         
         for i, cluster_members in enumerate(clusters):
-            cluster_docs.append({
+            cluster_doc = {
                 '_key': f'cluster_{i:06d}',
                 'cluster_id': i,
                 'size': len(cluster_members),
@@ -566,7 +567,9 @@ class WCCClusteringService:
                 'member_keys': cluster_members,
                 'timestamp': datetime.now().isoformat(),
                 'method': 'aql_graph_traversal'
-            })
+            }
+            cluster_doc.update(quality_by_members.get(tuple(sorted(cluster_members)), {}))
+            cluster_docs.append(cluster_doc)
         
         if cluster_docs:
             # Insert in batches
@@ -574,6 +577,103 @@ class WCCClusteringService:
             for i in range(0, len(cluster_docs), batch_size):
                 batch = cluster_docs[i:i + batch_size]
                 self.cluster_collection.insert_many(batch)
+
+    def _compute_cluster_quality(self, clusters: List[List[str]]) -> Dict[tuple[str, ...], Dict[str, Any]]:
+        """Compute quality metrics for stored clusters from existing edge similarities."""
+        if not clusters:
+            return {}
+
+        membership: Dict[str, tuple[str, ...]] = {}
+        for cluster_members in clusters:
+            cluster_key = tuple(sorted(cluster_members))
+            for member in cluster_members:
+                membership[member] = cluster_key
+
+        edges_query = f"""
+        FOR e IN {self.edge_collection_name}
+            RETURN {{
+                from: e._from,
+                to: e._to,
+                similarity: e.similarity
+            }}
+        """
+
+        try:
+            cursor = self.db.aql.execute(edges_query)
+            edges = list(cursor)
+        except Exception as exc:
+            self.logger.warning("Failed to compute cluster quality metadata: %s", exc)
+            return {}
+
+        aggregates: Dict[tuple[str, ...], Dict[str, Any]] = {}
+        for cluster_members in clusters:
+            cluster_key = tuple(sorted(cluster_members))
+            aggregates[cluster_key] = {
+                'edge_count': 0,
+                'similarity_sum': 0.0,
+                'min_similarity': None,
+                'max_similarity': None,
+            }
+
+        seen_pairs: set[tuple[tuple[str, ...], str, str]] = set()
+        for edge in edges:
+            from_key = self._extract_key_from_vertex_id(edge.get('from', ''))
+            to_key = self._extract_key_from_vertex_id(edge.get('to', ''))
+            if not from_key or not to_key:
+                continue
+
+            cluster_key = membership.get(from_key)
+            if not cluster_key or cluster_key != membership.get(to_key):
+                continue
+
+            pair_key = tuple(sorted((from_key, to_key)))
+            dedupe_key = (cluster_key, pair_key[0], pair_key[1])
+            if dedupe_key in seen_pairs:
+                continue
+            seen_pairs.add(dedupe_key)
+
+            similarity = edge.get('similarity')
+            if similarity is None:
+                similarity = 0.0
+            similarity = float(similarity)
+
+            agg = aggregates[cluster_key]
+            agg['edge_count'] += 1
+            agg['similarity_sum'] += similarity
+            agg['min_similarity'] = similarity if agg['min_similarity'] is None else min(agg['min_similarity'], similarity)
+            agg['max_similarity'] = similarity if agg['max_similarity'] is None else max(agg['max_similarity'], similarity)
+
+        quality: Dict[tuple[str, ...], Dict[str, Any]] = {}
+        for cluster_members in clusters:
+            cluster_key = tuple(sorted(cluster_members))
+            agg = aggregates[cluster_key]
+            cluster_size = len(cluster_members)
+            possible_edges = cluster_size * (cluster_size - 1) / 2 if cluster_size > 1 else 0
+            density = round(agg['edge_count'] / possible_edges, 4) if possible_edges else 0.0
+            average_similarity = (
+                round(agg['similarity_sum'] / agg['edge_count'], 4)
+                if agg['edge_count'] > 0 else None
+            )
+            min_similarity = round(agg['min_similarity'], 4) if agg['min_similarity'] is not None else None
+            max_similarity = round(agg['max_similarity'], 4) if agg['max_similarity'] is not None else None
+            quality_score = round(self._calculate_quality_score(density, average_similarity), 4)
+
+            quality[cluster_key] = {
+                'edge_count': agg['edge_count'],
+                'average_similarity': average_similarity,
+                'min_similarity': min_similarity,
+                'max_similarity': max_similarity,
+                'density': density,
+                'quality_score': quality_score,
+            }
+
+        return quality
+
+    @staticmethod
+    def _calculate_quality_score(density: float, average_similarity: Optional[float]) -> float:
+        """Simple composite score for downstream trust/review decisions."""
+        similarity = average_similarity if average_similarity is not None else 0.0
+        return min(1.0, (density * 0.4) + (similarity * 0.6))
     
     def _update_statistics(self, clusters: List[List[str]], execution_time: float):
         """Update internal statistics."""

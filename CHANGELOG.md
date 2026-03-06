@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Opt-in active learning configuration for `ERPipelineConfig`, including feedback storage,
   adaptive threshold refresh, and MCP `find_duplicates` parameters for uncertain-pair review.
+- Cluster quality metadata for stored WCC clusters and MCP `get_clusters`, including edge count,
+  similarity summaries, density, and a composite `quality_score`.
 
 ## [3.2.0] - 2026-03-05
 

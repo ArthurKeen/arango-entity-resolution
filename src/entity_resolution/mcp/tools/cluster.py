@@ -54,7 +54,13 @@ def run_get_clusters(
                         cluster_id: c._key,
                         members: c.members,
                         size: LENGTH(c.members),
-                        representative: c.representative
+                        representative: c.representative,
+                        edge_count: c.edge_count,
+                        average_similarity: c.average_similarity,
+                        min_similarity: c.min_similarity,
+                        max_similarity: c.max_similarity,
+                        density: c.density,
+                        quality_score: c.quality_score
                     }
                 """,
                 bind_vars={"@coll": cluster_coll_name, "min_size": min_size, "limit": limit},
@@ -77,7 +83,13 @@ def run_get_clusters(
             LET vertices = UNIQUE(
                 APPEND(edges[*]._from, edges[*]._to)
             )
-            RETURN {vertices: vertices, edge_count: LENGTH(edges)}
+            RETURN {
+                vertices: vertices,
+                edge_count: LENGTH(edges),
+                average_similarity: AVG(edges[*].similarity),
+                min_similarity: MIN(edges[*].similarity),
+                max_similarity: MAX(edges[*].similarity)
+            }
             """,
             bind_vars={"@edge_coll": edge_coll},
         )
