@@ -1,5 +1,8 @@
 # Testing Guide - Improved Test Coverage
 
+> Historical testing-improvement plan.
+> For the current testing workflow and release validation guidance, use `docs/TESTING.md`.
+
 ## Overview
 
 This guide covers the comprehensive test suite for the ArangoDB Entity Resolution System, including unit tests, integration tests, and performance benchmarks.

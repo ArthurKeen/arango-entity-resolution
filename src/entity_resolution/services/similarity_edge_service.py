@@ -10,6 +10,7 @@ from arango.database import StandardDatabase
 from arango.collection import EdgeCollection
 import time
 from datetime import datetime
+import hashlib
 import logging
 
 from ..utils.graph_utils import format_vertex_id
@@ -32,7 +33,7 @@ class SimilarityEdgeService:
     - Timestamp tracking
     - Method/algorithm tracking
     - Progress callbacks
-    - SmartGraph compatible (works for both sharded and non-sharded)
+    - SmartGraph-aware deterministic key support via explicit mode or auto-detection
     
     Performance: ~10K+ edges/second
     
@@ -69,7 +70,8 @@ class SimilarityEdgeService:
         vertex_collection: Optional[str] = None,
         batch_size: int = DEFAULT_EDGE_BATCH_SIZE,
         auto_create_collection: bool = True,
-        use_deterministic_keys: bool = True
+        use_deterministic_keys: bool = True,
+        deterministic_key_mode: str = "auto",
     ):
         """
         Initialize similarity edge service.
@@ -86,8 +88,11 @@ class SimilarityEdgeService:
             use_deterministic_keys: Generate deterministic edge keys based on _from/_to
                 to prevent duplicate edges. Default True. When enabled, the same vertex
                 pair will always generate the same edge key, and overwriteMode='ignore'
-                is used to make edge creation idempotent. Works for both SmartGraph and
-                non-SmartGraph deployments.
+                is used to make edge creation idempotent.
+            deterministic_key_mode: Strategy for deterministic keys. Supported values:
+                "auto" (default) to detect SmartGraph edge collections when possible,
+                "standard" for the legacy MD5-only key format, or "smartgraph" for
+                SmartGraph-compliant keys that encode endpoint shard values.
         
         Raises:
             ValueError: If configuration is invalid
@@ -97,6 +102,9 @@ class SimilarityEdgeService:
         self.vertex_collection = vertex_collection
         self.batch_size = batch_size
         self.use_deterministic_keys = use_deterministic_keys
+        self.deterministic_key_mode = self._normalize_deterministic_key_mode(
+            deterministic_key_mode
+        )
         
         # Initialize logger
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
@@ -106,6 +114,8 @@ class SimilarityEdgeService:
             self.edge_collection = db.create_collection(edge_collection, edge=True)
         else:
             self.edge_collection: EdgeCollection = db.collection(edge_collection)
+
+        self._resolved_deterministic_key_mode = self._resolve_deterministic_key_mode()
         
         # Statistics tracking
         self._stats = {
@@ -189,7 +199,6 @@ class SimilarityEdgeService:
                     
                     # Add deterministic key for reverse edge if enabled
                     if self.use_deterministic_keys:
-                        # Same key as forward edge (order-independent)
                         reverse_edge['_key'] = self._generate_deterministic_key(to_id, from_id)
                     
                     batch_edges.append(reverse_edge)
@@ -293,7 +302,6 @@ class SimilarityEdgeService:
                     
                     # Add deterministic key for reverse edge if enabled
                     if self.use_deterministic_keys:
-                        # Same key as forward edge (order-independent)
                         reverse_edge['_key'] = self._generate_deterministic_key(to_id, from_id)
                     
                     for key, value in match.items():
@@ -409,39 +417,151 @@ class SimilarityEdgeService:
         This ensures the same pair of vertices always generates the same edge key,
         preventing duplicate edges when the pipeline runs multiple times.
         
-        Works for both SmartGraph and non-SmartGraph deployments:
-        - Non-SmartGraph: from_id = "collection/key"
-        - SmartGraph: from_id = "collection/shard:key"
-        
-        The implementation simply hashes the full _id values. ArangoDB automatically
-        handles edge placement based on the _from field, so no special SmartGraph
-        logic is needed in the edge key.
+        Standard collections use the legacy MD5-based key format. SmartGraph edge
+        collections require a key that encodes both endpoint shard values, so this
+        method switches to a SmartGraph-specific key layout when configured or when
+        auto-detection resolves to SmartGraph mode.
         
         Args:
             from_id: Full document ID for _from vertex (e.g., "duns/12345" or "duns/570:12345")
             to_id: Full document ID for _to vertex
         
         Returns:
-            Deterministic edge key (MD5 hash)
+            Deterministic edge key
         
         Example:
             >>> _generate_deterministic_key("duns/123", "duns/456")
-            "a1b2c3d4e5f6..."  # MD5 hash
+            "a1b2c3d4e5f6..."  # Standard deterministic hash
             
-            >>> _generate_deterministic_key("duns/570:123", "duns/570:456")  # SmartGraph
-            "x1y2z3w4a5b6..."  # Different hash, but still deterministic
+            >>> _generate_deterministic_key("duns/570:123", "duns/571:456")
+            "570:x1y2z3w4a5b6...:571"  # SmartGraph-compliant key
         """
-        import hashlib
-        
-        # Ensure consistent ordering (order-independent hash)
-        # This way (A, B) and (B, A) produce the same key
+        if self._resolved_deterministic_key_mode == "smartgraph":
+            return self._generate_smartgraph_deterministic_key(from_id, to_id)
+
+        return self._generate_standard_deterministic_key(from_id, to_id)
+
+    def _generate_standard_deterministic_key(self, from_id: str, to_id: str) -> str:
+        """Generate the legacy order-independent MD5 key."""
         if from_id < to_id:
             key_string = f"{from_id}->{to_id}"
         else:
             key_string = f"{to_id}->{from_id}"
-        
-        # Generate MD5 hash (sufficient for uniqueness, not for security)
+
         return hashlib.md5(key_string.encode('utf-8')).hexdigest()
+
+    def _generate_smartgraph_deterministic_key(self, from_id: str, to_id: str) -> str:
+        """
+        Generate a SmartGraph-compliant deterministic key.
+
+        The hash component stays order-independent for idempotent reruns, while the
+        outer shard prefixes remain direction-aware so ArangoDB can route the edge.
+        """
+        pair_hash = self._generate_standard_deterministic_key(from_id, to_id)
+        from_shard = self._extract_smartgraph_shard(from_id)
+        to_shard = self._extract_smartgraph_shard(to_id)
+        return f"{from_shard}:{pair_hash}:{to_shard}"
+
+    def _extract_smartgraph_shard(self, vertex_id: str) -> str:
+        """Extract the SmartGraph shard prefix from a vertex _id."""
+        vertex_key = vertex_id.split("/", 1)[1] if "/" in vertex_id else vertex_id
+        shard, separator, _ = vertex_key.partition(":")
+        if not separator or not shard:
+            raise ValueError(
+                "SmartGraph deterministic keys require vertex keys formatted as "
+                "'<shard>:<entity_key>'. Use deterministic_key_mode='standard' for "
+                "non-SmartGraph collections."
+            )
+        return shard
+
+    def _normalize_deterministic_key_mode(self, deterministic_key_mode: str) -> str:
+        """Validate and normalize the deterministic key strategy."""
+        normalized_mode = (deterministic_key_mode or "auto").strip().lower()
+        if normalized_mode not in {"auto", "standard", "smartgraph"}:
+            raise ValueError(
+                "deterministic_key_mode must be one of: auto, standard, smartgraph"
+            )
+        return normalized_mode
+
+    def _resolve_deterministic_key_mode(self) -> str:
+        """Resolve the effective deterministic key strategy."""
+        if not self.use_deterministic_keys:
+            return "disabled"
+
+        if self.deterministic_key_mode != "auto":
+            return self.deterministic_key_mode
+
+        return "smartgraph" if self._is_smartgraph_edge_collection() else "standard"
+
+    def _is_smartgraph_edge_collection(self) -> bool:
+        """
+        Best-effort SmartGraph detection using available graph metadata.
+
+        If graph metadata is unavailable or does not identify the edge collection,
+        we conservatively fall back to the legacy standard key format.
+        """
+        graphs_method = getattr(self.db, "graphs", None)
+        if not callable(graphs_method):
+            return False
+
+        try:
+            graphs = graphs_method() or []
+        except Exception:
+            self.logger.debug("Failed to inspect graph metadata for SmartGraph detection", exc_info=True)
+            return False
+
+        graph_accessor = getattr(self.db, "graph", None)
+        for graph in graphs:
+            properties = graph
+            graph_name = graph.get("name") if isinstance(graph, dict) else None
+
+            if callable(graph_accessor) and graph_name:
+                try:
+                    graph_obj = graph_accessor(graph_name)
+                    graph_properties = getattr(graph_obj, "properties", None)
+                    if callable(graph_properties):
+                        properties = graph_properties()
+                except Exception:
+                    self.logger.debug(
+                        "Failed to load graph properties for SmartGraph detection",
+                        exc_info=True,
+                    )
+
+            if self._graph_uses_edge_collection(properties) and self._graph_is_smartgraph(properties):
+                return True
+
+        return False
+
+    def _graph_uses_edge_collection(self, properties: Any) -> bool:
+        """Return True when graph properties reference this edge collection."""
+        if not isinstance(properties, dict):
+            return False
+
+        edge_definitions = properties.get("edge_definitions") or properties.get("edgeDefinitions") or []
+        for edge_definition in edge_definitions:
+            if not isinstance(edge_definition, dict):
+                continue
+            edge_collection = (
+                edge_definition.get("collection")
+                or edge_definition.get("edge_collection")
+                or edge_definition.get("edgeCollection")
+            )
+            if edge_collection == self.edge_collection_name:
+                return True
+        return False
+
+    def _graph_is_smartgraph(self, properties: Any) -> bool:
+        """Return True when graph properties indicate a SmartGraph deployment."""
+        if not isinstance(properties, dict):
+            return False
+
+        options = properties.get("options") or {}
+        smart_graph_attribute = (
+            properties.get("smartGraphAttribute")
+            or properties.get("smart_field")
+            or options.get("smartGraphAttribute")
+        )
+        return bool(properties.get("smart")) or bool(smart_graph_attribute)
     
     def _update_statistics(
         self,
@@ -465,5 +585,6 @@ class SimilarityEdgeService:
         """String representation."""
         return (f"SimilarityEdgeService("
                 f"edge_collection='{self.edge_collection_name}', "
-                f"batch_size={self.batch_size})")
+                f"batch_size={self.batch_size}, "
+                f"deterministic_key_mode='{self._resolved_deterministic_key_mode}')")
 

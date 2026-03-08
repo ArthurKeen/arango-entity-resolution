@@ -1,224 +1,119 @@
 # Testing Guide
 
-**Last Updated**: November 17, 2025 
-**Version**: 3.0.0
+Current testing and release-validation guidance for `v3.2.3`.
 
 ---
 
 ## Overview
 
-This guide covers testing the arango-entity-resolution library, including unit tests, integration tests, and end-to-end testing with ArangoDB.
+The test surface combines:
+- unit tests for core algorithms and services
+- database-backed tests using ArangoDB
+- release validation through pre-push hooks and GitHub Actions
+- targeted Docker-backed end-to-end checks for user-facing workflows
 
----
+## Current Release Snapshot
 
-## Test Structure
+During the `3.2.3` release pass:
+- focused regression suites passed locally
+- Docker-backed end-to-end validation passed for pipeline run, status, clusters, export, and benchmark flows
+- SmartGraph deterministic edge-key validation passed against a local Docker-based Enterprise ArangoDB SmartGraph
+- the prior `3.2.2` release/push validation completed with **625 passed**
 
-### Test Files
+## Prerequisites
 
-- **Unit Tests**: Located in `tests/` directory
-- **Integration Tests**: Marked with `@pytest.mark.integration`
-- **Test Configuration**: `tests/conftest.py` provides shared fixtures
+Install test dependencies:
 
-### Test Coverage
+```bash
+pip install -e ".[test]"
+```
 
-Current test coverage: **~80%** (estimated)
+Optional extras for broader surfaces:
 
-**Well-Covered Components:**
-- v3.0 components (WeightedFieldSimilarity, AddressERService, ConfigurableERPipeline)
-- v2.0 services (BatchSimilarityService, SimilarityEdgeService, strategies)
-- Security utilities (validation.py)
-- Configuration system (er_config.py, config.py)
-- Database utilities (database.py, graph_utils.py)
+```bash
+pip install -e ".[test,mcp,llm,ml]"
+```
 
-**Coverage Report**: See [TEST_COVERAGE_AUDIT.md](archive/audits/TEST_COVERAGE_AUDIT.md) for detailed analysis.
+## Environment Variables
 
----
+Common environment variables:
+
+```bash
+export ARANGO_HOST=localhost
+export ARANGO_PORT=8529
+export ARANGO_USERNAME=root
+export ARANGO_PASSWORD=testpassword123
+export ARANGO_DATABASE=entity_resolution_test
+export USE_DEFAULT_PASSWORD=true
+```
+
+The repo also supports a local `.env`-driven test setup.
 
 ## Running Tests
 
-### Prerequisites
-
-1. **Install Dependencies**:
-```bash
-# Recommended: install as a library in editable mode
-pip install -e ".[test]"
-
-# Alternative: install from requirements file
-# pip install -r requirements.txt
-```
-
-2. **ArangoDB Container** (for integration tests):
-```bash
-docker run -d --name arangodb-test -p 8529:8529 \
--e ARANGO_ROOT_PASSWORD=testpassword123 \
--v ~/data:/data \
-arangodb/arangodb:latest
-```
-
-### Environment Variables
-
-Set these before running integration tests:
+### Full Suite
 
 ```bash
-export ARANGO_ROOT_PASSWORD=testpassword123
-export USE_DEFAULT_PASSWORD=true
-export ARANGO_HOST=localhost
-export ARANGO_PORT=8529
-export ARANGO_DATABASE=entity_resolution_test
+pytest -v
 ```
 
-### Running Test Suites
+### Unit-Marked Tests
 
-#### All Tests
 ```bash
-pytest tests/ -v
+pytest -v -m unit
 ```
 
-#### Unit Tests Only
+### Targeted File or Slice
+
 ```bash
-pytest tests/ -v -m "not integration"
+pytest tests/test_cli.py -v
+pytest tests/test_pipeline_utils.py tests/test_mcp_tools.py -v
 ```
 
-#### Integration Tests Only
+### Minimal Local Source Validation
+
+When you want to ensure the local `src/` tree is used:
+
 ```bash
-pytest tests/ -v -m integration
+PYTHONPATH=src python -m pytest tests/test_cli.py -q
 ```
 
-#### Specific Test File
+## Docker-Backed Validation
+
+For local end-to-end or integration-style validation, run against a local ArangoDB container.
+
+Example:
+
 ```bash
-pytest tests/test_round_trip_v3.py -v
+docker run -d --name arango-er-test -p 18530:8529 \
+  -e ARANGO_ROOT_PASSWORD=testpassword123 \
+  arangodb:3.12
 ```
 
-#### Simple Round-Trip Test
-```bash
-python test_round_trip_simple.py
-```
+Then point the CLI or tests at that instance with the standard env vars or command-line overrides.
+
+## What To Validate Before Release
+
+- CLI commands: `run`, `status`, `clusters`, `export`, `benchmark`
+- MCP server startup: `arango-er-mcp`
+- demo startup: `arango-er-demo` or `arango-er-mcp --demo`
+- package build and metadata checks
+- published version visibility on PyPI
+
+## CI Expectations
+
+Current CI workflows validate:
+- the main Python test/build workflow
+- the publish-to-PyPI workflow on release or manual dispatch
+
+## Historical Testing Docs
+
+Older status reports and archived testing artifacts remain under `docs/testing/` and `docs/archive/`, but this file is the current source of truth for how to test the project now.
 
 ---
 
-## Test Results
+## Related Docs
 
-### Latest Test Run (November 17, 2025)
-
-**Status**: **All Tests Passing**
-
-- **Total Tests**: 14 integration tests
-- **Passed**: 14 
-- **Failed**: 0
-- **Runtime**: ~10 seconds
-
-**Components Tested:**
-- WeightedFieldSimilarity
-- BatchSimilarityService
-- AddressERService
-- WCCClusteringService (Python DFS)
-- Complete ER pipeline
-
-**Full Results**: See [E2E_TEST_RESULTS.md](../E2E_TEST_RESULTS.md)
-
----
-
-## Test Files by Component
-
-### v3.0 Components
-- `test_weighted_field_similarity.py` - WeightedFieldSimilarity unit tests
-- `test_address_er_service.py` - AddressERService unit tests
-- `test_er_config.py` - ERPipelineConfig tests
-- `test_configurable_pipeline.py` - ConfigurableERPipeline tests
-- `test_round_trip_v3.py` - v3.0 integration tests
-
-### v2.0 Services
-- `test_blocking_strategies.py` - Blocking strategy tests
-- `test_similarity_and_edge_services.py` - BatchSimilarityService and SimilarityEdgeService
-- `test_wcc_clustering_service.py` - WCCClusteringService tests
-
-### Utilities
-- `test_validation_security.py` - Security and validation tests
-- `test_graph_utils.py` - Graph utility tests
-- `test_config.py` - Configuration system tests
-- `test_database.py` - Database management tests
-- `test_algorithms_comprehensive.py` - Algorithm tests
-
-### Integration
-- `test_integration_and_performance.py` - Full integration tests
-- `test_round_trip_v3.py` - Round-trip tests
-
----
-
-## Writing Tests
-
-### Test Structure
-
-```python
-import pytest
-from entity_resolution import YourComponent
-
-class TestYourComponent:
-"""Test cases for YourComponent."""
-
-def test_basic_functionality(self):
-"""Test basic functionality."""
-component = YourComponent()
-result = component.do_something()
-assert result is not None
-```
-
-### Using Fixtures
-
-```python
-@pytest.fixture
-def test_db():
-"""Provide test database connection."""
-from entity_resolution import get_database
-return get_database()
-```
-
-### Integration Test Markers
-
-```python
-@pytest.mark.integration
-def test_with_database(test_db):
-"""Integration test requiring database."""
-# Test code here
-```
-
----
-
-## Continuous Integration
-
-Tests should be run:
-- Before committing code
-- In CI/CD pipeline
-- Before releases
-
----
-
-## Troubleshooting
-
-### Database Connection Issues
-- Verify ArangoDB container is running: `docker ps | grep arangodb`
-- Check environment variables are set
-- Verify database exists: `curl -u root:testpassword123 http://localhost:8529/_api/database`
-
-### Import Errors
-- Ensure dependencies are installed: `pip install -r requirements.txt`
-- Check Python path includes `src/` directory
-
-### Test Failures
-- Review test output for specific error messages
-- Check test logs in `tests/` directory
-- Verify test data is correct
-
----
-
-## Coverage Goals
-
-- **Target**: 80%+ overall coverage
-- **Current**: ~80% (estimated)
-- **Critical Components**: 100% coverage target
-- **Utilities**: 70%+ coverage target
-
----
-
-**For detailed coverage analysis, see**: [TEST_COVERAGE_AUDIT.md](archive/audits/TEST_COVERAGE_AUDIT.md)
-
+- [docs/testing/README.md](testing/README.md)
+- [Release Checklist](development/RELEASE_CHECKLIST.md)
+- [README](../README.md)

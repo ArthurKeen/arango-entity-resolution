@@ -1,147 +1,82 @@
 # Version Summary - arango-entity-resolution
 
-**Quick Reference for Current Library State**
+Quick reference for the currently shipped release.
 
 ---
 
-## Current Version: 3.1.2
+## Current Version: 3.2.3
 
-**Released**: February 2026
-**Status**: Production Ready
+- **Released**: March 8, 2026
+- **Status**: Release-prepared and validated locally
+- **PyPI**: Pending publish
 
-### Version String
+## Version String
+
 ```python
 import entity_resolution
-print(entity_resolution.__version__) # "3.1.2"
+print(entity_resolution.__version__)  # "3.2.3"
 ```
 
-### Version Code Location
-**File**: `src/entity_resolution/utils/constants.py`
-```python
-VERSION_INFO = {
-'major': 3,
-'minor': 1,
-'patch': 2,
-'release': ''
-}
-```
+## Source of Truth
 
----
+Version metadata lives in `src/entity_resolution/utils/constants.py`.
 
-## What's Included in v3.1.0
-
-### Specialized Enrichments
-
-1. **TypeCompatibilityFilter** - Pre-filter candidates by compatibility matrix
-2. **HierarchicalContextResolver** - Parent context disambiguation
-3. **AcronymExpansionHandler** - Domain-specific abbreviation expansion
-4. **RelationshipProvenanceSweeper** - Post-resolution relationship remapping
-
-### Core Services (from v3.0.0)
-
-1. **AddressERService** - Address deduplication pipeline
-2. **CrossCollectionMatchingService** - Match entities across collections
-3. **EmbeddingService** - Vector embedding generation
-4. **VectorBlockingStrategy** - Semantic similarity blocking
-5. **BatchSimilarityService** - Bulk similarity computation
-6. **WCCClusteringService** - Graph clustering (optimized)
-7. **SimilarityEdgeService** - Edge creation
-
-### Key Features
-
-- **Entity Resolution Enrichments** - Domain-specific technical ER (v3.1.0)
-- **Vector search-based ER** - Phase 2 (v3.0.0)
-- **Address entity resolution** (v3.0.0)
-- **Cross-collection matching** (v3.0.0)
-- **WCC 40-100x performance improvement** (v3.0.0)
-- **Bulk document fetching** (v3.0.0)
-- **Configuration-driven pipelines** (v3.0.0)
-
----
-
-## Version Identification
-
-### How to Distinguish Versions
-
-| Version | Identifier | Key Features |
-|---------|-----------|--------------|
-| **v3.1.2** | `"3.1.2"` | <- **CURRENT** - Includes ER Enrichments + Phase 3 Node2Vec prototype + testing/security hardening |
-| v3.1.1 | `"3.1.1"` | Golden record persistence + deterministic edge keys |
-| v3.1.0 | `"3.1.0-stable"` | Historical “stable” identifier used for production-ready 3.1.0 release |
-| v3.0.0 | `"3.0.0-stable"` | All core services, no enrichments |
-| v2.x | `"2.x.x-*"` | Partial services, no address ER |
-| v1.x | `"1.x.x-*"` | Legacy basic ER |
-
-### Check Current Version
-
-**Command Line**:
-```bash
-cd /path/to/arango-entity-resolution
-grep -A 4 "VERSION_INFO" src/entity_resolution/utils/constants.py
-```
-
-**Python**:
 ```python
 from entity_resolution.utils.constants import VERSION_INFO, get_version_string
-print(get_version_string()) # "3.1.2"
-print(VERSION_INFO) # {'major': 3, 'minor': 1, 'patch': 2, 'release': ''}
+
+print(get_version_string())  # "3.2.3"
+print(VERSION_INFO)          # {'major': 3, 'minor': 2, 'patch': 3, 'release': ''}
 ```
 
----
+## What 3.2.3 Includes
 
-## Documentation References
+### 3.2.3 Patch Fixes
+- SmartGraph-aware deterministic keys for `SimilarityEdgeService`
+- Automatic SmartGraph detection from live `python-arango` graph metadata
+- Docker-backed Enterprise SmartGraph validation for the `ERR 1466` failure path
+
+### Existing 3.2.2 Surface
+
+### Core Resolution Surface
+- Configuration-driven ER pipelines via `ERPipelineConfig` and `ConfigurableERPipeline`
+- Blocking strategies including exact/COLLECT, BM25, vector, LSH, geographic, and graph-traversal paths
+- Weighted multi-field similarity, similarity edge creation, WCC clustering, and golden-record persistence
+- Incremental single-record resolution through `IncrementalResolver`
+
+### User-Facing Interfaces
+- `arango-er` CLI for `run`, `status`, `clusters`, `export`, and `benchmark`
+- `arango-er-mcp` MCP server with 7 tools and 2 resources
+- `arango-er-demo` demo launcher
+
+### 3.2.x Additions
+- Active-learning configuration wired into the configurable pipeline
+- Cluster quality metadata exposed through stored clusters and MCP `get_clusters`
+- Config-driven similarity field transformers
+- JSON/CSV cluster export and reporting helpers
+- Supported exact-vs-BM25 blocking benchmark workflow built on `ABEvaluationHarness`
+
+## How To Distinguish Recent Versions
+
+| Version | Status | Highlights |
+|---------|--------|------------|
+| **3.2.3** | Current | SmartGraph deterministic edge-key fix and SmartGraph auto-detection |
+| 3.2.2 | Historical | Transformers, CLI expansion, export/reporting, blocking benchmark workflow |
+| 3.2.1 | Historical | MCP server, demo quickstart, incremental resolver, LLM verifier, active-learning groundwork |
+| 3.2.0 | Historical | Security hardening, MCP package, generalized pipeline cleanup |
+| 3.1.x | Historical | Enrichments, golden-record persistence, additional service hardening |
+| 3.0.0 | Historical | General-purpose library formalization and core ER service surface |
+
+## Documentation Map
 
 | Document | Purpose |
 |----------|---------|
-| [VERSION_HISTORY.md](VERSION_HISTORY.md) | Complete version timeline and feature history |
-| [CHANGELOG.md](CHANGELOG.md) | Detailed change log with migration notes |
-| [README.md](README.md) | Overview with version badge |
+| [README.md](README.md) | Product overview, install options, CLI and MCP quick starts |
+| [CHANGELOG.md](CHANGELOG.md) | Release-by-release changes |
+| [VERSION_HISTORY.md](VERSION_HISTORY.md) | High-level capability timeline |
+| [docs/guides/QUICK_START.md](docs/guides/QUICK_START.md) | Current setup and first-run workflow |
+| [docs/api/API_REFERENCE.md](docs/api/API_REFERENCE.md) | Current CLI, MCP, and Python API surface |
 
 ---
 
-## Customer Project Compatibility
-
-### DNB ER Project
-
-**Current State**: Uses v3.0.0-stable 
-
-**Services Used**:
-- AddressERService (from library)
-- CrossCollectionMatchingService (from library)
-- All blocking strategies
-- Batch similarity
-- WCC clustering
-- Vector search (Phase 2)
-
-**Architecture Rating**: (4/5 - Very Good)
-
----
-
-## Semantic Versioning
-
-Format: `MAJOR.MINOR.PATCH-RELEASE`
-
-**Current**: `3.0.0-stable`
-- **Major (3)**: Includes all extracted services
-- **Minor (0)**: Initial v3 release
-- **Patch (0)**: No patches yet
-- **Release (stable)**: Production ready
-
----
-
-## Future Versions
-
-### Potential v3.1.0
-- Enhanced deterministic edge keys
-- Additional analyzers
-- Performance monitoring dashboard
-- Machine learning similarity thresholds
-
-**Note**: Architecture assessment (Dec 2025) rates current version at 4/5 stars. Minor enhancements could bring it to 5/5.
-
----
-
-**Document Purpose**: Quick reference for library version identification 
-**Last Updated**: 2025-12-09 
-**Current Library Version**: 3.0.0-stable
+**Last Updated**: 2026-03-08
 

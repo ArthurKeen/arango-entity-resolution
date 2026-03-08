@@ -1,228 +1,106 @@
 # Version History
 
-This document provides a clear timeline of major library versions to distinguish different capability states.
+High-level capability timeline for the public library.
 
 ---
 
-## Version 3.1.2 (CURRENT) - February 2026
+## 3.2.3 (Current) - 2026-03-08
 
-**Status**: **PRODUCTION READY**
+**Status**: Release-prepared and locally validated
 
 ### Highlights
+- SmartGraph-aware deterministic keys for `SimilarityEdgeService`
+- Automatic SmartGraph detection from live `python-arango` graph metadata
+- Local Docker-backed Enterprise SmartGraph validation for the `ERR 1466` failure path
 
-**Entity Resolution Enrichments**:
-- `TypeCompatibilityFilter` - Pre-filter candidates by type to prevent nonsensical matches
-- `HierarchicalContextResolver` - Use parent context to disambiguate similar names in hierarchical data
-- `AcronymExpansionHandler` - Handle domain-specific abbreviations and acronyms during search
-- `RelationshipProvenanceSweeper` - Remap relationships through consolidation with full audit trails
+## 3.2.2 - 2026-03-08
 
-**Improvements since 3.1.1**:
-- Security hardening: validate AQL identifiers (collection/view/field) before interpolation
-- Safer error handling: redact `arangoimport` failure logs to avoid credential leakage
-- Substantial test/coverage lift + Docker-backed Node2Vec integration tests
+**Status**: Published and release-validated
 
----
+### Highlights
+- Config-driven similarity field transformers
+- `arango-er` CLI expanded with `status`, `clusters`, `export`, and `benchmark`
+- JSON/CSV cluster export and reporting helpers
+- Supported exact-vs-BM25 blocking benchmark workflow
+- Cluster quality metadata surfaced in stored clusters and MCP `get_clusters`
 
-## Version 3.0.0-stable - December 2025
+## 3.2.1 - 2026-03-06
 
-**Status**: **PRODUCTION READY**
+**Status**: Historical release
 
-### Major Features
+### Highlights
+- MCP server package and demo quickstart
+- Incremental single-record resolver
+- LLM match verifier and active-learning support groundwork
+- Release-publish workflow stabilization
 
-**Services Included**:
-- `AddressERService` - Complete address deduplication pipeline
-- `CrossCollectionMatchingService` - Match entities across collections
-- `EmbeddingService` - Vector embedding generation (Phase 2)
-- `BatchSimilarityService` - Bulk similarity computation
-- `SimilarityEdgeService` - Edge creation
-- `WCCClusteringService` - Graph clustering (with bulk fetch optimization)
+## 3.2.0 - 2026-03-05
 
-**Blocking Strategies**:
-- `CollectBlockingStrategy` - Exact key blocking
-- `BM25BlockingStrategy` - Fuzzy text blocking
-- `HybridBlockingStrategy` - Combined BM25 + distance metrics
-- `GeographicBlockingStrategy` - Location-based blocking
-- `GraphTraversalBlockingStrategy` - Graph relationship blocking
-- `VectorBlockingStrategy` - Semantic similarity blocking (Phase 2)
+**Status**: Historical release
 
-**Key Capabilities**:
-- Vector search-based ER (Tier 3 blocking)
-- Address entity resolution
-- Cross-collection matching
-- WCC clustering with 40-100x performance improvement
-- Bulk document fetching (100x faster than N+1)
-- Deterministic edge keys capability
-- Comprehensive pipeline utilities
+### Highlights
+- MCP tool/resource surface introduced
+- Security hardening across blocking and pipeline utility AQL paths
+- General pipeline cleanup and broader test coverage
 
-### Architecture Assessment
+## 3.1.x - 2026 Q1
 
-**Division of Functionality Rating**: (4/5 - Very Good)
+**Status**: Historical release line
 
-**What's Included in v3.0.0**:
-- Core ER algorithms (blocking, similarity, clustering)
-- Database optimizations (bulk fetching, batch processing)
-- Address deduplication patterns
-- Cross-collection matching patterns
-- Hybrid similarity strategies
-- Vector search and embeddings
+### Highlights
+- Domain enrichments such as compatibility filtering, hierarchical context resolution, and provenance sweeping
+- Golden-record persistence improvements
+- Additional service and test hardening
 
-**What Belongs in Customer Projects**:
-- Domain-specific business logic
-- Field mappings and configurations
-- Data quality rules
-- Test cases with domain knowledge
-- Infrastructure setup
-- Pipeline orchestration
+## 3.0.0 - 2025 Q4
 
----
+**Status**: Historical major release
 
-## Version 2.x (Historical)
+### Highlights
+- General-purpose library formalization
+- Configurable pipelines
+- Address ER and cross-collection matching
+- Vector search / embedding infrastructure
+- WCC clustering and bulk-fetch performance improvements
 
-**Status**: Deprecated - Upgrade to 3.0.0+
+## 2.x
 
-### Major Features (v2.0)
-- Initial extraction of general-purpose patterns from customer projects
-- `BatchSimilarityService` introduced
-- Enhanced blocking strategies
-- Pipeline utilities
+**Status**: Legacy
 
-**Missing** (added in v3.0):
-- `AddressERService`
-- `CrossCollectionMatchingService`
-- `VectorBlockingStrategy` and `EmbeddingService`
-- WCC performance optimization
-- `HybridBlockingStrategy`
+### Highlights
+- Early extraction of reusable blocking and similarity services
+- Partial generalization from project-specific implementations
 
-**Note**: If you're on v2.x, please upgrade to v3.0.0 for significant performance improvements and new services.
+## 1.x
+
+**Status**: Legacy
+
+### Highlights
+- Initial entity-resolution framework and basic multi-model patterns
 
 ---
 
-## Version 1.x (Legacy)
+## How To Check Your Version
 
-**Status**: Deprecated - Upgrade to 3.0.0+
-
-### Original Features
-- Basic entity resolution framework
-- Simple blocking and similarity services
-- Foundation for multi-model ER
-
-**Limitations**:
-- No bulk fetching (N+1 query pattern)
-- Limited blocking strategies
-- Manual pipeline construction
-- No address-specific support
-- No cross-collection matching
-
----
-
-## Future Roadmap
-
-### Potential v3.1.0 Enhancements
-
-**Under Consideration**:
-- Enhanced deterministic edge key generation (currently optional)
-- Additional pre-built analyzers for common patterns
-- Performance monitoring and metrics dashboard
-- Enhanced geographic blocking (radius-based)
-- Machine learning-based similarity thresholds
-
-**Note**: These are potential future enhancements based on user feedback and emerging patterns from customer projects.
-
----
-
-## Version Identification
-
-### How to Check Your Version
-
-**In Python**:
 ```python
 import entity_resolution
-print(entity_resolution.__version__) # Output: "3.0.0-stable"
+print(entity_resolution.__version__)
 ```
 
-**In Code**:
 ```python
 from entity_resolution.utils.constants import VERSION_INFO, get_version_string
 
-version = get_version_string() # "3.0.0-stable"
-major_version = VERSION_INFO['major'] # 3
+print(get_version_string())
+print(VERSION_INFO)
 ```
 
----
+## Related Docs
 
-## Migration Guide
-
-### From v2.x to v3.0.0
-
-**New Services Available**:
-1. Replace custom address ER code with `AddressERService`
-2. Replace custom cross-collection logic with `CrossCollectionMatchingService`
-3. Add vector search with `EmbeddingService` and `VectorBlockingStrategy`
-
-**Performance Improvements**:
-- WCC clustering: 40-100x faster (enable `use_bulk_fetch=True`)
-- Bulk document fetching: 100x faster (automatic in `BatchSimilarityService`)
-
-**See**: `docs/guides/MIGRATION_GUIDE_V3.md` for detailed instructions
-
-### From v1.x to v3.0.0
-
-Significant breaking changes. Please review:
-- `docs/guides/MIGRATION_GUIDE_V2.md`
-- `docs/guides/MIGRATION_GUIDE_V3.md`
+- [VERSION_SUMMARY.md](VERSION_SUMMARY.md) - Current release snapshot
+- [CHANGELOG.md](CHANGELOG.md) - Detailed release notes
+- [docs/guides/MIGRATION_GUIDE_V3.md](docs/guides/MIGRATION_GUIDE_V3.md) - Migration guidance for older versions
 
 ---
 
-## Customer Project Version Compatibility
-
-### DNB ER Project Compatibility
-
-| DNB ER Version | Library Version | Status |
-|----------------|-----------------|--------|
-| Current | v3.0.0-stable | Fully Compatible |
-| Legacy | v2.x | Upgrade Recommended |
-| Original | v1.x | Not Compatible |
-
-**Current State** (December 2025):
-- DNB ER project successfully uses v3.0.0 library
-- All services (`AddressERService`, `CrossCollectionMatchingService`) available
-- Performance benchmarks met or exceeded
-- Architecture separation rated 4/5 stars
-
----
-
-## Semantic Versioning
-
-This project follows [Semantic Versioning](https://semver.org/):
-- **MAJOR** (X.0.0): Breaking API changes
-- **MINOR** (3.X.0): New features, backward compatible
-- **PATCH** (3.0.X): Bug fixes, backward compatible
-- **RELEASE**: stable | beta | alpha
-
-**Current**: `3.0.0-stable`
-- Major: 3 (includes address ER, cross-collection, vector search)
-- Minor: 0 (initial v3 release)
-- Patch: 0 (no patches yet)
-- Release: stable (production ready)
-
----
-
-## Support Policy
-
-### Version Support
-- **v3.0.x**: Active support (current)
-- **v2.x**: Security fixes only
-- **v1.x**: End of life
-
-### Upgrade Path
-1. v1.x -> v2.x -> v3.0.0 (recommended)
-2. v1.x -> v3.0.0 (possible with careful migration)
-3. v2.x -> v3.0.0 (straightforward)
-
----
-
-**Document Version**: 1.0 
-**Last Updated**: 2025-12-09 
-**Current Library Version**: 3.0.0-stable 
-**Status**: Active Development
+**Last Updated**: 2026-03-08
 

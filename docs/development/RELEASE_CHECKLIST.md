@@ -1,19 +1,19 @@
 # Release Checklist
 
-Target release: `3.2.2`
+Target release: `3.2.3`
 
 ## Checklist
 
 - Bump the version source of truth in `src/entity_resolution/utils/constants.py`.
-- Update `CHANGELOG.md` with the `3.2.2` release notes.
+- Update `CHANGELOG.md` with the `3.2.3` release notes.
 - Confirm package metadata and console scripts in `pyproject.toml`.
-- Run the Phase 1 test suite and capture any manual verification notes.
+- Run the current release-validation suite and capture any manual verification notes.
 - Verify `arango-er`, `arango-er-mcp`, and `arango-er-mcp --demo` still start correctly.
-- Create and push the `3.2.2` git tag.
+- Create and push the `3.2.3` git tag.
 - Create a GitHub Release from that tag.
 - Confirm the GitHub Release triggers `.github/workflows/publish.yml`.
-- Verify `3.2.2` appears on PyPI.
-- Verify `pip install arango-entity-resolution==3.2.2` succeeds.
+- Verify `3.2.3` appears on PyPI.
+- Verify `pip install arango-entity-resolution==3.2.3` succeeds.
 
 ## Important
 

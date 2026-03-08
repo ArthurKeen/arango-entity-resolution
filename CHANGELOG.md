@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.2.2] - Unreleased
+## [3.2.3] - 2026-03-08
+
+### Fixed
+- `SimilarityEdgeService` now supports SmartGraph-compliant deterministic edge keys via
+  `deterministic_key_mode="smartgraph"` or `deterministic_key_mode="auto"` when the edge
+  collection can be identified from graph metadata. Standard collections keep the legacy
+  MD5-based deterministic key format.
+- Added coverage for real SmartGraph metadata shapes returned by `python-arango` and
+  validated the fix against a local Docker-based Enterprise ArangoDB SmartGraph,
+  reproducing and then clearing `ERR 1466`.
+
+## [3.2.2] - 2026-03-08
 
 ### Fixed
 - `merge_entities` now produces a deterministic golden-record preview directly from the MCP path
@@ -120,8 +131,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generates MD5 hash of `_from + _to` as edge `_key`
 - Order-independent: `(A, B)` and `(B, A)` generate same key
 - Uses `overwriteMode='ignore'` to prevent duplicates
-- Works for both SmartGraph and non-SmartGraph deployments
-- No special handling needed - same simple pattern for all deployment types
+- Initial release note incorrectly claimed the same MD5-only key format worked for SmartGraph
+  edge collections. That claim was corrected in a later release with SmartGraph-aware keys.
 
 **Benefits**:
 - Idempotent pipelines - safe to run multiple times
@@ -143,9 +154,8 @@ service.create_edges(matches) # Safe - same edges won't duplicate
 ```
 
 **SmartGraph Support**:
-- Works transparently with SmartGraph vertex keys (e.g., `"570:12345"`)
-- Edge key is pure hash (no shard prefix)
-- ArangoDB handles edge placement via `_from` field automatically
+- The original `3.1.1` implementation did not generate SmartGraph-compliant edge keys.
+- SmartGraph-aware deterministic keys were added in a later release.
 
 ## [3.1.0] - 2026-01-08
 

@@ -252,7 +252,7 @@ def _banner() -> None:
     print("""
 ╔══════════════════════════════════════════════════════════╗
 ║     ArangoDB Entity Resolution — MCP Demo Quickstart     ║
-║                     v3.2.2                               ║
+║                     v3.2.3                               ║
 ╚══════════════════════════════════════════════════════════╝
 
 This demo will:

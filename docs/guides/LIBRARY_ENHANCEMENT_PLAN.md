@@ -1,8 +1,12 @@
 # Arango Entity Resolution Library Enhancement Plan
 
+> Historical enhancement plan from the library-formalization work.
+> It remains useful for background, but `README.md`, `docs/PRD.md`, and `VERSION_HISTORY.md`
+> describe the current shipped `3.2.2` surface.
+
 **Date**: January 11, 2026 
 **Prepared For**: Library Enhancement & General ER Migration 
-**Status**: [COMPLETED] - Library Formalized (v3.1.0-stable)
+**Status**: Historical completed plan
 
 ---
 

@@ -11,12 +11,12 @@ Welcome to the ArangoDB Entity Resolution documentation!
 - [Main README](../README.md) - Project overview and installation
 
 ### API Documentation
-- [API Reference](api/API_REFERENCE.md) - Complete API documentation for v2.0
+- [API Reference](api/API_REFERENCE.md) - Current CLI, MCP, and Python API surface for v3.2.3
 
 ### User Guides
 - [Migration Guide v3.0](guides/MIGRATION_GUIDE_V3.md) - Upgrade from v1.x or v2.x
 - [Custom Collections Guide](guides/CUSTOM_COLLECTIONS_GUIDE.md) - Work with your own data
-- ? [Testing Guide](guides/TESTING_GUIDE.md) - Run tests and benchmarks
+- [Testing Guide](TESTING.md) - Current testing and release-validation guidance
 
 ### Architecture & Design
 - [System Design](architecture/DESIGN.md) - How the system works
@@ -25,13 +25,13 @@ Welcome to the ArangoDB Entity Resolution documentation!
 - [Foxx Deployment](architecture/FOXX_DEPLOYMENT.md) - Deploy Foxx services
 
 ### Development
-- [Enhancement Plan](development/LIBRARY_ENHANCEMENT_PLAN.md) - Library improvements
+- [Enhancement Plan](guides/LIBRARY_ENHANCEMENT_PLAN.md) - Historical formalization plan
 - [GAE Enhancement Path](development/GAE_ENHANCEMENT_PATH.md) - Future graph engine support
 - [Batch vs Bulk Processing](development/BATCH_VS_BULK_PROCESSING.md) - Performance patterns
 - [Blocking Benchmarks](development/BLOCKING_BENCHMARKS.md) - Supported evaluator workflow
 - [Release Checklist](development/RELEASE_CHECKLIST.md) - Steps for GitHub Release and PyPI publish
-- [Project Evolution](development/PROJECT_EVOLUTION.md) - Project history
-- ? [Git Hooks](development/GIT_HOOKS.md) - Development workflow
+- [Project Evolution](development/PROJECT_EVOLUTION.md) - Historical project evolution notes
+- [Git Hooks](development/GIT_HOOKS.md) - Development workflow
 
 ### Research & Papers
 - [Research Directory](../research/README.md) - Research notes and papers
@@ -49,6 +49,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 **For Users:**
 - Quick Start Guide
 - API Reference
+- README
 - Migration Guide
 - Custom Collections Guide
 
@@ -66,7 +67,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 ### By Topic
 
 **Entity Resolution:**
-- API Reference (strategies, services)
+- API Reference (CLI, MCP, Python APIs)
 - Graph Algorithms
 - Custom Collections Guide
 
@@ -78,10 +79,10 @@ Welcome to the ArangoDB Entity Resolution documentation!
 **Getting Started:**
 - Quick Start Guide
 - README
-- API Quickstart examples
+- CLI / MCP examples in the README
 
 **Advanced Topics:**
-- Enhancement Plan
+- Historical enhancement plan
 - GAE Enhancement Path
 - Batch vs Bulk Processing
 
@@ -95,6 +96,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 
 ### Configuration
 - [Config Example](../config.example.json) - Configuration template
+- [Release Checklist](development/RELEASE_CHECKLIST.md) - Release and PyPI publication steps
 
 ### Tools
 - [Demo Scripts](../demo/) - Demonstration tools
@@ -115,9 +117,9 @@ Historical documentation is preserved in [`archive/`](archive/):
 
 ## Version Information
 
-- **Current Version:** 3.2.2
+- **Current Version:** 3.2.3
 - **API Version:** v3
-- **Last Updated:** March 6, 2026
+- **Last Updated:** March 8, 2026
 
 For version history, see [CHANGELOG.md](../CHANGELOG.md)
 

@@ -1,6 +1,20 @@
 # ArangoDB Advanced Entity Resolution System
 
-**Current Version**: 3.2.2 | [Version History](VERSION_HISTORY.md) | [Changelog](CHANGELOG.md) | [PyPI](https://pypi.org/project/arango-entity-resolution/)
+**Current Version**: 3.2.3 | [Version History](VERSION_HISTORY.md) | [Changelog](CHANGELOG.md) | [PyPI](https://pypi.org/project/arango-entity-resolution/)
+
+## What's New in v3.2.3
+
+### SmartGraph Deterministic Edge Keys
+
+`SimilarityEdgeService` now supports SmartGraph-compatible deterministic edge keys for
+ArangoDB SmartGraph edge collections.
+
+- `deterministic_key_mode="standard"` preserves the legacy MD5-only behavior for standard collections
+- `deterministic_key_mode="smartgraph"` emits shard-aware keys in the form
+  `<fromShard>:<stableHash>:<toShard>`
+- `deterministic_key_mode="auto"` detects SmartGraph collections from graph metadata and switches automatically
+- The fix was validated against a real local Docker-based Enterprise ArangoDB SmartGraph
+  and reproduces then resolves `ERR 1466`
 
 ## What's New in v3.2.2
 
@@ -145,8 +159,7 @@ Supported built-ins today: `strip`, `lower`, `upper`, `collapse_whitespace`,
 - `count_inferred_edges` now executes 2 AQL round-trips instead of 3
 - Correct distinct count in `validate_edge_quality`
 - Dead code removed from `EntityResolutionPipeline`
-- **549 tests pass (0 skipped)** — integration tests auto-spin an ArangoDB 3.12 Docker
-  container when no dedicated test DB is configured
+- **625 tests passed** during `3.2.2` release validation, including Docker-backed integration coverage
 
 ---
 
@@ -567,7 +580,7 @@ The project is organized into logical modules for maintainability and scalabilit
 **Research & Utilities**:
 - `research/` — Academic papers and research materials
 - `examples/` — Usage examples and integration demos
-- `tests/` — 567 tests, 0 skipped (auto-Docker integration harness)
+- `tests/` — 625-test release-validated suite with auto-Docker integration coverage
 - `config/` — Configuration files and templates
 - `docker-compose.yml` — ArangoDB container configuration
 
@@ -669,7 +682,7 @@ The project is organized into logical modules for maintainability and scalabilit
 - **Containerization**: Docker & Docker Compose (tests auto-spin containers as needed)
 - **Configuration**: Environment-based with `.env` support
 - **Logging**: Structured logging with multiple output formats
-- **Testing**: 567 tests, 0 skipped, auto-Docker integration harness
+- **Testing**: 625-test release-validated suite with auto-Docker integration coverage
 
 ## Installation
 

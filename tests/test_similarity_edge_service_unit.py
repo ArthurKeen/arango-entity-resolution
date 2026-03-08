@@ -58,6 +58,7 @@ class FakeDB:
     created_collections: List[Tuple[str, bool]] = field(default_factory=list)
     edge_collection: FakeEdgeCollection = field(default_factory=FakeEdgeCollection)
     aql: FakeAQL = field(default_factory=FakeAQL)
+    graph_definitions: List[Dict[str, Any]] = field(default_factory=list)
 
     def has_collection(self, name: str) -> bool:
         return self.has_collection_value
@@ -68,6 +69,9 @@ class FakeDB:
 
     def collection(self, name: str) -> FakeEdgeCollection:
         return self.edge_collection
+
+    def graphs(self) -> List[Dict[str, Any]]:
+        return list(self.graph_definitions)
 
 
 @pytest.fixture
@@ -136,6 +140,129 @@ def test_create_edges_bidirectional_creates_reverse_edges_with_same_key(fake_db:
     forward = next(d for d in docs if d["_from"] == "v/1" and d["_to"] == "v/2")
     reverse = next(d for d in docs if d["_from"] == "v/2" and d["_to"] == "v/1")
     assert forward["_key"] == reverse["_key"]
+
+
+def test_auto_detection_uses_smartgraph_key_format() -> None:
+    db = FakeDB(
+        has_collection_value=True,
+        graph_definitions=[
+            {
+                "name": "company_graph",
+                "edge_definitions": [{"edge_collection": "similarTo"}],
+                "options": {"smartGraphAttribute": "tenant_id"},
+            }
+        ],
+    )
+    svc = SimilarityEdgeService(
+        db=db,
+        edge_collection="similarTo",
+        vertex_collection="companies",
+        use_deterministic_keys=True,
+    )
+
+    created = svc.create_edges([("570:1", "571:2", 0.92)])
+
+    assert created == 1
+    edge = _flatten_inserted_docs(db.edge_collection)[0]
+    assert edge["_key"].startswith("570:")
+    assert edge["_key"].endswith(":571")
+    assert len(edge["_key"].split(":")[1]) == 32
+
+
+def test_auto_detection_accepts_live_graph_collection_field_name() -> None:
+    db = FakeDB(
+        has_collection_value=True,
+        graph_definitions=[
+            {
+                "name": "company_graph",
+                "edgeDefinitions": [{"collection": "similarTo", "from": ["companies"], "to": ["companies"]}],
+                "smartGraphAttribute": "tenant_id",
+            }
+        ],
+    )
+    svc = SimilarityEdgeService(
+        db=db,
+        edge_collection="similarTo",
+        vertex_collection="companies",
+        use_deterministic_keys=True,
+    )
+
+    created = svc.create_edges([("570:1", "571:2", 0.92)])
+
+    assert created == 1
+    edge = _flatten_inserted_docs(db.edge_collection)[0]
+    assert edge["_key"].startswith("570:")
+    assert edge["_key"].endswith(":571")
+
+
+def test_auto_detection_accepts_python_arango_smart_metadata() -> None:
+    db = FakeDB(
+        has_collection_value=True,
+        graph_definitions=[
+            {
+                "name": "company_graph",
+                "edge_definitions": [
+                    {
+                        "edge_collection": "similarTo",
+                        "from_vertex_collections": ["companies"],
+                        "to_vertex_collections": ["companies"],
+                    }
+                ],
+                "smart": True,
+                "smart_field": "tenant_id",
+            }
+        ],
+    )
+    svc = SimilarityEdgeService(
+        db=db,
+        edge_collection="similarTo",
+        vertex_collection="companies",
+        use_deterministic_keys=True,
+    )
+
+    created = svc.create_edges([("570:1", "571:2", 0.92)])
+
+    assert created == 1
+    edge = _flatten_inserted_docs(db.edge_collection)[0]
+    assert edge["_key"].startswith("570:")
+    assert edge["_key"].endswith(":571")
+
+
+def test_explicit_smartgraph_mode_rejects_non_smartgraph_vertex_keys(fake_db: FakeDB) -> None:
+    svc = SimilarityEdgeService(
+        db=fake_db,
+        edge_collection="similarTo",
+        vertex_collection="companies",
+        use_deterministic_keys=True,
+        deterministic_key_mode="smartgraph",
+    )
+
+    with pytest.raises(ValueError, match="SmartGraph deterministic keys require vertex keys"):
+        svc.create_edges([("1", "2", 0.92)])
+
+
+def test_smartgraph_bidirectional_edges_use_direction_aware_keys() -> None:
+    db = FakeDB(has_collection_value=True)
+    svc = SimilarityEdgeService(
+        db=db,
+        edge_collection="similarTo",
+        vertex_collection="companies",
+        use_deterministic_keys=True,
+        deterministic_key_mode="smartgraph",
+    )
+
+    created = svc.create_edges([("570:1", "571:2", 0.9)], bidirectional=True)
+
+    assert created == 2
+    docs = _flatten_inserted_docs(db.edge_collection)
+    assert len(docs) == 2
+    forward = next(d for d in docs if d["_from"] == "companies/570:1")
+    reverse = next(d for d in docs if d["_from"] == "companies/571:2")
+    assert forward["_key"].startswith("570:")
+    assert forward["_key"].endswith(":571")
+    assert reverse["_key"].startswith("571:")
+    assert reverse["_key"].endswith(":570")
+    assert forward["_key"] != reverse["_key"]
 
 
 def test_create_edges_handles_batch_insert_exception_and_continues() -> None:

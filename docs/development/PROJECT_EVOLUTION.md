@@ -1,5 +1,8 @@
 # Project Evolution History
 
+> Historical planning and evolution notes.
+> For the current shipped surface, see `README.md`, `docs/PRD.md`, and `VERSION_HISTORY.md`.
+
 This document chronicles the evolution of the ArangoDB Entity Resolution System from its initial focus on record blocking to a comprehensive advanced entity resolution platform.
 
 ## Project Timeline
