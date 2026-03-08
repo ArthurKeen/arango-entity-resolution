@@ -25,7 +25,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install build
-        python -m pip install -e ".[test,ml]"
+        python -m pip install -e ".[test,ml,mcp]"
         
     - name: Build wheel and source distribution
       run: python -m build
