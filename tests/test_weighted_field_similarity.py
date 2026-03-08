@@ -259,6 +259,107 @@ class TestWeightedFieldSimilarity:
         
         score = similarity.compute(doc1, doc2)
         assert score > 0.9  # Should match after whitespace normalization
+
+    def test_field_transformer_digits_only_normalizes_phone_numbers(self):
+        """Test digits_only transformer for phone matching."""
+        similarity = WeightedFieldSimilarity(
+            field_weights={'phone': 1.0},
+            algorithm='jaro_winkler',
+            field_transformers={'phone': ['digits_only']},
+        )
+
+        doc1 = {'phone': '(617) 555-1234'}
+        doc2 = {'phone': '6175551234'}
+
+        assert similarity.compute(doc1, doc2) == 1.0
+
+    def test_field_transformer_e164_normalizes_phone_numbers(self):
+        """Test E.164-style phone normalization."""
+        similarity = WeightedFieldSimilarity(
+            field_weights={'phone': 1.0},
+            algorithm='jaro_winkler',
+            field_transformers={'phone': ['e164']},
+            normalization_config={'case': None},
+        )
+
+        doc1 = {'phone': '+1 (617) 555-1234'}
+        doc2 = {'phone': '6175551234'}
+
+        assert similarity.compute(doc1, doc2) == 1.0
+
+    def test_field_transformer_state_code_matches_name_and_abbreviation(self):
+        """Test state_code transformer for US state variants."""
+        similarity = WeightedFieldSimilarity(
+            field_weights={'state': 1.0},
+            algorithm='jaro_winkler',
+            field_transformers={'state': ['state_code']},
+        )
+
+        doc1 = {'state': 'Massachusetts'}
+        doc2 = {'state': 'MA'}
+
+        assert similarity.compute(doc1, doc2) == 1.0
+
+    def test_field_transformer_street_suffix_matches_common_variants(self):
+        """Test street suffix normalization."""
+        similarity = WeightedFieldSimilarity(
+            field_weights={'address': 1.0},
+            algorithm='jaro_winkler',
+            field_transformers={'address': ['street_suffix']},
+            normalization_config={'case': 'lower'},
+        )
+
+        doc1 = {'address': '123 Main St.'}
+        doc2 = {'address': '123 Main Street'}
+
+        assert similarity.compute(doc1, doc2) == 1.0
+
+    def test_field_transformer_company_suffix_matches_common_variants(self):
+        """Test company suffix normalization."""
+        similarity = WeightedFieldSimilarity(
+            field_weights={'name': 1.0},
+            algorithm='jaro_winkler',
+            field_transformers={'name': ['company_suffix']},
+            normalization_config={'case': 'lower'},
+        )
+
+        doc1 = {'name': 'Acme Corp.'}
+        doc2 = {'name': 'Acme Corporation'}
+
+        assert similarity.compute(doc1, doc2) == 1.0
+
+    def test_field_transformer_chain_applies_in_order(self):
+        """Test multiple transformers chained for one field."""
+        similarity = WeightedFieldSimilarity(
+            field_weights={'name': 1.0},
+            algorithm='jaro_winkler',
+            field_transformers={'name': ['strip', 'collapse_whitespace', 'company_suffix']},
+            normalization_config={'case': 'lower'},
+        )
+
+        doc1 = {'name': '  Acme   Corp.  '}
+        doc2 = {'name': 'Acme Corporation'}
+
+        assert similarity.compute(doc1, doc2) == 1.0
+
+    def test_field_transformer_supports_dict_spec(self):
+        """Test dict transformer specs are accepted."""
+        similarity = WeightedFieldSimilarity(
+            field_weights={'phone': 1.0},
+            algorithm='jaro_winkler',
+            field_transformers={'phone': [{'name': 'digits_only'}]},
+        )
+
+        assert similarity.compute({'phone': '617-555-1234'}, {'phone': '6175551234'}) == 1.0
+
+    def test_invalid_transformer_name_raises_error(self):
+        """Test invalid transformer names fail fast."""
+        with pytest.raises(ValueError, match='Unknown transformer'):
+            WeightedFieldSimilarity(
+                field_weights={'name': 1.0},
+                algorithm='jaro_winkler',
+                field_transformers={'name': ['not_a_transformer']},
+            )
     
     def test_missing_algorithm_library(self):
         """Test error when required library is missing."""

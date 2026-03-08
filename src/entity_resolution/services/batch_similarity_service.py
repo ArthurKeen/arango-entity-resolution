@@ -65,6 +65,7 @@ class BatchSimilarityService:
         similarity_algorithm: Union[str, Callable[[str, str], float]] = "jaro_winkler",
         batch_size: int = DEFAULT_BATCH_SIZE,
         normalization_config: Optional[Dict[str, Any]] = None,
+        field_transformers: Optional[Dict[str, Any]] = None,
         progress_callback: Optional[Callable[[int, int], None]] = None
     ):
         """
@@ -90,6 +91,8 @@ class BatchSimilarityService:
                     "remove_extra_whitespace": True
                 }
                 Default: {"strip": True, "case": "upper", "remove_extra_whitespace": True}
+            field_transformers: Optional per-field transformer chains applied before
+                normalization_config.
             progress_callback: Optional callback(current, total) for progress updates
         
         Raises:
@@ -106,6 +109,7 @@ class BatchSimilarityService:
         self.field_weights = self._normalize_weights(field_weights)
         self.batch_size = batch_size
         self.progress_callback = progress_callback
+        self.field_transformers = field_transformers or {}
         
         # Set default normalization
         default_norm = {
@@ -124,7 +128,8 @@ class BatchSimilarityService:
             algorithm=similarity_algorithm,
             normalize=False,  # Already normalized above
             handle_nulls='skip',
-            normalization_config=self.normalization_config
+            normalization_config=self.normalization_config,
+            field_transformers=self.field_transformers,
         )
         self.algorithm_name = similarity_algorithm if isinstance(similarity_algorithm, str) else "custom"
         

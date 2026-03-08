@@ -25,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   adaptive threshold refresh, and MCP `find_duplicates` parameters for uncertain-pair review.
 - Cluster quality metadata for stored WCC clusters and MCP `get_clusters`, including edge count,
   similarity summaries, density, and a composite `quality_score`.
+- Config-driven similarity field transformers for normalization-heavy fields such as phones,
+  state names, street suffixes, and company suffixes in the configurable pipeline.
+- New `arango-er` commands for `status`, `clusters`, `export`, and `benchmark`.
+- JSON/CSV cluster export artifacts built from stored cluster docs and pipeline statistics.
+- A supported exact-vs-BM25 blocking benchmark workflow built on `ABEvaluationHarness`.
 
 ## [3.2.0] - 2026-03-05
 

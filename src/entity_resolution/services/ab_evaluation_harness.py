@@ -229,8 +229,16 @@ class ABEvaluationHarness:
         # Extract pair IDs
         pair_ids = set()
         for pair in candidate_pairs:
-            id_a = pair.get('record_a_id') or pair.get('_from', '').split('/')[-1]
-            id_b = pair.get('record_b_id') or pair.get('_to', '').split('/')[-1]
+            id_a = (
+                pair.get('record_a_id')
+                or pair.get('doc1_key')
+                or pair.get('_from', '').split('/')[-1]
+            )
+            id_b = (
+                pair.get('record_b_id')
+                or pair.get('doc2_key')
+                or pair.get('_to', '').split('/')[-1]
+            )
             if id_a and id_b:
                 pair_ids.add(self._canonical_pair_id(id_a, id_b))
         

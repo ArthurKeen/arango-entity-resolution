@@ -88,6 +88,7 @@ class TestSimilarityConfig:
         assert config.threshold == DEFAULT_SIMILARITY_THRESHOLD  # 0.75
         assert config.batch_size == DEFAULT_BATCH_SIZE  # 5000
         assert config.field_weights == {}
+        assert config.transformers == {}
     
     def test_from_dict(self):
         """Test creation from dictionary."""
@@ -95,7 +96,8 @@ class TestSimilarityConfig:
             'algorithm': 'levenshtein',
             'threshold': 0.8,
             'batch_size': 1000,
-            'field_weights': {'name': 0.5, 'address': 0.5}
+            'field_weights': {'name': 0.5, 'address': 0.5},
+            'transformers': {'phone': ['digits_only']},
         }
         
         config = SimilarityConfig.from_dict(config_dict)
@@ -103,6 +105,18 @@ class TestSimilarityConfig:
         assert config.algorithm == 'levenshtein'
         assert config.threshold == 0.8
         assert config.field_weights['name'] == 0.5
+        assert config.transformers['phone'] == ['digits_only']
+
+    def test_to_dict_includes_transformers(self):
+        """Test transformer config round-trips."""
+        config = SimilarityConfig(
+            field_weights={'name': 1.0},
+            transformers={'state': ['state_code']},
+        )
+
+        config_dict = config.to_dict()
+
+        assert config_dict['transformers'] == {'state': ['state_code']}
 
 
 class TestClusteringConfig:
@@ -206,7 +220,10 @@ class TestERPipelineConfig:
                 },
                 'similarity': {
                     'algorithm': 'jaro_winkler',
-                    'threshold': 0.75
+                    'threshold': 0.75,
+                    'transformers': {
+                        'phone': ['digits_only']
+                    }
                 },
                 'active_learning': {
                     'enabled': True,
@@ -220,6 +237,7 @@ class TestERPipelineConfig:
         assert config.entity_type == 'company'
         assert config.blocking.strategy == 'exact'
         assert config.similarity.algorithm == 'jaro_winkler'
+        assert config.similarity.transformers['phone'] == ['digits_only']
         assert config.active_learning.enabled is True
         assert config.active_learning.refresh_every == 10
     
@@ -296,6 +314,17 @@ entity_resolution:
         errors = config.validate()
         assert len(errors) > 0
         assert any('threshold' in e for e in errors)
+
+    def test_validate_invalid_transformers(self):
+        """Test validation catches invalid transformer container types."""
+        config = ERPipelineConfig(
+            entity_type='company',
+            collection_name='companies',
+            similarity=SimilarityConfig(transformers={'phone': 123}),
+        )
+
+        errors = config.validate()
+        assert any('similarity.transformers' in e for e in errors)
     
     def test_validate_invalid_algorithm(self):
         """Test validation catches invalid algorithm."""

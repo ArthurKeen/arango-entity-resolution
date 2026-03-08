@@ -108,6 +108,25 @@ class TestEvaluationMetrics:
         assert metrics.true_positives == 0
         assert metrics.false_positives == 0
         assert metrics.false_negatives == 2  # All true matches missed
+
+    def test_metrics_accept_doc_key_candidate_shape(self):
+        """Blocking strategies that emit doc1_key/doc2_key should be counted."""
+        harness = self._create_harness()
+
+        candidate_pairs = [
+            {"doc1_key": "1", "doc2_key": "2"},
+            {"doc1_key": "5", "doc2_key": "6"},
+        ]
+
+        metrics = harness._calculate_metrics(
+            "collect_blocking",
+            candidate_pairs,
+            execution_time=1.0,
+        )
+
+        assert metrics.true_positives == 1
+        assert metrics.false_positives == 1
+        assert metrics.recall == 0.5
     
     def test_throughput_calculation(self):
         """Test throughput calculation."""

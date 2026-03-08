@@ -42,6 +42,7 @@ class _SimilarityCfg:
     threshold: float = 0.75
     algorithm: str = "jaro_winkler"
     field_weights: dict = field(default_factory=dict)
+    transformers: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -198,6 +199,32 @@ def test_run_similarity_with_active_learning_overrides_uncertain_scores(monkeypa
     assert matches == [("a", "b", 0.92), ("c", "d", 0.9)]
     assert pipe._active_learning_stats["llm_calls"] == 1
     assert pipe._active_learning_stats["score_overrides"] == 1
+
+
+def test_run_similarity_passes_transformers_to_batch_service(monkeypatch) -> None:
+    cfg = _FakeConfig()
+    cfg.similarity.field_weights = {"phone": 1.0}
+    cfg.similarity.transformers = {"phone": ["digits_only"]}
+    pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
+
+    captured = {}
+
+    class _FakeSimilarityService:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        def compute_similarities(self, candidate_pairs, threshold):
+            assert candidate_pairs == [("a", "b")]
+            assert threshold == 0.75
+            return [("a", "b", 1.0)]
+
+    import entity_resolution.core.configurable_pipeline as mod
+
+    monkeypatch.setattr(mod, "BatchSimilarityService", _FakeSimilarityService)
+    matches = pipe._run_similarity([{"doc1_key": "a", "doc2_key": "b"}])
+
+    assert matches == [("a", "b", 1.0)]
+    assert captured["field_transformers"] == {"phone": ["digits_only"]}
 
 
 # ---------------------------------------------------------------------------

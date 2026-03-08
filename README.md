@@ -104,6 +104,36 @@ entity_resolution:
 
 When enabled, uncertain pairs are reviewed by `AdaptiveLLMVerifier`, LLM verdicts are saved to the feedback collection, and thresholds are refreshed from accumulated feedback over time.
 
+### Field Transformers for Similarity
+
+Configuration-driven pipelines can now normalize tricky fields before similarity scoring with
+per-field transformer chains. This is especially useful for phone numbers, state names,
+street suffixes, and company suffix variants.
+
+```yaml
+entity_resolution:
+  entity_type: "company"
+  collection_name: "companies"
+  blocking:
+    strategy: "exact"
+    fields: ["name", "phone"]
+  similarity:
+    algorithm: "jaro_winkler"
+    threshold: 0.85
+    field_weights:
+      name: 0.7
+      phone: 0.3
+    transformers:
+      name: ["strip", "collapse_whitespace", "company_suffix"]
+      phone: ["e164"]
+      state: ["state_code"]
+      address: ["street_suffix"]
+```
+
+Supported built-ins today: `strip`, `lower`, `upper`, `collapse_whitespace`,
+`remove_punctuation`, `digits_only`, `alphanumeric_only`, `e164`, `metaphone`,
+`state_code`, `street_suffix`, and `company_suffix`.
+
 ### Security
 - **AQL injection prevention** across all blocking strategy filter conditions — dynamic
   string values are now placed in AQL bind variables, never interpolated inline.
@@ -669,7 +699,7 @@ pip install -e ".[dev,test,mcp,llm]"
 
 | Command | Description |
 |---------|-------------|
-| `arango-er` | CLI for running ER pipelines from config files |
+| `arango-er` | CLI for pipelines, cluster inspection, export, and blocking benchmarks |
 | `arango-er-demo` | Interactive demo launcher |
 | `arango-er-mcp` | MCP server for AI agent integration |
 
@@ -681,6 +711,31 @@ After installation, you can run a complete entity resolution pipeline from the c
 
 ```bash
 arango-er run --config config/er_config.example.yaml
+```
+
+Inspect the current ER state and stored clusters without using MCP:
+
+```bash
+arango-er status --collection companies
+arango-er clusters --collection companies --limit 20
+```
+
+Export stored cluster results to analyst-friendly JSON and CSV artifacts:
+
+```bash
+arango-er export --collection companies --output-dir ./exports
+```
+
+Run the supported exact-vs-BM25 blocking benchmark workflow:
+
+```bash
+arango-er benchmark \
+  --collection companies \
+  --ground-truth ./ground_truth.json \
+  --baseline-field name \
+  --search-view companies_search \
+  --search-field name \
+  --output-dir ./benchmark_results
 ```
 
 To launch the interactive demo:

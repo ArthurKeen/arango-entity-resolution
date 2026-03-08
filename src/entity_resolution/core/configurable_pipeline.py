@@ -373,7 +373,8 @@ class ConfigurableERPipeline:
             collection=self.config.collection_name,
             field_weights=field_weights,
             similarity_algorithm=self.config.similarity.algorithm,
-            batch_size=self.config.similarity.batch_size
+            batch_size=self.config.similarity.batch_size,
+            field_transformers=getattr(self.config.similarity, "transformers", {}),
         )
 
         # BatchSimilarityService.compute_similarities expects (key1, key2) tuples;

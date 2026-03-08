@@ -132,7 +132,8 @@ class SimilarityConfig:
         algorithm: str = "jaro_winkler",
         threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
         batch_size: int = DEFAULT_BATCH_SIZE,
-        field_weights: Optional[Dict[str, float]] = None
+        field_weights: Optional[Dict[str, float]] = None,
+        transformers: Optional[Dict[str, Any]] = None,
     ):
         """
         Initialize similarity configuration.
@@ -142,11 +143,14 @@ class SimilarityConfig:
             threshold: Minimum similarity threshold (0.0-1.0). Default DEFAULT_SIMILARITY_THRESHOLD (0.75).
             batch_size: Batch size for similarity computation. Default DEFAULT_BATCH_SIZE (5000).
             field_weights: Dictionary of field names to weights
+            transformers: Optional per-field transformer registry applied before
+                similarity scoring.
         """
         self.algorithm = algorithm
         self.threshold = threshold
         self.batch_size = batch_size
         self.field_weights = field_weights or {}
+        self.transformers = transformers or {}
     
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> 'SimilarityConfig':
@@ -155,7 +159,8 @@ class SimilarityConfig:
             algorithm=config_dict.get('algorithm', 'jaro_winkler'),
             threshold=config_dict.get('threshold', DEFAULT_SIMILARITY_THRESHOLD),
             batch_size=config_dict.get('batch_size', DEFAULT_BATCH_SIZE),
-            field_weights=config_dict.get('field_weights', {})
+            field_weights=config_dict.get('field_weights', {}),
+            transformers=config_dict.get('transformers', {})
         )
     
     def to_dict(self) -> Dict[str, Any]:
@@ -164,7 +169,8 @@ class SimilarityConfig:
             'algorithm': self.algorithm,
             'threshold': self.threshold,
             'batch_size': self.batch_size,
-            'field_weights': self.field_weights
+            'field_weights': self.field_weights,
+            'transformers': self.transformers,
         }
 
 
@@ -614,6 +620,17 @@ class ERPipelineConfig:
         if self.similarity.field_weights:
             if not all(w >= 0 for w in self.similarity.field_weights.values()):
                 errors.append("similarity.field_weights must be non-negative")
+        if not isinstance(self.similarity.transformers, dict):
+            errors.append("similarity.transformers must be a dictionary")
+        else:
+            for field, spec in self.similarity.transformers.items():
+                if not isinstance(field, str) or not field:
+                    errors.append("similarity.transformers keys must be non-empty strings")
+                    continue
+                if not isinstance(spec, (str, dict, list)):
+                    errors.append(
+                        f"similarity.transformers['{field}'] must be a string, dict, or list"
+                    )
         
         # Validate clustering
         if self.clustering.algorithm not in ('wcc',):

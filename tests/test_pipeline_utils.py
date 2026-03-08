@@ -19,6 +19,13 @@ class FakeCursor(list):
     """AQL execute() returns an iterable; list is enough for our usage."""
 
 
+class NonBooleanCursor(list):
+    """Mimic python-arango cursors that do not support truthiness checks."""
+
+    def __bool__(self) -> bool:  # pragma: no cover - exercised indirectly
+        raise TypeError("cursor count not enabled")
+
+
 @dataclass
 class AqlCall:
     query: str
@@ -312,4 +319,79 @@ def test_get_pipeline_statistics_empty_clusters_sets_zero_values(monkeypatch: py
     assert stats["clusters"]["avg_size"] == 0
     assert stats["clusters"]["size_distribution"] == {}
     assert stats["entities"]["clustering_rate"] == 0
+
+
+def test_get_pipeline_statistics_does_not_require_cursor_truthiness(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        pipeline_utils,
+        "count_inferred_edges",
+        lambda db, edge_collection="similarTo", confidence_threshold=None: {
+            "total_edges": 1,
+            "inferred_edges": 0,
+            "direct_edges": 1,
+            "avg_confidence": 0.9,
+            "confidence_distribution": {},
+            "timestamp": "t",
+        },
+    )
+
+    def dispatch(query: str, bind_vars: Optional[Dict[str, Any]]) -> Iterable[Any]:
+        if "RETURN SUM(cluster.size)" in query:
+            return NonBooleanCursor([2])
+        if "avg_size = AVG" in query and "max_size = MAX" in query:
+            return NonBooleanCursor([{"avg_size": 2.0, "max_size": 2}])
+        if "LET size_bucket" in query:
+            return NonBooleanCursor([{"bucket": "2", "count": 1}])
+        return NonBooleanCursor([])
+
+    db = FakeDB(
+        collections={
+            "v": FakeCollection(count_value=2),
+            "entity_clusters": FakeCollection(count_value=1),
+            "similarTo": FakeCollection(count_value=1),
+        },
+        aql=FakeAQL(dispatch=dispatch),
+    )
+
+    stats = pipeline_utils.get_pipeline_statistics(db, vertex_collection="v")
+    assert stats["entities"]["clustered"] == 2
+    assert stats["clusters"]["avg_size"] == 2.0
+
+
+def test_get_pipeline_statistics_treats_null_cluster_aggregates_as_zero(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        pipeline_utils,
+        "count_inferred_edges",
+        lambda db, edge_collection="similarTo", confidence_threshold=None: {
+            "total_edges": 0,
+            "inferred_edges": 0,
+            "direct_edges": 0,
+            "avg_confidence": None,
+            "confidence_distribution": {},
+            "timestamp": "t",
+        },
+    )
+
+    def dispatch(query: str, bind_vars: Optional[Dict[str, Any]]) -> Iterable[Any]:
+        if "RETURN SUM(cluster.size)" in query:
+            return [None]
+        if "avg_size = AVG" in query and "max_size = MAX" in query:
+            return [{"avg_size": None, "max_size": None}]
+        if "LET size_bucket" in query:
+            return []
+        return []
+
+    db = FakeDB(
+        collections={
+            "v": FakeCollection(count_value=3),
+            "entity_clusters": FakeCollection(count_value=1),
+            "similarTo": FakeCollection(count_value=0),
+        },
+        aql=FakeAQL(dispatch=dispatch),
+    )
+
+    stats = pipeline_utils.get_pipeline_statistics(db, vertex_collection="v")
+    assert stats["entities"]["clustered"] == 0
+    assert stats["clusters"]["avg_size"] == 0
+    assert stats["clusters"]["max_size"] == 0
 

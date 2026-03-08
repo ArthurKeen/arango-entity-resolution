@@ -8,6 +8,7 @@ similarity algorithms and configurable field weights.
 
 from typing import Dict, Any, Callable, Optional, Union
 import logging
+import re
 
 # Similarity algorithms
 try:
@@ -59,6 +60,20 @@ class WeightedFieldSimilarity:
     
     # Null handling strategies
     NULL_STRATEGIES = {'skip', 'zero', 'default'}
+    VALID_TRANSFORMERS = {
+        'strip',
+        'lower',
+        'upper',
+        'collapse_whitespace',
+        'remove_punctuation',
+        'digits_only',
+        'alphanumeric_only',
+        'e164',
+        'metaphone',
+        'state_code',
+        'street_suffix',
+        'company_suffix',
+    }
     
     def __init__(
         self,
@@ -66,7 +81,8 @@ class WeightedFieldSimilarity:
         algorithm: Union[str, Callable[[str, str], float]] = "jaro_winkler",
         normalize: bool = True,
         handle_nulls: str = "skip",
-        normalization_config: Optional[Dict[str, Any]] = None
+        normalization_config: Optional[Dict[str, Any]] = None,
+        field_transformers: Optional[Dict[str, Union[str, list[Union[str, Dict[str, Any]]]]]] = None,
     ):
         """
         Initialize weighted field similarity.
@@ -93,6 +109,13 @@ class WeightedFieldSimilarity:
                     "remove_extra_whitespace": True
                 }
                 Default: {"strip": True, "case": "upper", "remove_extra_whitespace": True}
+            field_transformers: Optional per-field transformer chains applied before
+                normalization_config. Example:
+                {
+                    "phone": ["digits_only"],
+                    "state": ["state_code"],
+                    "name": ["strip", "collapse_whitespace"]
+                }
         
         Raises:
             ValueError: If configuration is invalid
@@ -129,6 +152,7 @@ class WeightedFieldSimilarity:
             "remove_punctuation": False
         }
         self.normalization_config = {**default_norm, **(normalization_config or {})}
+        self.field_transformers = self._normalize_field_transformers(field_transformers or {})
         
         # Set up similarity algorithm
         self.similarity_fn = self._setup_algorithm(algorithm)
@@ -178,8 +202,8 @@ class WeightedFieldSimilarity:
                 # else: default value handling could go here in future
         
             # Normalize values
-            val1_norm = self._normalize_value(str(val1) if val1 is not None else '')
-            val2_norm = self._normalize_value(str(val2) if val2 is not None else '')
+            val1_norm = self._normalize_value(field, str(val1) if val1 is not None else '')
+            val2_norm = self._normalize_value(field, str(val2) if val2 is not None else '')
             
             if not val1_norm or not val2_norm:
                 if self.handle_nulls == "skip":
@@ -246,8 +270,8 @@ class WeightedFieldSimilarity:
                     continue
             
             # Normalize values
-            val1_norm = self._normalize_value(str(val1) if val1 is not None else '')
-            val2_norm = self._normalize_value(str(val2) if val2 is not None else '')
+            val1_norm = self._normalize_value(field, str(val1) if val1 is not None else '')
+            val2_norm = self._normalize_value(field, str(val2) if val2 is not None else '')
             
             if not val1_norm or not val2_norm:
                 if self.handle_nulls == "skip":
@@ -280,16 +304,19 @@ class WeightedFieldSimilarity:
             'weighted_score': weighted_score
         }
     
-    def _normalize_value(self, value: str) -> str:
+    def _normalize_value(self, field: str, value: str) -> str:
         """
         Normalize a string value according to configuration.
         
         Args:
+            field: Field name being transformed
             value: Input string
         
         Returns:
             Normalized string
         """
+        value = self._apply_field_transformers(field, value)
+
         if self.normalization_config.get('strip'):
             value = value.strip()
         
@@ -303,10 +330,213 @@ class WeightedFieldSimilarity:
             value = ' '.join(value.split())
         
         if self.normalization_config.get('remove_punctuation'):
-            import string
-            value = value.translate(str.maketrans('', '', string.punctuation))
+            value = self._remove_punctuation(value)
         
         return value
+
+    def _normalize_field_transformers(
+        self,
+        field_transformers: Dict[str, Union[str, list[Union[str, Dict[str, Any]]]]],
+    ) -> Dict[str, list[Dict[str, Any]]]:
+        """Normalize transformer config into a predictable internal shape."""
+        normalized: Dict[str, list[Dict[str, Any]]] = {}
+        for field, spec in field_transformers.items():
+            if isinstance(spec, (str, dict)):
+                items = [spec]
+            elif isinstance(spec, list):
+                items = spec
+            else:
+                raise ValueError(f"field_transformers[{field!r}] must be a string, dict, or list")
+
+            normalized[field] = []
+            for item in items:
+                if isinstance(item, str):
+                    name = item
+                    params: Dict[str, Any] = {}
+                elif isinstance(item, dict):
+                    name = item.get("name")
+                    if not isinstance(name, str) or not name:
+                        raise ValueError(
+                            f"field_transformers[{field!r}] dict entries must include a non-empty 'name'"
+                        )
+                    params = {k: v for k, v in item.items() if k != "name"}
+                else:
+                    raise ValueError(
+                        f"field_transformers[{field!r}] entries must be strings or dicts"
+                    )
+
+                if name not in self.VALID_TRANSFORMERS:
+                    opts = ", ".join(sorted(self.VALID_TRANSFORMERS))
+                    raise ValueError(f"Unknown transformer: {name}. Supported: {opts}")
+                normalized[field].append({"name": name, "params": params})
+        return normalized
+
+    def _apply_field_transformers(self, field: str, value: str) -> str:
+        """Apply configured field-specific transformers in order."""
+        transformed = value
+        for transformer in self.field_transformers.get(field, []):
+            transformed = self._apply_transformer(
+                transformer["name"],
+                transformed,
+                transformer["params"],
+            )
+        return transformed
+
+    def _apply_transformer(self, name: str, value: str, params: Dict[str, Any]) -> str:
+        """Apply a single named transformer."""
+        if name == "strip":
+            return value.strip()
+        if name == "lower":
+            return value.lower()
+        if name == "upper":
+            return value.upper()
+        if name == "collapse_whitespace":
+            return " ".join(value.split())
+        if name == "remove_punctuation":
+            return self._remove_punctuation(value)
+        if name == "digits_only":
+            return "".join(ch for ch in value if ch.isdigit())
+        if name == "alphanumeric_only":
+            return "".join(ch for ch in value if ch.isalnum())
+        if name == "e164":
+            return self._normalize_e164(value)
+        if name == "metaphone":
+            if not JELLYFISH_AVAILABLE:
+                raise ImportError("jellyfish library required for metaphone transformer")
+            return jellyfish.metaphone(value)
+        if name == "state_code":
+            return self._normalize_state_code(value)
+        if name == "street_suffix":
+            return self._normalize_street_suffix(value)
+        if name == "company_suffix":
+            return self._normalize_company_suffix(value)
+        raise ValueError(f"Unsupported transformer: {name}")
+
+    @staticmethod
+    def _remove_punctuation(value: str) -> str:
+        """Remove punctuation characters from a string."""
+        import string
+
+        return value.translate(str.maketrans('', '', string.punctuation))
+
+    def _normalize_e164(self, value: str) -> str:
+        """Basic phone normalization for matching-oriented E.164 formatting."""
+        digits = "".join(ch for ch in value if ch.isdigit())
+        if not digits:
+            return ""
+        if len(digits) == 10:
+            return f"+1{digits}"
+        if len(digits) == 11 and digits.startswith("1"):
+            return f"+{digits}"
+        return f"+{digits}"
+
+    def _normalize_state_code(self, value: str) -> str:
+        """Normalize US state names/abbreviations to a two-letter code when known."""
+        state_lookup = {
+            "ALABAMA": "AL", "AL": "AL",
+            "ALASKA": "AK", "AK": "AK",
+            "ARIZONA": "AZ", "AZ": "AZ",
+            "ARKANSAS": "AR", "AR": "AR",
+            "CALIFORNIA": "CA", "CA": "CA",
+            "COLORADO": "CO", "CO": "CO",
+            "CONNECTICUT": "CT", "CT": "CT",
+            "DELAWARE": "DE", "DE": "DE",
+            "DISTRICT OF COLUMBIA": "DC", "DC": "DC",
+            "FLORIDA": "FL", "FL": "FL",
+            "GEORGIA": "GA", "GA": "GA",
+            "HAWAII": "HI", "HI": "HI",
+            "IDAHO": "ID", "ID": "ID",
+            "ILLINOIS": "IL", "IL": "IL",
+            "INDIANA": "IN", "IN": "IN",
+            "IOWA": "IA", "IA": "IA",
+            "KANSAS": "KS", "KS": "KS",
+            "KENTUCKY": "KY", "KY": "KY",
+            "LOUISIANA": "LA", "LA": "LA",
+            "MAINE": "ME", "ME": "ME",
+            "MARYLAND": "MD", "MD": "MD",
+            "MASSACHUSETTS": "MA", "MA": "MA",
+            "MICHIGAN": "MI", "MI": "MI",
+            "MINNESOTA": "MN", "MN": "MN",
+            "MISSISSIPPI": "MS", "MS": "MS",
+            "MISSOURI": "MO", "MO": "MO",
+            "MONTANA": "MT", "MT": "MT",
+            "NEBRASKA": "NE", "NE": "NE",
+            "NEVADA": "NV", "NV": "NV",
+            "NEW HAMPSHIRE": "NH", "NH": "NH",
+            "NEW JERSEY": "NJ", "NJ": "NJ",
+            "NEW MEXICO": "NM", "NM": "NM",
+            "NEW YORK": "NY", "NY": "NY",
+            "NORTH CAROLINA": "NC", "NC": "NC",
+            "NORTH DAKOTA": "ND", "ND": "ND",
+            "OHIO": "OH", "OH": "OH",
+            "OKLAHOMA": "OK", "OK": "OK",
+            "OREGON": "OR", "OR": "OR",
+            "PENNSYLVANIA": "PA", "PA": "PA",
+            "RHODE ISLAND": "RI", "RI": "RI",
+            "SOUTH CAROLINA": "SC", "SC": "SC",
+            "SOUTH DAKOTA": "SD", "SD": "SD",
+            "TENNESSEE": "TN", "TN": "TN",
+            "TEXAS": "TX", "TX": "TX",
+            "UTAH": "UT", "UT": "UT",
+            "VERMONT": "VT", "VT": "VT",
+            "VIRGINIA": "VA", "VA": "VA",
+            "WASHINGTON": "WA", "WA": "WA",
+            "WEST VIRGINIA": "WV", "WV": "WV",
+            "WISCONSIN": "WI", "WI": "WI",
+            "WYOMING": "WY", "WY": "WY",
+        }
+        normalized = self._remove_punctuation(value).strip().upper()
+        normalized = " ".join(normalized.split())
+        return state_lookup.get(normalized, normalized)
+
+    def _normalize_street_suffix(self, value: str) -> str:
+        """Normalize common street suffix variants."""
+        suffix_map = {
+            "ST": "street",
+            "STREET": "street",
+            "RD": "road",
+            "ROAD": "road",
+            "AVE": "avenue",
+            "AV": "avenue",
+            "AVENUE": "avenue",
+            "BLVD": "boulevard",
+            "BOULEVARD": "boulevard",
+            "DR": "drive",
+            "DRIVE": "drive",
+            "LN": "lane",
+            "LANE": "lane",
+        }
+        cleaned = self._remove_punctuation(value).strip()
+        if not cleaned:
+            return cleaned
+        parts = cleaned.split()
+        last = parts[-1].upper()
+        if last in suffix_map:
+            parts[-1] = suffix_map[last]
+        return " ".join(parts)
+
+    def _normalize_company_suffix(self, value: str) -> str:
+        """Normalize common company suffix variants."""
+        suffix_map = {
+            "CO": "company",
+            "COMPANY": "company",
+            "CORP": "corporation",
+            "CORPORATION": "corporation",
+            "INC": "incorporated",
+            "INCORPORATED": "incorporated",
+            "LLC": "llc",
+            "LTD": "limited",
+            "LIMITED": "limited",
+        }
+        cleaned = self._remove_punctuation(value).strip()
+        if not cleaned:
+            return cleaned
+        parts = cleaned.split()
+        last = parts[-1].upper()
+        if last in suffix_map:
+            parts[-1] = suffix_map[last]
+        normalized = " ".join(parts)
+        return re.sub(r"\s+", " ", normalized).strip()
     
     def _setup_algorithm(
         self,

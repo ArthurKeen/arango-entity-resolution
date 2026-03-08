@@ -444,7 +444,10 @@ def get_pipeline_statistics(
                 RETURN SUM(cluster.size)
             """
             cursor = db.aql.execute(query)
-            clustered_entities = list(cursor)[0] if cursor else 0
+            cluster_sizes = list(cursor)
+            clustered_entities = cluster_sizes[0] if cluster_sizes else 0
+            if clustered_entities is None:
+                clustered_entities = 0
         else:
             clustered_entities = 0
         
@@ -482,7 +485,10 @@ def get_pipeline_statistics(
                 RETURN {{avg_size, max_size}}
             """
             cursor = db.aql.execute(query)
-            cluster_agg = list(cursor)[0] if cursor else {}
+            cluster_agg_rows = list(cursor)
+            cluster_agg = cluster_agg_rows[0] if cluster_agg_rows else {}
+            avg_size = cluster_agg.get('avg_size') or 0
+            max_size = cluster_agg.get('max_size') or 0
             
             # Size distribution
             query = f"""
@@ -503,8 +509,8 @@ def get_pipeline_statistics(
             
             stats['clusters'] = {
                 'total': total_clusters,
-                'avg_size': round(cluster_agg.get('avg_size', 0), 2),
-                'max_size': cluster_agg.get('max_size', 0),
+                'avg_size': round(avg_size, 2),
+                'max_size': max_size,
                 'size_distribution': size_distribution
             }
         else:
