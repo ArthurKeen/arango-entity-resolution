@@ -102,7 +102,12 @@ class EmbeddingService:
         embedding_field_coarse: str = DEFAULT_EMBEDDING_FIELD_COARSE,
         embedding_field_fine: str = DEFAULT_EMBEDDING_FIELD_FINE,
         profile: str = 'default',
-        serializer: Optional[TupleEmbeddingSerializer] = None
+        serializer: Optional[TupleEmbeddingSerializer] = None,
+        batch_size: int = DEFAULT_BATCH_SIZE,
+        runtime: str = 'pytorch',
+        provider: str = 'cpu',
+        provider_options: Optional[Dict[str, Any]] = None,
+        onnx_model_path: Optional[str] = None,
     ):
         """
         Initialize the embedding service
@@ -110,7 +115,7 @@ class EmbeddingService:
         Args:
             model_name: Name of sentence-transformers model (default: all-MiniLM-L6-v2)
                 Used for legacy mode or as fine model in multi-resolution mode
-            device: Device for inference ('cpu' or 'cuda')
+            device: Device for pytorch inference ('cpu', 'cuda', 'mps', or 'auto')
             embedding_field: Field name for storing embeddings in legacy mode 
                 (default: 'embedding_vector')
             db_manager: Optional DatabaseManager instance for database operations
@@ -126,12 +131,23 @@ class EmbeddingService:
             profile: Profile name for metadata tracking (default: 'default')
             serializer: Optional TupleEmbeddingSerializer for deterministic serialization.
                 If None, uses default text concatenation (backward compatible).
+            batch_size: Default batch size used by batch embedding helpers.
+            runtime: Embedding runtime ('pytorch' only in EmbeddingService).
+            provider: Provider hint for metadata/forward compatibility.
+            provider_options: Optional provider options for runtime backends.
+            onnx_model_path: Optional ONNX path for runtime migration metadata.
             
         Raises:
             ImportError: If sentence-transformers is not installed
             ValueError: If multi_resolution_mode=True but coarse_model_name is None
             ValueError: If model_name is not supported
         """
+        if runtime != 'pytorch':
+            raise ValueError(
+                "EmbeddingService currently supports runtime='pytorch' only. "
+                "Use OnnxRuntimeEmbeddingBackend for runtime='onnxruntime'."
+            )
+
         if not SENTENCE_TRANSFORMERS_AVAILABLE:
             raise ImportError(
                 "sentence-transformers is required for EmbeddingService. "
@@ -163,7 +179,14 @@ class EmbeddingService:
                 )
         
         self.multi_resolution_mode = multi_resolution_mode
-        self.device = device
+        self.runtime = runtime
+        self.requested_device = device
+        self.device = self.resolve_device(device)
+        self.requested_provider = provider
+        self.resolved_provider = "pytorch"
+        self.provider_options = provider_options or {}
+        self.onnx_model_path = onnx_model_path
+        self.batch_size = batch_size
         self.profile = profile
         self.db_manager = db_manager or DatabaseManager()
         self.serializer = serializer  # Optional tuple serializer
@@ -197,7 +220,13 @@ class EmbeddingService:
         self.logger = logging.getLogger(__name__)
         mode_str = "multi-resolution" if multi_resolution_mode else "legacy"
         self.logger.info(
-            f"Initialized EmbeddingService in {mode_str} mode with model={model_name}, device={device}"
+            "Initialized EmbeddingService in %s mode with model=%s, runtime=%s, "
+            "requested_device=%s, resolved_device=%s",
+            mode_str,
+            model_name,
+            self.runtime,
+            self.requested_device,
+            self.device,
         )
         if multi_resolution_mode:
             self.logger.info(
@@ -205,6 +234,53 @@ class EmbeddingService:
             )
         if serializer:
             self.logger.info("Using TupleEmbeddingSerializer for deterministic serialization")
+
+    def resolve_device(self, requested: str) -> str:
+        """
+        Resolve requested pytorch device to a concrete runtime device.
+
+        Resolution order for ``requested='auto'`` is ``cuda -> mps -> cpu``.
+        """
+        if requested != 'auto':
+            return requested
+
+        try:
+            import torch
+        except ImportError:
+            return 'cpu'
+
+        if torch.cuda.is_available():
+            return 'cuda'
+        if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            return 'mps'
+        return 'cpu'
+
+    def get_runtime_health(self) -> Dict[str, Any]:
+        """
+        Return lightweight runtime diagnostics without loading embedding models.
+        """
+        health: Dict[str, Any] = {
+            'runtime': self.runtime,
+            'sentence_transformers_available': SENTENCE_TRANSFORMERS_AVAILABLE,
+            'requested_device': self.requested_device,
+            'resolved_device': self.device,
+            'requested_provider': self.requested_provider,
+            'resolved_provider': self.resolved_provider,
+            'batch_size': self.batch_size,
+            'ok': True,
+        }
+        try:
+            import torch
+            health['torch_available'] = True
+            health['cuda_available'] = bool(torch.cuda.is_available())
+            health['mps_available'] = bool(
+                hasattr(torch.backends, 'mps') and torch.backends.mps.is_available()
+            )
+        except ImportError:
+            health['torch_available'] = False
+            health['cuda_available'] = False
+            health['mps_available'] = False
+        return health
     
     @property
     def model(self) -> 'SentenceTransformer':
@@ -404,7 +480,7 @@ class EmbeddingService:
         self,
         records: List[Dict[str, Any]],
         text_fields: Optional[List[str]] = None,
-        batch_size: int = DEFAULT_BATCH_SIZE,
+        batch_size: Optional[int] = None,
         show_progress: bool = False
     ) -> np.ndarray:
         """
@@ -416,7 +492,7 @@ class EmbeddingService:
         Args:
             records: List of database records
             text_fields: Optional list of fields to use for embedding
-            batch_size: Batch size for processing (default: 32)
+            batch_size: Batch size for processing. Defaults to service-level batch_size.
             show_progress: Whether to show progress bar
             
         Returns:
@@ -453,11 +529,12 @@ class EmbeddingService:
         
         # Convert all records to text
         texts = [self._record_to_text(record, text_fields) for record in records]
+        effective_batch_size = batch_size or self.batch_size
         
         # Generate embeddings in batch
         embeddings = self.model.encode(
             texts,
-            batch_size=batch_size,
+            batch_size=effective_batch_size,
             show_progress_bar=show_progress,
             convert_to_numpy=True
         )
@@ -468,7 +545,7 @@ class EmbeddingService:
         self,
         records: List[Dict[str, Any]],
         text_fields: Optional[List[str]] = None,
-        batch_size: int = DEFAULT_BATCH_SIZE,
+        batch_size: Optional[int] = None,
         show_progress: bool = False
     ) -> np.ndarray:
         """
@@ -477,7 +554,7 @@ class EmbeddingService:
         Args:
             records: List of database records
             text_fields: Optional list of fields to use for embedding
-            batch_size: Batch size for processing (default: 32)
+            batch_size: Batch size for processing. Defaults to service-level batch_size.
             show_progress: Whether to show progress bar
             
         Returns:
@@ -499,9 +576,10 @@ class EmbeddingService:
             return np.array([])
         
         texts = [self._record_to_text(record, text_fields) for record in records]
+        effective_batch_size = batch_size or self.batch_size
         embeddings = self.coarse_model.encode(
             texts,
-            batch_size=batch_size,
+            batch_size=effective_batch_size,
             show_progress_bar=show_progress,
             convert_to_numpy=True
         )
@@ -512,7 +590,7 @@ class EmbeddingService:
         self,
         records: List[Dict[str, Any]],
         text_fields: Optional[List[str]] = None,
-        batch_size: int = DEFAULT_BATCH_SIZE,
+        batch_size: Optional[int] = None,
         show_progress: bool = False
     ) -> np.ndarray:
         """
@@ -521,7 +599,7 @@ class EmbeddingService:
         Args:
             records: List of database records
             text_fields: Optional list of fields to use for embedding
-            batch_size: Batch size for processing (default: 32)
+            batch_size: Batch size for processing. Defaults to service-level batch_size.
             show_progress: Whether to show progress bar
             
         Returns:
@@ -543,9 +621,10 @@ class EmbeddingService:
             return np.array([])
         
         texts = [self._record_to_text(record, text_fields) for record in records]
+        effective_batch_size = batch_size or self.batch_size
         embeddings = self.fine_model.encode(
             texts,
-            batch_size=batch_size,
+            batch_size=effective_batch_size,
             show_progress_bar=show_progress,
             convert_to_numpy=True
         )
@@ -605,7 +684,12 @@ class EmbeddingService:
                 'dim_fine': self.fine_embedding_dim,
                 'timestamp': datetime.utcnow().isoformat(),
                 'version': DEFAULT_METADATA_VERSION,
-                'profile': self.profile
+                'profile': self.profile,
+                'runtime': self.runtime,
+                'requested_device': self.requested_device,
+                'resolved_device': self.device,
+                'requested_provider': self.requested_provider,
+                'resolved_provider': self.resolved_provider,
             }
             
             # Prepare batch update for multi-resolution mode
@@ -635,7 +719,12 @@ class EmbeddingService:
                 'dim': self.embedding_dim,
                 'timestamp': datetime.utcnow().isoformat(),
                 'version': LEGACY_METADATA_VERSION,
-                'profile': self.profile
+                'profile': self.profile,
+                'runtime': self.runtime,
+                'requested_device': self.requested_device,
+                'resolved_device': self.device,
+                'requested_provider': self.requested_provider,
+                'resolved_provider': self.resolved_provider,
             }
             
             # Prepare batch update for legacy mode

@@ -18,6 +18,7 @@ from entity_resolution.config.er_config import (
     BlockingConfig,
     SimilarityConfig,
     ClusteringConfig,
+    EmbeddingConfig,
     ActiveLearningConfig,
 )
 
@@ -73,6 +74,30 @@ class TestBlockingConfig:
         
         assert config_dict['strategy'] == 'exact'
         assert config_dict['max_block_size'] == 100
+
+    def test_from_dict_vector_fields(self):
+        config = BlockingConfig.from_dict({
+            'strategy': 'vector',
+            'embedding_field': 'embedding_vector_fine',
+            'similarity_threshold': 0.82,
+            'limit_per_entity': 15,
+        })
+        assert config.strategy == 'vector'
+        assert config.embedding_field == 'embedding_vector_fine'
+        assert config.similarity_threshold == 0.82
+        assert config.limit_per_entity == 15
+
+    def test_from_dict_lsh_fields(self):
+        config = BlockingConfig.from_dict({
+            'strategy': 'lsh',
+            'num_hash_tables': 12,
+            'num_hyperplanes': 10,
+            'random_seed': 7,
+        })
+        assert config.strategy == 'lsh'
+        assert config.num_hash_tables == 12
+        assert config.num_hyperplanes == 10
+        assert config.random_seed == 7
 
 
 class TestSimilarityConfig:
@@ -145,6 +170,87 @@ class TestClusteringConfig:
         assert config.min_cluster_size == 3
         assert config.store_results is False
         assert config.wcc_algorithm == 'aql_graph'
+
+
+class TestEmbeddingConfig:
+    """Test cases for EmbeddingConfig."""
+
+    def test_initialization_defaults(self):
+        config = EmbeddingConfig()
+        assert config.model_name == 'all-MiniLM-L6-v2'
+        assert config.runtime == 'pytorch'
+        assert config.device == 'cpu'
+        assert config.provider == 'cpu'
+        assert config.provider_options == {}
+        assert config.onnx_model_path is None
+        assert config.startup_mode == 'permissive'
+        assert config.coreml_use_basic_optimizations is True
+        assert config.coreml_warmup_runs == 10
+        assert config.coreml_max_p95_latency_ms == 65.0
+        assert config.coreml_warmup_batch_size == 8
+        assert config.coreml_warmup_seq_len == 128
+
+    def test_from_dict_with_runtime_provider(self):
+        config = EmbeddingConfig.from_dict({
+            'model_name': 'my-model',
+            'runtime': 'onnxruntime',
+            'provider': 'auto',
+            'provider_options': {'arena_extend_strategy': 'kSameAsRequested'},
+            'onnx_model_path': '/tmp/model.onnx',
+            'batch_size': 64,
+        })
+        assert config.runtime == 'onnxruntime'
+        assert config.provider == 'auto'
+        assert config.provider_options['arena_extend_strategy'] == 'kSameAsRequested'
+        assert config.onnx_model_path == '/tmp/model.onnx'
+        assert config.batch_size == 64
+
+    def test_to_dict_roundtrip_includes_new_fields(self):
+        config = EmbeddingConfig(
+            runtime='onnxruntime',
+            provider='cuda',
+            provider_options={'foo': 'bar'},
+            onnx_model_path='/models/embed.onnx',
+            startup_mode='strict',
+        )
+        out = config.to_dict()
+        assert out['runtime'] == 'onnxruntime'
+        assert out['provider'] == 'cuda'
+        assert out['provider_options'] == {'foo': 'bar'}
+        assert out['onnx_model_path'] == '/models/embed.onnx'
+        assert out['startup_mode'] == 'strict'
+        assert out['coreml_use_basic_optimizations'] is True
+        assert out['coreml_warmup_runs'] == 10
+        assert out['coreml_max_p95_latency_ms'] == 65.0
+
+    def test_validate_accepts_auto_and_mps(self):
+        config = EmbeddingConfig(device='auto')
+        assert config.validate() == []
+        config = EmbeddingConfig(device='mps')
+        assert config.validate() == []
+
+    def test_validate_rejects_onnxruntime_without_model_path(self):
+        config = EmbeddingConfig(runtime='onnxruntime')
+        errors = config.validate()
+        assert any('onnx_model_path' in e for e in errors)
+
+    def test_validate_rejects_unknown_startup_mode(self):
+        config = EmbeddingConfig(startup_mode='hard_fail')
+        errors = config.validate()
+        assert any('startup_mode' in e for e in errors)
+
+    def test_validate_rejects_invalid_coreml_warmup_settings(self):
+        config = EmbeddingConfig(
+            coreml_warmup_runs=-1,
+            coreml_max_p95_latency_ms=0,
+            coreml_warmup_batch_size=0,
+            coreml_warmup_seq_len=0,
+        )
+        errors = config.validate()
+        assert any('coreml_warmup_runs' in e for e in errors)
+        assert any('coreml_max_p95_latency_ms' in e for e in errors)
+        assert any('coreml_warmup_batch_size' in e for e in errors)
+        assert any('coreml_warmup_seq_len' in e for e in errors)
 
 
 class TestActiveLearningConfig:
@@ -337,6 +443,21 @@ entity_resolution:
         errors = config.validate()
         assert len(errors) > 0
         assert any('algorithm' in e for e in errors)
+
+    def test_validate_accepts_vector_and_lsh_blocking(self):
+        vector_cfg = ERPipelineConfig(
+            entity_type='company',
+            collection_name='companies',
+            blocking=BlockingConfig(strategy='vector'),
+        )
+        assert vector_cfg.validate() == []
+
+        lsh_cfg = ERPipelineConfig(
+            entity_type='company',
+            collection_name='companies',
+            blocking=BlockingConfig(strategy='lsh'),
+        )
+        assert lsh_cfg.validate() == []
     
     def test_to_dict(self):
         """Test conversion to dictionary."""
