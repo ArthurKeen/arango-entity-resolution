@@ -12,7 +12,21 @@ from entity_resolution.etl.arangoimport import (
 
 
 class TestGetArangoimportConnectionArgs:
-    def test_defaults(self):
+    def test_defaults(self, monkeypatch):
+        # Ensure inherited test-runner env does not override defaults.
+        for key in (
+            "ARANGO_HOST",
+            "ARANGO_DB_HOST",
+            "ARANGO_PORT",
+            "ARANGO_DB_PORT",
+            "ARANGO_USERNAME",
+            "ARANGO_ROOT_USERNAME",
+            "ARANGO_PASSWORD",
+            "ARANGO_ROOT_PASSWORD",
+            "ARANGO_DATABASE",
+            "ARANGO_DB_NAME",
+        ):
+            monkeypatch.delenv(key, raising=False)
         args = get_arangoimport_connection_args()
         assert args["endpoint"] == "http://localhost:8529"
         assert args["username"] == "root"
@@ -31,7 +45,21 @@ class TestGetArangoimportConnectionArgs:
         assert args["password"] == "secret"
         assert args["database"] == "mydb"
 
-    def test_from_db_object(self):
+    def test_from_db_object(self, monkeypatch):
+        # Verify db-derived values without environment precedence.
+        for key in (
+            "ARANGO_HOST",
+            "ARANGO_DB_HOST",
+            "ARANGO_PORT",
+            "ARANGO_DB_PORT",
+            "ARANGO_USERNAME",
+            "ARANGO_ROOT_USERNAME",
+            "ARANGO_PASSWORD",
+            "ARANGO_ROOT_PASSWORD",
+            "ARANGO_DATABASE",
+            "ARANGO_DB_NAME",
+        ):
+            monkeypatch.delenv(key, raising=False)
         db = MagicMock()
         db.name = "testdb"
         db.connection.host = "remotehost"
