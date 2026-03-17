@@ -26,9 +26,11 @@ Welcome to the ArangoDB Entity Resolution documentation!
 
 ### Development
 - [Enhancement Plan](guides/LIBRARY_ENHANCEMENT_PLAN.md) - Historical formalization plan
+- [Next Release Brief](development/NEXT_RELEASE_IMPLEMENTATION_BRIEF.md) - Reconstructed roadmap for planned post-`3.2.3` work
 - [GAE Enhancement Path](development/GAE_ENHANCEMENT_PATH.md) - Future graph engine support
 - [Batch vs Bulk Processing](development/BATCH_VS_BULK_PROCESSING.md) - Performance patterns
 - [Blocking Benchmarks](development/BLOCKING_BENCHMARKS.md) - Supported evaluator workflow
+- [Runtime Health CI Runbook](development/RUNTIME_HEALTH_CI_RUNBOOK.md) - Runtime baseline, compare, and gate workflows
 - [Release Checklist](development/RELEASE_CHECKLIST.md) - Steps for GitHub Release and PyPI publish
 - [Project Evolution](development/PROJECT_EVOLUTION.md) - Historical project evolution notes
 - [Git Hooks](development/GIT_HOOKS.md) - Development workflow
