@@ -2,14 +2,14 @@
 ## Adding Advanced Entity Resolution Capabilities
 
 **Date:** November 12, 2025 
-**Status:** Planning Phase 
+**Status:** Planning Phase (updated for cross-platform GPU alignment)
 **Goal:** Enhance arango-entity-resolution library with production-proven ER features
 
 ---
 
 ## Executive Summary
 
-This plan outlines the enhancement of the arango-entity-resolution library to support advanced entity resolution operations that have been proven effective in production environments. The enhancements will add five core capabilities while maintaining the library's generic, reusable nature.
+This plan outlines the enhancement of the arango-entity-resolution library to support advanced entity resolution operations that have been proven effective in production environments. The enhancements add six core capabilities while maintaining the library's generic, reusable nature.
 
 ### Key Enhancements
 
@@ -18,6 +18,7 @@ This plan outlines the enhancement of the arango-entity-resolution library to su
 3. **BatchSimilarityService** - Optimized batch similarity computation
 4. **SimilarityEdgeService** - Bulk edge creation with metadata
 5. **WCCClusteringService** - Weakly Connected Components clustering with multiple algorithms
+6. **Cross-Platform GPU Embedding Runtime** - ONNX Runtime provider abstraction for Apple Silicon and Linux
 
 ### Design Principles
 
@@ -26,6 +27,7 @@ This plan outlines the enhancement of the arango-entity-resolution library to su
 - **Multiple Algorithms**: Support for different approaches (AQL, GAE, Python fallbacks)
 - **Backward Compatible**: New features don't break existing code
 - **Well-Documented**: Comprehensive API docs and usage examples
+- **Performance Portability**: GPU acceleration where it materially helps, with deterministic CPU fallback
 
 ---
 
@@ -52,6 +54,7 @@ The following operations are commonly implemented directly in projects but shoul
 | Bulk edge creation | High - Standard pattern | Not available | High |
 | WCC clustering | High - Standard algorithm | Basic only | High |
 | Multi-strategy orchestration | Medium - Convenience | Not available | Medium |
+| Cross-platform GPU embedding inference | High - Embedding throughput and latency | Not available as standardized provider layer | High |
 
 ---
 
@@ -684,7 +687,96 @@ pass
 
 ---
 
+### 6. Cross-Platform GPU Embedding Runtime
+
+**Purpose:** Provide a single embedding runtime abstraction with platform-specific GPU providers for Apple Silicon and Linux.
+
+**Key Features:**
+- ONNX Runtime provider abstraction (`cpu`, `coreml`, `cuda`, `tensorrt`, `auto`)
+- Provider selection by platform with explicit fallback chain
+- Deterministic CPU fallback for provider init failures and unsupported operators
+- Runtime metadata fields for requested vs resolved provider
+- Feature flags for per-model provider rollout and emergency CPU override
+- Compatibility matrix and benchmark gating before default changes
+
+**Provider Resolution Rules:**
+- Apple Silicon macOS: `coreml -> cpu`
+- Linux NVIDIA: `tensorrt -> cuda -> cpu` (TensorRT opt-in first)
+- Other platforms: `cpu`
+
+**API Design:**
+
+```python
+class EmbeddingInferenceBackend(Protocol):
+    """Backend interface for embedding model inference."""
+
+    def load_model(self) -> None:
+        ...
+
+    def infer(self, texts: List[str], batch_size: int) -> List[List[float]]:
+        ...
+
+    def health(self) -> Dict[str, Any]:
+        ...
+
+    def provider_info(self) -> Dict[str, Any]:
+        ...
+
+
+class OnnxRuntimeEmbeddingBackend:
+    """
+    ONNX Runtime embedding backend with platform-aware provider selection.
+    """
+
+    def __init__(
+        self,
+        model_path: str,
+        provider: str = "auto",
+        provider_options: Optional[Dict[str, Any]] = None,
+        fallback_to_cpu: bool = True,
+    ):
+        ...
+
+    def resolve_provider(self, requested: str) -> str:
+        """
+        Resolve to concrete provider based on platform/provider availability.
+        """
+        ...
+```
+
+**Implementation Notes:**
+- Keep existing PyTorch embedding path available during migration
+- Introduce runtime/provider config as additive fields
+- Keep CPU as effective default until parity/quality/performance gates pass
+- Gate default promotion (`provider=auto`) on CI parity and benchmark results
+
+---
+
 ## Implementation Plan
+
+### Phase 0: GPU Foundation Track (Week 1-2, parallel)
+
+**Deliverables:**
+1. Runtime/provider config surface for embeddings
+2. ONNX Runtime backend scaffold
+3. Provider resolver (`coreml`, `cuda`, `tensorrt`, `cpu`)
+4. Startup health checks and fallback metrics
+5. Initial benchmark harness and CPU baselines
+
+**Tasks:**
+- [ ] Add embedding config fields: `runtime`, `provider`, `provider_options`, `onnx_model_path`
+- [ ] Add provider resolution logic with platform-aware priorities
+- [ ] Add `requested_provider` and `resolved_provider` to embedding metadata
+- [ ] Add provider fallback counter and startup diagnostics
+- [ ] Add smoke tests for provider selection and fallback behavior
+
+**Success Criteria:**
+- ONNX backend loads with `provider='cpu'` in all environments
+- `provider='auto'` resolves correctly by platform
+- Provider failures trigger deterministic CPU fallback
+- Baseline benchmark results captured for target models
+
+---
 
 ### Phase 1: Core Blocking Strategies (Week 1-2)
 
@@ -789,6 +881,9 @@ pass
 - [ ] Update README
 - [ ] Create performance comparison docs
 - [ ] Version bump and changelog
+- [ ] Add platform docs for Apple Silicon and Linux GPU setup
+- [ ] Add provider compatibility matrix (ORT/CoreML/CUDA/TensorRT)
+- [ ] Add rollout/rollback runbook for provider overrides
 
 **Success Criteria:**
 - All new classes properly exported
@@ -824,6 +919,7 @@ Benchmark against requirements:
 - Similarity: Compute 50K+ pairs in <20 seconds
 - Edges: Create 10K+ edges/second
 - Clustering: Process 100K+ entities in <30 seconds
+- Embeddings (GraphML, ColBERT, BERT ONNX): measurable throughput/latency improvement vs CPU baseline on supported GPU platforms
 
 ### Compatibility Tests
 
@@ -832,6 +928,9 @@ Test across:
 - Python versions (3.8, 3.9, 3.10, 3.11)
 - Different dataset sizes
 - Different data quality scenarios
+- Apple Silicon provider path (`coreml -> cpu`)
+- Linux NVIDIA provider path (`cuda` and optional `tensorrt`)
+- Provider fallback behavior when accelerators are unavailable
 
 ---
 
@@ -961,6 +1060,7 @@ If any existing APIs need changes:
 - Profile bottlenecks
 - Keep proven implementations as reference
 - Allow direct query override if needed
+- Require embedding quality and retrieval-stability gates before promoting GPU defaults
 
 ### Risk: API too complex
 
@@ -977,6 +1077,8 @@ If any existing APIs need changes:
 - Add new classes alongside old
 - Provide migration guide
 - Version appropriately
+- Keep CPU as default until provider parity/quality/perf gates pass
+- Keep per-model provider feature flags and a global CPU force switch
 
 ### Risk: Limited adoption
 
@@ -992,11 +1094,24 @@ If any existing APIs need changes:
 
 | Phase | Duration | Key Deliverables |
 |-------|----------|------------------|
+| Phase 0: GPU Foundation (parallel) | 2 weeks | ONNX runtime/provider abstraction, fallback and benchmark harness |
 | Phase 1: Core Blocking | 2 weeks | CollectBlockingStrategy, BM25BlockingStrategy |
 | Phase 2: Similarity & Edges | 2 weeks | BatchSimilarityService, SimilarityEdgeService |
 | Phase 3: Clustering | 2 weeks | WCCClusteringService with multiple algorithms |
 | Phase 4: Integration & Docs | 2 weeks | Complete documentation and examples |
-| **Total** | **8 weeks** | Production-ready enhanced library |
+| **Total** | **8-10 weeks** | Production-ready enhanced library with cross-platform GPU embedding support |
+
+---
+
+## Release Alignment (Authoritative)
+
+This plan aligns to the active release sequence in `docs/development/NEXT_RELEASE_IMPLEMENTATION_BRIEF.md`.
+
+- `3.3.0`: Introduce runtime/provider abstraction and ONNX opt-in path; keep CPU default.
+- `3.4.0`: Promote `provider='auto'` only after parity and quality/performance gates are green.
+- `3.5.0`: Add selective TensorRT optimization for high-volume Linux workloads.
+
+If this document conflicts with release-level guidance, the release implementation brief is authoritative.
 
 ---
 
@@ -1004,7 +1119,7 @@ If any existing APIs need changes:
 
 1. **Review this plan** - Gather feedback on approach and priorities
 2. **Set up development environment** - Branch, testing infrastructure
-3. **Start Phase 1** - Implement core blocking strategies
+3. **Start Phase 0 (GPU foundation)** - Implement runtime/provider abstraction and baseline benchmarks
 4. **Iterate** - Get feedback, adjust as needed
 5. **Document** - Keep documentation in sync with code
 6. **Test** - Comprehensive testing throughout
@@ -1022,7 +1137,7 @@ If any existing APIs need changes:
 
 ---
 
-**Document Version:** 1.0 
-**Last Updated:** November 12, 2025 
+**Document Version:** 1.1 
+**Last Updated:** March 14, 2026 
 **Next Review:** Start of each phase
 

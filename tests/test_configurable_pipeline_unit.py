@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
 import pytest
 
@@ -17,6 +17,12 @@ class _BlockingCfg:
     fields: list = field(default_factory=list)
     search_field: Optional[str] = None
     blocking_field: Optional[str] = None
+    embedding_field: Optional[str] = None
+    similarity_threshold: float = 0.75
+    limit_per_entity: int = 20
+    num_hash_tables: int = 10
+    num_hyperplanes: int = 8
+    random_seed: Optional[int] = 42
 
     def parse_fields(self) -> tuple:
         """Minimal implementation matching BlockingConfig.parse_fields() contract."""
@@ -63,10 +69,35 @@ class _ClusteringCfg:
     min_cluster_size: int = 2
 
 
+@dataclass
+class _EmbeddingCfg:
+    model_name: str = "all-MiniLM-L6-v2"
+    runtime: str = "pytorch"
+    device: str = "cpu"
+    provider: str = "cpu"
+    provider_options: dict[str, Any] = field(default_factory=dict)
+    onnx_model_path: Optional[str] = None
+    startup_mode: str = "permissive"
+    coreml_use_basic_optimizations: bool = True
+    coreml_warmup_runs: int = 10
+    coreml_max_p95_latency_ms: float = 65.0
+    coreml_warmup_batch_size: int = 8
+    coreml_warmup_seq_len: int = 128
+    embedding_field: str = "embedding_vector"
+    multi_resolution_mode: bool = False
+    coarse_model_name: Optional[str] = None
+    fine_model_name: Optional[str] = None
+    embedding_field_coarse: str = "embedding_vector_coarse"
+    embedding_field_fine: str = "embedding_vector_fine"
+    profile: str = "default"
+    batch_size: int = 32
+
+
 class _FakeConfig:
     def __init__(self, entity_type: str = "company", store_clusters: bool = True,
                  blocking: Optional[_BlockingCfg] = None,
-                 active_learning: Optional[_ActiveLearningCfg] = None):
+                 active_learning: Optional[_ActiveLearningCfg] = None,
+                 embedding: Optional[_EmbeddingCfg] = None):
         self.entity_type = entity_type
         self.collection_name = "customers"
         self.edge_collection = "similarTo"
@@ -74,6 +105,7 @@ class _FakeConfig:
         self.similarity = _SimilarityCfg()
         self.clustering = _ClusteringCfg(store_results=store_clusters)
         self.active_learning = active_learning if active_learning is not None else _ActiveLearningCfg()
+        self.embedding = embedding
         self.edges = object()
 
     def validate(self):
@@ -131,6 +163,7 @@ def test_run_standard_pipeline_happy_path(monkeypatch) -> None:
     assert out["edges"]["edges_created"] == 7
     assert out["clustering"]["clusters_found"] == 1
     assert out["total_runtime_seconds"] >= 0.0
+    assert out["embedding"]["enabled"] is False
 
 
 def test_run_standard_pipeline_handles_no_candidates(monkeypatch) -> None:
@@ -143,6 +176,203 @@ def test_run_standard_pipeline_handles_no_candidates(monkeypatch) -> None:
     assert out["similarity"]["matches_found"] == 0
     assert out["edges"]["edges_created"] == 0
     assert out["clustering"]["clusters_found"] == 0
+    assert out["embedding"]["enabled"] is False
+
+
+def test_setup_embedding_runtime_pytorch(monkeypatch) -> None:
+    cfg = _FakeConfig(
+        embedding=_EmbeddingCfg(runtime="pytorch", device="auto", provider="cpu")
+    )
+    pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
+
+    class _FakeEmbeddingService:
+        def __init__(self, **kwargs):
+            assert kwargs["runtime"] == "pytorch"
+            assert kwargs["device"] == "auto"
+            self.device = "mps"
+            self.resolved_provider = "pytorch"
+
+        def get_runtime_health(self):
+            return {"ok": True, "resolved_device": "mps"}
+
+    import entity_resolution.core.configurable_pipeline as mod
+    monkeypatch.setattr(mod, "EmbeddingService", _FakeEmbeddingService)
+
+    out = pipe._setup_embedding_runtime()
+    assert out["enabled"] is True
+    assert out["runtime"] == "pytorch"
+    assert out["requested_device"] == "auto"
+    assert out["resolved_device"] == "mps"
+    assert out["resolved_provider"] == "pytorch"
+    assert out["health"]["ok"] is True
+
+
+def test_setup_embedding_runtime_onnxruntime(monkeypatch) -> None:
+    cfg = _FakeConfig(
+        embedding=_EmbeddingCfg(
+            runtime="onnxruntime",
+            provider="auto",
+            onnx_model_path="/tmp/model.onnx",
+        )
+    )
+    pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
+
+    class _FakeOnnxBackend:
+        def __init__(self, **kwargs):
+            assert kwargs["model_path"] == "/tmp/model.onnx"
+            assert kwargs["coreml_use_basic_optimizations"] is True
+            assert kwargs["coreml_warmup_runs"] == 10
+            self.resolved_provider = "coreml"
+            self.fallback_count = 0
+            self.last_fallback_reason = None
+            self.last_warmup_p95_latency_ms = 12.3
+            self.session_optimization_level = "ORT_ENABLE_BASIC"
+
+        def load_model(self):
+            return None
+
+        def health(self):
+            return {"ok": True, "provider": "coreml"}
+
+    import entity_resolution.core.configurable_pipeline as mod
+    monkeypatch.setattr(mod, "OnnxRuntimeEmbeddingBackend", _FakeOnnxBackend)
+
+    out = pipe._setup_embedding_runtime()
+    assert out["enabled"] is True
+    assert out["runtime"] == "onnxruntime"
+    assert out["requested_provider"] == "auto"
+    assert out["resolved_provider"] == "coreml"
+    assert out["health"]["ok"] is True
+    assert out["telemetry"]["provider_used"] == "coreml"
+
+
+def test_run_includes_embedding_phase_when_configured(monkeypatch) -> None:
+    cfg = _FakeConfig(embedding=_EmbeddingCfg(runtime="pytorch"))
+    pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
+
+    monkeypatch.setattr(
+        pipe,
+        "_setup_embedding_runtime",
+        lambda: {
+            "enabled": True,
+            "runtime": "pytorch",
+            "resolved_provider": "pytorch",
+            "health": {"ok": True},
+        },
+    )
+    monkeypatch.setattr(pipe, "_run_blocking", lambda: [])
+
+    out = pipe.run()
+    assert out["embedding"]["enabled"] is True
+    assert out["embedding"]["runtime"] == "pytorch"
+    assert out["embedding"]["runtime_seconds"] >= 0.0
+    assert out["embedding"]["setup_latency_ms"] >= 0.0
+    assert out["embedding"]["health"]["ok"] is True
+
+
+def test_get_embedding_runtime_health_when_disabled() -> None:
+    cfg = _FakeConfig(embedding=None)
+    pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
+    out = pipe.get_embedding_runtime_health()
+    assert out["enabled"] is False
+
+
+def test_get_embedding_runtime_health_uses_setup(monkeypatch) -> None:
+    cfg = _FakeConfig(embedding=_EmbeddingCfg(runtime="pytorch"))
+    pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
+    monkeypatch.setattr(
+        pipe,
+        "_setup_embedding_runtime",
+        lambda: {
+            "enabled": True,
+            "runtime": "pytorch",
+            "model_name": "all-MiniLM-L6-v2",
+            "requested_device": "auto",
+            "resolved_device": "mps",
+            "requested_provider": "cpu",
+            "resolved_provider": "pytorch",
+            "health": {"ok": True},
+        },
+    )
+    out = pipe.get_embedding_runtime_health()
+    assert out["enabled"] is True
+    assert out["health"]["ok"] is True
+
+
+def test_setup_embedding_runtime_strict_pytorch_cuda_unavailable_raises(monkeypatch) -> None:
+    cfg = _FakeConfig(
+        embedding=_EmbeddingCfg(runtime="pytorch", device="cuda", startup_mode="strict")
+    )
+    pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
+
+    class _FakeEmbeddingService:
+        def __init__(self, **kwargs):
+            self.device = "cuda"
+            self.resolved_provider = "pytorch"
+
+        def get_runtime_health(self):
+            return {
+                "ok": True,
+                "cuda_available": False,
+                "mps_available": False,
+            }
+
+    import entity_resolution.core.configurable_pipeline as mod
+    monkeypatch.setattr(mod, "EmbeddingService", _FakeEmbeddingService)
+
+    with pytest.raises(RuntimeError, match="requested device 'cuda'"):
+        pipe._setup_embedding_runtime()
+
+
+def test_setup_embedding_runtime_strict_onnx_missing_provider_raises(monkeypatch) -> None:
+    cfg = _FakeConfig(
+        embedding=_EmbeddingCfg(
+            runtime="onnxruntime",
+            provider="coreml",
+            onnx_model_path="/tmp/model.onnx",
+            startup_mode="strict",
+        )
+    )
+    pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
+
+    class _FakeOnnxBackend:
+        def __init__(self, **kwargs):
+            self.resolved_provider = "coreml"
+            self.fallback_count = 1
+            self.last_fallback_reason = "requested provider unavailable"
+            self.last_warmup_p95_latency_ms = 88.8
+            self.session_optimization_level = "ORT_ENABLE_BASIC"
+
+        def load_model(self):
+            return None
+
+        def health(self):
+            return {
+                "ok": True,
+                "available_ort_providers": ["CPUExecutionProvider"],
+            }
+
+    import entity_resolution.core.configurable_pipeline as mod
+    monkeypatch.setattr(mod, "OnnxRuntimeEmbeddingBackend", _FakeOnnxBackend)
+
+    with pytest.raises(RuntimeError, match="requested provider 'coreml'"):
+        pipe._setup_embedding_runtime()
+
+
+def test_get_embedding_runtime_health_startup_mode_override(monkeypatch) -> None:
+    cfg = _FakeConfig(embedding=_EmbeddingCfg(runtime="pytorch", startup_mode="permissive"))
+    pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
+
+    observed_modes = []
+
+    def _fake_setup():
+        observed_modes.append(pipe.config.embedding.startup_mode)
+        return {"enabled": True, "runtime": "pytorch", "health": {"ok": True}}
+
+    monkeypatch.setattr(pipe, "_setup_embedding_runtime", _fake_setup)
+    pipe.get_embedding_runtime_health(startup_mode="strict")
+    assert observed_modes == ["strict"]
+    assert pipe.config.embedding.startup_mode == "permissive"
 
 
 def test_run_similarity_with_active_learning_overrides_uncertain_scores(monkeypatch) -> None:
@@ -293,4 +523,104 @@ def test_bm25_raises_if_no_search_field(monkeypatch) -> None:
 
     with pytest.raises(ValueError, match="search_field"):
         pipe._run_blocking()
+
+
+def test_vector_blocking_uses_config_and_records_preflight(monkeypatch) -> None:
+    import entity_resolution.core.configurable_pipeline as mod
+
+    captured = {}
+
+    class _FakeVectorStrategy:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        def _check_embeddings_exist(self):
+            return {"total": 10, "with_embeddings": 8, "coverage_percent": 80.0}
+
+        def generate_candidates(self):
+            return [{"doc1_key": "a", "doc2_key": "b", "similarity": 0.91}]
+
+    monkeypatch.setattr(mod, "VectorBlockingStrategy", _FakeVectorStrategy)
+
+    cfg = _FakeConfig(
+        blocking=_BlockingCfg(
+            strategy="vector",
+            embedding_field="emb_field",
+            similarity_threshold=0.81,
+            limit_per_entity=7,
+            blocking_field="state",
+        ),
+    )
+    pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
+    pairs = pipe._run_blocking()
+
+    assert len(pairs) == 1
+    assert captured["embedding_field"] == "emb_field"
+    assert captured["similarity_threshold"] == 0.81
+    assert captured["limit_per_entity"] == 7
+    assert captured["blocking_field"] == "state"
+    assert pipe._embedding_preflight_stats["coverage_percent"] == 80.0
+
+
+def test_lsh_blocking_uses_config_and_records_preflight(monkeypatch) -> None:
+    import entity_resolution.core.configurable_pipeline as mod
+
+    captured = {}
+
+    class _FakeLSHStrategy:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        def _check_embeddings_exist(self):
+            return {"total": 20, "with_embeddings": 20, "coverage_percent": 100.0, "embedding_dim": 384}
+
+        def generate_candidates(self):
+            return [{"doc1_key": "a", "doc2_key": "c", "method": "lsh"}]
+
+    monkeypatch.setattr(mod, "LSHBlockingStrategy", _FakeLSHStrategy)
+
+    cfg = _FakeConfig(
+        blocking=_BlockingCfg(
+            strategy="lsh",
+            num_hash_tables=12,
+            num_hyperplanes=10,
+            random_seed=123,
+        ),
+        embedding=_EmbeddingCfg(embedding_field="from_embedding_cfg"),
+    )
+    pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
+    pairs = pipe._run_blocking()
+
+    assert len(pairs) == 1
+    assert captured["embedding_field"] == "from_embedding_cfg"
+    assert captured["num_hash_tables"] == 12
+    assert captured["num_hyperplanes"] == 10
+    assert captured["random_seed"] == 123
+    assert pipe._embedding_preflight_stats["embedding_dim"] == 384
+
+
+def test_run_surfaces_embedding_preflight_in_results(monkeypatch) -> None:
+    cfg = _FakeConfig(
+        blocking=_BlockingCfg(strategy="vector"),
+        embedding=_EmbeddingCfg(runtime="pytorch"),
+    )
+    pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
+
+    monkeypatch.setattr(
+        pipe,
+        "_setup_embedding_runtime",
+        lambda: {"enabled": True, "runtime": "pytorch", "resolved_provider": "pytorch"},
+    )
+    monkeypatch.setattr(
+        pipe,
+        "_run_blocking",
+        lambda: (
+            setattr(pipe, "_embedding_preflight_stats", {"coverage_percent": 95.0})
+            or []
+        ),
+    )
+
+    out = pipe.run()
+    assert out["blocking"]["embedding_preflight"]["coverage_percent"] == 95.0
+    assert out["embedding"]["preflight"]["coverage_percent"] == 95.0
 

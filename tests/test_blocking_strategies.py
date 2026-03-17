@@ -184,6 +184,95 @@ class TestCollectBlockingStrategy:
         assert "LET _computed_zip5 = LEFT(d.postal_code, 5)" in query
         assert "COLLECT zip5 = _computed_zip5, state = d.state" in query
     
+    def test_exclude_values_in_query(self, db):
+        """Test that exclude_values generates NOT IN filter in AQL."""
+        strategy = CollectBlockingStrategy(
+            db=db,
+            collection="test_collection",
+            blocking_fields=["address", "state"],
+            exclude_values={
+                "address": {"401 E 8TH STREET", "300 N DAKOTA AVE"}
+            }
+        )
+        
+        query, bind_vars = strategy._build_collect_query()
+        
+        assert "FILTER d.address NOT IN @_excl_address" in query
+        assert "_excl_address" in bind_vars
+        assert sorted(bind_vars["_excl_address"]) == ["300 N DAKOTA AVE", "401 E 8TH STREET"]
+    
+    def test_exclude_values_with_computed_field(self, db):
+        """Test exclusion on a computed field references the temp variable."""
+        strategy = CollectBlockingStrategy(
+            db=db,
+            collection="test_collection",
+            blocking_fields=["zip5", "state"],
+            computed_fields={"zip5": "LEFT(d.postal_code, 5)"},
+            exclude_values={"zip5": {"00000"}}
+        )
+        
+        query, bind_vars = strategy._build_collect_query()
+        
+        assert "FILTER _computed_zip5 NOT IN @_excl_zip5" in query
+        assert bind_vars["_excl_zip5"] == ["00000"]
+    
+    def test_exclude_values_empty_set_skipped(self, db):
+        """Test that an empty exclusion set produces no filter."""
+        strategy = CollectBlockingStrategy(
+            db=db,
+            collection="test_collection",
+            blocking_fields=["address"],
+            exclude_values={"address": set()}
+        )
+        
+        query, bind_vars = strategy._build_collect_query()
+        
+        assert "NOT IN" not in query
+        assert "_excl_address" not in bind_vars
+    
+    def test_exclude_values_default_none(self, db):
+        """Test that exclude_values defaults to empty dict."""
+        strategy = CollectBlockingStrategy(
+            db=db,
+            collection="test_collection",
+            blocking_fields=["field1"]
+        )
+        
+        assert strategy.exclude_values == {}
+    
+    def test_exclude_values_in_statistics(self, db):
+        """Test that exclusion counts appear in statistics."""
+        strategy = CollectBlockingStrategy(
+            db=db,
+            collection="test_collection",
+            blocking_fields=["address"],
+            exclude_values={"address": {"ADDR1", "ADDR2", "ADDR3"}}
+        )
+        
+        pairs = strategy.generate_candidates()
+        stats = strategy.get_statistics()
+        
+        assert stats["excluded_value_counts"] == {"address": 3}
+    
+    def test_exclude_values_multiple_fields(self, db):
+        """Test exclusion across multiple fields."""
+        strategy = CollectBlockingStrategy(
+            db=db,
+            collection="test_collection",
+            blocking_fields=["address", "state"],
+            exclude_values={
+                "address": {"401 E 8TH STREET"},
+                "state": {"XX"}
+            }
+        )
+        
+        query, bind_vars = strategy._build_collect_query()
+        
+        assert "FILTER d.address NOT IN @_excl_address" in query
+        assert "FILTER d.state NOT IN @_excl_state" in query
+        assert bind_vars["_excl_address"] == ["401 E 8TH STREET"]
+        assert bind_vars["_excl_state"] == ["XX"]
+    
     def test_repr(self, db):
         """Test string representation."""
         strategy = CollectBlockingStrategy(

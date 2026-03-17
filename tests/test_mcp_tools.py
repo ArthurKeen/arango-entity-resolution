@@ -444,3 +444,81 @@ class TestMergeEntities:
                 collection="companies",
                 entity_keys=["missing"],
             )
+
+
+# ---------------------------------------------------------------------------
+# MCP advisor tools
+# ---------------------------------------------------------------------------
+
+class TestAdvisorTools:
+    @patch("entity_resolution.mcp.tools.advisor.ArangoClient")
+    def test_profile_dataset_returns_field_profiles(self, mock_client_cls):
+        from entity_resolution.mcp.tools.advisor import run_profile_dataset
+
+        mock_db = MagicMock()
+        mock_db.has_collection.return_value = True
+        mock_db.collection.return_value.count.return_value = 3
+        mock_db.aql.execute.return_value = iter(
+            [
+                {"_key": "1", "name": "Acme Corp", "city": "Boston", "postal_code": "02110"},
+                {"_key": "2", "name": "Acme Corporation", "city": "Boston", "postal_code": "02110"},
+                {"_key": "3", "name": "Globex", "city": "Austin", "postal_code": "78701"},
+            ]
+        )
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        result = run_profile_dataset(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            source_type="collection",
+            dataset_id="companies",
+            request_id="req-profile-001",
+            sample_limit=1000,
+        )
+
+        assert result["status"] == "ok"
+        assert result["tool_version"] == "1.0.0"
+        assert result["advisor_policy_version"] == "2026-03-01"
+        assert result["request_id"] == "req-profile-001"
+        payload = result["result"]
+        assert payload["row_count_estimate"] == 3
+        assert payload["sample_size"] == 3
+        names = [fp["field"] for fp in payload["field_profiles"]]
+        assert "name" in names
+        assert "city" in names
+        assert "pairwise_signals" in payload
+
+    def test_recommend_blocking_candidates_returns_ranked_candidates(self):
+        from entity_resolution.mcp.tools.advisor import run_recommend_blocking_candidates
+
+        profile = {
+            "row_count_estimate": 10000,
+            "pairwise_signals": {"hub_risk_score": 0.2},
+            "field_profiles": [
+                {"field": "name", "data_type": "string", "null_rate": 0.01, "entropy_estimate": 0.9},
+                {"field": "city", "data_type": "string", "null_rate": 0.02, "entropy_estimate": 0.7},
+                {"field": "postal_code", "data_type": "string", "null_rate": 0.01, "entropy_estimate": 0.8},
+                {"field": "revenue", "data_type": "number", "null_rate": 0.05, "entropy_estimate": 0.5},
+            ],
+        }
+
+        result = run_recommend_blocking_candidates(
+            profile=profile,
+            request_id="req-blocking-001",
+            max_composite_size=2,
+            max_results=5,
+        )
+
+        assert result["status"] == "ok"
+        assert result["tool_version"] == "1.0.0"
+        assert result["advisor_policy_version"] == "2026-03-01"
+        assert result["request_id"] == "req-blocking-001"
+        assert "blocking_candidates" in result["result"]
+        assert len(result["result"]["blocking_candidates"]) > 0
+        top = result["result"]["blocking_candidates"][0]
+        assert "fields" in top
+        assert "fit_score" in top
+        assert "estimated_candidate_pairs" in top

@@ -85,6 +85,17 @@ def __getattr__(name):
         from .similarity.weighted_field_similarity import WeightedFieldSimilarity
         return WeightedFieldSimilarity
 
+    # ETL components (v3.3)
+    if name == "CanonicalResolver":
+        from .etl.canonical_resolver import CanonicalResolver
+        return CanonicalResolver
+    if name in ("AddressNormalizer", "TokenNormalizer", "PostalNormalizer"):
+        from .etl import normalizers as _norm_mod
+        return getattr(_norm_mod, name)
+    if name == "arangoimport_jsonl":
+        from .etl.arangoimport import arangoimport_jsonl
+        return arangoimport_jsonl
+
     # Pipeline utilities
     if name in [
         'clean_er_results', 'count_inferred_edges',
@@ -145,6 +156,13 @@ __all__ = [
     
     # Similarity components (v3.0)
     'WeightedFieldSimilarity',
+
+    # ETL components (v3.3)
+    'CanonicalResolver',
+    'AddressNormalizer',
+    'TokenNormalizer',
+    'PostalNormalizer',
+    'arangoimport_jsonl',
     
     # Pipeline utilities
     'clean_er_results',

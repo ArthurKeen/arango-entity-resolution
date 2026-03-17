@@ -42,7 +42,8 @@ class CollectBlockingStrategy(BlockingStrategy):
         filters: Optional[Dict[str, Dict[str, Any]]] = None,
         max_block_size: int = 100,
         min_block_size: int = 2,
-        computed_fields: Optional[Dict[str, str]] = None
+        computed_fields: Optional[Dict[str, str]] = None,
+        exclude_values: Optional[Dict[str, set]] = None
     ):
         """
         Initialize COLLECT-based blocking strategy.
@@ -64,6 +65,12 @@ class CollectBlockingStrategy(BlockingStrategy):
                 
                 Note: In expressions, reference document fields as "d.field_name".
                 In blocking_fields and filters, reference computed fields by name only.
+            exclude_values: Optional set of known-bad values to exclude from
+                blocking, keyed by field name. Documents matching any excluded
+                value are dropped before COLLECT grouping. Useful for removing
+                hub addresses (registered agent offices, co-working spaces) or
+                placeholder strings that would create false-positive blocks.
+                Example: {"address": {"401 E 8TH STREET", "300 N DAKOTA AVE"}}
         
         Examples:
             Basic phone + state blocking:
@@ -86,18 +93,15 @@ class CollectBlockingStrategy(BlockingStrategy):
             pairs = strategy.generate_candidates()
             ```
             
-            Address + ZIP5 blocking with computed field:
+            Address blocking with hub address exclusion:
             ```python
             strategy = CollectBlockingStrategy(
                 db=db,
                 collection="companies",
-                blocking_fields=["address", "zip5"],  # zip5 is computed
-                computed_fields={
-                    "zip5": "LEFT(d.postal_code, 5)"  # Extract first 5 digits
-                },
-                filters={
-                    "address": {"not_null": True, "min_length": 5},
-                    "zip5": {"not_null": True, "min_length": 5}  # Filter on computed field
+                blocking_fields=["address", "zip5"],
+                computed_fields={"zip5": "LEFT(d.postal_code, 5)"},
+                exclude_values={
+                    "address": {"401 E 8TH STREET", "300 N DAKOTA AVE"}
                 },
                 max_block_size=50,
                 min_block_size=2
@@ -135,6 +139,7 @@ class CollectBlockingStrategy(BlockingStrategy):
         self.blocking_fields = blocking_fields
         self.max_block_size = max_block_size
         self.min_block_size = min_block_size
+        self.exclude_values = exclude_values or {}
         
         if min_block_size < 2:
             raise ValueError("min_block_size must be at least 2")
@@ -185,11 +190,13 @@ class CollectBlockingStrategy(BlockingStrategy):
         self._update_statistics(normalized_pairs, execution_time)
         
         # Add additional stats
+        exclude_counts = {k: len(v) for k, v in self.exclude_values.items() if v}
         self._stats.update({
             'blocking_fields': self.blocking_fields,
             'min_block_size': self.min_block_size,
             'max_block_size': self.max_block_size,
-            'blocks_processed': self._estimate_blocks_processed(normalized_pairs)
+            'blocks_processed': self._estimate_blocks_processed(normalized_pairs),
+            'excluded_value_counts': exclude_counts
         })
         
         return normalized_pairs
@@ -289,6 +296,18 @@ class CollectBlockingStrategy(BlockingStrategy):
             bind_vars.update(filter_bind_vars)
             for condition in conditions:
                 query_parts.append(f"    FILTER {condition}")
+
+        # Add exclusion filters for known hub/bad values
+        for field_name, values_set in self.exclude_values.items():
+            if not values_set:
+                continue
+            bind_key = f"_excl_{field_name}"
+            bind_vars[bind_key] = sorted(values_set)
+            if field_name in computed_field_map:
+                field_ref = computed_field_map[field_name]
+            else:
+                field_ref = f"d.{field_name}"
+            query_parts.append(f"    FILTER {field_ref} NOT IN @{bind_key}")
 
         # Build COLLECT clause
         collect_vars = []

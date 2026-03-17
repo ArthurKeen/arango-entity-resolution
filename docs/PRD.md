@@ -112,6 +112,7 @@ The product must support both human-operated CLI workflows and AI-agent workflow
 - **Maintainability**: Keep new capabilities configuration-driven and layered on existing services
 - **Explainability**: Surface quality signals and structured benchmark outputs
 - **Extensibility**: Preserve room for future GraphRAG, geospatial, and graph-learning additions
+- **Performance Portability**: Support cross-platform GPU acceleration for embedding-heavy workloads on Apple Silicon and Linux with deterministic CPU fallback behavior
 
 ---
 
@@ -127,6 +128,18 @@ These items remain forward-looking and are not part of the currently shipped `3.
 - stricter anti-merge constraints and policy controls
 - lower-latency streaming / registry APIs
 - richer evaluator reports and benchmark datasets
+- cross-platform GPU inference for ONNX-based embedding workloads (Apple Silicon CoreML/Metal path and Linux CUDA/TensorRT path)
+
+### Planned GPU Inference Capability
+
+GPU acceleration is now a roadmap priority for embedding workflows that materially benefit from model inference speedups (for example GraphML, ColBERT, and BERT ONNX variants).
+
+Key requirements:
+- one runtime abstraction with provider selection by platform
+- Apple Silicon support using a native macOS GPU path with CPU fallback
+- Linux GPU support (NVIDIA-first) with pinned compatibility matrix
+- provider-level observability (selected backend, fallbacks, latency, throughput)
+- rollout safety via feature flags and per-model enablement
 
 ### Roadmap Principle
 

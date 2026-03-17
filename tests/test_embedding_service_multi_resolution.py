@@ -9,6 +9,7 @@ import numpy as np
 from unittest.mock import Mock, MagicMock, patch
 from typing import List, Dict, Any
 from datetime import datetime
+import types
 
 # Skip all tests if sentence-transformers not available
 pytest.importorskip("sentence_transformers")
@@ -43,6 +44,40 @@ class TestLegacyMode:
         
         assert service.multi_resolution_mode is False
         assert service.embedding_field == 'custom_embedding'
+
+    def test_auto_device_resolution_prefers_cuda_then_mps_then_cpu(self):
+        """Test deterministic auto device resolution order."""
+        fake_torch = types.SimpleNamespace(
+            cuda=types.SimpleNamespace(is_available=lambda: True),
+            backends=types.SimpleNamespace(mps=types.SimpleNamespace(is_available=lambda: True)),
+        )
+        with patch.dict('sys.modules', {'torch': fake_torch}):
+            service = EmbeddingService(device='auto')
+            assert service.device == 'cuda'
+
+        fake_torch = types.SimpleNamespace(
+            cuda=types.SimpleNamespace(is_available=lambda: False),
+            backends=types.SimpleNamespace(mps=types.SimpleNamespace(is_available=lambda: True)),
+        )
+        with patch.dict('sys.modules', {'torch': fake_torch}):
+            service = EmbeddingService(device='auto')
+            assert service.device == 'mps'
+
+        fake_torch = types.SimpleNamespace(
+            cuda=types.SimpleNamespace(is_available=lambda: False),
+            backends=types.SimpleNamespace(mps=types.SimpleNamespace(is_available=lambda: False)),
+        )
+        with patch.dict('sys.modules', {'torch': fake_torch}):
+            service = EmbeddingService(device='auto')
+            assert service.device == 'cpu'
+
+    def test_runtime_health_includes_resolution_metadata(self):
+        service = EmbeddingService(device='cpu')
+        health = service.get_runtime_health()
+        assert health['ok'] is True
+        assert health['runtime'] == 'pytorch'
+        assert health['requested_device'] == 'cpu'
+        assert health['resolved_device'] == 'cpu'
     
     @patch('entity_resolution.services.embedding_service.SentenceTransformer')
     def test_legacy_generate_embedding(self, mock_st_class):
@@ -100,6 +135,10 @@ class TestLegacyMode:
             assert 'dim' in metadata
             assert 'timestamp' in metadata
             assert 'profile' in metadata
+            assert metadata['runtime'] == 'pytorch'
+            assert metadata['resolved_provider'] == 'pytorch'
+            assert 'requested_device' in metadata
+            assert 'resolved_device' in metadata
     
     def test_legacy_mode_rejects_multi_resolution_methods(self):
         """Test that legacy mode rejects multi-resolution methods"""
@@ -267,6 +306,8 @@ class TestMultiResolutionMode:
             assert 'dim_fine' in metadata
             assert 'timestamp' in metadata
             assert 'profile' in metadata
+            assert metadata['runtime'] == 'pytorch'
+            assert metadata['resolved_provider'] == 'pytorch'
     
     def test_multi_resolution_store_embeddings_missing_coarse(self):
         """Test that missing coarse embeddings raises error"""

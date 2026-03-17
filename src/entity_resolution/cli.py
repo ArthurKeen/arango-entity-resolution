@@ -7,7 +7,8 @@ from __future__ import annotations
 import click
 import json
 import sys
-from typing import Any, Callable, Dict
+from pathlib import Path
+from typing import Any, Callable, Dict, List
 
 from arango import ArangoClient
 
@@ -15,7 +16,14 @@ from .core.configurable_pipeline import ConfigurableERPipeline
 from .mcp.tools.cluster import run_get_clusters
 from .mcp.tools.pipeline import run_pipeline_status
 from .services.ab_evaluation_runner import run_blocking_benchmark
+from .services.runtime_benchmark_service import RuntimeBenchmarkService
 from .services.cluster_export_service import ClusterExportService
+from .services.embedding_service import EmbeddingService
+from .services.runtime_compare_report_service import RuntimeCompareReportService
+from .services.runtime_profile_registry import RuntimeProfileRegistry
+from .services.runtime_quality_benchmark_service import RuntimeQualityBenchmarkService
+from .services.runtime_quality_gate_service import RuntimeQualityGateService
+from .services.runtime_telemetry_service import RuntimeTelemetryService
 from .utils.config import DatabaseConfig
 from .utils.constants import get_version_string
 from .utils.database import get_connection_args, get_database
@@ -96,6 +104,42 @@ def _emit_json(payload: Any) -> None:
     click.echo(json.dumps(payload, indent=2))
 
 
+def _build_runtime_quality_metrics(
+    corpus: str,
+    model_name: str,
+    device: str,
+    batch_size: int,
+) -> Dict[str, Any]:
+    """Compute quality metrics from benchmark corpus using embedding service."""
+    corpus_payload = RuntimeQualityBenchmarkService.load_corpus(corpus)
+    embedding_service = EmbeddingService(
+        model_name=model_name,
+        device=device,
+        batch_size=batch_size,
+    )
+
+    def _embed_texts(texts: List[str]) -> Any:
+        records = [{"text": text} for text in texts]
+        vectors = embedding_service.generate_embeddings_batch(
+            records=records,
+            text_fields=["text"],
+            batch_size=batch_size,
+            show_progress=False,
+        )
+        return vectors.tolist()
+
+    metrics = RuntimeQualityBenchmarkService.run_benchmark(
+        corpus=corpus_payload,
+        embed_texts=_embed_texts,
+    )
+    metrics.setdefault("metadata", {})
+    metrics["metadata"]["model_name"] = model_name
+    metrics["metadata"]["requested_device"] = device
+    metrics["metadata"]["resolved_device"] = embedding_service.device
+    metrics["metadata"]["batch_size"] = batch_size
+    return metrics
+
+
 @main.command()
 @click.option('--config', '-c', type=click.Path(exists=True), required=True, help='Path to YAML/JSON configuration file.')
 @connection_options
@@ -115,11 +159,674 @@ def run(config, database, host, port, username, password):
         sys.exit(1)
 
 
+@main.command("runtime-health")
+@click.option('--config', '-c', type=click.Path(exists=True), required=True, help='Path to YAML/JSON configuration file.')
+@click.option(
+    "--startup-mode",
+    type=click.Choice(["permissive", "strict"], case_sensitive=False),
+    help="Optional override for embedding startup policy.",
+)
+@connection_options
+def runtime_health(config, startup_mode, database, host, port, username, password):
+    """Show embedding runtime/provider diagnostics from configuration."""
+    try:
+        db = _get_db_from_options(database, host, port, username, password)
+        pipeline = ConfigurableERPipeline(db=db, config_path=config)
+        _emit_json(pipeline.get_embedding_runtime_health(startup_mode=startup_mode))
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
+
+@main.command("runtime-health-export")
+@click.option('--config', '-c', type=click.Path(exists=True), required=True, help='Path to YAML/JSON configuration file.')
+@click.option(
+    "--output-dir",
+    required=True,
+    type=click.Path(file_okay=False),
+    help="Directory where runtime health JSON artifacts will be written.",
+)
+@click.option(
+    "--filename-prefix",
+    default="runtime_health",
+    show_default=True,
+    help="Filename prefix for runtime health artifacts.",
+)
+@click.option(
+    "--startup-mode",
+    type=click.Choice(["permissive", "strict"], case_sensitive=False),
+    help="Optional override for embedding startup policy.",
+)
+@connection_options
+def runtime_health_export(
+    config,
+    output_dir,
+    filename_prefix,
+    startup_mode,
+    database,
+    host,
+    port,
+    username,
+    password,
+):
+    """Export embedding runtime diagnostics to a timestamped JSON artifact."""
+    try:
+        db = _get_db_from_options(database, host, port, username, password)
+        pipeline = ConfigurableERPipeline(db=db, config_path=config)
+        snapshot = pipeline.get_embedding_runtime_health(startup_mode=startup_mode)
+        output_file = RuntimeTelemetryService.export_snapshot(
+            snapshot=snapshot,
+            output_dir=output_dir,
+            filename_prefix=filename_prefix,
+        )
+        _emit_json(
+            {
+                "output_file": output_file,
+                "snapshot": snapshot,
+            }
+        )
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
+
+@main.command("runtime-health-benchmark")
+@click.option('--config', '-c', type=click.Path(exists=True), required=True, help='Path to YAML/JSON configuration file.')
+@click.option("--repeats", type=int, default=5, show_default=True, help="Number of repeated runtime-health probes.")
+@click.option(
+    "--startup-mode",
+    type=click.Choice(["permissive", "strict"], case_sensitive=False),
+    help="Optional override for embedding startup policy.",
+)
+@click.option(
+    "--output-dir",
+    type=click.Path(file_okay=False),
+    help="Optional output directory to persist benchmark JSON artifact.",
+)
+@click.option(
+    "--filename-prefix",
+    default="runtime_benchmark",
+    show_default=True,
+    help="Filename prefix for persisted benchmark artifacts.",
+)
+@connection_options
+def runtime_health_benchmark(
+    config,
+    repeats,
+    startup_mode,
+    output_dir,
+    filename_prefix,
+    database,
+    host,
+    port,
+    username,
+    password,
+):
+    """Benchmark repeated runtime-health checks and summarize setup latency."""
+    try:
+        db = _get_db_from_options(database, host, port, username, password)
+        pipeline = ConfigurableERPipeline(db=db, config_path=config)
+        result = RuntimeBenchmarkService.run_benchmark(
+            probe=lambda: pipeline.get_embedding_runtime_health(startup_mode=startup_mode),
+            repeats=repeats,
+        )
+        if output_dir:
+            result["output_file"] = RuntimeBenchmarkService.export_benchmark(
+                benchmark_result=result,
+                output_dir=output_dir,
+                filename_prefix=filename_prefix,
+            )
+        _emit_json(result)
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
+
+@main.command("runtime-quality-compare")
+@click.option(
+    "--current-metrics",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to current quality metrics JSON.",
+)
+@click.option(
+    "--baseline-metrics",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to baseline quality metrics JSON.",
+)
+@click.option(
+    "--cosine-drift-max",
+    type=float,
+    default=0.01,
+    show_default=True,
+    help="Maximum allowed cosine drift.",
+)
+@click.option(
+    "--topk-overlap-min",
+    type=float,
+    default=0.95,
+    show_default=True,
+    help="Minimum allowed top-k overlap.",
+)
+@click.option(
+    "--fail-on-regression/--no-fail-on-regression",
+    default=False,
+    show_default=True,
+    help="Exit with code 2 when a quality regression is detected.",
+)
+@click.option(
+    "--output-dir",
+    type=click.Path(file_okay=False),
+    help="Optional output directory for JSON/Markdown/CSV quality comparison artifacts.",
+)
+@click.option(
+    "--filename-prefix",
+    default="runtime_quality_compare",
+    show_default=True,
+    help="Filename prefix for quality comparison artifacts when --output-dir is provided.",
+)
+def runtime_quality_compare(
+    current_metrics,
+    baseline_metrics,
+    cosine_drift_max,
+    topk_overlap_min,
+    fail_on_regression,
+    output_dir,
+    filename_prefix,
+):
+    """Compare quality metrics against baseline thresholds."""
+    try:
+        current = RuntimeQualityGateService.load_metrics(current_metrics)
+        baseline = RuntimeQualityGateService.load_metrics(baseline_metrics)
+        comparison = RuntimeQualityGateService.compare_metrics(
+            current=current,
+            baseline=baseline,
+            cosine_drift_max=cosine_drift_max,
+            topk_overlap_min=topk_overlap_min,
+        )
+        if output_dir:
+            comparison["output_files"] = RuntimeCompareReportService.export_report(
+                comparison=comparison,
+                output_dir=output_dir,
+                filename_prefix=filename_prefix,
+            )
+        _emit_json(comparison)
+        if fail_on_regression and comparison["regressions"]["quality_regression"]:
+            sys.exit(2)
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
+
+@main.command("runtime-quality-corpus-init")
+@click.option(
+    "--output",
+    "output_path",
+    required=True,
+    type=click.Path(dir_okay=False),
+    help="Output path for benchmark corpus JSON scaffold.",
+)
+@click.option(
+    "--overwrite/--no-overwrite",
+    default=False,
+    show_default=True,
+    help="Overwrite output file if it already exists.",
+)
+def runtime_quality_corpus_init(output_path, overwrite):
+    """Create a scaffold benchmark corpus for runtime quality checks."""
+    try:
+        corpus_file = RuntimeQualityBenchmarkService.scaffold_corpus(
+            path=output_path,
+            overwrite=overwrite,
+        )
+        _emit_json({"corpus_file": corpus_file})
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
+
+@main.command("runtime-quality-benchmark")
+@click.option(
+    "--corpus",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Benchmark corpus JSON path.",
+)
+@click.option(
+    "--model-name",
+    default="all-MiniLM-L6-v2",
+    show_default=True,
+    help="Sentence-transformers model used for corpus embedding.",
+)
+@click.option(
+    "--device",
+    default="cpu",
+    show_default=True,
+    help="Embedding device ('cpu', 'cuda', 'mps', or 'auto').",
+)
+@click.option(
+    "--batch-size",
+    type=int,
+    default=32,
+    show_default=True,
+    help="Batch size for embedding generation.",
+)
+@click.option(
+    "--output-dir",
+    type=click.Path(file_okay=False),
+    help="Optional output directory for metrics JSON artifact.",
+)
+@click.option(
+    "--filename-prefix",
+    default="runtime_quality_metrics",
+    show_default=True,
+    help="Filename prefix for metrics artifacts when --output-dir is provided.",
+)
+def runtime_quality_benchmark(
+    corpus,
+    model_name,
+    device,
+    batch_size,
+    output_dir,
+    filename_prefix,
+):
+    """Run corpus-driven embedding quality benchmark and emit metrics."""
+    try:
+        metrics = _build_runtime_quality_metrics(
+            corpus=corpus,
+            model_name=model_name,
+            device=device,
+            batch_size=batch_size,
+        )
+
+        if output_dir:
+            metrics["output_file"] = RuntimeQualityBenchmarkService.export_metrics(
+                metrics=metrics,
+                output_dir=output_dir,
+                filename_prefix=filename_prefix,
+            )
+
+        _emit_json(metrics)
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
+
+@main.command("runtime-quality-baseline")
+@click.option(
+    "--corpus",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Benchmark corpus JSON path.",
+)
+@click.option(
+    "--model-name",
+    default="all-MiniLM-L6-v2",
+    show_default=True,
+    help="Sentence-transformers model used for corpus embedding.",
+)
+@click.option(
+    "--device",
+    default="cpu",
+    show_default=True,
+    help="Embedding device ('cpu', 'cuda', 'mps', or 'auto').",
+)
+@click.option(
+    "--batch-size",
+    type=int,
+    default=32,
+    show_default=True,
+    help="Batch size for embedding generation.",
+)
+@click.option(
+    "--output-dir",
+    default="artifacts/quality",
+    show_default=True,
+    type=click.Path(file_okay=False),
+    help="Directory where stable baseline metrics file will be written.",
+)
+@click.option(
+    "--baseline-filename",
+    default="baseline_metrics.json",
+    show_default=True,
+    help="Stable baseline metrics filename.",
+)
+@click.option(
+    "--overwrite/--no-overwrite",
+    default=True,
+    show_default=True,
+    help="Overwrite baseline file if it already exists.",
+)
+def runtime_quality_baseline(
+    corpus,
+    model_name,
+    device,
+    batch_size,
+    output_dir,
+    baseline_filename,
+    overwrite,
+):
+    """Generate and persist stable baseline quality metrics in one command."""
+    try:
+        metrics = _build_runtime_quality_metrics(
+            corpus=corpus,
+            model_name=model_name,
+            device=device,
+            batch_size=batch_size,
+        )
+        baseline_path = str(Path(output_dir) / baseline_filename)
+        output_file = RuntimeQualityBenchmarkService.write_metrics_file(
+            metrics=metrics,
+            output_path=baseline_path,
+            overwrite=overwrite,
+        )
+        _emit_json(
+            {
+                "output_file": output_file,
+                "metrics": metrics,
+            }
+        )
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
+
+@main.command("runtime-health-baseline")
+@click.option('--config', '-c', type=click.Path(exists=True), required=True, help='Path to YAML/JSON configuration file.')
+@click.option(
+    "--registry-file",
+    required=True,
+    type=click.Path(dir_okay=False),
+    help="JSON registry file for runtime baselines.",
+)
+@click.option("--label", help="Optional baseline label (e.g., host or model profile).")
+@click.option(
+    "--startup-mode",
+    type=click.Choice(["permissive", "strict"], case_sensitive=False),
+    help="Optional override for embedding startup policy.",
+)
+@connection_options
+def runtime_health_baseline(
+    config,
+    registry_file,
+    label,
+    startup_mode,
+    database,
+    host,
+    port,
+    username,
+    password,
+):
+    """Capture and store a runtime health baseline entry."""
+    try:
+        db = _get_db_from_options(database, host, port, username, password)
+        pipeline = ConfigurableERPipeline(db=db, config_path=config)
+        snapshot = pipeline.get_embedding_runtime_health(startup_mode=startup_mode)
+        baseline = RuntimeProfileRegistry.upsert_baseline(
+            registry_file=registry_file,
+            snapshot=snapshot,
+            label=label,
+        )
+        _emit_json({"registry_file": registry_file, "baseline": baseline})
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
+
+@main.command("runtime-health-compare")
+@click.option('--config', '-c', type=click.Path(exists=True), required=True, help='Path to YAML/JSON configuration file.')
+@click.option(
+    "--registry-file",
+    required=True,
+    type=click.Path(dir_okay=False, exists=True),
+    help="JSON registry file containing runtime baselines.",
+)
+@click.option("--label", help="Optional baseline label (must match stored label).")
+@click.option(
+    "--startup-mode",
+    type=click.Choice(["permissive", "strict"], case_sensitive=False),
+    help="Optional override for embedding startup policy.",
+)
+@click.option(
+    "--latency-regression-pct",
+    type=float,
+    default=20.0,
+    show_default=True,
+    help="Percent latency increase threshold to flag regression.",
+)
+@click.option(
+    "--output-dir",
+    type=click.Path(file_okay=False),
+    help="Optional output directory for JSON/Markdown/CSV comparison artifacts.",
+)
+@click.option(
+    "--filename-prefix",
+    default="runtime_compare",
+    show_default=True,
+    help="Filename prefix for comparison artifacts when --output-dir is provided.",
+)
+@connection_options
+def runtime_health_compare(
+    config,
+    registry_file,
+    label,
+    startup_mode,
+    latency_regression_pct,
+    output_dir,
+    filename_prefix,
+    database,
+    host,
+    port,
+    username,
+    password,
+):
+    """Compare current runtime health against a stored baseline."""
+    try:
+        db = _get_db_from_options(database, host, port, username, password)
+        pipeline = ConfigurableERPipeline(db=db, config_path=config)
+        snapshot = pipeline.get_embedding_runtime_health(startup_mode=startup_mode)
+        comparison = RuntimeProfileRegistry.compare_snapshot(
+            registry_file=registry_file,
+            snapshot=snapshot,
+            label=label,
+            latency_regression_pct=latency_regression_pct,
+        )
+        if output_dir:
+            comparison["output_files"] = RuntimeCompareReportService.export_report(
+                comparison=comparison,
+                output_dir=output_dir,
+                filename_prefix=filename_prefix,
+            )
+        _emit_json(comparison)
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
+
+@main.command("runtime-health-gate")
+@click.option('--config', '-c', type=click.Path(exists=True), required=True, help='Path to YAML/JSON configuration file.')
+@click.option(
+    "--registry-file",
+    required=True,
+    type=click.Path(dir_okay=False),
+    help="JSON registry file containing runtime baselines.",
+)
+@click.option("--label", help="Optional baseline label (must match stored label).")
+@click.option(
+    "--startup-mode",
+    type=click.Choice(["permissive", "strict"], case_sensitive=False),
+    help="Optional override for embedding startup policy.",
+)
+@click.option(
+    "--latency-regression-pct",
+    type=float,
+    default=20.0,
+    show_default=True,
+    help="Percent latency increase threshold to flag regression.",
+)
+@click.option(
+    "--output-dir",
+    type=click.Path(file_okay=False),
+    help="Optional output directory for JSON/Markdown/CSV comparison artifacts.",
+)
+@click.option(
+    "--filename-prefix",
+    default="runtime_gate",
+    show_default=True,
+    help="Filename prefix for comparison artifacts when --output-dir is provided.",
+)
+@click.option(
+    "--fail-on-regression/--no-fail-on-regression",
+    default=False,
+    show_default=True,
+    help="Exit with code 2 when a regression is detected.",
+)
+@click.option(
+    "--bootstrap-baseline/--no-bootstrap-baseline",
+    default=False,
+    show_default=True,
+    help="Create/update baseline automatically when none exists for the current key.",
+)
+@click.option(
+    "--quality-current-metrics",
+    type=click.Path(exists=True, dir_okay=False),
+    help="Optional current quality metrics JSON path for combined health+quality gating.",
+)
+@click.option(
+    "--quality-baseline-metrics",
+    type=click.Path(exists=True, dir_okay=False),
+    help="Optional baseline quality metrics JSON path for combined health+quality gating.",
+)
+@click.option(
+    "--quality-cosine-drift-max",
+    type=float,
+    default=0.01,
+    show_default=True,
+    help="Quality gate max cosine drift threshold.",
+)
+@click.option(
+    "--quality-topk-overlap-min",
+    type=float,
+    default=0.95,
+    show_default=True,
+    help="Quality gate min top-k overlap threshold.",
+)
+@connection_options
+def runtime_health_gate(
+    config,
+    registry_file,
+    label,
+    startup_mode,
+    latency_regression_pct,
+    output_dir,
+    filename_prefix,
+    fail_on_regression,
+    bootstrap_baseline,
+    quality_current_metrics,
+    quality_baseline_metrics,
+    quality_cosine_drift_max,
+    quality_topk_overlap_min,
+    database,
+    host,
+    port,
+    username,
+    password,
+):
+    """
+    Run runtime health, compare against baseline, optionally export artifacts.
+
+    This is the CI-friendly one-shot command for runtime readiness gates.
+    """
+    try:
+        db = _get_db_from_options(database, host, port, username, password)
+        pipeline = ConfigurableERPipeline(db=db, config_path=config)
+        snapshot = pipeline.get_embedding_runtime_health(startup_mode=startup_mode)
+        comparison = RuntimeProfileRegistry.compare_snapshot(
+            registry_file=registry_file,
+            snapshot=snapshot,
+            label=label,
+            latency_regression_pct=latency_regression_pct,
+        )
+        if not comparison.get("baseline_found", False) and bootstrap_baseline:
+            baseline = RuntimeProfileRegistry.upsert_baseline(
+                registry_file=registry_file,
+                snapshot=snapshot,
+                label=label,
+            )
+            comparison["baseline_bootstrapped"] = True
+            comparison["baseline"] = baseline.get("snapshot")
+            comparison["baseline_entry"] = baseline
+        else:
+            comparison["baseline_bootstrapped"] = False
+
+        if output_dir:
+            comparison["output_files"] = RuntimeCompareReportService.export_report(
+                comparison=comparison,
+                output_dir=output_dir,
+                filename_prefix=filename_prefix,
+            )
+
+        if quality_current_metrics and quality_baseline_metrics:
+            quality_current = RuntimeQualityGateService.load_metrics(quality_current_metrics)
+            quality_baseline = RuntimeQualityGateService.load_metrics(quality_baseline_metrics)
+            quality_comparison = RuntimeQualityGateService.compare_metrics(
+                current=quality_current,
+                baseline=quality_baseline,
+                cosine_drift_max=quality_cosine_drift_max,
+                topk_overlap_min=quality_topk_overlap_min,
+            )
+            comparison["quality_gate"] = quality_comparison
+
+        _emit_json(comparison)
+
+        regressions = comparison.get("regressions", {})
+        has_regression = bool(
+            regressions.get("latency_regression") or regressions.get("fallback_regression")
+        )
+        if comparison.get("quality_gate"):
+            has_regression = has_regression or bool(
+                comparison["quality_gate"]["regressions"]["quality_regression"]
+            )
+        if fail_on_regression and has_regression:
+            sys.exit(2)
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
+
 @main.command()
 @click.option("--collection", required=True, help="Source collection name.")
 @click.option("--edge-collection", help="Similarity edge collection override.")
+@click.option(
+    "--include-runtime-health",
+    is_flag=True,
+    help="Include embedding runtime diagnostics (requires --config).",
+)
+@click.option(
+    "--config",
+    "config_path",
+    type=click.Path(exists=True),
+    help="Pipeline YAML/JSON config used for runtime diagnostics.",
+)
+@click.option(
+    "--startup-mode",
+    type=click.Choice(["permissive", "strict"], case_sensitive=False),
+    help="Optional startup-mode override for runtime diagnostics.",
+)
 @connection_options
-def status(collection, edge_collection, database, host, port, username, password):
+def status(
+    collection,
+    edge_collection,
+    include_runtime_health,
+    config_path,
+    startup_mode,
+    database,
+    host,
+    port,
+    username,
+    password,
+):
     """Show pipeline status for a collection."""
     try:
         conn = _resolve_connection_args(database, host, port, username, password)
@@ -128,6 +835,16 @@ def status(collection, edge_collection, database, host, port, username, password
             collection=collection,
             edge_collection=edge_collection,
         )
+        if include_runtime_health:
+            if not config_path:
+                raise click.ClickException(
+                    "--include-runtime-health requires --config <path>"
+                )
+            db = _get_db_from_options(database, host, port, username, password)
+            pipeline = ConfigurableERPipeline(db=db, config_path=config_path)
+            result["runtime_health"] = pipeline.get_embedding_runtime_health(
+                startup_mode=startup_mode
+            )
         _emit_json(result)
     except Exception as e:
         click.echo(click.style(f"Error: {e}", fg="red"), err=True)
@@ -260,6 +977,77 @@ def benchmark(
     except Exception as e:
         click.echo(click.style(f"Error: {e}", fg="red"), err=True)
         sys.exit(1)
+
+@main.command()
+@click.option("--input", "-i", "input_path", required=True, type=click.Path(exists=True), help="Input TSV/CSV file.")
+@click.option("--config", "-c", "config_path", type=click.Path(exists=True), help="YAML/JSON config with etl.canonical section.")
+@click.option("--output-dir", "-o", required=True, type=click.Path(file_okay=False), help="Directory for output JSONL files.")
+@click.option("--header", type=click.Path(exists=True), help="Separate header file (TSV/CSV).")
+@click.option("--delimiter", default="\t", show_default=True, help="Column delimiter.")
+@click.option("--hub-threshold", type=int, default=50, show_default=True, help="In-degree threshold for hub classification.")
+@click.option("--from-collection", default="regs", show_default=True, help="Source vertex collection name.")
+@click.option("--to-collection", default="canonical_addresses", show_default=True, help="Target canonical node collection name.")
+def canonicalize(input_path, config_path, output_dir, header, delimiter, hub_threshold, from_collection, to_collection):
+    """Canonicalize addresses at ETL time (pre-load deduplication)."""
+    from pathlib import Path
+    from .etl import CanonicalResolver, AddressNormalizer
+    from .config.er_config import CanonicalETLConfig, ERPipelineConfig
+
+    try:
+        etl_cfg = None
+        if config_path:
+            suffix = Path(config_path).suffix.lower()
+            if suffix in (".yaml", ".yml"):
+                pipeline_cfg = ERPipelineConfig.from_yaml(config_path)
+            else:
+                pipeline_cfg = ERPipelineConfig.from_json(config_path)
+            etl_cfg = pipeline_cfg.canonical_etl
+
+        if etl_cfg is not None:
+            resolver = CanonicalResolver(
+                normalizer=AddressNormalizer(locale=etl_cfg.locale),
+                signature_fields=etl_cfg.signature_fields,
+                field_mapping=etl_cfg.field_mapping,
+                shard_key_field=etl_cfg.shard_key_field,
+                shard_key_length=etl_cfg.shard_key_length,
+                hub_threshold=etl_cfg.hub_threshold,
+                hub_markers=etl_cfg.hub_markers,
+                provenance=etl_cfg.provenance,
+                max_variants=etl_cfg.max_variants,
+            )
+        else:
+            resolver = CanonicalResolver(
+                normalizer=AddressNormalizer(),
+                hub_threshold=hub_threshold,
+            )
+
+        resolver.process_file(
+            input_path,
+            delimiter=delimiter,
+            header_path=header,
+        )
+
+        out = Path(output_dir)
+        out.mkdir(parents=True, exist_ok=True)
+
+        nodes_written = resolver.write_nodes(str(out / "canonical_addresses.jsonl"))
+        edges_written = resolver.write_edges(
+            str(out / "hasAddress.jsonl"),
+            from_collection=from_collection,
+            to_collection=to_collection,
+        )
+
+        stats = resolver.stats
+        stats["nodes_written"] = nodes_written
+        stats["edges_written"] = edges_written
+
+        click.echo(click.style("\nCanonicalization complete!", fg="green", bold=True))
+        _emit_json(stats)
+
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
 
 if __name__ == '__main__':
     main()

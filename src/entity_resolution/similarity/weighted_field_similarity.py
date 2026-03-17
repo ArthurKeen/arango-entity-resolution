@@ -490,29 +490,21 @@ class WeightedFieldSimilarity:
         return state_lookup.get(normalized, normalized)
 
     def _normalize_street_suffix(self, value: str) -> str:
-        """Normalize common street suffix variants."""
-        suffix_map = {
-            "ST": "street",
-            "STREET": "street",
-            "RD": "road",
-            "ROAD": "road",
-            "AVE": "avenue",
-            "AV": "avenue",
-            "AVENUE": "avenue",
-            "BLVD": "boulevard",
-            "BOULEVARD": "boulevard",
-            "DR": "drive",
-            "DRIVE": "drive",
-            "LN": "lane",
-            "LANE": "lane",
-        }
+        """Normalize common street suffix variants.
+
+        Uses the canonical suffix map from ``etl.normalizers`` (lowered for
+        legacy compatibility with the similarity scorer which expects
+        lowercase output).
+        """
+        from ..etl.normalizers import STREET_SUFFIX_MAP
+
         cleaned = self._remove_punctuation(value).strip()
         if not cleaned:
             return cleaned
         parts = cleaned.split()
         last = parts[-1].upper()
-        if last in suffix_map:
-            parts[-1] = suffix_map[last]
+        if last in STREET_SUFFIX_MAP:
+            parts[-1] = STREET_SUFFIX_MAP[last].lower()
         return " ".join(parts)
 
     def _normalize_company_suffix(self, value: str) -> str:

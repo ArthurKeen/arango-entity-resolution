@@ -15,7 +15,14 @@ from ..services.batch_similarity_service import BatchSimilarityService
 from ..services.similarity_edge_service import SimilarityEdgeService
 from ..services.wcc_clustering_service import WCCClusteringService
 from ..services.address_er_service import AddressERService
-from ..strategies import CollectBlockingStrategy, BM25BlockingStrategy
+from ..services.embedding_service import EmbeddingService
+from ..services.onnx_embedding_backend import OnnxRuntimeEmbeddingBackend
+from ..strategies import (
+    CollectBlockingStrategy,
+    BM25BlockingStrategy,
+    VectorBlockingStrategy,
+    LSHBlockingStrategy,
+)
 
 
 class ConfigurableERPipeline:
@@ -89,6 +96,7 @@ class ConfigurableERPipeline:
             'score_overrides': 0,
             'feedback_collection': None,
         }
+        self._embedding_preflight_stats: Optional[Dict[str, Any]] = None
     
     def run(self) -> Dict[str, Any]:
         """
@@ -127,6 +135,7 @@ class ConfigurableERPipeline:
         """
         start_time = time.time()
         results = {
+            'embedding': {},
             'blocking': {},
             'similarity': {},
             'edges': {},
@@ -140,6 +149,25 @@ class ConfigurableERPipeline:
         self.logger.info(f"Entity Type: {self.config.entity_type}")
         self.logger.info(f"Collection: {self.config.collection_name}")
         self.logger.info("")
+
+        # Optional phase 0: resolve embedding runtime/provider from config.
+        if self.config.embedding:
+            self.logger.info("Phase 0: Embedding runtime setup...")
+            embedding_start = time.time()
+            results['embedding'] = self._setup_embedding_runtime()
+            setup_seconds = time.time() - embedding_start
+            results['embedding']['runtime_seconds'] = round(setup_seconds, 2)
+            results['embedding']['setup_latency_ms'] = round(setup_seconds * 1000, 1)
+            self.logger.info(
+                "[OK] Embedding runtime=%s provider=%s",
+                results['embedding'].get('runtime'),
+                results['embedding'].get('resolved_provider', results['embedding'].get('resolved_device')),
+            )
+        else:
+            results['embedding'] = {
+                'enabled': False,
+                'runtime_seconds': 0.0,
+            }
         
         # Special handling for address ER
         if self.config.entity_type == 'address':
@@ -156,6 +184,9 @@ class ConfigurableERPipeline:
             'candidate_pairs': len(candidate_pairs),
             'runtime_seconds': round(blocking_time, 2)
         }
+        if self._embedding_preflight_stats is not None:
+            results['blocking']['embedding_preflight'] = self._embedding_preflight_stats
+            results['embedding']['preflight'] = self._embedding_preflight_stats
         self.logger.info(f"[OK] Found {len(candidate_pairs):,} candidate pairs")
         
         # Phase 2: Similarity
@@ -225,6 +256,11 @@ class ConfigurableERPipeline:
         self.logger.info("=" * 80)
         self.logger.info("SUMMARY")
         self.logger.info("=" * 80)
+        if results['embedding'].get('enabled'):
+            self.logger.info(
+                "Embedding Runtime: %s",
+                results['embedding'].get('runtime'),
+            )
         self.logger.info(f"Candidate Pairs: {results['blocking']['candidate_pairs']:,}")
         self.logger.info(f"Matches Found: {results['similarity']['matches_found']:,}")
         self.logger.info(f"Edges Created: {results['edges']['edges_created']:,}")
@@ -232,6 +268,172 @@ class ConfigurableERPipeline:
         self.logger.info(f"Total Runtime: {results['total_runtime_seconds']:.2f}s")
         
         return results
+
+    def _setup_embedding_runtime(self) -> Dict[str, Any]:
+        """
+        Resolve and initialize embedding runtime selection from config.
+
+        This Phase 0 setup validates runtime/provider selection and captures
+        resolved runtime metadata for observability. It intentionally does not
+        generate embeddings yet.
+        """
+        embedding_cfg = self.config.embedding
+        if embedding_cfg is None:
+            return {'enabled': False}
+
+        if embedding_cfg.runtime == 'pytorch':
+            service = EmbeddingService(
+                model_name=embedding_cfg.model_name,
+                runtime=embedding_cfg.runtime,
+                device=embedding_cfg.device,
+                provider=embedding_cfg.provider,
+                provider_options=embedding_cfg.provider_options,
+                onnx_model_path=embedding_cfg.onnx_model_path,
+                embedding_field=embedding_cfg.embedding_field,
+                multi_resolution_mode=embedding_cfg.multi_resolution_mode,
+                coarse_model_name=embedding_cfg.coarse_model_name,
+                fine_model_name=embedding_cfg.fine_model_name,
+                embedding_field_coarse=embedding_cfg.embedding_field_coarse,
+                embedding_field_fine=embedding_cfg.embedding_field_fine,
+                profile=embedding_cfg.profile,
+                batch_size=embedding_cfg.batch_size,
+            )
+            self._embedding_runtime = service
+            result = {
+                'enabled': True,
+                'runtime': 'pytorch',
+                'model_name': embedding_cfg.model_name,
+                'requested_device': embedding_cfg.device,
+                'resolved_device': service.device,
+                'requested_provider': embedding_cfg.provider,
+                'resolved_provider': service.resolved_provider,
+                'batch_size': embedding_cfg.batch_size,
+                'health': service.get_runtime_health(),
+                'telemetry': {
+                    'provider_used': service.resolved_provider,
+                    'device_used': service.device,
+                    'fallback_count': 1 if embedding_cfg.device == 'auto' and service.device == 'cpu' else 0,
+                },
+            }
+            self._enforce_embedding_startup_mode(result, embedding_cfg.startup_mode)
+            return result
+
+        if embedding_cfg.runtime == 'onnxruntime':
+            backend = OnnxRuntimeEmbeddingBackend(
+                model_path=embedding_cfg.onnx_model_path or '',
+                provider=embedding_cfg.provider,
+                provider_options=embedding_cfg.provider_options,
+                fallback_to_cpu=True,
+                coreml_use_basic_optimizations=embedding_cfg.coreml_use_basic_optimizations,
+                coreml_warmup_runs=embedding_cfg.coreml_warmup_runs,
+                coreml_max_p95_latency_ms=embedding_cfg.coreml_max_p95_latency_ms,
+                coreml_warmup_batch_size=embedding_cfg.coreml_warmup_batch_size,
+                coreml_warmup_seq_len=embedding_cfg.coreml_warmup_seq_len,
+            )
+            backend.load_model()
+            resolved_provider = backend.resolved_provider
+            self._embedding_runtime = backend
+            result = {
+                'enabled': True,
+                'runtime': 'onnxruntime',
+                'model_name': embedding_cfg.model_name,
+                'onnx_model_path': embedding_cfg.onnx_model_path,
+                'requested_provider': embedding_cfg.provider,
+                'resolved_provider': resolved_provider,
+                'provider_options': embedding_cfg.provider_options,
+                'batch_size': embedding_cfg.batch_size,
+                'health': backend.health(),
+                'telemetry': {
+                    'provider_used': backend.resolved_provider,
+                    'fallback_count': backend.fallback_count,
+                    'fallback_occurred': backend.fallback_count > 0,
+                    'last_fallback_reason': backend.last_fallback_reason,
+                    'coreml_warmup_p95_latency_ms': backend.last_warmup_p95_latency_ms,
+                    'coreml_max_p95_latency_ms': embedding_cfg.coreml_max_p95_latency_ms,
+                    'session_optimization_level': backend.session_optimization_level,
+                },
+            }
+            self._enforce_embedding_startup_mode(result, embedding_cfg.startup_mode)
+            return result
+
+        raise ValueError(f"Unsupported embedding runtime: {embedding_cfg.runtime}")
+
+    def _enforce_embedding_startup_mode(self, setup: Dict[str, Any], startup_mode: str) -> None:
+        """
+        Enforce strict/permissive startup policy for embedding runtime setup.
+        """
+        if startup_mode != 'strict':
+            return
+
+        runtime = setup.get('runtime')
+        health = setup.get('health', {})
+        if runtime == 'pytorch':
+            requested_device = setup.get('requested_device')
+            if requested_device == 'cuda' and not health.get('cuda_available', False):
+                raise RuntimeError(
+                    "Embedding runtime strict startup failed: requested device 'cuda' "
+                    "is not available on this host"
+                )
+            if requested_device == 'mps' and not health.get('mps_available', False):
+                raise RuntimeError(
+                    "Embedding runtime strict startup failed: requested device 'mps' "
+                    "is not available on this host"
+                )
+            return
+
+        if runtime == 'onnxruntime':
+            requested_provider = setup.get('requested_provider')
+            available = set(health.get('available_ort_providers', []))
+            required_provider_name = {
+                'cpu': 'CPUExecutionProvider',
+                'coreml': 'CoreMLExecutionProvider',
+                'cuda': 'CUDAExecutionProvider',
+                'tensorrt': 'TensorrtExecutionProvider',
+            }.get(requested_provider)
+            if required_provider_name and required_provider_name not in available:
+                raise RuntimeError(
+                    "Embedding runtime strict startup failed: requested provider "
+                    f"'{requested_provider}' is not available. "
+                    f"Available providers: {sorted(available)}"
+                )
+
+    def get_embedding_runtime_health(self, startup_mode: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Public helper for CLI/MCP to inspect embedding runtime diagnostics.
+        """
+        setup_start = time.time()
+        embedding_cfg = self.config.embedding
+        if startup_mode is not None:
+            if embedding_cfg is None:
+                return {'enabled': False, 'reason': 'embedding config not provided'}
+            if startup_mode not in ('permissive', 'strict'):
+                raise ValueError(
+                    "startup_mode override must be 'permissive' or 'strict', "
+                    f"got: {startup_mode}"
+                )
+            original_mode = embedding_cfg.startup_mode
+            embedding_cfg.startup_mode = startup_mode
+            try:
+                setup = self._setup_embedding_runtime()
+            finally:
+                embedding_cfg.startup_mode = original_mode
+        else:
+            setup = self._setup_embedding_runtime()
+        setup_latency_ms = round((time.time() - setup_start) * 1000, 1)
+        if not setup.get('enabled'):
+            return {'enabled': False, 'reason': 'embedding config not provided'}
+        return {
+            'enabled': True,
+            'runtime': setup.get('runtime'),
+            'model_name': setup.get('model_name'),
+            'requested_device': setup.get('requested_device'),
+            'resolved_device': setup.get('resolved_device'),
+            'requested_provider': setup.get('requested_provider'),
+            'resolved_provider': setup.get('resolved_provider'),
+            'health': setup.get('health', {}),
+            'telemetry': setup.get('telemetry', {}),
+            'setup_latency_ms': setup_latency_ms,
+        }
     
     def _run_address_er(
         self,
@@ -287,6 +489,7 @@ class ConfigurableERPipeline:
     def _run_blocking(self) -> list:
         """Run blocking phase based on configuration."""
         strategy = self.config.blocking.strategy
+        self._embedding_preflight_stats = None
         
         if strategy == 'exact':
             # Use CollectBlockingStrategy
@@ -333,6 +536,39 @@ class ConfigurableERPipeline:
                 search_field=search_field,
                 blocking_field=blocking_field,
             )
+            return list(blocking_strategy.generate_candidates())
+
+        elif strategy == 'vector':
+            embedding_field = self.config.blocking.embedding_field
+            if not embedding_field and self.config.embedding:
+                embedding_field = self.config.embedding.embedding_field
+
+            blocking_strategy = VectorBlockingStrategy(
+                db=self.db,
+                collection=self.config.collection_name,
+                embedding_field=embedding_field or 'embedding_vector',
+                similarity_threshold=self.config.blocking.similarity_threshold,
+                limit_per_entity=self.config.blocking.limit_per_entity,
+                blocking_field=self.config.blocking.blocking_field,
+            )
+            self._embedding_preflight_stats = blocking_strategy._check_embeddings_exist()  # noqa: SLF001
+            return list(blocking_strategy.generate_candidates())
+
+        elif strategy == 'lsh':
+            embedding_field = self.config.blocking.embedding_field
+            if not embedding_field and self.config.embedding:
+                embedding_field = self.config.embedding.embedding_field
+
+            blocking_strategy = LSHBlockingStrategy(
+                db=self.db,
+                collection=self.config.collection_name,
+                embedding_field=embedding_field or 'embedding_vector',
+                num_hash_tables=self.config.blocking.num_hash_tables,
+                num_hyperplanes=self.config.blocking.num_hyperplanes,
+                random_seed=self.config.blocking.random_seed,
+                blocking_field=self.config.blocking.blocking_field,
+            )
+            self._embedding_preflight_stats = blocking_strategy._check_embeddings_exist()  # noqa: SLF001
             return list(blocking_strategy.generate_candidates())
         
         else:

@@ -10,7 +10,8 @@ from .er_config import (
     BlockingConfig,
     SimilarityConfig,
     ClusteringConfig,
-    EmbeddingConfig
+    EmbeddingConfig,
+    CanonicalETLConfig,
 )
 
 __all__ = [
@@ -19,5 +20,6 @@ __all__ = [
     'SimilarityConfig',
     'ClusteringConfig',
     'EmbeddingConfig',
+    'CanonicalETLConfig',
 ]
 

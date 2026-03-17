@@ -855,6 +855,70 @@ class AddressERService:
         
         return clusters
     
+    def run_canonical_etl(
+        self,
+        input_path: str,
+        output_dir: str,
+        header_path: Optional[str] = None,
+        key_field: Optional[str] = None,
+        source_lookup: Optional[Dict] = None,
+        edge_extra_fields: Optional[List[str]] = None,
+        hub_threshold: int = 50,
+        hub_markers: Optional[Dict[str, str]] = None,
+        from_collection: str = "regs",
+        to_collection: str = "canonical_addresses",
+    ) -> Dict[str, Any]:
+        """Run ETL-time canonicalization as an alternative to post-load dedup.
+
+        This pre-deduplicates addresses at ingest time using O(n) signature
+        grouping, producing JSONL files suitable for ``arangoimport``.
+
+        Args:
+            input_path: Path to input TSV/CSV file.
+            output_dir: Directory for output JSONL files.
+            header_path: Separate header file (or ``None`` to use first row).
+            key_field: Join-key column for source vertex lookup.
+            source_lookup: ``{join_key: (shard_prefix, vertex_key)}`` mapping.
+            edge_extra_fields: Extra input columns to include on edges.
+            hub_threshold: In-degree threshold for hub classification.
+            hub_markers: ``{column: value}`` markers for hubs.
+            from_collection: Source vertex collection name.
+            to_collection: Target canonical address collection name.
+
+        Returns:
+            Statistics dict from the resolver.
+        """
+        from pathlib import Path as _Path
+        from ..etl import CanonicalResolver, AddressNormalizer
+
+        resolver = CanonicalResolver(
+            normalizer=AddressNormalizer(),
+            signature_fields=["street", "city", "state", "postal"],
+            field_mapping=dict(self.field_mapping),
+            hub_threshold=hub_threshold,
+            hub_markers=hub_markers or {},
+        )
+
+        resolver.process_file(
+            input_path,
+            header_path=header_path,
+            key_field=key_field,
+            source_lookup=source_lookup,
+            edge_extra_fields=edge_extra_fields,
+        )
+
+        out = _Path(output_dir)
+        out.mkdir(parents=True, exist_ok=True)
+
+        nodes_path = out / "canonical_addresses.jsonl"
+        edges_path = out / "hasAddress.jsonl"
+
+        resolver.write_nodes(str(nodes_path))
+        resolver.write_edges(str(edges_path), from_collection, to_collection)
+
+        self.logger.info("Canonical ETL complete: %s", resolver.stats)
+        return resolver.stats
+
     def __repr__(self) -> str:
         """String representation."""
         return (f"AddressERService("

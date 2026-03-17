@@ -242,6 +242,61 @@ def merge_entities(
     )
 
 
+@mcp.tool()
+def profile_dataset(
+    source_type: str,
+    dataset_id: str,
+    request_id: Optional[str] = None,
+    sample_limit: int = 10000,
+    include_fields: Optional[List[str]] = None,
+    exclude_fields: Optional[List[str]] = None,
+    compute_pairwise_signals: bool = True,
+) -> Dict[str, Any]:
+    """
+    Profile a dataset and return ER-relevant field statistics.
+
+    Returns null rates, distinct counts, heavy hitters, token stats, and
+    optional duplicate/hub risk signals to guide strategy selection.
+    """
+    from entity_resolution.mcp.tools.advisor import run_profile_dataset
+    return run_profile_dataset(
+        **_conn(),
+        source_type=source_type,
+        dataset_id=dataset_id,
+        request_id=request_id,
+        sample_limit=sample_limit,
+        include_fields=include_fields,
+        exclude_fields=exclude_fields,
+        compute_pairwise_signals=compute_pairwise_signals,
+    )
+
+
+@mcp.tool()
+def recommend_blocking_candidates(
+    profile: Dict[str, Any],
+    request_id: Optional[str] = None,
+    max_composite_size: int = 3,
+    max_results: int = 20,
+    must_include_fields: Optional[List[str]] = None,
+    must_exclude_fields: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    Rank blocking field candidates from a dataset profile.
+
+    Produces single-field and composite key candidates with heuristic
+    fit scores and estimated candidate-pair volume.
+    """
+    from entity_resolution.mcp.tools.advisor import run_recommend_blocking_candidates
+    return run_recommend_blocking_candidates(
+        profile=profile,
+        request_id=request_id,
+        max_composite_size=max_composite_size,
+        max_results=max_results,
+        must_include_fields=must_include_fields,
+        must_exclude_fields=must_exclude_fields,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Resources
 # ---------------------------------------------------------------------------

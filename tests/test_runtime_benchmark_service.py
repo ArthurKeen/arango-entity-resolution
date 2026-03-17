@@ -1,0 +1,36 @@
+from __future__ import annotations
+
+from entity_resolution.services.runtime_benchmark_service import RuntimeBenchmarkService
+
+
+def test_run_benchmark_summarizes_latency_and_fallback() -> None:
+    samples = [
+        {"setup_latency_ms": 10.0, "telemetry": {"fallback_count": 0}},
+        {"setup_latency_ms": 20.0, "telemetry": {"fallback_count": 1}},
+        {"setup_latency_ms": 30.0, "telemetry": {"fallback_count": 0}},
+    ]
+    idx = {"i": 0}
+
+    def probe():
+        value = samples[idx["i"]]
+        idx["i"] += 1
+        return value
+
+    result = RuntimeBenchmarkService.run_benchmark(probe=probe, repeats=3)
+    assert result["summary"]["latency_ms"]["count"] == 3
+    assert result["summary"]["latency_ms"]["mean"] == 20.0
+    assert result["summary"]["latency_ms"]["median"] == 20.0
+    assert result["summary"]["fallback"]["fallback_runs"] == 1
+    assert result["summary"]["fallback"]["total_fallback_events"] == 1
+
+
+def test_run_benchmark_rejects_invalid_repeats() -> None:
+    def probe():
+        return {}
+
+    try:
+        RuntimeBenchmarkService.run_benchmark(probe=probe, repeats=0)
+        assert False, "Expected ValueError for repeats=0"
+    except ValueError as exc:
+        assert "repeats must be" in str(exc)
+
