@@ -176,18 +176,35 @@ class TestFindDuplicates:
         assert result == {"ok": True}
 
     @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
+    @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
+    @patch("entity_resolution.mcp.tools.pipeline._get_unresolved_doc_ids")
     @patch("entity_resolution.mcp.tools.pipeline._get_db")
-    def test_find_duplicates_request_stage_scaffold_updates_config_and_results(
+    def test_find_duplicates_request_multistage_execution_updates_stage_metadata(
         self,
         mock_get_db,
+        mock_get_unresolved,
+        mock_has_any_edges,
         mock_pipeline_cls,
     ):
         from entity_resolution.mcp.contracts import FindDuplicatesRequest
         from entity_resolution.mcp.tools.pipeline import run_find_duplicates_request
 
         mock_get_db.return_value = MagicMock()
+        mock_get_unresolved.side_effect = [
+            {"companies/a1", "companies/a2", "companies/a3"},
+            {"companies/a2", "companies/a3"},
+        ]
+        mock_has_any_edges.return_value = False
         mock_pipeline = MagicMock()
-        mock_pipeline.run.return_value = {"ok": True}
+        mock_pipeline._run_blocking.side_effect = [
+            [{"doc1_key": "a1", "doc2_key": "a2"}],
+            [{"doc1_key": "a2", "doc2_key": "a3"}],
+        ]
+        mock_pipeline._run_similarity.side_effect = [
+            [("a1", "a2", 0.91)],
+            [("a2", "a3", 0.82)],
+        ]
+        mock_pipeline._run_edge_creation.side_effect = [1, 1]
         mock_pipeline_cls.return_value = mock_pipeline
 
         req = FindDuplicatesRequest(
@@ -209,13 +226,20 @@ class TestFindDuplicates:
             request=req,
         )
 
-        cfg = mock_pipeline_cls.call_args.kwargs["config"]
-        assert cfg.blocking.strategy == "bm25"
-        assert cfg.blocking.fields == ["name", "city"]
-        assert cfg.similarity.threshold == 0.9
-        assert result["ok"] is True
+        first_cfg = mock_pipeline_cls.call_args_list[0].kwargs["config"]
+        second_cfg = mock_pipeline_cls.call_args_list[1].kwargs["config"]
+        assert first_cfg.blocking.strategy == "bm25"
+        assert first_cfg.blocking.fields == ["name", "city"]
+        assert first_cfg.similarity.threshold == 0.9
+        assert second_cfg.blocking.strategy == "vector"
+        assert second_cfg.blocking.fields == ["description"]
+        assert second_cfg.similarity.threshold == 0.78
+
         assert result["stages"]["enabled"] is True
-        assert result["stages"]["execution_mode"] == "single_stage_scaffold"
+        assert result["stages"]["execution_mode"] == "multi_stage"
+        assert result["stages"]["requested_stage_count"] == 2
+        assert len(result["stages"]["stage_results"]) == 2
+        assert result["edges"]["edges_created"] == 2
 
 
 # ---------------------------------------------------------------------------

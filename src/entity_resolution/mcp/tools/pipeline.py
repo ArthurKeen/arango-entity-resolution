@@ -3,7 +3,7 @@ Pipeline-level MCP tools: find_duplicates and pipeline_status.
 """
 from __future__ import annotations
 
-import json
+import time
 from typing import Any, Dict, Optional, Tuple
 
 from arango import ArangoClient
@@ -82,50 +82,44 @@ def run_find_duplicates_request(
 
     Preferred internal entrypoint for MCP wrappers after normalization.
     """
-    from entity_resolution.config.er_config import (
-        BlockingConfig,
-        ClusteringConfig,
-        ERPipelineConfig,
-        SimilarityConfig,
-        ActiveLearningConfig,
-    )
     from entity_resolution.core.configurable_pipeline import ConfigurableERPipeline
 
     db = _get_db(host, port, username, password, database)
     edge_coll = request.edge_collection or f"{request.collection}_similarity_edges"
-    stage_strategy, stage_fields, stage_threshold, stage_meta = _resolve_stage_scaffold(request)
 
-    cfg = ERPipelineConfig(
-        entity_type="generic",
-        collection_name=request.collection,
-        edge_collection=edge_coll,
-        cluster_collection=f"{request.collection}_clusters",
-        blocking=BlockingConfig(
+    if not request.stages:
+        cfg = _build_pipeline_config(
+            request=request,
+            edge_collection=edge_coll,
+            strategy=request.strategy,
+            fields=request.fields or [],
+            threshold=request.confidence_threshold,
+            store_clusters=request.store_clusters,
+        )
+        pipeline = ConfigurableERPipeline(db=db, config=cfg)
+        return pipeline.run()
+
+    if len(request.stages) == 1:
+        stage_strategy, stage_fields, stage_threshold, stage_meta = _resolve_stage_scaffold(request)
+        cfg = _build_pipeline_config(
+            request=request,
+            edge_collection=edge_coll,
             strategy=stage_strategy,
             fields=stage_fields,
-            max_block_size=request.max_block_size,
-        ),
-        similarity=SimilarityConfig(
             threshold=stage_threshold,
-        ),
-        clustering=ClusteringConfig(
-            store_results=request.store_clusters,
-        ),
-        active_learning=ActiveLearningConfig(
-            enabled=request.enable_active_learning,
-            feedback_collection=request.feedback_collection,
-            refresh_every=request.active_learning_refresh_every,
-            model=request.active_learning_model,
-            low_threshold=request.active_learning_low_threshold,
-            high_threshold=request.active_learning_high_threshold,
-        ),
-    )
-
-    pipeline = ConfigurableERPipeline(db=db, config=cfg)
-    results = pipeline.run()
-    if stage_meta:
+            store_clusters=request.store_clusters,
+        )
+        pipeline = ConfigurableERPipeline(db=db, config=cfg)
+        results = pipeline.run()
         results["stages"] = stage_meta
-    return results
+        return results
+
+    # C2: true staged execution for >=2 stages with unresolved escalation.
+    return _run_find_duplicates_multistage(
+        db=db,
+        request=request,
+        edge_collection=edge_coll,
+    )
 
 
 def _resolve_stage_scaffold(request: FindDuplicatesRequest) -> Tuple[str, list[str], float, Dict[str, Any]]:
@@ -169,6 +163,253 @@ def _resolve_stage_scaffold(request: FindDuplicatesRequest) -> Tuple[str, list[s
         "selected_stage_min_score": threshold,
     }
     return strategy, fields, threshold, meta
+
+
+def _build_pipeline_config(
+    *,
+    request: FindDuplicatesRequest,
+    edge_collection: str,
+    strategy: str,
+    fields: list[str],
+    threshold: float,
+    store_clusters: bool,
+):
+    from entity_resolution.config.er_config import (
+        ActiveLearningConfig,
+        BlockingConfig,
+        ClusteringConfig,
+        ERPipelineConfig,
+        SimilarityConfig,
+    )
+
+    return ERPipelineConfig(
+        entity_type="generic",
+        collection_name=request.collection,
+        edge_collection=edge_collection,
+        cluster_collection=f"{request.collection}_clusters",
+        blocking=BlockingConfig(
+            strategy=strategy,
+            fields=fields,
+            max_block_size=request.max_block_size,
+        ),
+        similarity=SimilarityConfig(
+            threshold=threshold,
+        ),
+        clustering=ClusteringConfig(
+            store_results=store_clusters,
+        ),
+        active_learning=ActiveLearningConfig(
+            enabled=request.enable_active_learning,
+            feedback_collection=request.feedback_collection,
+            refresh_every=request.active_learning_refresh_every,
+            model=request.active_learning_model,
+            low_threshold=request.active_learning_low_threshold,
+            high_threshold=request.active_learning_high_threshold,
+        ),
+    )
+
+
+def _run_find_duplicates_multistage(*, db: Any, request: FindDuplicatesRequest, edge_collection: str) -> Dict[str, Any]:
+    from entity_resolution.core.configurable_pipeline import ConfigurableERPipeline
+
+    started = time.time()
+    stage_results: list[Dict[str, Any]] = []
+    total_candidates = 0
+    total_matches = 0
+    total_edges = 0
+
+    for idx, stage in enumerate(request.stages):
+        stage_start = time.time()
+        strategy, fields, threshold = _resolve_stage_config(stage, request)
+        cfg = _build_pipeline_config(
+            request=request,
+            edge_collection=edge_collection,
+            strategy=strategy,
+            fields=fields,
+            threshold=threshold,
+            store_clusters=False,
+        )
+        pipeline = ConfigurableERPipeline(db=db, config=cfg)
+
+        unresolved_ids = _get_unresolved_doc_ids(db, request.collection, edge_collection)
+        candidate_pairs = pipeline._run_blocking()  # noqa: SLF001 - intentional staged orchestration
+        filtered_pairs = _filter_candidate_pairs_by_doc_ids(
+            candidate_pairs=candidate_pairs,
+            unresolved_ids=unresolved_ids,
+            collection=request.collection,
+        )
+        matches = pipeline._run_similarity(filtered_pairs) if filtered_pairs else []
+        edges_created = pipeline._run_edge_creation(matches) if matches else 0
+
+        total_candidates += len(filtered_pairs)
+        total_matches += len(matches)
+        total_edges += int(edges_created)
+        stage_results.append(
+            {
+                "stage_index": idx,
+                "stage_type": str(stage.get("type", "unspecified")),
+                "strategy": strategy,
+                "fields": fields,
+                "threshold": threshold,
+                "unresolved_before": len(unresolved_ids),
+                "candidate_pairs": len(filtered_pairs),
+                "matches_found": len(matches),
+                "edges_created": int(edges_created),
+                "runtime_seconds": round(time.time() - stage_start, 3),
+            }
+        )
+
+    clustering_runtime = 0.0
+    clusters_found = 0
+    if request.store_clusters and _has_any_edges(db, edge_collection):
+        cluster_start = time.time()
+        # Reuse pipeline clustering implementation with final-stage config.
+        final_strategy, final_fields, final_threshold = _resolve_stage_config(request.stages[-1], request)
+        cfg = _build_pipeline_config(
+            request=request,
+            edge_collection=edge_collection,
+            strategy=final_strategy,
+            fields=final_fields,
+            threshold=final_threshold,
+            store_clusters=True,
+        )
+        pipeline = ConfigurableERPipeline(db=db, config=cfg)
+        clusters = pipeline._run_clustering()  # noqa: SLF001 - intentional staged orchestration
+        clustering_runtime = round(time.time() - cluster_start, 3)
+        clusters_found = len(clusters)
+
+    total_runtime = round(time.time() - started, 3)
+    return {
+        "embedding": {},
+        "blocking": {
+            "candidate_pairs": total_candidates,
+            "runtime_seconds": round(sum(s["runtime_seconds"] for s in stage_results), 3),
+        },
+        "similarity": {
+            "matches_found": total_matches,
+            "pairs_processed": total_candidates,
+            "runtime_seconds": round(sum(s["runtime_seconds"] for s in stage_results), 3),
+            "active_learning": {
+                "enabled": bool(request.enable_active_learning),
+                "pairs_reviewed": 0,
+                "llm_calls": 0,
+                "score_overrides": 0,
+                "feedback_collection": request.feedback_collection,
+            },
+        },
+        "edges": {
+            "edges_created": total_edges,
+            "runtime_seconds": round(sum(s["runtime_seconds"] for s in stage_results), 3),
+        },
+        "clustering": {
+            "clusters_found": clusters_found,
+            "runtime_seconds": clustering_runtime,
+        },
+        "total_runtime_seconds": total_runtime,
+        "stages": {
+            "enabled": True,
+            "requested_stage_count": len(request.stages),
+            "execution_mode": "multi_stage",
+            "stage_results": stage_results,
+        },
+    }
+
+
+def _resolve_stage_config(stage: Dict[str, Any], request: FindDuplicatesRequest) -> Tuple[str, list[str], float]:
+    strategy = request.strategy
+    fields = request.fields or []
+    threshold = request.confidence_threshold
+
+    stage_type = str(stage.get("type", "")).lower()
+    if stage_type in {"exact", "blocking_exact"}:
+        strategy = "exact"
+    elif stage_type in {"bm25", "arangosearch"}:
+        strategy = "bm25"
+    elif stage_type in {"embedding", "vector"}:
+        strategy = "vector"
+
+    stage_fields = stage.get("fields")
+    if isinstance(stage_fields, list) and stage_fields:
+        fields = [str(f) for f in stage_fields]
+
+    if isinstance(stage.get("min_score"), (float, int)):
+        threshold = float(stage["min_score"])
+
+    return strategy, fields, threshold
+
+
+def _get_unresolved_doc_ids(db: Any, collection: str, edge_collection: str) -> set[str]:
+    if not db.has_collection(collection):
+        return set()
+    if not db.has_collection(edge_collection):
+        cursor = db.aql.execute("FOR d IN @@collection RETURN d._id", bind_vars={"@collection": collection})
+        return {str(doc_id) for doc_id in cursor}
+
+    cursor = db.aql.execute(
+        """
+        FOR d IN @@collection
+          LET linked = LENGTH(
+            FOR e IN @@edge_collection
+              FILTER e._from == d._id OR e._to == d._id
+              LIMIT 1
+              RETURN 1
+          )
+          FILTER linked == 0
+          RETURN d._id
+        """,
+        bind_vars={
+            "@collection": collection,
+            "@edge_collection": edge_collection,
+        },
+    )
+    return {str(doc_id) for doc_id in cursor}
+
+
+def _filter_candidate_pairs_by_doc_ids(
+    *,
+    candidate_pairs: list[Any],
+    unresolved_ids: set[str],
+    collection: str,
+) -> list[Any]:
+    if not unresolved_ids:
+        return []
+
+    filtered: list[Any] = []
+    seen: set[Tuple[str, str]] = set()
+    for pair in candidate_pairs:
+        doc1_id: Optional[str] = None
+        doc2_id: Optional[str] = None
+        if isinstance(pair, dict):
+            k1 = str(pair.get("doc1_key", ""))
+            k2 = str(pair.get("doc2_key", ""))
+            doc1_id = k1 if "/" in k1 else f"{collection}/{k1}"
+            doc2_id = k2 if "/" in k2 else f"{collection}/{k2}"
+        elif isinstance(pair, tuple) and len(pair) >= 2:
+            k1 = str(pair[0])
+            k2 = str(pair[1])
+            doc1_id = k1 if "/" in k1 else f"{collection}/{k1}"
+            doc2_id = k2 if "/" in k2 else f"{collection}/{k2}"
+
+        if not doc1_id or not doc2_id:
+            continue
+        if doc1_id not in unresolved_ids or doc2_id not in unresolved_ids:
+            continue
+
+        dedupe_key = tuple(sorted((doc1_id, doc2_id)))
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
+        filtered.append(pair)
+    return filtered
+
+
+def _has_any_edges(db: Any, edge_collection: str) -> bool:
+    if not db.has_collection(edge_collection):
+        return False
+    try:
+        return int(db.collection(edge_collection).count()) > 0
+    except Exception:
+        return False
 
 
 def run_pipeline_status(
