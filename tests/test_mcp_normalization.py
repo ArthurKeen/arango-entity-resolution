@@ -71,6 +71,25 @@ def test_normalize_find_duplicates_stages_from_options():
     assert req.stages[1]["type"] == "embedding"
 
 
+def test_normalize_find_duplicates_gating_options():
+    req = normalize_find_duplicates_args(
+        collection="companies",
+        fields=["name"],
+        options={
+            "gating": {
+                "min_margin": 0.07,
+                "require_token_overlap": True,
+                "token_overlap_bypass_score": 0.93,
+                "word_index_stopwords": ["llc", "inc"],
+            }
+        },
+    )
+    assert req.min_margin == 0.07
+    assert req.require_token_overlap is True
+    assert req.token_overlap_bypass_score == 0.93
+    assert req.word_index_stopwords == ["llc", "inc"]
+
+
 def test_normalize_resolve_entity_options_override():
     req = normalize_resolve_entity_args(
         collection="companies",
@@ -124,6 +143,15 @@ def test_normalize_find_duplicates_rejects_bad_stage_shape():
             collection="companies",
             fields=["name"],
             options={"stages": [{}]},
+        )
+
+
+def test_normalize_find_duplicates_rejects_non_list_stopwords():
+    with pytest.raises(ValueError, match="word_index_stopwords must be an array/list"):
+        normalize_find_duplicates_args(
+            collection="companies",
+            fields=["name"],
+            options={"gating": {"word_index_stopwords": "llc"}},
         )
 
 
