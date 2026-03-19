@@ -522,3 +522,474 @@ class TestAdvisorTools:
         assert "fields" in top
         assert "fit_score" in top
         assert "estimated_candidate_pairs" in top
+
+    def test_recommend_resolution_strategy_returns_ranked_recommendations(self):
+        from entity_resolution.mcp.tools.advisor import run_recommend_resolution_strategy
+
+        profile = {
+            "row_count_estimate": 250000,
+            "sample_size": 5000,
+            "pairwise_signals": {
+                "near_duplicate_rate_estimate": 0.12,
+                "hub_risk_score": 0.27,
+            },
+            "field_profiles": [
+                {"field": "name", "data_type": "string", "null_rate": 0.02, "entropy_estimate": 0.83},
+                {"field": "address", "data_type": "string", "null_rate": 0.08, "entropy_estimate": 0.71},
+                {"field": "postal_code", "data_type": "string", "null_rate": 0.01, "entropy_estimate": 0.62},
+            ],
+        }
+        objective_profile = {
+            "priority": "throughput_first",
+            "latency_budget_ms": 120,
+            "max_edge_count": 150000,
+        }
+
+        result = run_recommend_resolution_strategy(
+            profile=profile,
+            objective_profile=objective_profile,
+            request_id="req-strategy-001",
+            allow_embedding_models=True,
+            allow_graph_clustering=True,
+        )
+
+        assert result["status"] == "ok"
+        assert result["tool_version"] == "1.0.0"
+        assert result["advisor_policy_version"] == "2026-03-01"
+        assert result["request_id"] == "req-strategy-001"
+        recommendations = result["result"]["recommendations"]
+        assert len(recommendations) >= 3
+        assert recommendations[0]["rank"] == 1
+        assert recommendations[0]["fit_score"] >= recommendations[-1]["fit_score"]
+        assert "expected_tradeoffs" in recommendations[0]
+        assert "rationale" in recommendations[0]
+        assert "confidence" in recommendations[0]
+
+    def test_recommend_resolution_strategy_honors_embedding_toggle(self):
+        from entity_resolution.mcp.tools.advisor import run_recommend_resolution_strategy
+
+        result = run_recommend_resolution_strategy(
+            profile={"field_profiles": [], "pairwise_signals": {}},
+            objective_profile={"priority": "balanced"},
+            allow_embedding_models=False,
+            allow_graph_clustering=False,
+        )
+
+        strategy_ids = [r["strategy_id"] for r in result["result"]["recommendations"]]
+        assert "embedding_first_nearest_neighbor" not in strategy_ids
+        assert "graph_first_collective_resolution" not in strategy_ids
+
+    def test_estimate_feature_weights_returns_weights_and_threshold(self):
+        from entity_resolution.mcp.tools.advisor import run_estimate_feature_weights
+
+        rows = []
+        for i in range(1200):
+            is_match = i % 2 == 0
+            rows.append(
+                {
+                    "label": 1 if is_match else 0,
+                    "features": {
+                        "name_jaro_winkler": 0.92 if is_match else 0.42,
+                        "address_cosine": 0.88 if is_match else 0.5,
+                        "postal_exact": 1.0 if is_match else 0.2,
+                    },
+                }
+            )
+
+        result = run_estimate_feature_weights(
+            feature_matrix_ref={"dataset_id": "pair_features_demo", "rows": rows},
+            target_metric="f1",
+            min_samples=1000,
+            request_id="req-weights-001",
+        )
+
+        assert result["status"] == "ok"
+        assert result["request_id"] == "req-weights-001"
+        assert result["tool_version"] == "1.0.0"
+        payload = result["result"]
+        assert "weights" in payload
+        assert "threshold_recommendation" in payload
+        assert "diagnostics" in payload
+        assert "confidence" in payload
+        assert payload["diagnostics"]["samples_used"] == 1200
+        assert payload["threshold_recommendation"]["match_threshold"] >= 0.0
+        assert payload["threshold_recommendation"]["match_threshold"] <= 1.0
+        assert abs(sum(payload["weights"].values()) - 1.0) <= 0.02
+
+    def test_estimate_feature_weights_returns_not_enough_data_error(self):
+        from entity_resolution.mcp.tools.advisor import run_estimate_feature_weights
+
+        result = run_estimate_feature_weights(
+            feature_matrix_ref={"dataset_id": "pair_features_demo", "rows": []},
+            target_metric="f1",
+            min_samples=1000,
+            request_id="req-weights-002",
+        )
+
+        assert result["status"] == "error"
+        assert result["request_id"] == "req-weights-002"
+        assert result["error"]["code"] == "NOT_ENOUGH_DATA"
+
+    def test_simulate_pipeline_variants_returns_ranked_variants_and_winner(self):
+        from entity_resolution.mcp.tools.advisor import run_simulate_pipeline_variants
+
+        variants = [
+            {
+                "variant_id": "v_blocking_strict",
+                "config": {
+                    "blocking": {"fields": ["name", "postal_code"], "max_block_size": 80},
+                    "matching": {"threshold": 0.86},
+                    "embedding": {"enabled": False},
+                    "graph": {"enabled": False},
+                },
+            },
+            {
+                "variant_id": "v_embedding_graph",
+                "config": {
+                    "blocking": {"fields": ["name", "city", "postal_code"], "max_block_size": 220},
+                    "matching": {"threshold": 0.78},
+                    "embedding": {"enabled": True},
+                    "graph": {"enabled": True},
+                },
+            },
+        ]
+
+        result = run_simulate_pipeline_variants(
+            variants=variants,
+            objective_profile={"priority": "throughput_first", "max_memory_mb": 1800},
+            request_id="req-sim-001",
+        )
+
+        assert result["status"] == "ok"
+        assert result["request_id"] == "req-sim-001"
+        payload = result["result"]
+        assert len(payload["variant_results"]) == 2
+        assert len(payload["ranking"]) == 2
+        assert payload["ranking"][0]["rank"] == 1
+        assert "variant_id" in payload["winner"]
+        assert "reason" in payload["winner"]
+        assert payload["ranking"][0]["fit_score"] >= payload["ranking"][1]["fit_score"]
+
+    def test_simulate_pipeline_variants_requires_at_least_two_variants(self):
+        from entity_resolution.mcp.tools.advisor import run_simulate_pipeline_variants
+
+        result = run_simulate_pipeline_variants(
+            variants=[{"variant_id": "v1", "config": {}}],
+            objective_profile={"priority": "balanced"},
+            request_id="req-sim-002",
+        )
+
+        assert result["status"] == "error"
+        assert result["request_id"] == "req-sim-002"
+        assert result["error"]["code"] == "INVALID_ARGUMENT"
+
+    def test_export_recommended_config_returns_yaml_artifact(self):
+        from entity_resolution.mcp.tools.advisor import run_export_recommended_config
+
+        recommendation = {
+            "strategy_id": "hybrid_block_then_weighted_match",
+            "fit_score": 0.91,
+            "rationale": ["Good quality/runtime balance"],
+            "expected_tradeoffs": {"precision": "high", "recall": "medium_high"},
+            "blocking": {"fields": ["name", "postal_code"], "max_block_size": 80},
+            "matching": {"threshold": 0.84, "weights": {"name_jaro_winkler": 0.4, "postal_exact": 0.2}},
+        }
+
+        result = run_export_recommended_config(
+            recommendation=recommendation,
+            format="yaml",
+            include_rationale=True,
+            request_id="req-export-001",
+        )
+
+        assert result["status"] == "ok"
+        assert result["request_id"] == "req-export-001"
+        payload = result["result"]
+        assert payload["format"] == "yaml"
+        assert payload["config_hash"].startswith("sha256:")
+        assert payload["policy_version"] == "2026-03-01"
+        assert "entity_resolution:" in payload["config_text"]
+
+    def test_export_recommended_config_rejects_invalid_format(self):
+        from entity_resolution.mcp.tools.advisor import run_export_recommended_config
+
+        result = run_export_recommended_config(
+            recommendation={"strategy_id": "hybrid_block_then_weighted_match"},
+            format="toml",
+            request_id="req-export-002",
+        )
+
+        assert result["status"] == "error"
+        assert result["request_id"] == "req-export-002"
+        assert result["error"]["code"] == "INVALID_ARGUMENT"
+
+    def test_evaluate_blocking_plan_returns_distribution_risks_and_guardrails(self):
+        from entity_resolution.mcp.tools.advisor import run_evaluate_blocking_plan
+
+        profile = {
+            "row_count_estimate": 125000,
+            "pairwise_signals": {"hub_risk_score": 0.24},
+            "field_profiles": [
+                {"field": "name", "data_type": "string", "null_rate": 0.03, "entropy_estimate": 0.84},
+                {"field": "postal_code", "data_type": "string", "null_rate": 0.02, "entropy_estimate": 0.62},
+                {"field": "city", "data_type": "string", "null_rate": 0.07, "entropy_estimate": 0.58},
+            ],
+        }
+        blocking_plan = {
+            "fields": ["name", "postal_code"],
+            "min_block_size": 2,
+            "max_block_size": 120,
+        }
+
+        result = run_evaluate_blocking_plan(
+            profile=profile,
+            blocking_plan=blocking_plan,
+            request_id="req-eval-blocking-001",
+        )
+
+        assert result["status"] == "ok"
+        assert result["request_id"] == "req-eval-blocking-001"
+        payload = result["result"]
+        assert payload["estimated_block_count"] > 0
+        assert payload["estimated_candidate_pairs"] > 0
+        assert "estimated_block_size_distribution" in payload
+        assert "risk_flags" in payload
+        assert "recommended_guardrails" in payload
+        assert payload["recommended_guardrails"]["suggested_max_block_size"] <= 120
+
+    def test_evaluate_blocking_plan_rejects_unknown_fields(self):
+        from entity_resolution.mcp.tools.advisor import run_evaluate_blocking_plan
+
+        profile = {
+            "row_count_estimate": 5000,
+            "field_profiles": [
+                {"field": "name", "data_type": "string", "null_rate": 0.0, "entropy_estimate": 0.8},
+            ],
+        }
+
+        result = run_evaluate_blocking_plan(
+            profile=profile,
+            blocking_plan={"fields": ["name", "postalcode"]},
+            request_id="req-eval-blocking-002",
+        )
+
+        assert result["status"] == "error"
+        assert result["request_id"] == "req-eval-blocking-002"
+        assert result["error"]["code"] == "INVALID_ARGUMENT"
+
+
+class TestMcpServerOptionsCompatibility:
+    @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
+    def test_server_find_duplicates_options_override_legacy(self, mock_run_find_duplicates):
+        from entity_resolution.mcp import server
+
+        mock_run_find_duplicates.return_value = {"ok": True}
+        server.find_duplicates(
+            collection="companies",
+            fields=["name"],
+            strategy="exact",
+            confidence_threshold=0.8,
+            max_block_size=500,
+            options={
+                "blocking": {"strategy": "bm25", "max_block_size": 120, "fields": ["name", "postal_code"]},
+                "similarity": {"confidence_threshold": 0.93},
+            },
+        )
+
+        kwargs = mock_run_find_duplicates.call_args.kwargs
+        req = kwargs["request"]
+        assert req.collection == "companies"
+        assert req.strategy == "bm25"
+        assert req.fields == ["name", "postal_code"]
+        assert req.confidence_threshold == 0.93
+        assert req.max_block_size == 120
+
+    @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
+    def test_server_find_duplicates_surfaces_deprecation_warnings(self, mock_run_find_duplicates):
+        from entity_resolution.mcp import server
+
+        mock_run_find_duplicates.return_value = {"ok": True}
+        result = server.find_duplicates(
+            collection="companies",
+            fields=["name"],
+            strategy="exact",
+            options={"blocking": {"strategy": "bm25"}},
+        )
+        assert result["ok"] is True
+        assert "deprecation_warnings" in result
+        assert len(result["deprecation_warnings"]) >= 1
+
+    @patch("entity_resolution.mcp.tools.entity.run_resolve_entity_request")
+    def test_server_resolve_entity_options_override_legacy(self, mock_run_resolve_entity):
+        from entity_resolution.mcp import server
+
+        mock_run_resolve_entity.return_value = [{"candidate_key": "c1", "score": 0.91}]
+        server.resolve_entity(
+            collection="companies",
+            record={"name": "Acme"},
+            fields=["name"],
+            confidence_threshold=0.7,
+            top_k=10,
+            options={
+                "retrieval": {"fields": ["name", "aliases"], "top_k": 3},
+                "similarity": {"confidence_threshold": 0.88},
+            },
+        )
+
+        kwargs = mock_run_resolve_entity.call_args.kwargs
+        req = kwargs["request"]
+        assert req.collection == "companies"
+        assert req.fields == ["name", "aliases"]
+        assert req.confidence_threshold == 0.88
+        assert req.top_k == 3
+
+    @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
+    def test_server_find_duplicates_legacy_and_options_equivalent(self, mock_run_find_duplicates):
+        from entity_resolution.mcp import server
+
+        mock_run_find_duplicates.return_value = {"ok": True}
+
+        server.find_duplicates(
+            collection="companies",
+            fields=["name", "city"],
+            strategy="bm25",
+            confidence_threshold=0.9,
+            max_block_size=120,
+            store_clusters=False,
+        )
+        req_legacy = mock_run_find_duplicates.call_args.kwargs["request"]
+
+        server.find_duplicates(
+            collection="companies",
+            fields=["name", "city"],
+            options={
+                "blocking": {"strategy": "bm25", "fields": ["name", "city"], "max_block_size": 120},
+                "similarity": {"confidence_threshold": 0.9},
+                "clustering": {"store_clusters": False},
+            },
+        )
+        req_options = mock_run_find_duplicates.call_args.kwargs["request"]
+
+        assert req_legacy.collection == req_options.collection
+        assert req_legacy.fields == req_options.fields
+        assert req_legacy.strategy == req_options.strategy
+        assert req_legacy.confidence_threshold == req_options.confidence_threshold
+        assert req_legacy.max_block_size == req_options.max_block_size
+        assert req_legacy.store_clusters == req_options.store_clusters
+
+    @patch("entity_resolution.mcp.tools.entity.run_resolve_entity_request")
+    def test_server_resolve_entity_legacy_and_options_equivalent(self, mock_run_resolve_entity):
+        from entity_resolution.mcp import server
+
+        mock_run_resolve_entity.return_value = []
+
+        server.resolve_entity(
+            collection="companies",
+            record={"name": "Acme"},
+            fields=["name"],
+            confidence_threshold=0.8,
+            top_k=5,
+        )
+        req_legacy = mock_run_resolve_entity.call_args.kwargs["request"]
+
+        server.resolve_entity(
+            collection="companies",
+            record={"name": "Acme"},
+            fields=["name"],
+            options={
+                "retrieval": {"fields": ["name"], "top_k": 5},
+                "similarity": {"confidence_threshold": 0.8},
+            },
+        )
+        req_options = mock_run_resolve_entity.call_args.kwargs["request"]
+
+        assert req_legacy.collection == req_options.collection
+        assert req_legacy.record == req_options.record
+        assert req_legacy.fields == req_options.fields
+        assert req_legacy.confidence_threshold == req_options.confidence_threshold
+        assert req_legacy.top_k == req_options.top_k
+
+    @patch("entity_resolution.mcp.tools.entity.run_resolve_entity_request")
+    def test_server_resolve_entity_default_response_is_list(self, mock_run_resolve_entity):
+        from entity_resolution.mcp import server
+
+        mock_run_resolve_entity.return_value = [{"candidate_key": "c1", "score": 0.91}]
+        result = server.resolve_entity(
+            collection="companies",
+            record={"name": "Acme"},
+            fields=["name"],
+        )
+        assert isinstance(result, list)
+        assert result[0]["candidate_key"] == "c1"
+
+    @patch("entity_resolution.mcp.tools.entity.run_resolve_entity_request")
+    def test_server_resolve_entity_can_return_envelope(self, mock_run_resolve_entity):
+        from entity_resolution.mcp import server
+
+        mock_run_resolve_entity.return_value = [{"candidate_key": "c1", "score": 0.91}]
+        result = server.resolve_entity(
+            collection="companies",
+            record={"name": "Acme"},
+            fields=["name"],
+            confidence_threshold=0.7,
+            options={
+                "retrieval": {"fields": ["name", "aliases"]},
+                "similarity": {"confidence_threshold": 0.88},
+                "diagnostics": {"response_envelope": True},
+            },
+        )
+
+        assert isinstance(result, dict)
+        assert result["status"] == "ok"
+        assert result["response_format"] == "envelope-v1"
+        assert isinstance(result["result"], list)
+        assert "deprecation_warnings" in result
+
+    @patch("entity_resolution.mcp.tools.cluster.run_list_collections")
+    def test_server_list_collections_default_response_is_list(self, mock_run):
+        from entity_resolution.mcp import server
+
+        mock_run.return_value = [{"name": "companies", "type": "document", "count": 42}]
+        result = server.list_collections()
+        assert isinstance(result, list)
+        assert result[0]["name"] == "companies"
+
+    @patch("entity_resolution.mcp.tools.cluster.run_list_collections")
+    def test_server_list_collections_can_return_envelope(self, mock_run):
+        from entity_resolution.mcp import server
+
+        mock_run.return_value = [{"name": "companies", "type": "document", "count": 42}]
+        result = server.list_collections(
+            options={"diagnostics": {"response_envelope": True}},
+        )
+
+        assert isinstance(result, dict)
+        assert result["status"] == "ok"
+        assert result["response_format"] == "envelope-v1"
+        assert isinstance(result["result"], list)
+        assert result["result"][0]["name"] == "companies"
+
+    @patch("entity_resolution.mcp.tools.cluster.run_get_clusters")
+    def test_server_get_clusters_default_response_is_list(self, mock_run):
+        from entity_resolution.mcp import server
+
+        mock_run.return_value = [{"cluster_id": "c1", "members": ["a", "b"], "size": 2}]
+        result = server.get_clusters(collection="companies")
+        assert isinstance(result, list)
+        assert result[0]["cluster_id"] == "c1"
+
+    @patch("entity_resolution.mcp.tools.cluster.run_get_clusters")
+    def test_server_get_clusters_can_return_envelope(self, mock_run):
+        from entity_resolution.mcp import server
+
+        mock_run.return_value = [{"cluster_id": "c1", "members": ["a", "b"], "size": 2}]
+        result = server.get_clusters(
+            collection="companies",
+            options={"diagnostics": {"response_envelope": True}},
+        )
+
+        assert isinstance(result, dict)
+        assert result["status"] == "ok"
+        assert result["response_format"] == "envelope-v1"
+        assert isinstance(result["result"], list)
+        assert result["result"][0]["cluster_id"] == "c1"

@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from arango import ArangoClient
+from entity_resolution.mcp.connection import get_arango_hosts
 
 
 SYSTEM_FIELDS = {"_id", "_key", "_rev"}
@@ -36,7 +37,7 @@ def run_get_clusters(
     Reads from the stored cluster collection (populated by find_duplicates).
     Falls back to a WCC graph query if no stored clusters exist yet.
     """
-    client = ArangoClient(hosts=f"http://{host}:{port}")
+    client = ArangoClient(hosts=get_arango_hosts(host, port))
     db = client.db(database, username=username, password=password)
 
     # Try stored cluster collections in order of convention
@@ -119,7 +120,7 @@ def run_merge_entities(
     - "newest": prefer the most recently inserted document
     - "first": use the first key as the canonical record
     """
-    client = ArangoClient(hosts=f"http://{host}:{port}")
+    client = ArangoClient(hosts=get_arango_hosts(host, port))
     db = client.db(database, username=username, password=password)
     ordered_keys = list(dict.fromkeys(entity_keys))
     if not ordered_keys:
@@ -160,7 +161,7 @@ def run_list_collections(
 ) -> List[Dict[str, Any]]:
     """List all document collections in the database with document counts."""
 
-    client = ArangoClient(hosts=f"http://{host}:{port}")
+    client = ArangoClient(hosts=get_arango_hosts(host, port))
     db = client.db(database, username=username, password=password)
 
     collections = []

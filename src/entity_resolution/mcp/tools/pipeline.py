@@ -7,12 +7,14 @@ import json
 from typing import Any, Dict, Optional
 
 from arango import ArangoClient
+from entity_resolution.mcp.contracts import FindDuplicatesRequest
+from entity_resolution.mcp.connection import get_arango_hosts
 from entity_resolution.utils.pipeline_utils import count_inferred_edges, validate_edge_quality
 
 
 def _get_db(host: str, port: int, username: str, password: str, database: str):
     """Return an authenticated ArangoDB database handle."""
-    client = ArangoClient(hosts=f"http://{host}:{port}")
+    client = ArangoClient(hosts=get_arango_hosts(host, port))
     return client.db(database, username=username, password=password)
 
 
@@ -41,6 +43,45 @@ def run_find_duplicates(
     Run the full blocking → similarity → edge-creation → clustering pipeline
     on *collection* and return a metrics summary.
     """
+    request = FindDuplicatesRequest(
+        collection=collection,
+        fields=fields or [],
+        strategy=strategy,
+        confidence_threshold=confidence_threshold,
+        max_block_size=max_block_size,
+        store_clusters=store_clusters,
+        edge_collection=edge_collection,
+        enable_active_learning=enable_active_learning,
+        feedback_collection=feedback_collection,
+        active_learning_refresh_every=active_learning_refresh_every,
+        active_learning_model=active_learning_model,
+        active_learning_low_threshold=active_learning_low_threshold,
+        active_learning_high_threshold=active_learning_high_threshold,
+    )
+    return run_find_duplicates_request(
+        host=host,
+        port=port,
+        username=username,
+        password=password,
+        database=database,
+        request=request,
+    )
+
+
+def run_find_duplicates_request(
+    *,
+    host: str,
+    port: int,
+    username: str,
+    password: str,
+    database: str,
+    request: FindDuplicatesRequest,
+) -> Dict[str, Any]:
+    """
+    Run find_duplicates using a canonical normalized request object.
+
+    Preferred internal entrypoint for MCP wrappers after normalization.
+    """
     from entity_resolution.config.er_config import (
         BlockingConfig,
         ClusteringConfig,
@@ -51,31 +92,31 @@ def run_find_duplicates(
     from entity_resolution.core.configurable_pipeline import ConfigurableERPipeline
 
     db = _get_db(host, port, username, password, database)
-    edge_coll = edge_collection or f"{collection}_similarity_edges"
+    edge_coll = request.edge_collection or f"{request.collection}_similarity_edges"
 
     cfg = ERPipelineConfig(
         entity_type="generic",
-        collection_name=collection,
+        collection_name=request.collection,
         edge_collection=edge_coll,
-        cluster_collection=f"{collection}_clusters",
+        cluster_collection=f"{request.collection}_clusters",
         blocking=BlockingConfig(
-            strategy=strategy,
-            fields=fields or [],
-            max_block_size=max_block_size,
+            strategy=request.strategy,
+            fields=request.fields or [],
+            max_block_size=request.max_block_size,
         ),
         similarity=SimilarityConfig(
-            threshold=confidence_threshold,
+            threshold=request.confidence_threshold,
         ),
         clustering=ClusteringConfig(
-            store_results=store_clusters,
+            store_results=request.store_clusters,
         ),
         active_learning=ActiveLearningConfig(
-            enabled=enable_active_learning,
-            feedback_collection=feedback_collection,
-            refresh_every=active_learning_refresh_every,
-            model=active_learning_model,
-            low_threshold=active_learning_low_threshold,
-            high_threshold=active_learning_high_threshold,
+            enabled=request.enable_active_learning,
+            feedback_collection=request.feedback_collection,
+            refresh_every=request.active_learning_refresh_every,
+            model=request.active_learning_model,
+            low_threshold=request.active_learning_low_threshold,
+            high_threshold=request.active_learning_high_threshold,
         ),
     )
 

@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional
 
 import jellyfish
 from arango import ArangoClient
+from entity_resolution.mcp.contracts import ResolveEntityRequest
+from entity_resolution.mcp.connection import get_arango_hosts
 
 
 def run_resolve_entity(
@@ -28,18 +30,45 @@ def run_resolve_entity(
     Runs blocking + similarity for this single record only — does **not**
     modify the database.  Returns a ranked list of candidate matches.
     """
+    request = ResolveEntityRequest(
+        collection=collection,
+        record=record,
+        fields=fields,
+        confidence_threshold=confidence_threshold,
+        top_k=top_k,
+    )
+    return run_resolve_entity_request(
+        host=host,
+        port=port,
+        username=username,
+        password=password,
+        database=database,
+        request=request,
+    )
+
+
+def run_resolve_entity_request(
+    *,
+    host: str,
+    port: int,
+    username: str,
+    password: str,
+    database: str,
+    request: ResolveEntityRequest,
+) -> List[Dict[str, Any]]:
+    """Resolve entity matches from a canonical normalized request object."""
     from entity_resolution.core.incremental_resolver import IncrementalResolver
 
-    client = ArangoClient(hosts=f"http://{host}:{port}")
+    client = ArangoClient(hosts=get_arango_hosts(host, port))
     db = client.db(database, username=username, password=password)
 
     resolver = IncrementalResolver(
         db=db,
-        collection=collection,
-        fields=fields,
-        confidence_threshold=confidence_threshold,
+        collection=request.collection,
+        fields=request.fields,
+        confidence_threshold=request.confidence_threshold,
     )
-    matches = resolver.resolve(record, top_k=top_k)
+    matches = resolver.resolve(request.record, top_k=request.top_k)
     return matches
 
 
@@ -60,7 +89,7 @@ def run_explain_match(
     two entity documents match.
     """
 
-    client = ArangoClient(hosts=f"http://{host}:{port}")
+    client = ArangoClient(hosts=get_arango_hosts(host, port))
     db = client.db(database, username=username, password=password)
 
     coll = db.collection(collection)

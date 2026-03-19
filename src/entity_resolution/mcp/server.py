@@ -12,8 +12,9 @@ Entry points:
 from __future__ import annotations
 
 import json
+import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from mcp.server.fastmcp import FastMCP
 
@@ -31,6 +32,33 @@ mcp = FastMCP(
         "collection to use."
     ),
 )
+logger = logging.getLogger(__name__)
+
+
+def _attach_deprecation_warnings(result: Any, warnings: List[str]) -> Any:
+    """Attach deprecation warnings when response shape allows additive metadata."""
+    if warnings and isinstance(result, dict):
+        result = dict(result)
+        existing = result.get("deprecation_warnings")
+        if isinstance(existing, list):
+            result["deprecation_warnings"] = existing + warnings
+        else:
+            result["deprecation_warnings"] = list(warnings)
+    return result
+
+
+def _wrap_response_envelope(*, result: Any, warnings: List[str], enabled: bool) -> Any:
+    """Optionally wrap responses so metadata can be surfaced safely."""
+    if not enabled:
+        return result
+    payload: Dict[str, Any] = {
+        "status": "ok",
+        "response_format": "envelope-v1",
+        "result": result,
+    }
+    if warnings:
+        payload["deprecation_warnings"] = list(warnings)
+    return payload
 
 
 def run_sse_server(*, host: str, port: int) -> None:
@@ -55,15 +83,24 @@ def _conn() -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 @mcp.tool()
-def list_collections() -> List[Dict[str, Any]]:
+def list_collections(
+    options: Optional[Dict[str, Any]] = None,
+) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
     """
     List all document and edge collections in the ArangoDB database.
 
     Returns each collection's name, type ("document" or "edge"), and
     document count. Call this first to discover available collections.
+    Set `options.diagnostics.response_envelope=true` for an object envelope.
     """
     from entity_resolution.mcp.tools.cluster import run_list_collections
-    return run_list_collections(**_conn())
+    result = run_list_collections(**_conn())
+    envelope_enabled = bool(
+        isinstance(options, dict)
+        and isinstance(options.get("diagnostics"), dict)
+        and options["diagnostics"].get("response_envelope", False)
+    )
+    return _wrap_response_envelope(result=result, warnings=[], enabled=envelope_enabled)
 
 
 @mcp.tool()
@@ -81,6 +118,7 @@ def find_duplicates(
     active_learning_model: Optional[str] = None,
     active_learning_low_threshold: float = 0.55,
     active_learning_high_threshold: float = 0.80,
+    options: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Run the full entity resolution pipeline on a collection.
@@ -103,12 +141,12 @@ def find_duplicates(
         active_learning_low_threshold: Lower bound of the uncertain-score band.
         active_learning_high_threshold: Upper bound of the uncertain-score band.
     """
-    from entity_resolution.mcp.tools.pipeline import run_find_duplicates
-    return run_find_duplicates(
-        **_conn(),
+    from entity_resolution.mcp.normalization import normalize_find_duplicates_args
+    from entity_resolution.mcp.tools.pipeline import run_find_duplicates_request
+    req = normalize_find_duplicates_args(
         collection=collection,
-        strategy=strategy,
         fields=fields,
+        strategy=strategy,
         confidence_threshold=confidence_threshold,
         max_block_size=max_block_size,
         store_clusters=store_clusters,
@@ -119,7 +157,16 @@ def find_duplicates(
         active_learning_model=active_learning_model,
         active_learning_low_threshold=active_learning_low_threshold,
         active_learning_high_threshold=active_learning_high_threshold,
+        options=options,
     )
+    for warning in req.deprecation_warnings:
+        logger.warning("find_duplicates normalization warning: %s", warning)
+
+    result = run_find_duplicates_request(
+        **_conn(),
+        request=req,
+    )
+    return _attach_deprecation_warnings(result, req.deprecation_warnings)
 
 
 @mcp.tool()
@@ -148,12 +195,14 @@ def resolve_entity(
     fields: List[str],
     confidence_threshold: float = 0.80,
     top_k: int = 10,
-) -> List[Dict[str, Any]]:
+    options: Optional[Dict[str, Any]] = None,
+) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
     """
     Find existing records in a collection that match a given record.
 
     Does NOT modify the database — purely a read/search operation.
     Returns a ranked list of candidate matches with similarity scores.
+    Set `options.diagnostics.response_envelope=true` for an object envelope.
 
     Args:
         collection: Collection to search for matches.
@@ -162,14 +211,28 @@ def resolve_entity(
         confidence_threshold: Minimum score for a result to be included.
         top_k: Maximum number of matches to return.
     """
-    from entity_resolution.mcp.tools.entity import run_resolve_entity
-    return run_resolve_entity(
-        **_conn(),
+    from entity_resolution.mcp.normalization import normalize_resolve_entity_args
+    from entity_resolution.mcp.tools.entity import run_resolve_entity_request
+    req = normalize_resolve_entity_args(
         collection=collection,
         record=record,
         fields=fields,
         confidence_threshold=confidence_threshold,
         top_k=top_k,
+        options=options,
+    )
+    for warning in req.deprecation_warnings:
+        logger.warning("resolve_entity normalization warning: %s", warning)
+
+    result = run_resolve_entity_request(
+        **_conn(),
+        request=req,
+    )
+    envelope_enabled = bool((req.options.diagnostics or {}).get("response_envelope", False))
+    return _wrap_response_envelope(
+        result=result,
+        warnings=req.deprecation_warnings,
+        enabled=envelope_enabled,
     )
 
 
@@ -201,7 +264,8 @@ def get_clusters(
     collection: str,
     limit: int = 50,
     min_size: int = 2,
-) -> List[Dict[str, Any]]:
+    options: Optional[Dict[str, Any]] = None,
+) -> Union[List[Dict[str, Any]], Dict[str, Any]]:
     """
     Return entity clusters found in the collection's similarity graph.
 
@@ -209,6 +273,7 @@ def get_clusters(
     represent the same real-world entity, sorted by cluster size descending.
     When available, includes quality metadata such as density and similarity
     summary statistics to help distinguish strong clusters from review candidates.
+    Set `options.diagnostics.response_envelope=true` for an object envelope.
 
     Args:
         collection: Document collection name.
@@ -216,7 +281,13 @@ def get_clusters(
         min_size: Minimum cluster size to include.
     """
     from entity_resolution.mcp.tools.cluster import run_get_clusters
-    return run_get_clusters(**_conn(), collection=collection, limit=limit, min_size=min_size)
+    result = run_get_clusters(**_conn(), collection=collection, limit=limit, min_size=min_size)
+    envelope_enabled = bool(
+        isinstance(options, dict)
+        and isinstance(options.get("diagnostics"), dict)
+        and options["diagnostics"].get("response_envelope", False)
+    )
+    return _wrap_response_envelope(result=result, warnings=[], enabled=envelope_enabled)
 
 
 @mcp.tool()
@@ -268,6 +339,115 @@ def profile_dataset(
         include_fields=include_fields,
         exclude_fields=exclude_fields,
         compute_pairwise_signals=compute_pairwise_signals,
+    )
+
+
+@mcp.tool()
+def recommend_resolution_strategy(
+    profile: Dict[str, Any],
+    objective_profile: Dict[str, Any],
+    request_id: Optional[str] = None,
+    allow_embedding_models: bool = True,
+    allow_graph_clustering: bool = True,
+) -> Dict[str, Any]:
+    """
+    Recommend ranked ER strategy families from profile + objective constraints.
+
+    Produces explicit strategy recommendations with fit scores, expected
+    tradeoffs, rationale, and confidence factors for client-side planning.
+    """
+    from entity_resolution.mcp.tools.advisor import run_recommend_resolution_strategy
+    return run_recommend_resolution_strategy(
+        profile=profile,
+        objective_profile=objective_profile,
+        request_id=request_id,
+        allow_embedding_models=allow_embedding_models,
+        allow_graph_clustering=allow_graph_clustering,
+    )
+
+
+@mcp.tool()
+def estimate_feature_weights(
+    feature_matrix_ref: Dict[str, Any],
+    target_metric: str = "f1",
+    min_samples: int = 1000,
+    request_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Estimate initial feature weights and threshold hints from labeled pairs.
+
+    Accepts a feature matrix reference with labeled samples and returns
+    normalized feature weights, threshold recommendation, diagnostics, and
+    confidence factors.
+    """
+    from entity_resolution.mcp.tools.advisor import run_estimate_feature_weights
+    return run_estimate_feature_weights(
+        feature_matrix_ref=feature_matrix_ref,
+        target_metric=target_metric,
+        min_samples=min_samples,
+        request_id=request_id,
+    )
+
+
+@mcp.tool()
+def simulate_pipeline_variants(
+    variants: List[Dict[str, Any]],
+    objective_profile: Optional[Dict[str, Any]] = None,
+    request_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Simulate and rank multiple candidate ER pipeline variants.
+
+    Returns per-variant runtime/memory/quality estimates, a ranked list by
+    objective fit, and a winner rationale to support pre-commit decisions.
+    """
+    from entity_resolution.mcp.tools.advisor import run_simulate_pipeline_variants
+    return run_simulate_pipeline_variants(
+        variants=variants,
+        objective_profile=objective_profile,
+        request_id=request_id,
+    )
+
+
+@mcp.tool()
+def export_recommended_config(
+    recommendation: Dict[str, Any],
+    format: str = "json",
+    include_rationale: bool = True,
+    request_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Export advisor recommendation into a normalized JSON/YAML config artifact.
+
+    Returns serialized config text, deterministic SHA256 hash, and policy
+    version for auditability across recommendation and deployment flows.
+    """
+    from entity_resolution.mcp.tools.advisor import run_export_recommended_config
+    return run_export_recommended_config(
+        recommendation=recommendation,
+        format=format,
+        include_rationale=include_rationale,
+        request_id=request_id,
+    )
+
+
+@mcp.tool()
+def evaluate_blocking_plan(
+    profile: Dict[str, Any],
+    blocking_plan: Dict[str, Any],
+    request_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Evaluate a proposed blocking plan before pipeline execution.
+
+    Estimates candidate-pair volume and block-size distribution, then returns
+    risk flags plus recommended guardrails for safer execution.
+    """
+    from entity_resolution.mcp.tools.advisor import run_evaluate_blocking_plan
+    return run_evaluate_blocking_plan(
+        profile=profile,
+        blocking_plan=blocking_plan,
+        request_id=request_id,
     )
 
 

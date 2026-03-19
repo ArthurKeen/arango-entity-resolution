@@ -129,3 +129,6 @@ docs/customer/**
 # Foxx services and related code moved to legacy/ for historical reference
 # Not actively maintained or tested in v2.0+
 legacy/
+
+# Runtime artifacts (models, benchmarks, caches)
+artifacts/

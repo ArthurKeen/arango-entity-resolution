@@ -6,6 +6,8 @@ from __future__ import annotations
 import json
 from typing import Any, Dict
 
+from entity_resolution.mcp.connection import get_arango_hosts
+
 
 def get_collection_summary(
     *,
@@ -20,7 +22,7 @@ def get_collection_summary(
     """Return a JSON summary of a collection (schema sample + doc count)."""
     from arango import ArangoClient
 
-    client = ArangoClient(hosts=f"http://{host}:{port}")
+    client = ArangoClient(hosts=get_arango_hosts(host, port))
     db = client.db(database, username=username, password=password)
 
     if not db.has_collection(collection_name):
@@ -68,7 +70,7 @@ def get_cluster_detail(
     """Return the full cluster containing *representative_key*."""
     from arango import ArangoClient
 
-    client = ArangoClient(hosts=f"http://{host}:{port}")
+    client = ArangoClient(hosts=get_arango_hosts(host, port))
     db = client.db(database, username=username, password=password)
 
     edge_coll = f"{collection_name}_similarity_edges"
