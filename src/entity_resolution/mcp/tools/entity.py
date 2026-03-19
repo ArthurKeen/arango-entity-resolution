@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 import jellyfish
 from arango import ArangoClient
-from entity_resolution.mcp.contracts import ResolveEntityRequest
+from entity_resolution.mcp.contracts import CrossCollectionRequest, ResolveEntityRequest
 from entity_resolution.mcp.connection import get_arango_hosts
 
 
@@ -169,3 +169,115 @@ def run_explain_match(
             else "likely different"
         ),
     }
+
+
+def run_resolve_entity_cross_collection(
+    *,
+    host: str,
+    port: int,
+    username: str,
+    password: str,
+    database: str,
+    source_collection: str,
+    target_collection: str,
+    source_fields: List[str],
+    target_fields: List[str],
+    options: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Legacy entry point — delegates to the request-based handler."""
+    from entity_resolution.mcp.normalization import normalize_cross_collection_args
+
+    req = normalize_cross_collection_args(
+        source_collection=source_collection,
+        target_collection=target_collection,
+        source_fields=source_fields,
+        target_fields=target_fields,
+        options=options,
+    )
+    return run_resolve_cross_collection_request(
+        host=host,
+        port=port,
+        username=username,
+        password=password,
+        database=database,
+        request=req,
+    )
+
+
+def run_resolve_cross_collection_request(
+    *,
+    host: str,
+    port: int,
+    username: str,
+    password: str,
+    database: str,
+    request: CrossCollectionRequest,
+) -> Dict[str, Any]:
+    """Execute cross-collection entity linking from a normalized request."""
+    from entity_resolution.services.cross_collection_matching_service import CrossCollectionMatchingService
+
+    custom_filters: Dict[str, Any] = {}
+    if request.target_filter is not None:
+        custom_filters["target"] = request.target_filter
+    if request.source_skip_values is not None:
+        source_filter: Dict[str, Dict[str, Any]] = {}
+        for field_name, values in request.source_skip_values.items():
+            vals = values if isinstance(values, list) else [values]
+            source_filter[str(field_name)] = {"not_equal": list(vals)}
+        if source_filter:
+            custom_filters["source"] = source_filter
+
+    client = ArangoClient(hosts=get_arango_hosts(host, port))
+    db = client.db(database, username=username, password=password)
+
+    service = CrossCollectionMatchingService(
+        db=db,
+        source_collection=request.source_collection,
+        target_collection=request.target_collection,
+        edge_collection=request.edge_collection
+        or f"{request.source_collection}_{request.target_collection}_resolved_edges",
+        search_view=request.search_view,
+    )
+
+    service.configure_matching(
+        source_fields=request.source_fields,
+        target_fields=request.target_fields,
+        field_weights=request.field_weights,
+        blocking_fields=request.blocking_fields,
+        blocking_strategy=request.blocking_strategy,
+        custom_filters=custom_filters,
+    )
+
+    stats = service.match_entities(
+        threshold=request.confidence_threshold,
+        batch_size=request.batch_size,
+        limit=request.candidate_limit,
+        use_bm25=request.use_bm25,
+        bm25_weight=request.bm25_weight,
+        mark_as_inferred=True,
+        max_runtime_seconds=max(1.0, request.max_runtime_ms / 1000.0),
+        deterministic_tiebreak=request.deterministic_tiebreak,
+    )
+
+    result: Dict[str, Any] = {
+        "source_collection": request.source_collection,
+        "target_collection": request.target_collection,
+        "edge_collection": request.edge_collection,
+        "execution_guardrails": {
+            "candidate_limit": request.candidate_limit,
+            "batch_size": request.batch_size,
+            "max_runtime_ms": request.max_runtime_ms,
+            "deterministic_tiebreak": request.deterministic_tiebreak,
+        },
+        "stats": stats,
+    }
+    if request.return_diagnostics:
+        result["diagnostics"] = {
+            "source_fields": request.source_fields,
+            "target_fields": request.target_fields,
+            "blocking_fields": request.blocking_fields,
+            "blocking_strategy": request.blocking_strategy,
+            "confidence_threshold": request.confidence_threshold,
+            "use_bm25": request.use_bm25,
+        }
+    return result
