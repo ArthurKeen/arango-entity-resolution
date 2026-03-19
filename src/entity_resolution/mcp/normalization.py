@@ -137,6 +137,7 @@ def normalize_find_duplicates_args(
             warnings=warnings,
         )
     )
+    stages = _normalize_stages(_nested_get(normalized_options, "passthrough", "stages"))
 
     return FindDuplicatesRequest(
         collection=collection,
@@ -152,6 +153,7 @@ def normalize_find_duplicates_args(
         active_learning_model=active_learning_model,
         active_learning_low_threshold=active_learning_low_threshold,
         active_learning_high_threshold=active_learning_high_threshold,
+        stages=stages,
         options=MCPOptions(**normalized_options),
         deprecation_warnings=warnings,
     )
@@ -406,3 +408,35 @@ def _select_value(
             f"Both legacy field '{legacy_key}' and '{key}' were provided; using '{key}'."
         )
     return option_value
+
+
+def _normalize_stages(value: Any) -> List[Dict[str, Any]]:
+    """
+    Normalize options.stages into a canonical list.
+
+    C2 scaffold: validates schema minimally so handlers can consume a stable shape.
+    """
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError("options.stages must be an array/list when provided")
+
+    normalized: List[Dict[str, Any]] = []
+    for idx, item in enumerate(value):
+        if not isinstance(item, dict):
+            raise ValueError(f"options.stages[{idx}] must be an object/dict")
+        stage_type = str(item.get("type", "")).strip()
+        if not stage_type:
+            raise ValueError(f"options.stages[{idx}].type is required")
+        stage: Dict[str, Any] = {"type": stage_type}
+        if "fields" in item:
+            if not isinstance(item["fields"], list):
+                raise ValueError(f"options.stages[{idx}].fields must be an array/list")
+            stage["fields"] = [str(f) for f in item["fields"]]
+        if "min_score" in item:
+            stage["min_score"] = float(item["min_score"])
+        if "config" in item and isinstance(item["config"], dict):
+            # Preserve stage-local extension knobs for future phases.
+            stage["config"] = dict(item["config"])
+        normalized.append(stage)
+    return normalized

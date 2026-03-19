@@ -175,6 +175,48 @@ class TestFindDuplicates:
         assert cfg.active_learning.high_threshold == 0.82
         assert result == {"ok": True}
 
+    @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
+    @patch("entity_resolution.mcp.tools.pipeline._get_db")
+    def test_find_duplicates_request_stage_scaffold_updates_config_and_results(
+        self,
+        mock_get_db,
+        mock_pipeline_cls,
+    ):
+        from entity_resolution.mcp.contracts import FindDuplicatesRequest
+        from entity_resolution.mcp.tools.pipeline import run_find_duplicates_request
+
+        mock_get_db.return_value = MagicMock()
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = {"ok": True}
+        mock_pipeline_cls.return_value = mock_pipeline
+
+        req = FindDuplicatesRequest(
+            collection="companies",
+            fields=["name"],
+            strategy="exact",
+            confidence_threshold=0.85,
+            stages=[
+                {"type": "bm25", "fields": ["name", "city"], "min_score": 0.9},
+                {"type": "embedding", "fields": ["description"], "min_score": 0.78},
+            ],
+        )
+        result = run_find_duplicates_request(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            request=req,
+        )
+
+        cfg = mock_pipeline_cls.call_args.kwargs["config"]
+        assert cfg.blocking.strategy == "bm25"
+        assert cfg.blocking.fields == ["name", "city"]
+        assert cfg.similarity.threshold == 0.9
+        assert result["ok"] is True
+        assert result["stages"]["enabled"] is True
+        assert result["stages"]["execution_mode"] == "single_stage_scaffold"
+
 
 # ---------------------------------------------------------------------------
 # MCP tool: explain_match
@@ -881,6 +923,27 @@ class TestMcpServerOptionsCompatibility:
         assert req.fields == ["name", "postal_code"]
         assert req.confidence_threshold == 0.93
         assert req.max_block_size == 120
+
+    @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
+    def test_server_find_duplicates_accepts_stages_options(self, mock_run_find_duplicates):
+        from entity_resolution.mcp import server
+
+        mock_run_find_duplicates.return_value = {"ok": True}
+        server.find_duplicates(
+            collection="companies",
+            fields=["name"],
+            options={
+                "stages": [
+                    {"type": "exact", "fields": ["name"], "min_score": 1.0},
+                    {"type": "embedding", "fields": ["description"], "min_score": 0.78},
+                ]
+            },
+        )
+
+        req = mock_run_find_duplicates.call_args.kwargs["request"]
+        assert len(req.stages) == 2
+        assert req.stages[0]["type"] == "exact"
+        assert req.stages[1]["type"] == "embedding"
 
     @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
     def test_server_find_duplicates_surfaces_deprecation_warnings(self, mock_run_find_duplicates):

@@ -4,7 +4,7 @@ Pipeline-level MCP tools: find_duplicates and pipeline_status.
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from arango import ArangoClient
 from entity_resolution.mcp.contracts import FindDuplicatesRequest
@@ -93,6 +93,7 @@ def run_find_duplicates_request(
 
     db = _get_db(host, port, username, password, database)
     edge_coll = request.edge_collection or f"{request.collection}_similarity_edges"
+    stage_strategy, stage_fields, stage_threshold, stage_meta = _resolve_stage_scaffold(request)
 
     cfg = ERPipelineConfig(
         entity_type="generic",
@@ -100,12 +101,12 @@ def run_find_duplicates_request(
         edge_collection=edge_coll,
         cluster_collection=f"{request.collection}_clusters",
         blocking=BlockingConfig(
-            strategy=request.strategy,
-            fields=request.fields or [],
+            strategy=stage_strategy,
+            fields=stage_fields,
             max_block_size=request.max_block_size,
         ),
         similarity=SimilarityConfig(
-            threshold=request.confidence_threshold,
+            threshold=stage_threshold,
         ),
         clustering=ClusteringConfig(
             store_results=request.store_clusters,
@@ -122,7 +123,52 @@ def run_find_duplicates_request(
 
     pipeline = ConfigurableERPipeline(db=db, config=cfg)
     results = pipeline.run()
+    if stage_meta:
+        results["stages"] = stage_meta
     return results
+
+
+def _resolve_stage_scaffold(request: FindDuplicatesRequest) -> Tuple[str, list[str], float, Dict[str, Any]]:
+    """
+    C2 scaffold: map first stage into current single-pass pipeline knobs.
+
+    This preserves current pipeline behavior while exposing `options.stages`
+    shape in request/response contracts. Full multi-pass execution will follow
+    in the next C2 increment.
+    """
+    strategy = request.strategy
+    fields = request.fields or []
+    threshold = request.confidence_threshold
+    if not request.stages:
+        return strategy, fields, threshold, {}
+
+    stages = request.stages
+    first = stages[0]
+    stage_type = str(first.get("type", "")).lower()
+    stage_fields = first.get("fields")
+    min_score = first.get("min_score")
+
+    if isinstance(stage_fields, list) and stage_fields:
+        fields = [str(f) for f in stage_fields]
+    if isinstance(min_score, (int, float)):
+        threshold = float(min_score)
+    if stage_type in {"exact", "blocking_exact"}:
+        strategy = "exact"
+    elif stage_type in {"bm25", "arangosearch"}:
+        strategy = "bm25"
+    elif stage_type in {"embedding", "vector"}:
+        strategy = "vector"
+
+    meta = {
+        "enabled": True,
+        "requested_stage_count": len(stages),
+        "execution_mode": "single_stage_scaffold",
+        "selected_stage_index": 0,
+        "selected_stage_type": stage_type or "unspecified",
+        "selected_stage_fields": fields,
+        "selected_stage_min_score": threshold,
+    }
+    return strategy, fields, threshold, meta
 
 
 def run_pipeline_status(

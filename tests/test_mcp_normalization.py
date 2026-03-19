@@ -54,6 +54,23 @@ def test_normalize_find_duplicates_options_override_legacy_with_warning():
     assert len(req.deprecation_warnings) >= 1
 
 
+def test_normalize_find_duplicates_stages_from_options():
+    req = normalize_find_duplicates_args(
+        collection="companies",
+        fields=["name"],
+        options={
+            "stages": [
+                {"type": "exact", "fields": ["name", "postal_code"], "min_score": 1.0},
+                {"type": "embedding", "fields": ["description"], "min_score": 0.78},
+            ],
+        },
+    )
+    assert len(req.stages) == 2
+    assert req.stages[0]["type"] == "exact"
+    assert req.stages[0]["fields"] == ["name", "postal_code"]
+    assert req.stages[1]["type"] == "embedding"
+
+
 def test_normalize_resolve_entity_options_override():
     req = normalize_resolve_entity_args(
         collection="companies",
@@ -98,6 +115,15 @@ def test_normalize_options_rejects_non_dict_blocks():
             collection="companies",
             fields=["name"],
             options={"blocking": ["bad"]},
+        )
+
+
+def test_normalize_find_duplicates_rejects_bad_stage_shape():
+    with pytest.raises(ValueError, match="options.stages\\[0\\]\\.type is required"):
+        normalize_find_duplicates_args(
+            collection="companies",
+            fields=["name"],
+            options={"stages": [{}]},
         )
 
 

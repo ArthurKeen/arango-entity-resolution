@@ -44,6 +44,7 @@ class FindDuplicatesRequest:
     active_learning_model: Optional[str] = None
     active_learning_low_threshold: float = 0.55
     active_learning_high_threshold: float = 0.80
+    stages: List[Dict[str, Any]] = field(default_factory=list)
     options: MCPOptions = field(default_factory=MCPOptions)
     deprecation_warnings: List[str] = field(default_factory=list)
 
