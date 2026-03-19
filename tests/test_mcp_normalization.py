@@ -6,6 +6,7 @@ import pytest
 
 from entity_resolution.mcp.normalization import (
     normalize_advisor_context,
+    normalize_cross_collection_args,
     normalize_find_duplicates_args,
     normalize_resolve_entity_args,
 )
@@ -98,3 +99,109 @@ def test_normalize_options_rejects_non_dict_blocks():
             fields=["name"],
             options={"blocking": ["bad"]},
         )
+
+
+# ---------------------------------------------------------------------------
+# normalize_cross_collection_args
+# ---------------------------------------------------------------------------
+
+
+def test_normalize_cross_collection_positional_fields():
+    req = normalize_cross_collection_args(
+        source_collection="registrations",
+        target_collection="companies",
+        source_fields=["company_name", "city"],
+        target_fields=["legal_name", "location_city"],
+    )
+
+    assert req.source_collection == "registrations"
+    assert req.target_collection == "companies"
+    assert req.source_fields == {"company_name": "company_name", "city": "city"}
+    assert req.target_fields == {"company_name": "legal_name", "city": "location_city"}
+    assert req.confidence_threshold == 0.85
+    assert req.candidate_limit == 1000
+    assert req.batch_size == 100
+    assert req.max_runtime_ms == 300000
+    assert req.deterministic_tiebreak is True
+    assert req.blocking_fields == ["company_name"]
+    assert req.edge_collection == "registrations_companies_resolved_edges"
+    assert req.deprecation_warnings == []
+    assert abs(sum(req.field_weights.values()) - 1.0) < 0.01
+
+
+def test_normalize_cross_collection_field_mapping_overrides_positional():
+    req = normalize_cross_collection_args(
+        source_collection="regs",
+        target_collection="duns",
+        source_fields=["name"],
+        target_fields=["legal_name"],
+        options={
+            "retrieval": {
+                "field_mapping": {
+                    "company": {"source": "BR_Name", "target": "DUNS_NAME"},
+                    "address": {"source": "ADDRESS", "target": "ADDR_STREET"},
+                },
+                "candidate_limit": 500,
+            },
+            "similarity": {"confidence_threshold": 0.92},
+            "blocking": {"fields": ["company"], "strategy": "exact"},
+            "execution": {"batch_size": 25, "max_runtime_ms": 60000},
+            "clustering": {"edge_collection": "custom_edges"},
+        },
+    )
+
+    assert req.source_fields == {"company": "BR_Name", "address": "ADDRESS"}
+    assert req.target_fields == {"company": "DUNS_NAME", "address": "ADDR_STREET"}
+    assert req.confidence_threshold == 0.92
+    assert req.candidate_limit == 500
+    assert req.batch_size == 25
+    assert req.max_runtime_ms == 60000
+    assert req.blocking_fields == ["company"]
+    assert req.edge_collection == "custom_edges"
+    assert len(req.deprecation_warnings) >= 1
+    assert any("field_mapping" in w for w in req.deprecation_warnings)
+
+
+def test_normalize_cross_collection_rejects_length_mismatch():
+    with pytest.raises(ValueError, match="same length"):
+        normalize_cross_collection_args(
+            source_collection="a",
+            target_collection="b",
+            source_fields=["x"],
+            target_fields=["y", "z"],
+        )
+
+
+def test_normalize_cross_collection_rejects_empty_mapping_value():
+    with pytest.raises(ValueError, match="non-empty source and target"):
+        normalize_cross_collection_args(
+            source_collection="a",
+            target_collection="b",
+            source_fields=[],
+            target_fields=[],
+            options={
+                "retrieval": {
+                    "field_mapping": {
+                        "name": {"source": "x", "target": ""},
+                    }
+                }
+            },
+        )
+
+
+def test_normalize_cross_collection_filters():
+    req = normalize_cross_collection_args(
+        source_collection="regs",
+        target_collection="companies",
+        source_fields=["name"],
+        target_fields=["name"],
+        options={
+            "retrieval": {
+                "target_filter": {"status": {"equals": "active"}},
+                "source_skip_values": {"name": ["UNKNOWN", "N/A"]},
+            }
+        },
+    )
+
+    assert req.target_filter == {"status": {"equals": "active"}}
+    assert req.source_skip_values == {"name": ["UNKNOWN", "N/A"]}

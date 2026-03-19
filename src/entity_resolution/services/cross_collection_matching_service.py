@@ -213,7 +213,9 @@ class CrossCollectionMatchingService:
         use_bm25: bool = True,
         bm25_weight: float = 0.2,
         mark_as_inferred: bool = True,
-        progress_callback: Optional[Callable[[int, int], None]] = None
+        progress_callback: Optional[Callable[[int, int], None]] = None,
+        max_runtime_seconds: float = 300.0,
+        deterministic_tiebreak: bool = True,
     ) -> Dict[str, Any]:
         """
         Match entities between source and target collections.
@@ -230,6 +232,9 @@ class CrossCollectionMatchingService:
             mark_as_inferred: Mark edges with "inferred: true" to distinguish from
                 direct/explicit edges. Default True.
             progress_callback: Optional callback(current, total) for progress updates.
+            max_runtime_seconds: Max runtime allowed per batch AQL query.
+            deterministic_tiebreak: Add deterministic secondary sort key for stable
+                winner selection when scores tie.
         
         Returns:
             Results dictionary:
@@ -274,7 +279,8 @@ class CrossCollectionMatchingService:
                 offset=current_offset,
                 threshold=threshold,
                 use_bm25=use_bm25 and self.search_view is not None,
-                bm25_weight=bm25_weight
+                    bm25_weight=bm25_weight,
+                    deterministic_tiebreak=deterministic_tiebreak,
             )
             
             try:
@@ -282,7 +288,7 @@ class CrossCollectionMatchingService:
                 cursor = self.db.aql.execute(
                     batch_query,
                     bind_vars=bind_vars,
-                    max_runtime=300  # 5 minute timeout per batch
+                    max_runtime=max(1.0, float(max_runtime_seconds)),
                 )
                 batch_results = list(cursor)
                 
@@ -407,7 +413,8 @@ class CrossCollectionMatchingService:
         offset: int,
         threshold: float,
         use_bm25: bool,
-        bm25_weight: float
+        bm25_weight: float,
+        deterministic_tiebreak: bool = True,
     ) -> str:
         """
         Build AQL query for matching entities in a batch.
@@ -437,13 +444,13 @@ class CrossCollectionMatchingService:
         
         # Candidate generation with blocking
         if use_bm25 and self.search_view:
-            query_parts.extend(self._build_bm25_candidates())
+            query_parts.extend(self._build_bm25_candidates(deterministic_tiebreak=deterministic_tiebreak))
         else:
-            query_parts.extend(self._build_levenshtein_candidates())
+            query_parts.extend(self._build_levenshtein_candidates(deterministic_tiebreak=deterministic_tiebreak))
         
         return "\n".join(query_parts)
     
-    def _build_bm25_candidates(self) -> List[str]:
+    def _build_bm25_candidates(self, deterministic_tiebreak: bool = True) -> List[str]:
         """Build candidate generation using BM25 + Levenshtein verification."""
         lines = []
         lines.append("    LET candidates = (")
@@ -470,7 +477,10 @@ class CrossCollectionMatchingService:
         lines.extend(self._build_similarity_computation('s', 't'))
         
         lines.append("            FILTER lev_score >= @threshold")
-        lines.append("            SORT total_score DESC")
+        if deterministic_tiebreak:
+            lines.append("            SORT total_score DESC, t._key ASC")
+        else:
+            lines.append("            SORT total_score DESC")
         lines.append("            LIMIT 1")
         lines.append("            RETURN {")
         lines.append("                target: t,")
@@ -493,7 +503,7 @@ class CrossCollectionMatchingService:
         
         return lines
     
-    def _build_levenshtein_candidates(self) -> List[str]:
+    def _build_levenshtein_candidates(self, deterministic_tiebreak: bool = True) -> List[str]:
         """Build candidate generation using only Levenshtein distance."""
         lines = []
         lines.append("    LET candidates = (")
@@ -515,7 +525,10 @@ class CrossCollectionMatchingService:
         lines.extend(self._build_similarity_computation('s', 't', indent=12))
         
         lines.append("            FILTER lev_score >= @threshold")
-        lines.append("            SORT lev_score DESC")
+        if deterministic_tiebreak:
+            lines.append("            SORT lev_score DESC, t._key ASC")
+        else:
+            lines.append("            SORT lev_score DESC")
         lines.append("            LIMIT 1")
         lines.append("            RETURN {")
         lines.append("                target: t,")

@@ -237,6 +237,54 @@ def resolve_entity(
 
 
 @mcp.tool()
+def resolve_entity_cross_collection(
+    source_collection: str,
+    target_collection: str,
+    source_fields: List[str],
+    target_fields: List[str],
+    options: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    Link entities across two collections with schema-mapping and guardrails.
+
+    This C1 tool provides cross-collection resolution with explicit execution
+    controls via `options`:
+    - `retrieval.field_mapping` (logical -> {source,target})
+    - `retrieval.target_filter`
+    - `retrieval.source_skip_values`
+    - `retrieval.candidate_limit`
+    - `execution.batch_size`
+    - `execution.max_runtime_ms`
+    - `retrieval.deterministic_tiebreak`
+    - `diagnostics.return_diagnostics`
+
+    Args:
+        source_collection: Collection containing the records to match from.
+        target_collection: Collection containing the records to match against.
+        source_fields: Positional source field names (used when field_mapping is absent).
+        target_fields: Positional target field names (paired 1:1 with source_fields).
+    """
+    from entity_resolution.mcp.normalization import normalize_cross_collection_args
+    from entity_resolution.mcp.tools.entity import run_resolve_cross_collection_request
+
+    req = normalize_cross_collection_args(
+        source_collection=source_collection,
+        target_collection=target_collection,
+        source_fields=source_fields,
+        target_fields=target_fields,
+        options=options,
+    )
+    for warning in req.deprecation_warnings:
+        logger.warning("resolve_entity_cross_collection normalization warning: %s", warning)
+
+    result = run_resolve_cross_collection_request(
+        **_conn(),
+        request=req,
+    )
+    return _attach_deprecation_warnings(result, req.deprecation_warnings)
+
+
+@mcp.tool()
 def explain_match(
     collection: str,
     key_a: str,

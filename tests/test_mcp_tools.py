@@ -224,6 +224,84 @@ class TestExplainMatch:
         assert "error" in result
 
 
+class TestResolveEntityCrossCollection:
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    @patch("entity_resolution.services.cross_collection_matching_service.CrossCollectionMatchingService")
+    def test_run_resolve_cross_collection_request_with_guardrails(self, mock_service_cls, mock_client_cls):
+        from entity_resolution.mcp.normalization import normalize_cross_collection_args
+        from entity_resolution.mcp.tools.entity import run_resolve_cross_collection_request
+
+        mock_db = MagicMock()
+        mock_client_cls.return_value.db.return_value = mock_db
+        mock_service = MagicMock()
+        mock_service.match_entities.return_value = {"edges_created": 12, "source_records_processed": 100}
+        mock_service_cls.return_value = mock_service
+
+        req = normalize_cross_collection_args(
+            source_collection="registrations",
+            target_collection="companies",
+            source_fields=["company_name", "city"],
+            target_fields=["legal_name", "location_city"],
+            options={
+                "retrieval": {
+                    "candidate_limit": 250,
+                    "deterministic_tiebreak": True,
+                    "target_filter": {"status": {"equals": "active"}},
+                    "source_skip_values": {"company_name": ["UNKNOWN"]},
+                },
+                "execution": {"batch_size": 50, "max_runtime_ms": 120000},
+                "similarity": {"confidence_threshold": 0.9},
+                "blocking": {"fields": ["company_name"], "strategy": "exact", "use_bm25": False},
+                "diagnostics": {"return_diagnostics": True},
+            },
+        )
+        result = run_resolve_cross_collection_request(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            request=req,
+        )
+
+        assert result["source_collection"] == "registrations"
+        assert result["target_collection"] == "companies"
+        assert result["execution_guardrails"]["candidate_limit"] == 250
+        assert result["execution_guardrails"]["batch_size"] == 50
+        assert result["execution_guardrails"]["max_runtime_ms"] == 120000
+        assert result["stats"]["edges_created"] == 12
+        assert "diagnostics" in result
+
+        configure_kwargs = mock_service.configure_matching.call_args.kwargs
+        assert configure_kwargs["source_fields"] == {"company_name": "company_name", "city": "city"}
+        assert configure_kwargs["target_fields"] == {"company_name": "legal_name", "city": "location_city"}
+        assert configure_kwargs["blocking_fields"] == ["company_name"]
+
+        match_kwargs = mock_service.match_entities.call_args.kwargs
+        assert match_kwargs["threshold"] == 0.9
+        assert match_kwargs["limit"] == 250
+        assert match_kwargs["batch_size"] == 50
+        assert match_kwargs["max_runtime_seconds"] == 120.0
+        assert match_kwargs["deterministic_tiebreak"] is True
+
+    def test_run_resolve_entity_cross_collection_rejects_mismatched_fields_without_mapping(self):
+        from entity_resolution.mcp.tools.entity import run_resolve_entity_cross_collection
+
+        with pytest.raises(ValueError, match="same length"):
+            run_resolve_entity_cross_collection(
+                host="localhost",
+                port=8529,
+                username="root",
+                password="pass",
+                database="test",
+                source_collection="source",
+                target_collection="target",
+                source_fields=["name"],
+                target_fields=["name", "city"],
+                options={},
+            )
+
+
 # ---------------------------------------------------------------------------
 # MCP tool: list_collections
 # ---------------------------------------------------------------------------
@@ -993,3 +1071,49 @@ class TestMcpServerOptionsCompatibility:
         assert result["response_format"] == "envelope-v1"
         assert isinstance(result["result"], list)
         assert result["result"][0]["cluster_id"] == "c1"
+
+    @patch("entity_resolution.mcp.tools.entity.run_resolve_cross_collection_request")
+    def test_server_resolve_entity_cross_collection_forwards_request(self, mock_run):
+        from entity_resolution.mcp import server
+
+        mock_run.return_value = {"stats": {"edges_created": 5}}
+        result = server.resolve_entity_cross_collection(
+            source_collection="registrations",
+            target_collection="companies",
+            source_fields=["company_name"],
+            target_fields=["legal_name"],
+            options={"retrieval": {"candidate_limit": 100}},
+        )
+
+        assert result["stats"]["edges_created"] == 5
+        req = mock_run.call_args.kwargs["request"]
+        assert req.source_collection == "registrations"
+        assert req.target_collection == "companies"
+        assert req.source_fields == {"company_name": "company_name"}
+        assert req.target_fields == {"company_name": "legal_name"}
+        assert req.candidate_limit == 100
+
+    @patch("entity_resolution.mcp.tools.entity.run_resolve_cross_collection_request")
+    def test_server_cross_collection_field_mapping_surfaces_deprecation(self, mock_run):
+        from entity_resolution.mcp import server
+
+        mock_run.return_value = {"stats": {"edges_created": 0}}
+        result = server.resolve_entity_cross_collection(
+            source_collection="regs",
+            target_collection="duns",
+            source_fields=["name"],
+            target_fields=["legal_name"],
+            options={
+                "retrieval": {
+                    "field_mapping": {
+                        "company": {"source": "BR_Name", "target": "DUNS_NAME"},
+                    }
+                }
+            },
+        )
+
+        assert "deprecation_warnings" in result
+        assert any("field_mapping" in w for w in result["deprecation_warnings"])
+        req = mock_run.call_args.kwargs["request"]
+        assert req.source_fields == {"company": "BR_Name"}
+        assert req.target_fields == {"company": "DUNS_NAME"}

@@ -9,7 +9,13 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Tuple
 
-from .contracts import AdvisorRequestContext, FindDuplicatesRequest, MCPOptions, ResolveEntityRequest
+from .contracts import (
+    AdvisorRequestContext,
+    CrossCollectionRequest,
+    FindDuplicatesRequest,
+    MCPOptions,
+    ResolveEntityRequest,
+)
 
 
 def normalize_find_duplicates_args(
@@ -201,6 +207,141 @@ def normalize_resolve_entity_args(
     )
 
 
+def normalize_cross_collection_args(
+    *,
+    source_collection: str,
+    target_collection: str,
+    source_fields: List[str],
+    target_fields: List[str],
+    options: Optional[Dict[str, Any]] = None,
+) -> CrossCollectionRequest:
+    """Normalize resolve_entity_cross_collection args into a canonical request."""
+    normalized_options = _normalize_options(options)
+    warnings: List[str] = []
+
+    # --- field mapping ---
+    retrieval = normalized_options.get("retrieval", {})
+    field_mapping = retrieval.get("field_mapping")
+    source_map: Dict[str, str] = {}
+    target_map: Dict[str, str] = {}
+
+    if field_mapping is not None:
+        if not isinstance(field_mapping, dict):
+            raise ValueError("options.retrieval.field_mapping must be an object/dict")
+        for logical_field, pair in field_mapping.items():
+            if not isinstance(pair, dict):
+                raise ValueError(
+                    "options.retrieval.field_mapping values must be objects with source/target keys"
+                )
+            src = str(pair.get("source", "")).strip()
+            tgt = str(pair.get("target", "")).strip()
+            if not src or not tgt:
+                raise ValueError(
+                    "options.retrieval.field_mapping entries must include non-empty source and target"
+                )
+            source_map[str(logical_field)] = src
+            target_map[str(logical_field)] = tgt
+        if source_fields or target_fields:
+            warnings.append(
+                "Both legacy fields 'source_fields'/'target_fields' and "
+                "'options.retrieval.field_mapping' were provided; using field_mapping."
+            )
+    else:
+        if len(source_fields) != len(target_fields):
+            raise ValueError(
+                "source_fields and target_fields must have the same length "
+                "unless options.retrieval.field_mapping is provided"
+            )
+        for sf, tf in zip(source_fields, target_fields):
+            logical = str(sf)
+            source_map[logical] = str(sf)
+            target_map[logical] = str(tf)
+
+    if not source_map:
+        raise ValueError("At least one field mapping is required for cross-collection resolution")
+
+    # --- similarity ---
+    similarity = normalized_options.get("similarity", {})
+    raw_weights = similarity.get("field_weights")
+    if raw_weights is not None:
+        if not isinstance(raw_weights, dict):
+            raise ValueError("options.similarity.field_weights must be an object/dict")
+        field_weights = {str(k): float(v) for k, v in raw_weights.items()}
+    else:
+        eq = 1.0 / float(len(source_map))
+        field_weights = {logical: eq for logical in source_map}
+
+    confidence_threshold = float(similarity.get("confidence_threshold", 0.85))
+
+    # --- blocking ---
+    blocking = normalized_options.get("blocking", {})
+    blocking_fields_opt = blocking.get("fields")
+    if blocking_fields_opt is not None:
+        if not isinstance(blocking_fields_opt, list):
+            raise ValueError("options.blocking.fields must be an array/list when provided")
+        blocking_fields = [str(f) for f in blocking_fields_opt]
+    else:
+        blocking_fields = [next(iter(source_map.keys()))]
+
+    blocking_strategy = str(blocking.get("strategy", "exact"))
+    search_view = blocking.get("search_view")
+    use_bm25 = bool(blocking.get("use_bm25", True))
+    bm25_weight = float(blocking.get("bm25_weight", 0.2))
+
+    # --- execution ---
+    execution = normalized_options.get("execution", {})
+    batch_size = max(1, int(execution.get("batch_size", 100)))
+    max_runtime_ms = max(1, int(execution.get("max_runtime_ms", 300000)))
+    candidate_limit = max(
+        1,
+        int(retrieval.get("candidate_limit", execution.get("candidate_limit", 1000))),
+    )
+    deterministic_tiebreak = bool(retrieval.get("deterministic_tiebreak", True))
+
+    # --- clustering ---
+    clustering = normalized_options.get("clustering", {})
+    edge_collection = clustering.get("edge_collection")
+    if edge_collection is None:
+        edge_collection = f"{source_collection}_{target_collection}_resolved_edges"
+    edge_collection = str(edge_collection)
+
+    # --- filters ---
+    target_filter = retrieval.get("target_filter")
+    if target_filter is not None and not isinstance(target_filter, dict):
+        raise ValueError("options.retrieval.target_filter must be an object/dict")
+    source_skip_values = retrieval.get("source_skip_values")
+    if source_skip_values is not None and not isinstance(source_skip_values, dict):
+        raise ValueError("options.retrieval.source_skip_values must be an object/dict")
+
+    # --- diagnostics ---
+    diagnostics = normalized_options.get("diagnostics", {})
+    return_diagnostics = bool(diagnostics.get("return_diagnostics", True))
+
+    return CrossCollectionRequest(
+        source_collection=source_collection,
+        target_collection=target_collection,
+        source_fields=source_map,
+        target_fields=target_map,
+        field_weights=field_weights,
+        blocking_fields=blocking_fields,
+        blocking_strategy=blocking_strategy,
+        confidence_threshold=confidence_threshold,
+        edge_collection=edge_collection,
+        search_view=search_view,
+        use_bm25=use_bm25,
+        bm25_weight=bm25_weight,
+        candidate_limit=candidate_limit,
+        batch_size=batch_size,
+        max_runtime_ms=max_runtime_ms,
+        deterministic_tiebreak=deterministic_tiebreak,
+        return_diagnostics=return_diagnostics,
+        target_filter=target_filter,
+        source_skip_values=source_skip_values,
+        options=MCPOptions(**normalized_options),
+        deprecation_warnings=warnings,
+    )
+
+
 def normalize_advisor_context(
     *,
     request_id: Optional[str] = None,
@@ -230,6 +371,7 @@ def _normalize_options(options: Optional[Dict[str, Any]]) -> Dict[str, Dict[str,
         "gating",
         "aliasing",
         "diagnostics",
+        "execution",
     }
     normalized: Dict[str, Dict[str, Any]] = {}
     for block in known_blocks:
