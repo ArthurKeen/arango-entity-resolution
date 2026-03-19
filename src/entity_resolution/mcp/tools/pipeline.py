@@ -3,7 +3,9 @@ Pipeline-level MCP tools: find_duplicates and pipeline_status.
 """
 from __future__ import annotations
 
+import re
 import time
+from collections import defaultdict
 from typing import Any, Dict, Optional, Tuple
 
 from arango import ArangoClient
@@ -88,6 +90,17 @@ def run_find_duplicates_request(
     edge_coll = request.edge_collection or f"{request.collection}_similarity_edges"
 
     if not request.stages:
+        if _has_precision_gates(request):
+            return _run_single_stage_with_optional_gating(
+                db=db,
+                request=request,
+                edge_collection=edge_coll,
+                strategy=request.strategy,
+                fields=request.fields or [],
+                threshold=request.confidence_threshold,
+                store_clusters=request.store_clusters,
+                stage_meta=None,
+            )
         cfg = _build_pipeline_config(
             request=request,
             edge_collection=edge_coll,
@@ -101,6 +114,17 @@ def run_find_duplicates_request(
 
     if len(request.stages) == 1:
         stage_strategy, stage_fields, stage_threshold, stage_meta = _resolve_stage_scaffold(request)
+        if _has_precision_gates(request):
+            return _run_single_stage_with_optional_gating(
+                db=db,
+                request=request,
+                edge_collection=edge_coll,
+                strategy=stage_strategy,
+                fields=stage_fields,
+                threshold=stage_threshold,
+                store_clusters=request.store_clusters,
+                stage_meta=stage_meta,
+            )
         cfg = _build_pipeline_config(
             request=request,
             edge_collection=edge_coll,
@@ -239,10 +263,17 @@ def _run_find_duplicates_multistage(*, db: Any, request: FindDuplicatesRequest, 
             collection=request.collection,
         )
         matches = pipeline._run_similarity(filtered_pairs) if filtered_pairs else []
-        edges_created = pipeline._run_edge_creation(matches) if matches else 0
+        accepted_matches, gate_stats = _apply_precision_gates(
+            db=db,
+            collection=request.collection,
+            matches=matches,
+            fields=fields or request.fields or [],
+            request=request,
+        )
+        edges_created = pipeline._run_edge_creation(accepted_matches) if accepted_matches else 0
 
         total_candidates += len(filtered_pairs)
-        total_matches += len(matches)
+        total_matches += len(accepted_matches)
         total_edges += int(edges_created)
         stage_results.append(
             {
@@ -253,8 +284,9 @@ def _run_find_duplicates_multistage(*, db: Any, request: FindDuplicatesRequest, 
                 "threshold": threshold,
                 "unresolved_before": len(unresolved_ids),
                 "candidate_pairs": len(filtered_pairs),
-                "matches_found": len(matches),
+                "matches_found": len(accepted_matches),
                 "edges_created": int(edges_created),
+                "gates": gate_stats,
                 "runtime_seconds": round(time.time() - stage_start, 3),
             }
         )
@@ -311,8 +343,98 @@ def _run_find_duplicates_multistage(*, db: Any, request: FindDuplicatesRequest, 
             "requested_stage_count": len(request.stages),
             "execution_mode": "multi_stage",
             "stage_results": stage_results,
+            "gating": {
+                "enabled": _has_precision_gates(request),
+                "min_margin": request.min_margin,
+                "require_token_overlap": request.require_token_overlap,
+                "token_overlap_bypass_score": request.token_overlap_bypass_score,
+            },
         },
     }
+
+
+def _run_single_stage_with_optional_gating(
+    *,
+    db: Any,
+    request: FindDuplicatesRequest,
+    edge_collection: str,
+    strategy: str,
+    fields: list[str],
+    threshold: float,
+    store_clusters: bool,
+    stage_meta: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    from entity_resolution.core.configurable_pipeline import ConfigurableERPipeline
+
+    started = time.time()
+    cfg = _build_pipeline_config(
+        request=request,
+        edge_collection=edge_collection,
+        strategy=strategy,
+        fields=fields,
+        threshold=threshold,
+        store_clusters=False,
+    )
+    pipeline = ConfigurableERPipeline(db=db, config=cfg)
+    candidate_pairs = pipeline._run_blocking()  # noqa: SLF001
+    matches = pipeline._run_similarity(candidate_pairs) if candidate_pairs else []  # noqa: SLF001
+    accepted_matches, gate_stats = _apply_precision_gates(
+        db=db,
+        collection=request.collection,
+        matches=matches,
+        fields=fields,
+        request=request,
+    )
+    edges_created = pipeline._run_edge_creation(accepted_matches) if accepted_matches else 0  # noqa: SLF001
+
+    clusters_found = 0
+    clustering_runtime = 0.0
+    if store_clusters and _has_any_edges(db, edge_collection):
+        cluster_start = time.time()
+        cfg_cluster = _build_pipeline_config(
+            request=request,
+            edge_collection=edge_collection,
+            strategy=strategy,
+            fields=fields,
+            threshold=threshold,
+            store_clusters=True,
+        )
+        cluster_pipeline = ConfigurableERPipeline(db=db, config=cfg_cluster)
+        clusters = cluster_pipeline._run_clustering()  # noqa: SLF001
+        clusters_found = len(clusters)
+        clustering_runtime = round(time.time() - cluster_start, 3)
+
+    runtime = round(time.time() - started, 3)
+    result: Dict[str, Any] = {
+        "embedding": {},
+        "blocking": {"candidate_pairs": len(candidate_pairs), "runtime_seconds": runtime},
+        "similarity": {
+            "matches_found": len(accepted_matches),
+            "pairs_processed": len(candidate_pairs),
+            "runtime_seconds": runtime,
+            "active_learning": {
+                "enabled": bool(request.enable_active_learning),
+                "pairs_reviewed": 0,
+                "llm_calls": 0,
+                "score_overrides": 0,
+                "feedback_collection": request.feedback_collection,
+            },
+            "gates": gate_stats,
+        },
+        "edges": {"edges_created": int(edges_created), "runtime_seconds": runtime},
+        "clustering": {"clusters_found": clusters_found, "runtime_seconds": clustering_runtime},
+        "total_runtime_seconds": runtime,
+    }
+    if stage_meta:
+        meta = dict(stage_meta)
+        meta["gating"] = {
+            "enabled": _has_precision_gates(request),
+            "min_margin": request.min_margin,
+            "require_token_overlap": request.require_token_overlap,
+            "token_overlap_bypass_score": request.token_overlap_bypass_score,
+        }
+        result["stages"] = meta
+    return result
 
 
 def _resolve_stage_config(stage: Dict[str, Any], request: FindDuplicatesRequest) -> Tuple[str, list[str], float]:
@@ -410,6 +532,165 @@ def _has_any_edges(db: Any, edge_collection: str) -> bool:
         return int(db.collection(edge_collection).count()) > 0
     except Exception:
         return False
+
+
+def _has_precision_gates(request: FindDuplicatesRequest) -> bool:
+    return bool(
+        request.min_margin > 0.0
+        or request.require_token_overlap
+    )
+
+
+def _apply_precision_gates(
+    *,
+    db: Any,
+    collection: str,
+    matches: list[Any],
+    fields: list[str],
+    request: FindDuplicatesRequest,
+) -> Tuple[list[Any], Dict[str, Any]]:
+    if not matches:
+        return [], {
+            "enabled": _has_precision_gates(request),
+            "input_matches": 0,
+            "accepted_matches": 0,
+            "rejected_margin": 0,
+            "rejected_token_overlap": 0,
+        }
+
+    if not _has_precision_gates(request):
+        return matches, {
+            "enabled": False,
+            "input_matches": len(matches),
+            "accepted_matches": len(matches),
+            "rejected_margin": 0,
+            "rejected_token_overlap": 0,
+        }
+
+    rejected_margin = 0
+    rejected_overlap = 0
+    accepted: list[Any] = []
+
+    margin_index = _build_margin_index(matches, collection=collection)
+    token_index: Dict[str, set[str]] = {}
+    if request.require_token_overlap:
+        token_index = _build_doc_token_index(
+            db=db,
+            collection=collection,
+            matches=matches,
+            fields=fields,
+            stopwords=request.word_index_stopwords,
+        )
+
+    for m in matches:
+        doc1, doc2, score = _match_parts(m, collection=collection)
+        if doc1 is None or doc2 is None:
+            continue
+        score_f = float(score)
+
+        if request.min_margin > 0.0:
+            margin_a = score_f - margin_index[doc1][1]
+            margin_b = score_f - margin_index[doc2][1]
+            if margin_a < request.min_margin or margin_b < request.min_margin:
+                rejected_margin += 1
+                continue
+
+        if request.require_token_overlap and score_f < request.token_overlap_bypass_score:
+            t1 = token_index.get(doc1, set())
+            t2 = token_index.get(doc2, set())
+            if not (t1 & t2):
+                rejected_overlap += 1
+                continue
+
+        accepted.append(m)
+
+    return accepted, {
+        "enabled": True,
+        "input_matches": len(matches),
+        "accepted_matches": len(accepted),
+        "rejected_margin": rejected_margin,
+        "rejected_token_overlap": rejected_overlap,
+        "min_margin": request.min_margin,
+        "require_token_overlap": request.require_token_overlap,
+        "token_overlap_bypass_score": request.token_overlap_bypass_score,
+    }
+
+
+def _build_margin_index(matches: list[Any], *, collection: str) -> Dict[str, Tuple[float, float]]:
+    scores: Dict[str, list[float]] = defaultdict(list)
+    for m in matches:
+        doc1, doc2, score = _match_parts(m, collection=collection)
+        if doc1 is None or doc2 is None:
+            continue
+        score_f = float(score)
+        scores[doc1].append(score_f)
+        scores[doc2].append(score_f)
+
+    idx: Dict[str, Tuple[float, float]] = {}
+    for doc_id, vals in scores.items():
+        vals_sorted = sorted(vals, reverse=True)
+        best = vals_sorted[0] if vals_sorted else 0.0
+        second = vals_sorted[1] if len(vals_sorted) > 1 else 0.0
+        idx[doc_id] = (best, second)
+    return idx
+
+
+def _build_doc_token_index(
+    *,
+    db: Any,
+    collection: str,
+    matches: list[Any],
+    fields: list[str],
+    stopwords: list[str],
+) -> Dict[str, set[str]]:
+    coll = db.collection(collection)
+    doc_ids: set[str] = set()
+    for m in matches:
+        doc1, doc2, _score = _match_parts(m, collection=collection)
+        if doc1:
+            doc_ids.add(doc1)
+        if doc2:
+            doc_ids.add(doc2)
+
+    index: Dict[str, set[str]] = {}
+    for doc_id in doc_ids:
+        key = doc_id.split("/", 1)[1] if "/" in doc_id else doc_id
+        doc = coll.get(key) or {}
+        tokens: set[str] = set()
+        for field in fields:
+            val = doc.get(field)
+            if val is None:
+                continue
+            if isinstance(val, str):
+                tokens |= _tokenize_text(val, stopwords)
+            elif isinstance(val, list):
+                for item in val:
+                    if isinstance(item, str):
+                        tokens |= _tokenize_text(item, stopwords)
+        index[doc_id] = tokens
+    return index
+
+
+def _tokenize_text(value: str, stopwords: list[str]) -> set[str]:
+    raw = re.findall(r"[A-Za-z0-9]+", value.lower())
+    sw = set(stopwords or [])
+    return {tok for tok in raw if tok and tok not in sw}
+
+
+def _match_parts(match: Any, *, collection: str) -> Tuple[Optional[str], Optional[str], float]:
+    if isinstance(match, tuple) and len(match) >= 3:
+        a, b, s = str(match[0]), str(match[1]), float(match[2])
+    elif isinstance(match, dict):
+        a = str(match.get("doc1_key", ""))
+        b = str(match.get("doc2_key", ""))
+        s = float(match.get("score", match.get("weighted_score", 0.0)))
+    else:
+        return None, None, 0.0
+
+    if collection:
+        a = a if "/" in a else f"{collection}/{a}"
+        b = b if "/" in b else f"{collection}/{b}"
+    return a, b, s
 
 
 def run_pipeline_status(

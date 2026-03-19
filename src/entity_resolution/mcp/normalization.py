@@ -137,6 +137,15 @@ def normalize_find_duplicates_args(
             warnings=warnings,
         )
     )
+    min_margin = float(_nested_get(normalized_options, "gating", "min_margin") or 0.0)
+    require_token_overlap = bool(_nested_get(normalized_options, "gating", "require_token_overlap") or False)
+    token_overlap_bypass_score = float(
+        _nested_get(normalized_options, "gating", "token_overlap_bypass_score") or 1.0
+    )
+    stopwords_raw = _nested_get(normalized_options, "gating", "word_index_stopwords") or []
+    if not isinstance(stopwords_raw, list):
+        raise ValueError("options.gating.word_index_stopwords must be an array/list when provided")
+    word_index_stopwords = [str(s).lower() for s in stopwords_raw]
     stages = _normalize_stages(_nested_get(normalized_options, "passthrough", "stages"))
 
     return FindDuplicatesRequest(
@@ -153,6 +162,10 @@ def normalize_find_duplicates_args(
         active_learning_model=active_learning_model,
         active_learning_low_threshold=active_learning_low_threshold,
         active_learning_high_threshold=active_learning_high_threshold,
+        min_margin=max(0.0, min_margin),
+        require_token_overlap=require_token_overlap,
+        token_overlap_bypass_score=max(0.0, min(1.0, token_overlap_bypass_score)),
+        word_index_stopwords=word_index_stopwords,
         stages=stages,
         options=MCPOptions(**normalized_options),
         deprecation_warnings=warnings,

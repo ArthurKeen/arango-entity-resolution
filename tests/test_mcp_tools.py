@@ -241,6 +241,95 @@ class TestFindDuplicates:
         assert len(result["stages"]["stage_results"]) == 2
         assert result["edges"]["edges_created"] == 2
 
+    @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
+    @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
+    @patch("entity_resolution.mcp.tools.pipeline._get_db")
+    def test_find_duplicates_request_applies_margin_gate(
+        self,
+        mock_get_db,
+        mock_has_any_edges,
+        mock_pipeline_cls,
+    ):
+        from entity_resolution.mcp.contracts import FindDuplicatesRequest
+        from entity_resolution.mcp.tools.pipeline import run_find_duplicates_request
+
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_has_any_edges.return_value = False
+        mock_pipeline = MagicMock()
+        mock_pipeline._run_blocking.return_value = [("a1", "a2"), ("a1", "a3")]
+        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.91), ("a1", "a3", 0.88)]
+        mock_pipeline_cls.return_value = mock_pipeline
+
+        req = FindDuplicatesRequest(
+            collection="companies",
+            fields=["name"],
+            strategy="exact",
+            confidence_threshold=0.8,
+            min_margin=0.05,
+        )
+        result = run_find_duplicates_request(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            request=req,
+        )
+
+        assert result["edges"]["edges_created"] == 0
+        assert result["similarity"]["gates"]["enabled"] is True
+        assert result["similarity"]["gates"]["rejected_margin"] >= 1
+
+    @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
+    @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
+    @patch("entity_resolution.mcp.tools.pipeline._get_db")
+    def test_find_duplicates_request_applies_token_overlap_gate(
+        self,
+        mock_get_db,
+        mock_has_any_edges,
+        mock_pipeline_cls,
+    ):
+        from entity_resolution.mcp.contracts import FindDuplicatesRequest
+        from entity_resolution.mcp.tools.pipeline import run_find_duplicates_request
+
+        mock_db = MagicMock()
+        mock_coll = MagicMock()
+        docs = {
+            "a1": {"name": "Acme Holdings"},
+            "a2": {"name": "Globex Partners"},
+        }
+        mock_coll.get.side_effect = lambda key: docs.get(key)
+        mock_db.collection.return_value = mock_coll
+        mock_get_db.return_value = mock_db
+        mock_has_any_edges.return_value = False
+
+        mock_pipeline = MagicMock()
+        mock_pipeline._run_blocking.return_value = [("a1", "a2")]
+        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.9)]
+        mock_pipeline_cls.return_value = mock_pipeline
+
+        req = FindDuplicatesRequest(
+            collection="companies",
+            fields=["name"],
+            strategy="exact",
+            confidence_threshold=0.8,
+            require_token_overlap=True,
+            token_overlap_bypass_score=0.95,
+        )
+        result = run_find_duplicates_request(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            request=req,
+        )
+
+        assert result["edges"]["edges_created"] == 0
+        assert result["similarity"]["gates"]["enabled"] is True
+        assert result["similarity"]["gates"]["rejected_token_overlap"] == 1
+
 
 # ---------------------------------------------------------------------------
 # MCP tool: explain_match
@@ -968,6 +1057,30 @@ class TestMcpServerOptionsCompatibility:
         assert len(req.stages) == 2
         assert req.stages[0]["type"] == "exact"
         assert req.stages[1]["type"] == "embedding"
+
+    @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
+    def test_server_find_duplicates_accepts_gating_options(self, mock_run_find_duplicates):
+        from entity_resolution.mcp import server
+
+        mock_run_find_duplicates.return_value = {"ok": True}
+        server.find_duplicates(
+            collection="companies",
+            fields=["name"],
+            options={
+                "gating": {
+                    "min_margin": 0.06,
+                    "require_token_overlap": True,
+                    "token_overlap_bypass_score": 0.92,
+                    "word_index_stopwords": ["llc"],
+                }
+            },
+        )
+
+        req = mock_run_find_duplicates.call_args.kwargs["request"]
+        assert req.min_margin == 0.06
+        assert req.require_token_overlap is True
+        assert req.token_overlap_bypass_score == 0.92
+        assert req.word_index_stopwords == ["llc"]
 
     @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
     def test_server_find_duplicates_surfaces_deprecation_warnings(self, mock_run_find_duplicates):
