@@ -146,6 +146,10 @@ def normalize_find_duplicates_args(
     if not isinstance(stopwords_raw, list):
         raise ValueError("options.gating.word_index_stopwords must be an array/list when provided")
     word_index_stopwords = [str(s).lower() for s in stopwords_raw]
+    token_type_affinity = _normalize_token_type_affinity(
+        _nested_get(normalized_options, "gating", "token_type_affinity")
+    )
+    target_type_field = str(_nested_get(normalized_options, "gating", "target_type_field") or "type")
     stages = _normalize_stages(_nested_get(normalized_options, "passthrough", "stages"))
 
     return FindDuplicatesRequest(
@@ -166,6 +170,8 @@ def normalize_find_duplicates_args(
         require_token_overlap=require_token_overlap,
         token_overlap_bypass_score=max(0.0, min(1.0, token_overlap_bypass_score)),
         word_index_stopwords=word_index_stopwords,
+        token_type_affinity=token_type_affinity,
+        target_type_field=target_type_field,
         stages=stages,
         options=MCPOptions(**normalized_options),
         deprecation_warnings=warnings,
@@ -452,4 +458,33 @@ def _normalize_stages(value: Any) -> List[Dict[str, Any]]:
             # Preserve stage-local extension knobs for future phases.
             stage["config"] = dict(item["config"])
         normalized.append(stage)
+    return normalized
+
+
+def _normalize_token_type_affinity(value: Any) -> Dict[str, List[str]]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError("options.gating.token_type_affinity must be an object/dict when provided")
+
+    normalized: Dict[str, List[str]] = {}
+    for token, raw in value.items():
+        token_key = str(token).strip().lower()
+        if not token_key:
+            continue
+        if isinstance(raw, list):
+            allowed = [str(v).strip() for v in raw if str(v).strip()]
+        elif isinstance(raw, dict):
+            vals = raw.get("allowed_types", [])
+            if not isinstance(vals, list):
+                raise ValueError(
+                    "options.gating.token_type_affinity.<token>.allowed_types must be an array/list"
+                )
+            allowed = [str(v).strip() for v in vals if str(v).strip()]
+        else:
+            raise ValueError(
+                "options.gating.token_type_affinity values must be lists or objects with allowed_types"
+            )
+        if allowed:
+            normalized[token_key] = allowed
     return normalized

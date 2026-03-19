@@ -81,6 +81,11 @@ def test_normalize_find_duplicates_gating_options():
                 "require_token_overlap": True,
                 "token_overlap_bypass_score": 0.93,
                 "word_index_stopwords": ["llc", "inc"],
+                "token_type_affinity": {
+                    "bank": ["financial_institution"],
+                    "school": {"allowed_types": ["educational_institution"]},
+                },
+                "target_type_field": "entity_type",
             }
         },
     )
@@ -88,6 +93,9 @@ def test_normalize_find_duplicates_gating_options():
     assert req.require_token_overlap is True
     assert req.token_overlap_bypass_score == 0.93
     assert req.word_index_stopwords == ["llc", "inc"]
+    assert req.target_type_field == "entity_type"
+    assert req.token_type_affinity["bank"] == ["financial_institution"]
+    assert req.token_type_affinity["school"] == ["educational_institution"]
 
 
 def test_normalize_resolve_entity_options_override():
@@ -152,6 +160,15 @@ def test_normalize_find_duplicates_rejects_non_list_stopwords():
             collection="companies",
             fields=["name"],
             options={"gating": {"word_index_stopwords": "llc"}},
+        )
+
+
+def test_normalize_find_duplicates_rejects_bad_token_type_affinity():
+    with pytest.raises(ValueError, match="token_type_affinity values must be lists"):
+        normalize_find_duplicates_args(
+            collection="companies",
+            fields=["name"],
+            options={"gating": {"token_type_affinity": {"bank": "financial_institution"}}},
         )
 
 

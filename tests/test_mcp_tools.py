@@ -330,6 +330,55 @@ class TestFindDuplicates:
         assert result["similarity"]["gates"]["enabled"] is True
         assert result["similarity"]["gates"]["rejected_token_overlap"] == 1
 
+    @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
+    @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
+    @patch("entity_resolution.mcp.tools.pipeline._get_db")
+    def test_find_duplicates_request_applies_type_affinity_gate(
+        self,
+        mock_get_db,
+        mock_has_any_edges,
+        mock_pipeline_cls,
+    ):
+        from entity_resolution.mcp.contracts import FindDuplicatesRequest
+        from entity_resolution.mcp.tools.pipeline import run_find_duplicates_request
+
+        mock_db = MagicMock()
+        mock_coll = MagicMock()
+        docs = {
+            "a1": {"name": "River Bank Group", "type": "organization"},
+            "a2": {"name": "River Bistro", "type": "restaurant"},
+        }
+        mock_coll.get.side_effect = lambda key: docs.get(key)
+        mock_db.collection.return_value = mock_coll
+        mock_get_db.return_value = mock_db
+        mock_has_any_edges.return_value = False
+
+        mock_pipeline = MagicMock()
+        mock_pipeline._run_blocking.return_value = [("a1", "a2")]
+        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.96)]
+        mock_pipeline_cls.return_value = mock_pipeline
+
+        req = FindDuplicatesRequest(
+            collection="companies",
+            fields=["name"],
+            strategy="exact",
+            confidence_threshold=0.8,
+            token_type_affinity={"bank": ["financial_institution"]},
+            target_type_field="type",
+        )
+        result = run_find_duplicates_request(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            request=req,
+        )
+
+        assert result["edges"]["edges_created"] == 0
+        assert result["similarity"]["gates"]["enabled"] is True
+        assert result["similarity"]["gates"]["rejected_type_affinity"] == 1
+
 
 # ---------------------------------------------------------------------------
 # MCP tool: explain_match
@@ -1072,6 +1121,8 @@ class TestMcpServerOptionsCompatibility:
                     "require_token_overlap": True,
                     "token_overlap_bypass_score": 0.92,
                     "word_index_stopwords": ["llc"],
+                    "token_type_affinity": {"bank": ["financial_institution"]},
+                    "target_type_field": "type",
                 }
             },
         )
@@ -1081,6 +1132,8 @@ class TestMcpServerOptionsCompatibility:
         assert req.require_token_overlap is True
         assert req.token_overlap_bypass_score == 0.92
         assert req.word_index_stopwords == ["llc"]
+        assert req.token_type_affinity == {"bank": ["financial_institution"]}
+        assert req.target_type_field == "type"
 
     @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
     def test_server_find_duplicates_surfaces_deprecation_warnings(self, mock_run_find_duplicates):

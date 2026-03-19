@@ -48,6 +48,8 @@ class FindDuplicatesRequest:
     require_token_overlap: bool = False
     token_overlap_bypass_score: float = 1.0
     word_index_stopwords: List[str] = field(default_factory=list)
+    token_type_affinity: Dict[str, List[str]] = field(default_factory=dict)
+    target_type_field: str = "type"
     stages: List[Dict[str, Any]] = field(default_factory=list)
     options: MCPOptions = field(default_factory=MCPOptions)
     deprecation_warnings: List[str] = field(default_factory=list)
