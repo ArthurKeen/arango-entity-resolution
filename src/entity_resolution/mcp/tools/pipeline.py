@@ -348,6 +348,7 @@ def _run_find_duplicates_multistage(*, db: Any, request: FindDuplicatesRequest, 
                 "min_margin": request.min_margin,
                 "require_token_overlap": request.require_token_overlap,
                 "token_overlap_bypass_score": request.token_overlap_bypass_score,
+                "target_type_field": request.target_type_field,
             },
         },
     }
@@ -432,6 +433,7 @@ def _run_single_stage_with_optional_gating(
             "min_margin": request.min_margin,
             "require_token_overlap": request.require_token_overlap,
             "token_overlap_bypass_score": request.token_overlap_bypass_score,
+            "target_type_field": request.target_type_field,
         }
         result["stages"] = meta
     return result
@@ -538,6 +540,7 @@ def _has_precision_gates(request: FindDuplicatesRequest) -> bool:
     return bool(
         request.min_margin > 0.0
         or request.require_token_overlap
+        or bool(request.token_type_affinity)
     )
 
 
@@ -556,6 +559,7 @@ def _apply_precision_gates(
             "accepted_matches": 0,
             "rejected_margin": 0,
             "rejected_token_overlap": 0,
+            "rejected_type_affinity": 0,
         }
 
     if not _has_precision_gates(request):
@@ -565,21 +569,31 @@ def _apply_precision_gates(
             "accepted_matches": len(matches),
             "rejected_margin": 0,
             "rejected_token_overlap": 0,
+            "rejected_type_affinity": 0,
         }
 
     rejected_margin = 0
     rejected_overlap = 0
+    rejected_type_affinity = 0
     accepted: list[Any] = []
 
     margin_index = _build_margin_index(matches, collection=collection)
     token_index: Dict[str, set[str]] = {}
-    if request.require_token_overlap:
+    if request.require_token_overlap or request.token_type_affinity:
         token_index = _build_doc_token_index(
             db=db,
             collection=collection,
             matches=matches,
             fields=fields,
             stopwords=request.word_index_stopwords,
+        )
+    type_index: Dict[str, str] = {}
+    if request.token_type_affinity:
+        type_index = _build_doc_type_index(
+            db=db,
+            collection=collection,
+            matches=matches,
+            target_type_field=request.target_type_field,
         )
 
     for m in matches:
@@ -602,6 +616,18 @@ def _apply_precision_gates(
                 rejected_overlap += 1
                 continue
 
+        if request.token_type_affinity:
+            source_tokens = token_index.get(doc1, set())
+            candidate_type = type_index.get(doc2, "")
+            if candidate_type:
+                if _reject_by_type_affinity(
+                    source_tokens=source_tokens,
+                    candidate_type=candidate_type,
+                    affinity=request.token_type_affinity,
+                ):
+                    rejected_type_affinity += 1
+                    continue
+
         accepted.append(m)
 
     return accepted, {
@@ -610,9 +636,11 @@ def _apply_precision_gates(
         "accepted_matches": len(accepted),
         "rejected_margin": rejected_margin,
         "rejected_token_overlap": rejected_overlap,
+        "rejected_type_affinity": rejected_type_affinity,
         "min_margin": request.min_margin,
         "require_token_overlap": request.require_token_overlap,
         "token_overlap_bypass_score": request.token_overlap_bypass_score,
+        "target_type_field": request.target_type_field,
     }
 
 
@@ -671,10 +699,64 @@ def _build_doc_token_index(
     return index
 
 
+def _build_doc_type_index(
+    *,
+    db: Any,
+    collection: str,
+    matches: list[Any],
+    target_type_field: str,
+) -> Dict[str, str]:
+    coll = db.collection(collection)
+    doc_ids: set[str] = set()
+    for m in matches:
+        doc1, doc2, _score = _match_parts(m, collection=collection)
+        if doc1:
+            doc_ids.add(doc1)
+        if doc2:
+            doc_ids.add(doc2)
+
+    index: Dict[str, str] = {}
+    for doc_id in doc_ids:
+        key = doc_id.split("/", 1)[1] if "/" in doc_id else doc_id
+        doc = coll.get(key) or {}
+        val = doc.get(target_type_field)
+        if val is None:
+            continue
+        index[doc_id] = str(val).strip()
+    return index
+
+
 def _tokenize_text(value: str, stopwords: list[str]) -> set[str]:
     raw = re.findall(r"[A-Za-z0-9]+", value.lower())
     sw = set(stopwords or [])
     return {tok for tok in raw if tok and tok not in sw}
+
+
+def _reject_by_type_affinity(
+    *,
+    source_tokens: set[str],
+    candidate_type: str,
+    affinity: Dict[str, list[str]],
+) -> bool:
+    """
+    Return True when contextual token->type rules reject this candidate.
+
+    Rule model:
+    - If no affinity token is present, do not reject.
+    - If one or more affinity tokens are present, candidate_type must satisfy
+      at least one corresponding allowed type set.
+    """
+    ctype = candidate_type.strip()
+    if not ctype:
+        return False
+    matched_sets: list[set[str]] = []
+    for token in source_tokens:
+        allowed = affinity.get(token)
+        if allowed:
+            matched_sets.append(set(allowed))
+    if not matched_sets:
+        return False
+    return not any(ctype in allowed for allowed in matched_sets)
 
 
 def _match_parts(match: Any, *, collection: str) -> Tuple[Optional[str], Optional[str], float]:
