@@ -98,6 +98,29 @@ def test_normalize_find_duplicates_gating_options():
     assert req.token_type_affinity["school"] == ["educational_institution"]
 
 
+def test_normalize_find_duplicates_aliasing_sources():
+    req = normalize_find_duplicates_args(
+        collection="companies",
+        fields=["name"],
+        options={
+            "aliasing": {
+                "sources": [
+                    {"type": "inline", "map": {"co": ["company"], "corp": "corporation"}},
+                    {"type": "field", "field": "aliases"},
+                    {"type": "acronym", "auto": True, "min_word_len": 3},
+                    {"type": "managed_ref", "ref": "entity_aliases_v1"},
+                ]
+            }
+        },
+    )
+    assert len(req.alias_sources) == 4
+    assert req.alias_sources[0]["type"] == "inline"
+    assert req.alias_sources[0]["map"]["corp"] == ["corporation"]
+    assert req.alias_sources[1] == {"type": "field", "field": "aliases"}
+    assert req.alias_sources[2]["type"] == "acronym"
+    assert req.alias_sources[3] == {"type": "managed_ref", "ref": "entity_aliases_v1"}
+
+
 def test_normalize_resolve_entity_options_override():
     req = normalize_resolve_entity_args(
         collection="companies",
@@ -169,6 +192,15 @@ def test_normalize_find_duplicates_rejects_bad_token_type_affinity():
             collection="companies",
             fields=["name"],
             options={"gating": {"token_type_affinity": {"bank": "financial_institution"}}},
+        )
+
+
+def test_normalize_find_duplicates_rejects_bad_aliasing_sources_shape():
+    with pytest.raises(ValueError, match="options.aliasing.sources must be an array/list"):
+        normalize_find_duplicates_args(
+            collection="companies",
+            fields=["name"],
+            options={"aliasing": {"sources": {"type": "inline"}}},
         )
 
 

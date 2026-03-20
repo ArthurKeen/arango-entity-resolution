@@ -50,6 +50,7 @@ class FindDuplicatesRequest:
     word_index_stopwords: List[str] = field(default_factory=list)
     token_type_affinity: Dict[str, List[str]] = field(default_factory=dict)
     target_type_field: str = "type"
+    alias_sources: List[Dict[str, Any]] = field(default_factory=list)
     stages: List[Dict[str, Any]] = field(default_factory=list)
     options: MCPOptions = field(default_factory=MCPOptions)
     deprecation_warnings: List[str] = field(default_factory=list)

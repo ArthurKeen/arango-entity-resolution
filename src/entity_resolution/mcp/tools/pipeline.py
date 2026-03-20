@@ -213,7 +213,7 @@ def _build_pipeline_config(
         cluster_collection=f"{request.collection}_clusters",
         blocking=BlockingConfig(
             strategy=strategy,
-            fields=fields,
+            fields=_augment_blocking_fields_with_alias_sources(fields, request),
             max_block_size=request.max_block_size,
         ),
         similarity=SimilarityConfig(
@@ -578,6 +578,7 @@ def _apply_precision_gates(
     accepted: list[Any] = []
 
     margin_index = _build_margin_index(matches, collection=collection)
+    alias_profile = _build_aliasing_profile(request)
     token_index: Dict[str, set[str]] = {}
     if request.require_token_overlap or request.token_type_affinity:
         token_index = _build_doc_token_index(
@@ -586,6 +587,7 @@ def _apply_precision_gates(
             matches=matches,
             fields=fields,
             stopwords=request.word_index_stopwords,
+            alias_profile=alias_profile,
         )
     type_index: Dict[str, str] = {}
     if request.token_type_affinity:
@@ -670,6 +672,7 @@ def _build_doc_token_index(
     matches: list[Any],
     fields: list[str],
     stopwords: list[str],
+    alias_profile: Dict[str, Any],
 ) -> Dict[str, set[str]]:
     coll = db.collection(collection)
     doc_ids: set[str] = set()
@@ -681,20 +684,32 @@ def _build_doc_token_index(
             doc_ids.add(doc2)
 
     index: Dict[str, set[str]] = {}
+    alias_fields = alias_profile.get("field_sources", [])
     for doc_id in doc_ids:
         key = doc_id.split("/", 1)[1] if "/" in doc_id else doc_id
         doc = coll.get(key) or {}
         tokens: set[str] = set()
-        for field in fields:
+        for field in _merge_unique_fields(fields, alias_fields):
             val = doc.get(field)
             if val is None:
                 continue
             if isinstance(val, str):
-                tokens |= _tokenize_text(val, stopwords)
+                tokens |= _tokenize_text(
+                    val,
+                    stopwords,
+                    acronym_auto=alias_profile.get("acronym_auto", False),
+                    acronym_min_word_len=alias_profile.get("acronym_min_word_len", 4),
+                )
             elif isinstance(val, list):
                 for item in val:
                     if isinstance(item, str):
-                        tokens |= _tokenize_text(item, stopwords)
+                        tokens |= _tokenize_text(
+                            item,
+                            stopwords,
+                            acronym_auto=alias_profile.get("acronym_auto", False),
+                            acronym_min_word_len=alias_profile.get("acronym_min_word_len", 4),
+                        )
+        tokens = _expand_tokens_with_alias_map(tokens, alias_profile.get("inline_map", {}))
         index[doc_id] = tokens
     return index
 
@@ -726,10 +741,23 @@ def _build_doc_type_index(
     return index
 
 
-def _tokenize_text(value: str, stopwords: list[str]) -> set[str]:
+def _tokenize_text(
+    value: str,
+    stopwords: list[str],
+    *,
+    acronym_auto: bool = False,
+    acronym_min_word_len: int = 4,
+) -> set[str]:
     raw = re.findall(r"[A-Za-z0-9]+", value.lower())
     sw = set(stopwords or [])
-    return {tok for tok in raw if tok and tok not in sw}
+    tokens = {tok for tok in raw if tok and tok not in sw}
+    if acronym_auto:
+        words = [tok for tok in raw if tok and len(tok) >= max(1, int(acronym_min_word_len))]
+        if len(words) >= 2:
+            acronym = "".join(w[0] for w in words)
+            if acronym:
+                tokens.add(acronym)
+    return tokens
 
 
 def _reject_by_type_affinity(
@@ -773,6 +801,73 @@ def _match_parts(match: Any, *, collection: str) -> Tuple[Optional[str], Optiona
         a = a if "/" in a else f"{collection}/{a}"
         b = b if "/" in b else f"{collection}/{b}"
     return a, b, s
+
+
+def _build_aliasing_profile(request: FindDuplicatesRequest) -> Dict[str, Any]:
+    profile: Dict[str, Any] = {
+        "inline_map": {},
+        "field_sources": [],
+        "acronym_auto": False,
+        "acronym_min_word_len": 4,
+    }
+    for source in request.alias_sources:
+        source_type = str(source.get("type", "")).lower()
+        if source_type == "inline":
+            raw_map = source.get("map", {})
+            if isinstance(raw_map, dict):
+                for key, vals in raw_map.items():
+                    token = str(key).strip().lower()
+                    if not token:
+                        continue
+                    if isinstance(vals, list):
+                        mapped = [str(v).strip().lower() for v in vals if str(v).strip()]
+                    else:
+                        mapped = [str(vals).strip().lower()] if str(vals).strip() else []
+                    if mapped:
+                        profile["inline_map"][token] = mapped
+        elif source_type == "field":
+            field = str(source.get("field", "")).strip()
+            if field:
+                profile["field_sources"].append(field)
+        elif source_type == "acronym":
+            if bool(source.get("auto", True)):
+                profile["acronym_auto"] = True
+            profile["acronym_min_word_len"] = int(source.get("min_word_len", 4))
+    profile["field_sources"] = _merge_unique_fields(profile["field_sources"], [])
+    return profile
+
+
+def _expand_tokens_with_alias_map(tokens: set[str], inline_map: Dict[str, list[str]]) -> set[str]:
+    if not inline_map:
+        return tokens
+    expanded = set(tokens)
+    for tok in list(tokens):
+        mapped = inline_map.get(tok, [])
+        for m in mapped:
+            if m:
+                expanded.add(m)
+    return expanded
+
+
+def _augment_blocking_fields_with_alias_sources(fields: list[str], request: FindDuplicatesRequest) -> list[str]:
+    alias_fields = [
+        str(s.get("field", "")).strip()
+        for s in request.alias_sources
+        if str(s.get("type", "")).lower() == "field"
+    ]
+    return _merge_unique_fields(fields, alias_fields)
+
+
+def _merge_unique_fields(primary: list[str], extra: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for raw in list(primary or []) + list(extra or []):
+        f = str(raw).strip()
+        if not f or f in seen:
+            continue
+        seen.add(f)
+        out.append(f)
+    return out
 
 
 def run_pipeline_status(

@@ -201,9 +201,10 @@ def _build_explain_gates(
     stopwords_raw = gating.get("word_index_stopwords", [])
     stopwords = [str(s).lower() for s in stopwords_raw] if isinstance(stopwords_raw, list) else []
     affinity = _normalize_affinity(gating.get("token_type_affinity"))
+    alias_profile = _normalize_aliasing_profile(options.get("aliasing"))
 
-    source_tokens = _tokens_from_doc(doc_a, compare_fields, stopwords)
-    target_tokens = _tokens_from_doc(doc_b, compare_fields, stopwords)
+    source_tokens = _tokens_from_doc(doc_a, compare_fields, stopwords, alias_profile=alias_profile)
+    target_tokens = _tokens_from_doc(doc_b, compare_fields, stopwords, alias_profile=alias_profile)
     overlap_tokens = sorted(source_tokens & target_tokens)
     candidate_type = str(doc_b.get(target_type_field, "") or "")
 
@@ -295,22 +296,45 @@ def _build_explain_gates(
             "candidate_type": candidate_type,
             "matched_token_rules": matched_token_rules,
         },
+        "aliasing": {
+            "configured": bool(alias_profile.get("inline_map") or alias_profile.get("field_sources") or alias_profile.get("acronym_auto")),
+            "inline_alias_count": len(alias_profile.get("inline_map", {})),
+            "field_sources": alias_profile.get("field_sources", []),
+            "acronym_auto": bool(alias_profile.get("acronym_auto", False)),
+            "acronym_min_word_len": int(alias_profile.get("acronym_min_word_len", 4)),
+        },
     }
 
 
-def _tokens_from_doc(doc: Dict[str, Any], fields: List[str], stopwords: List[str]) -> set[str]:
+def _tokens_from_doc(
+    doc: Dict[str, Any],
+    fields: List[str],
+    stopwords: List[str],
+    *,
+    alias_profile: Dict[str, Any],
+) -> set[str]:
     sw = set(stopwords)
     tokens: set[str] = set()
-    for field in fields:
+    all_fields = _merge_unique_fields(fields, alias_profile.get("field_sources", []))
+    for field in all_fields:
         val = doc.get(field)
         if isinstance(val, str):
             raw = re.findall(r"[A-Za-z0-9]+", val.lower())
             tokens |= {t for t in raw if t and t not in sw}
+            if alias_profile.get("acronym_auto", False):
+                words = [t for t in raw if len(t) >= max(1, int(alias_profile.get("acronym_min_word_len", 4)))]
+                if len(words) >= 2:
+                    tokens.add("".join(w[0] for w in words))
         elif isinstance(val, list):
             for item in val:
                 if isinstance(item, str):
                     raw = re.findall(r"[A-Za-z0-9]+", item.lower())
                     tokens |= {t for t in raw if t and t not in sw}
+                    if alias_profile.get("acronym_auto", False):
+                        words = [t for t in raw if len(t) >= max(1, int(alias_profile.get("acronym_min_word_len", 4)))]
+                        if len(words) >= 2:
+                            tokens.add("".join(w[0] for w in words))
+    tokens = _expand_tokens_with_alias_map(tokens, alias_profile.get("inline_map", {}))
     return tokens
 
 
@@ -333,6 +357,70 @@ def _normalize_affinity(value: Any) -> Dict[str, List[str]]:
             vals = []
         if vals:
             out[key] = vals
+    return out
+
+
+def _normalize_aliasing_profile(value: Any) -> Dict[str, Any]:
+    profile: Dict[str, Any] = {
+        "inline_map": {},
+        "field_sources": [],
+        "acronym_auto": False,
+        "acronym_min_word_len": 4,
+    }
+    if not isinstance(value, dict):
+        return profile
+    sources = value.get("sources", [])
+    if not isinstance(sources, list):
+        return profile
+    for source in sources:
+        if not isinstance(source, dict):
+            continue
+        source_type = str(source.get("type", "")).lower()
+        if source_type == "inline":
+            raw_map = source.get("map", {})
+            if isinstance(raw_map, dict):
+                for key, vals in raw_map.items():
+                    token = str(key).strip().lower()
+                    if not token:
+                        continue
+                    if isinstance(vals, list):
+                        mapped = [str(v).strip().lower() for v in vals if str(v).strip()]
+                    else:
+                        mapped = [str(vals).strip().lower()] if str(vals).strip() else []
+                    if mapped:
+                        profile["inline_map"][token] = mapped
+        elif source_type == "field":
+            field = str(source.get("field", "")).strip()
+            if field:
+                profile["field_sources"].append(field)
+        elif source_type == "acronym":
+            if bool(source.get("auto", True)):
+                profile["acronym_auto"] = True
+            profile["acronym_min_word_len"] = int(source.get("min_word_len", 4))
+    profile["field_sources"] = _merge_unique_fields(profile["field_sources"], [])
+    return profile
+
+
+def _expand_tokens_with_alias_map(tokens: set[str], inline_map: Dict[str, list[str]]) -> set[str]:
+    if not inline_map:
+        return tokens
+    expanded = set(tokens)
+    for tok in list(tokens):
+        for mapped in inline_map.get(tok, []):
+            if mapped:
+                expanded.add(mapped)
+    return expanded
+
+
+def _merge_unique_fields(primary: List[str], extra: List[str]) -> List[str]:
+    seen: set[str] = set()
+    out: List[str] = []
+    for raw in list(primary or []) + list(extra or []):
+        val = str(raw).strip()
+        if not val or val in seen:
+            continue
+        seen.add(val)
+        out.append(val)
     return out
 
 

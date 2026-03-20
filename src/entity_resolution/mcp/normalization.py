@@ -150,6 +150,7 @@ def normalize_find_duplicates_args(
         _nested_get(normalized_options, "gating", "token_type_affinity")
     )
     target_type_field = str(_nested_get(normalized_options, "gating", "target_type_field") or "type")
+    alias_sources = _normalize_aliasing_sources(_nested_get(normalized_options, "aliasing", "sources"))
     stages = _normalize_stages(_nested_get(normalized_options, "passthrough", "stages"))
 
     return FindDuplicatesRequest(
@@ -172,6 +173,7 @@ def normalize_find_duplicates_args(
         word_index_stopwords=word_index_stopwords,
         token_type_affinity=token_type_affinity,
         target_type_field=target_type_field,
+        alias_sources=alias_sources,
         stages=stages,
         options=MCPOptions(**normalized_options),
         deprecation_warnings=warnings,
@@ -488,3 +490,65 @@ def _normalize_token_type_affinity(value: Any) -> Dict[str, List[str]]:
         if allowed:
             normalized[token_key] = allowed
     return normalized
+
+
+def _normalize_aliasing_sources(value: Any) -> List[Dict[str, Any]]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError("options.aliasing.sources must be an array/list when provided")
+
+    out: List[Dict[str, Any]] = []
+    for idx, item in enumerate(value):
+        if not isinstance(item, dict):
+            raise ValueError(f"options.aliasing.sources[{idx}] must be an object/dict")
+        source_type = str(item.get("type", "")).strip().lower()
+        if not source_type:
+            raise ValueError(f"options.aliasing.sources[{idx}].type is required")
+
+        if source_type == "inline":
+            raw_map = item.get("map", {})
+            if not isinstance(raw_map, dict):
+                raise ValueError(f"options.aliasing.sources[{idx}].map must be an object/dict")
+            norm_map: Dict[str, List[str]] = {}
+            for key, raw_vals in raw_map.items():
+                token = str(key).strip().lower()
+                if not token:
+                    continue
+                if isinstance(raw_vals, list):
+                    vals = [str(v).strip().lower() for v in raw_vals if str(v).strip()]
+                else:
+                    vals = [str(raw_vals).strip().lower()] if str(raw_vals).strip() else []
+                if vals:
+                    norm_map[token] = vals
+            out.append({"type": "inline", "map": norm_map})
+            continue
+
+        if source_type == "field":
+            field = str(item.get("field", "")).strip()
+            if not field:
+                raise ValueError(f"options.aliasing.sources[{idx}].field is required for type=field")
+            out.append({"type": "field", "field": field})
+            continue
+
+        if source_type == "acronym":
+            out.append(
+                {
+                    "type": "acronym",
+                    "auto": bool(item.get("auto", True)),
+                    "min_word_len": int(item.get("min_word_len", 4)),
+                }
+            )
+            continue
+
+        if source_type == "managed_ref":
+            ref = str(item.get("ref", "")).strip()
+            if not ref:
+                raise ValueError(f"options.aliasing.sources[{idx}].ref is required for type=managed_ref")
+            out.append({"type": "managed_ref", "ref": ref})
+            continue
+
+        raise ValueError(
+            f"options.aliasing.sources[{idx}].type must be one of inline, field, acronym, managed_ref"
+        )
+    return out
