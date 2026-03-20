@@ -78,6 +78,7 @@ def test_normalize_find_duplicates_gating_options():
         options={
             "gating": {
                 "min_margin": 0.07,
+                "mode": "report_only",
                 "require_token_overlap": True,
                 "token_overlap_bypass_score": 0.93,
                 "word_index_stopwords": ["llc", "inc"],
@@ -90,6 +91,7 @@ def test_normalize_find_duplicates_gating_options():
         },
     )
     assert req.min_margin == 0.07
+    assert req.gating_mode == "report_only"
     assert req.require_token_overlap is True
     assert req.token_overlap_bypass_score == 0.93
     assert req.word_index_stopwords == ["llc", "inc"]
@@ -209,6 +211,15 @@ def test_normalize_find_duplicates_rejects_bad_token_type_affinity():
             collection="companies",
             fields=["name"],
             options={"gating": {"token_type_affinity": {"bank": "financial_institution"}}},
+        )
+
+
+def test_normalize_find_duplicates_rejects_invalid_gating_mode():
+    with pytest.raises(ValueError, match="options.gating.mode must be one of"):
+        normalize_find_duplicates_args(
+            collection="companies",
+            fields=["name"],
+            options={"gating": {"mode": "strict_only"}},
         )
 
 

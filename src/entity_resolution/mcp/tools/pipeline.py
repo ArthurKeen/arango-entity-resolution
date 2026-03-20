@@ -347,6 +347,7 @@ def _run_find_duplicates_multistage(*, db: Any, request: FindDuplicatesRequest, 
             "stage_results": stage_results,
             "gating": {
                 "enabled": _has_precision_gates(request),
+                "mode": request.gating_mode,
                 "similarity_type": request.similarity_type,
                 "token_jaccard_fields": request.token_jaccard_fields,
                 "token_jaccard_min_score": request.token_jaccard_min_score,
@@ -435,6 +436,7 @@ def _run_single_stage_with_optional_gating(
         meta = dict(stage_meta)
         meta["gating"] = {
             "enabled": _has_precision_gates(request),
+            "mode": request.gating_mode,
             "similarity_type": request.similarity_type,
             "token_jaccard_fields": request.token_jaccard_fields,
             "token_jaccard_min_score": request.token_jaccard_min_score,
@@ -565,25 +567,42 @@ def _apply_precision_gates(
     if not matches:
         return [], {
             "enabled": _has_precision_gates(request),
+            "mode": request.gating_mode,
+            "enforcement_enabled": request.gating_mode == "enforce",
             "input_matches": 0,
             "accepted_matches": 0,
             "rejected_token_jaccard": 0,
             "rejected_margin": 0,
             "rejected_token_overlap": 0,
             "rejected_type_affinity": 0,
+            "would_reject_token_jaccard": 0,
+            "would_reject_margin": 0,
+            "would_reject_token_overlap": 0,
+            "would_reject_type_affinity": 0,
         }
 
     if not _has_precision_gates(request):
         return matches, {
             "enabled": False,
+            "mode": request.gating_mode,
+            "enforcement_enabled": False,
             "input_matches": len(matches),
             "accepted_matches": len(matches),
             "rejected_token_jaccard": 0,
             "rejected_margin": 0,
             "rejected_token_overlap": 0,
             "rejected_type_affinity": 0,
+            "would_reject_token_jaccard": 0,
+            "would_reject_margin": 0,
+            "would_reject_token_overlap": 0,
+            "would_reject_type_affinity": 0,
         }
 
+    enforce = request.gating_mode == "enforce"
+    would_reject_token_jaccard = 0
+    would_reject_margin = 0
+    would_reject_overlap = 0
+    would_reject_type_affinity = 0
     rejected_token_jaccard = 0
     rejected_margin = 0
     rejected_overlap = 0
@@ -628,22 +647,28 @@ def _apply_precision_gates(
             t2 = token_index.get(doc2, set())
             token_jaccard = _jaccard_tokens(t1, t2)
             if token_jaccard < min_token_jaccard:
-                rejected_token_jaccard += 1
-                continue
+                would_reject_token_jaccard += 1
+                if enforce:
+                    rejected_token_jaccard += 1
+                    continue
 
         if request.min_margin > 0.0:
             margin_a = score_f - margin_index[doc1][1]
             margin_b = score_f - margin_index[doc2][1]
             if margin_a < request.min_margin or margin_b < request.min_margin:
-                rejected_margin += 1
-                continue
+                would_reject_margin += 1
+                if enforce:
+                    rejected_margin += 1
+                    continue
 
         if request.require_token_overlap and score_f < request.token_overlap_bypass_score:
             t1 = token_index.get(doc1, set())
             t2 = token_index.get(doc2, set())
             if not (t1 & t2):
-                rejected_overlap += 1
-                continue
+                would_reject_overlap += 1
+                if enforce:
+                    rejected_overlap += 1
+                    continue
 
         if request.token_type_affinity:
             source_tokens = token_index.get(doc1, set())
@@ -654,19 +679,27 @@ def _apply_precision_gates(
                     candidate_type=candidate_type,
                     affinity=request.token_type_affinity,
                 ):
-                    rejected_type_affinity += 1
-                    continue
+                    would_reject_type_affinity += 1
+                    if enforce:
+                        rejected_type_affinity += 1
+                        continue
 
         accepted.append(m)
 
     return accepted, {
         "enabled": True,
+        "mode": request.gating_mode,
+        "enforcement_enabled": enforce,
         "input_matches": len(matches),
         "accepted_matches": len(accepted),
         "rejected_token_jaccard": rejected_token_jaccard,
         "rejected_margin": rejected_margin,
         "rejected_token_overlap": rejected_overlap,
         "rejected_type_affinity": rejected_type_affinity,
+        "would_reject_token_jaccard": would_reject_token_jaccard,
+        "would_reject_margin": would_reject_margin,
+        "would_reject_token_overlap": would_reject_overlap,
+        "would_reject_type_affinity": would_reject_type_affinity,
         "similarity_type": request.similarity_type,
         "token_jaccard_min_score": min_token_jaccard if request.similarity_type == "token_jaccard" else 0.0,
         "token_jaccard_fields": jaccard_fields if request.similarity_type == "token_jaccard" else [],

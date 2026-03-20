@@ -143,6 +143,9 @@ def normalize_find_duplicates_args(
         raise ValueError("options.similarity.token_jaccard_fields must be an array/list when provided")
     token_jaccard_fields = [str(f).strip() for f in token_jaccard_fields_raw if str(f).strip()]
     token_jaccard_min_score = float(_nested_get(normalized_options, "similarity", "token_jaccard_min_score") or 0.0)
+    gating_mode = str(_nested_get(normalized_options, "gating", "mode") or "enforce").strip().lower()
+    if gating_mode not in {"enforce", "report_only", "shadow"}:
+        raise ValueError("options.gating.mode must be one of: enforce, report_only, shadow")
     min_margin = float(_nested_get(normalized_options, "gating", "min_margin") or 0.0)
     require_token_overlap = bool(_nested_get(normalized_options, "gating", "require_token_overlap") or False)
     token_overlap_bypass_score = float(
@@ -176,6 +179,7 @@ def normalize_find_duplicates_args(
         similarity_type=similarity_type,
         token_jaccard_fields=token_jaccard_fields,
         token_jaccard_min_score=max(0.0, min(1.0, token_jaccard_min_score)),
+        gating_mode=gating_mode,
         min_margin=max(0.0, min_margin),
         require_token_overlap=require_token_overlap,
         token_overlap_bypass_score=max(0.0, min(1.0, token_overlap_bypass_score)),

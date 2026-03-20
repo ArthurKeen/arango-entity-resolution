@@ -202,6 +202,9 @@ def _build_explain_gates(
     token_jaccard_fields_raw = similarity.get("token_jaccard_fields", [])
     token_jaccard_fields = [str(f).strip() for f in token_jaccard_fields_raw] if isinstance(token_jaccard_fields_raw, list) else []
     min_margin = float(gating.get("min_margin", 0.0))
+    gating_mode = str(gating.get("mode", "enforce") or "enforce").strip().lower()
+    if gating_mode not in {"enforce", "report_only", "shadow"}:
+        gating_mode = "enforce"
     require_token_overlap = bool(gating.get("require_token_overlap", False))
     token_overlap_bypass_score = float(gating.get("token_overlap_bypass_score", 1.0))
     target_type_field = str(gating.get("target_type_field", "type"))
@@ -292,6 +295,8 @@ def _build_explain_gates(
 
     return {
         "summary": {
+            "mode": gating_mode,
+            "enforcement_enabled": gating_mode == "enforce",
             "all_passed": len(gate_failures) == 0,
             "gate_failures": gate_failures,
         },
