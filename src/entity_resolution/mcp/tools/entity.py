@@ -3,6 +3,7 @@ Entity-level MCP tools: resolve_entity and explain_match.
 """
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Optional
 
 import jellyfish
@@ -83,6 +84,7 @@ def run_explain_match(
     key_a: str,
     key_b: str,
     fields: List[str] | None = None,
+    options: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Return a field-level similarity breakdown explaining why (or why not)
@@ -155,7 +157,7 @@ def run_explain_match(
         if edges:
             existing_edge = edges[0]
 
-    return {
+    payload = {
         "key_a": key_a,
         "key_b": key_b,
         "overall_score": overall,
@@ -169,6 +171,169 @@ def run_explain_match(
             else "likely different"
         ),
     }
+    if isinstance(options, dict):
+        payload["gates"] = _build_explain_gates(
+            doc_a=doc_a,
+            doc_b=doc_b,
+            compare_fields=compare_fields,
+            overall_score=overall,
+            options=options,
+        )
+    return payload
+
+
+def _build_explain_gates(
+    *,
+    doc_a: Dict[str, Any],
+    doc_b: Dict[str, Any],
+    compare_fields: List[str],
+    overall_score: float,
+    options: Dict[str, Any],
+) -> Dict[str, Any]:
+    similarity = options.get("similarity") if isinstance(options.get("similarity"), dict) else {}
+    gating = options.get("gating") if isinstance(options.get("gating"), dict) else {}
+
+    score_threshold = float(similarity.get("confidence_threshold", 0.0))
+    min_margin = float(gating.get("min_margin", 0.0))
+    require_token_overlap = bool(gating.get("require_token_overlap", False))
+    token_overlap_bypass_score = float(gating.get("token_overlap_bypass_score", 1.0))
+    target_type_field = str(gating.get("target_type_field", "type"))
+    stopwords_raw = gating.get("word_index_stopwords", [])
+    stopwords = [str(s).lower() for s in stopwords_raw] if isinstance(stopwords_raw, list) else []
+    affinity = _normalize_affinity(gating.get("token_type_affinity"))
+
+    source_tokens = _tokens_from_doc(doc_a, compare_fields, stopwords)
+    target_tokens = _tokens_from_doc(doc_b, compare_fields, stopwords)
+    overlap_tokens = sorted(source_tokens & target_tokens)
+    candidate_type = str(doc_b.get(target_type_field, "") or "")
+
+    gate_failures: List[Dict[str, Any]] = []
+
+    threshold_pass = overall_score >= score_threshold if score_threshold > 0.0 else True
+    if not threshold_pass:
+        gate_failures.append(
+            {
+                "gate": "score_threshold",
+                "reason": "BELOW_CONFIDENCE_THRESHOLD",
+                "details": {"score": overall_score, "threshold": score_threshold},
+            }
+        )
+
+    margin_status = "not_evaluated"
+    if min_margin > 0.0:
+        gate_failures.append(
+            {
+                "gate": "margin",
+                "reason": "MARGIN_NOT_EVALUATED_FOR_PAIR_EXPLANATION",
+                "details": {"requested_min_margin": min_margin},
+            }
+        )
+
+    overlap_pass = True
+    if require_token_overlap and overall_score < token_overlap_bypass_score:
+        overlap_pass = bool(overlap_tokens)
+        if not overlap_pass:
+            gate_failures.append(
+                {
+                    "gate": "token_overlap",
+                    "reason": "NO_SHARED_TOKENS",
+                    "details": {
+                        "bypass_score": token_overlap_bypass_score,
+                        "score": overall_score,
+                    },
+                }
+            )
+
+    type_affinity_pass = True
+    matched_token_rules: Dict[str, List[str]] = {}
+    if affinity:
+        for tok in source_tokens:
+            if tok in affinity:
+                matched_token_rules[tok] = list(affinity[tok])
+        if matched_token_rules:
+            allowed_sets = [set(v) for v in matched_token_rules.values()]
+            type_affinity_pass = bool(candidate_type) and any(candidate_type in s for s in allowed_sets)
+            if not type_affinity_pass:
+                gate_failures.append(
+                    {
+                        "gate": "type_affinity",
+                        "reason": "TYPE_NOT_ALLOWED_FOR_CONTEXT_TOKENS",
+                        "details": {
+                            "candidate_type": candidate_type,
+                            "target_type_field": target_type_field,
+                            "matched_token_rules": matched_token_rules,
+                        },
+                    }
+                )
+
+    return {
+        "summary": {
+            "all_passed": len(gate_failures) == 0,
+            "gate_failures": gate_failures,
+        },
+        "score_threshold": {
+            "configured": score_threshold > 0.0,
+            "pass": threshold_pass,
+            "threshold": score_threshold,
+            "score": overall_score,
+        },
+        "margin": {
+            "configured": min_margin > 0.0,
+            "status": margin_status,
+            "requested_min_margin": min_margin,
+        },
+        "token_overlap": {
+            "configured": require_token_overlap,
+            "pass": overlap_pass,
+            "bypass_score": token_overlap_bypass_score,
+            "shared_tokens": overlap_tokens,
+        },
+        "type_affinity": {
+            "configured": bool(affinity),
+            "pass": type_affinity_pass,
+            "target_type_field": target_type_field,
+            "candidate_type": candidate_type,
+            "matched_token_rules": matched_token_rules,
+        },
+    }
+
+
+def _tokens_from_doc(doc: Dict[str, Any], fields: List[str], stopwords: List[str]) -> set[str]:
+    sw = set(stopwords)
+    tokens: set[str] = set()
+    for field in fields:
+        val = doc.get(field)
+        if isinstance(val, str):
+            raw = re.findall(r"[A-Za-z0-9]+", val.lower())
+            tokens |= {t for t in raw if t and t not in sw}
+        elif isinstance(val, list):
+            for item in val:
+                if isinstance(item, str):
+                    raw = re.findall(r"[A-Za-z0-9]+", item.lower())
+                    tokens |= {t for t in raw if t and t not in sw}
+    return tokens
+
+
+def _normalize_affinity(value: Any) -> Dict[str, List[str]]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        return {}
+    out: Dict[str, List[str]] = {}
+    for token, raw in value.items():
+        key = str(token).strip().lower()
+        if not key:
+            continue
+        if isinstance(raw, list):
+            vals = [str(v).strip() for v in raw if str(v).strip()]
+        elif isinstance(raw, dict):
+            allowed = raw.get("allowed_types", [])
+            vals = [str(v).strip() for v in allowed if str(v).strip()] if isinstance(allowed, list) else []
+        else:
+            vals = []
+        if vals:
+            out[key] = vals
+    return out
 
 
 def run_resolve_entity_cross_collection(
