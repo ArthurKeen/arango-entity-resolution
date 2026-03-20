@@ -411,6 +411,7 @@ class TestExplainMatch:
         assert result["interpretation"] in {
             "strong match", "probable match", "uncertain", "likely different"
         }
+        assert "gates" not in result
 
     @patch("entity_resolution.mcp.tools.entity.ArangoClient")
     def test_explain_match_missing_doc(self, mock_client_cls):
@@ -426,6 +427,50 @@ class TestExplainMatch:
             collection="companies", key_a="bad_key", key_b="b1",
         )
         assert "error" in result
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_explain_match_includes_gate_failures(self, mock_client_cls):
+        from entity_resolution.mcp.tools.entity import run_explain_match
+
+        doc_a = {"_key": "a1", "name": "River Bank Group", "type": "organization"}
+        doc_b = {"_key": "b1", "name": "Sunset Bistro", "type": "restaurant"}
+
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        result = run_explain_match(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            collection="companies",
+            key_a="a1",
+            key_b="b1",
+            fields=["name"],
+            options={
+                "similarity": {"confidence_threshold": 0.95},
+                "gating": {
+                    "min_margin": 0.05,
+                    "require_token_overlap": True,
+                    "token_overlap_bypass_score": 0.99,
+                    "token_type_affinity": {"bank": ["financial_institution"]},
+                    "target_type_field": "type",
+                },
+            },
+        )
+
+        assert "gates" in result
+        gates = result["gates"]
+        assert gates["summary"]["all_passed"] is False
+        failures = [f["gate"] for f in gates["summary"]["gate_failures"]]
+        assert "score_threshold" in failures
+        assert "margin" in failures
+        assert "token_overlap" in failures
+        assert "type_affinity" in failures
+        assert gates["type_affinity"]["candidate_type"] == "restaurant"
 
 
 class TestResolveEntityCrossCollection:
@@ -1085,6 +1130,21 @@ class TestMcpServerOptionsCompatibility:
         assert req.fields == ["name", "postal_code"]
         assert req.confidence_threshold == 0.93
         assert req.max_block_size == 120
+
+    @patch("entity_resolution.mcp.tools.entity.run_explain_match")
+    def test_server_explain_match_accepts_options(self, mock_run_explain_match):
+        from entity_resolution.mcp import server
+
+        mock_run_explain_match.return_value = {"ok": True}
+        result = server.explain_match(
+            collection="companies",
+            key_a="a1",
+            key_b="b1",
+            options={"gating": {"require_token_overlap": True}},
+        )
+        assert result["ok"] is True
+        kwargs = mock_run_explain_match.call_args.kwargs
+        assert kwargs["options"]["gating"]["require_token_overlap"] is True
 
     @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
     def test_server_find_duplicates_accepts_stages_options(self, mock_run_find_duplicates):

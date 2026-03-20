@@ -290,6 +290,7 @@ def explain_match(
     key_a: str,
     key_b: str,
     fields: Optional[List[str]] = None,
+    options: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Explain why (or why not) two entities in a collection match.
@@ -302,9 +303,17 @@ def explain_match(
         key_a: _key of the first document.
         key_b: _key of the second document.
         fields: Specific fields to compare (default: all shared string fields).
+        options: Optional diagnostics/gating options for explainability context.
     """
     from entity_resolution.mcp.tools.entity import run_explain_match
-    return run_explain_match(**_conn(), collection=collection, key_a=key_a, key_b=key_b, fields=fields)
+    return run_explain_match(
+        **_conn(),
+        collection=collection,
+        key_a=key_a,
+        key_b=key_b,
+        fields=fields,
+        options=options,
+    )
 
 
 @mcp.tool()
