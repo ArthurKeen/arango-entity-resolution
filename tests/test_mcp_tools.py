@@ -173,7 +173,8 @@ class TestFindDuplicates:
         assert cfg.active_learning.model == "openrouter/test"
         assert cfg.active_learning.low_threshold == 0.6
         assert cfg.active_learning.high_threshold == 0.82
-        assert result == {"ok": True}
+        assert result["ok"] is True
+        assert result["er_options_schema_version"] == "1.0"
 
     @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
     @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
@@ -953,6 +954,7 @@ class TestAdvisorTools:
         assert result["status"] == "ok"
         assert result["tool_version"] == "1.0.0"
         assert result["advisor_policy_version"] == "2026-03-01"
+        assert result["er_options_schema_version"] == "1.0"
         assert result["request_id"] == "req-profile-001"
         payload = result["result"]
         assert payload["row_count_estimate"] == 3
@@ -1398,6 +1400,7 @@ class TestMcpServerOptionsCompatibility:
         assert result["ok"] is True
         assert "deprecation_warnings" in result
         assert len(result["deprecation_warnings"]) >= 1
+        assert result["er_options_schema_version"] == "1.0"
 
     @patch("entity_resolution.mcp.tools.entity.run_resolve_entity_request")
     def test_server_resolve_entity_options_override_legacy(self, mock_run_resolve_entity):
@@ -1546,6 +1549,7 @@ class TestMcpServerOptionsCompatibility:
         assert isinstance(result, dict)
         assert result["status"] == "ok"
         assert result["response_format"] == "envelope-v1"
+        assert result["er_options_schema_version"] == "1.0"
         assert isinstance(result["result"], list)
         assert result["result"][0]["name"] == "companies"
 

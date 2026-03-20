@@ -11,6 +11,8 @@ from arango import ArangoClient
 from entity_resolution.mcp.contracts import CrossCollectionRequest, ResolveEntityRequest
 from entity_resolution.mcp.connection import get_arango_hosts
 
+ER_OPTIONS_SCHEMA_VERSION = "1.0"
+
 
 def run_resolve_entity(
     *,
@@ -158,6 +160,7 @@ def run_explain_match(
             existing_edge = edges[0]
 
     payload = {
+        "er_options_schema_version": ER_OPTIONS_SCHEMA_VERSION,
         "key_a": key_a,
         "key_b": key_b,
         "overall_score": overall,

@@ -13,6 +13,8 @@ from entity_resolution.mcp.contracts import FindDuplicatesRequest
 from entity_resolution.mcp.connection import get_arango_hosts
 from entity_resolution.utils.pipeline_utils import count_inferred_edges, validate_edge_quality
 
+ER_OPTIONS_SCHEMA_VERSION = "1.0"
+
 
 def _get_db(host: str, port: int, username: str, password: str, database: str):
     """Return an authenticated ArangoDB database handle."""
@@ -110,7 +112,7 @@ def run_find_duplicates_request(
             store_clusters=request.store_clusters,
         )
         pipeline = ConfigurableERPipeline(db=db, config=cfg)
-        return pipeline.run()
+        return _with_schema_version(pipeline.run())
 
     if len(request.stages) == 1:
         stage_strategy, stage_fields, stage_threshold, stage_meta = _resolve_stage_scaffold(request)
@@ -136,7 +138,7 @@ def run_find_duplicates_request(
         pipeline = ConfigurableERPipeline(db=db, config=cfg)
         results = pipeline.run()
         results["stages"] = stage_meta
-        return results
+        return _with_schema_version(results)
 
     # C2: true staged execution for >=2 stages with unresolved escalation.
     return _run_find_duplicates_multistage(
@@ -311,7 +313,7 @@ def _run_find_duplicates_multistage(*, db: Any, request: FindDuplicatesRequest, 
         clusters_found = len(clusters)
 
     total_runtime = round(time.time() - started, 3)
-    return {
+    return _with_schema_version({
         "embedding": {},
         "blocking": {
             "candidate_pairs": total_candidates,
@@ -354,7 +356,7 @@ def _run_find_duplicates_multistage(*, db: Any, request: FindDuplicatesRequest, 
                 "target_type_field": request.target_type_field,
             },
         },
-    }
+    })
 
 
 def _run_single_stage_with_optional_gating(
@@ -442,7 +444,7 @@ def _run_single_stage_with_optional_gating(
             "target_type_field": request.target_type_field,
         }
         result["stages"] = meta
-    return result
+    return _with_schema_version(result)
 
 
 def _resolve_stage_config(stage: Dict[str, Any], request: FindDuplicatesRequest) -> Tuple[str, list[str], float]:
@@ -944,11 +946,17 @@ def run_pipeline_status(
         except Exception:
             pass
 
-    return {
+    return _with_schema_version({
         "collection": collection,
         "total_documents": total_docs,
         "edge_collection": edge_coll,
         "edge_stats": edge_stats,
         "cluster_collection": cluster_coll,
         "cluster_count": cluster_count,
-    }
+    })
+
+
+def _with_schema_version(payload: Dict[str, Any]) -> Dict[str, Any]:
+    out = dict(payload)
+    out.setdefault("er_options_schema_version", ER_OPTIONS_SCHEMA_VERSION)
+    return out

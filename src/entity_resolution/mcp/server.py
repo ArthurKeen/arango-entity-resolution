@@ -33,6 +33,7 @@ mcp = FastMCP(
     ),
 )
 logger = logging.getLogger(__name__)
+ER_OPTIONS_SCHEMA_VERSION = "1.0"
 
 
 def _attach_deprecation_warnings(result: Any, warnings: List[str]) -> Any:
@@ -47,6 +48,15 @@ def _attach_deprecation_warnings(result: Any, warnings: List[str]) -> Any:
     return result
 
 
+def _attach_schema_version(result: Any) -> Any:
+    """Attach options schema version to dict-like responses."""
+    if isinstance(result, dict) and "er_options_schema_version" not in result:
+        out = dict(result)
+        out["er_options_schema_version"] = ER_OPTIONS_SCHEMA_VERSION
+        return out
+    return result
+
+
 def _wrap_response_envelope(*, result: Any, warnings: List[str], enabled: bool) -> Any:
     """Optionally wrap responses so metadata can be surfaced safely."""
     if not enabled:
@@ -54,6 +64,7 @@ def _wrap_response_envelope(*, result: Any, warnings: List[str], enabled: bool) 
     payload: Dict[str, Any] = {
         "status": "ok",
         "response_format": "envelope-v1",
+        "er_options_schema_version": ER_OPTIONS_SCHEMA_VERSION,
         "result": result,
     }
     if warnings:
@@ -166,7 +177,8 @@ def find_duplicates(
         **_conn(),
         request=req,
     )
-    return _attach_deprecation_warnings(result, req.deprecation_warnings)
+    result = _attach_deprecation_warnings(result, req.deprecation_warnings)
+    return _attach_schema_version(result)
 
 
 @mcp.tool()
@@ -185,7 +197,8 @@ def pipeline_status(
         edge_collection: Edge collection name (default: {collection}_similarity_edges).
     """
     from entity_resolution.mcp.tools.pipeline import run_pipeline_status
-    return run_pipeline_status(**_conn(), collection=collection, edge_collection=edge_collection)
+    result = run_pipeline_status(**_conn(), collection=collection, edge_collection=edge_collection)
+    return _attach_schema_version(result)
 
 
 @mcp.tool()
@@ -229,11 +242,12 @@ def resolve_entity(
         request=req,
     )
     envelope_enabled = bool((req.options.diagnostics or {}).get("response_envelope", False))
-    return _wrap_response_envelope(
+    result = _wrap_response_envelope(
         result=result,
         warnings=req.deprecation_warnings,
         enabled=envelope_enabled,
     )
+    return _attach_schema_version(result)
 
 
 @mcp.tool()
@@ -281,7 +295,8 @@ def resolve_entity_cross_collection(
         **_conn(),
         request=req,
     )
-    return _attach_deprecation_warnings(result, req.deprecation_warnings)
+    result = _attach_deprecation_warnings(result, req.deprecation_warnings)
+    return _attach_schema_version(result)
 
 
 @mcp.tool()
@@ -306,7 +321,7 @@ def explain_match(
         options: Optional diagnostics/gating options for explainability context.
     """
     from entity_resolution.mcp.tools.entity import run_explain_match
-    return run_explain_match(
+    result = run_explain_match(
         **_conn(),
         collection=collection,
         key_a=key_a,
@@ -314,6 +329,7 @@ def explain_match(
         fields=fields,
         options=options,
     )
+    return _attach_schema_version(result)
 
 
 @mcp.tool()
@@ -362,12 +378,13 @@ def merge_entities(
         strategy: Merge strategy — "most_complete" (default), "newest", or "first".
     """
     from entity_resolution.mcp.tools.cluster import run_merge_entities
-    return run_merge_entities(
+    result = run_merge_entities(
         **_conn(),
         collection=collection,
         entity_keys=entity_keys,
         strategy=strategy,
     )
+    return _attach_schema_version(result)
 
 
 @mcp.tool()
@@ -387,7 +404,7 @@ def profile_dataset(
     optional duplicate/hub risk signals to guide strategy selection.
     """
     from entity_resolution.mcp.tools.advisor import run_profile_dataset
-    return run_profile_dataset(
+    result = run_profile_dataset(
         **_conn(),
         source_type=source_type,
         dataset_id=dataset_id,
@@ -397,6 +414,7 @@ def profile_dataset(
         exclude_fields=exclude_fields,
         compute_pairwise_signals=compute_pairwise_signals,
     )
+    return _attach_schema_version(result)
 
 
 @mcp.tool()
@@ -414,13 +432,14 @@ def recommend_resolution_strategy(
     tradeoffs, rationale, and confidence factors for client-side planning.
     """
     from entity_resolution.mcp.tools.advisor import run_recommend_resolution_strategy
-    return run_recommend_resolution_strategy(
+    result = run_recommend_resolution_strategy(
         profile=profile,
         objective_profile=objective_profile,
         request_id=request_id,
         allow_embedding_models=allow_embedding_models,
         allow_graph_clustering=allow_graph_clustering,
     )
+    return _attach_schema_version(result)
 
 
 @mcp.tool()
@@ -438,12 +457,13 @@ def estimate_feature_weights(
     confidence factors.
     """
     from entity_resolution.mcp.tools.advisor import run_estimate_feature_weights
-    return run_estimate_feature_weights(
+    result = run_estimate_feature_weights(
         feature_matrix_ref=feature_matrix_ref,
         target_metric=target_metric,
         min_samples=min_samples,
         request_id=request_id,
     )
+    return _attach_schema_version(result)
 
 
 @mcp.tool()
@@ -459,11 +479,12 @@ def simulate_pipeline_variants(
     objective fit, and a winner rationale to support pre-commit decisions.
     """
     from entity_resolution.mcp.tools.advisor import run_simulate_pipeline_variants
-    return run_simulate_pipeline_variants(
+    result = run_simulate_pipeline_variants(
         variants=variants,
         objective_profile=objective_profile,
         request_id=request_id,
     )
+    return _attach_schema_version(result)
 
 
 @mcp.tool()
@@ -480,12 +501,13 @@ def export_recommended_config(
     version for auditability across recommendation and deployment flows.
     """
     from entity_resolution.mcp.tools.advisor import run_export_recommended_config
-    return run_export_recommended_config(
+    result = run_export_recommended_config(
         recommendation=recommendation,
         format=format,
         include_rationale=include_rationale,
         request_id=request_id,
     )
+    return _attach_schema_version(result)
 
 
 @mcp.tool()
@@ -501,11 +523,12 @@ def evaluate_blocking_plan(
     risk flags plus recommended guardrails for safer execution.
     """
     from entity_resolution.mcp.tools.advisor import run_evaluate_blocking_plan
-    return run_evaluate_blocking_plan(
+    result = run_evaluate_blocking_plan(
         profile=profile,
         blocking_plan=blocking_plan,
         request_id=request_id,
     )
+    return _attach_schema_version(result)
 
 
 @mcp.tool()
@@ -524,7 +547,7 @@ def recommend_blocking_candidates(
     fit scores and estimated candidate-pair volume.
     """
     from entity_resolution.mcp.tools.advisor import run_recommend_blocking_candidates
-    return run_recommend_blocking_candidates(
+    result = run_recommend_blocking_candidates(
         profile=profile,
         request_id=request_id,
         max_composite_size=max_composite_size,
@@ -532,6 +555,7 @@ def recommend_blocking_candidates(
         must_include_fields=must_include_fields,
         must_exclude_fields=must_exclude_fields,
     )
+    return _attach_schema_version(result)
 
 
 # ---------------------------------------------------------------------------
