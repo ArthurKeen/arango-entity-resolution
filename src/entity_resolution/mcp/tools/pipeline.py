@@ -345,6 +345,9 @@ def _run_find_duplicates_multistage(*, db: Any, request: FindDuplicatesRequest, 
             "stage_results": stage_results,
             "gating": {
                 "enabled": _has_precision_gates(request),
+                "similarity_type": request.similarity_type,
+                "token_jaccard_fields": request.token_jaccard_fields,
+                "token_jaccard_min_score": request.token_jaccard_min_score,
                 "min_margin": request.min_margin,
                 "require_token_overlap": request.require_token_overlap,
                 "token_overlap_bypass_score": request.token_overlap_bypass_score,
@@ -430,6 +433,9 @@ def _run_single_stage_with_optional_gating(
         meta = dict(stage_meta)
         meta["gating"] = {
             "enabled": _has_precision_gates(request),
+            "similarity_type": request.similarity_type,
+            "token_jaccard_fields": request.token_jaccard_fields,
+            "token_jaccard_min_score": request.token_jaccard_min_score,
             "min_margin": request.min_margin,
             "require_token_overlap": request.require_token_overlap,
             "token_overlap_bypass_score": request.token_overlap_bypass_score,
@@ -538,7 +544,9 @@ def _has_any_edges(db: Any, edge_collection: str) -> bool:
 
 def _has_precision_gates(request: FindDuplicatesRequest) -> bool:
     return bool(
-        request.min_margin > 0.0
+        request.similarity_type == "token_jaccard"
+        or request.token_jaccard_min_score > 0.0
+        or request.min_margin > 0.0
         or request.require_token_overlap
         or bool(request.token_type_affinity)
     )
@@ -557,6 +565,7 @@ def _apply_precision_gates(
             "enabled": _has_precision_gates(request),
             "input_matches": 0,
             "accepted_matches": 0,
+            "rejected_token_jaccard": 0,
             "rejected_margin": 0,
             "rejected_token_overlap": 0,
             "rejected_type_affinity": 0,
@@ -567,11 +576,13 @@ def _apply_precision_gates(
             "enabled": False,
             "input_matches": len(matches),
             "accepted_matches": len(matches),
+            "rejected_token_jaccard": 0,
             "rejected_margin": 0,
             "rejected_token_overlap": 0,
             "rejected_type_affinity": 0,
         }
 
+    rejected_token_jaccard = 0
     rejected_margin = 0
     rejected_overlap = 0
     rejected_type_affinity = 0
@@ -580,12 +591,13 @@ def _apply_precision_gates(
     margin_index = _build_margin_index(matches, collection=collection)
     alias_profile = _build_aliasing_profile(request)
     token_index: Dict[str, set[str]] = {}
-    if request.require_token_overlap or request.token_type_affinity:
+    jaccard_fields = _merge_unique_fields(request.token_jaccard_fields, fields)
+    if request.similarity_type == "token_jaccard" or request.require_token_overlap or request.token_type_affinity:
         token_index = _build_doc_token_index(
             db=db,
             collection=collection,
             matches=matches,
-            fields=fields,
+            fields=jaccard_fields,
             stopwords=request.word_index_stopwords,
             alias_profile=alias_profile,
         )
@@ -597,12 +609,25 @@ def _apply_precision_gates(
             matches=matches,
             target_type_field=request.target_type_field,
         )
+    min_token_jaccard = (
+        request.token_jaccard_min_score
+        if request.token_jaccard_min_score > 0.0
+        else request.confidence_threshold
+    )
 
     for m in matches:
         doc1, doc2, score = _match_parts(m, collection=collection)
         if doc1 is None or doc2 is None:
             continue
         score_f = float(score)
+
+        if request.similarity_type == "token_jaccard":
+            t1 = token_index.get(doc1, set())
+            t2 = token_index.get(doc2, set())
+            token_jaccard = _jaccard_tokens(t1, t2)
+            if token_jaccard < min_token_jaccard:
+                rejected_token_jaccard += 1
+                continue
 
         if request.min_margin > 0.0:
             margin_a = score_f - margin_index[doc1][1]
@@ -636,9 +661,13 @@ def _apply_precision_gates(
         "enabled": True,
         "input_matches": len(matches),
         "accepted_matches": len(accepted),
+        "rejected_token_jaccard": rejected_token_jaccard,
         "rejected_margin": rejected_margin,
         "rejected_token_overlap": rejected_overlap,
         "rejected_type_affinity": rejected_type_affinity,
+        "similarity_type": request.similarity_type,
+        "token_jaccard_min_score": min_token_jaccard if request.similarity_type == "token_jaccard" else 0.0,
+        "token_jaccard_fields": jaccard_fields if request.similarity_type == "token_jaccard" else [],
         "min_margin": request.min_margin,
         "require_token_overlap": request.require_token_overlap,
         "token_overlap_bypass_score": request.token_overlap_bypass_score,
@@ -758,6 +787,17 @@ def _tokenize_text(
             if acronym:
                 tokens.add(acronym)
     return tokens
+
+
+def _jaccard_tokens(tokens_a: set[str], tokens_b: set[str]) -> float:
+    if not tokens_a and not tokens_b:
+        return 1.0
+    if not tokens_a or not tokens_b:
+        return 0.0
+    union = tokens_a | tokens_b
+    if not union:
+        return 0.0
+    return float(len(tokens_a & tokens_b)) / float(len(union))
 
 
 def _reject_by_type_affinity(

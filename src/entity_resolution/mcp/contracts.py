@@ -44,6 +44,9 @@ class FindDuplicatesRequest:
     active_learning_model: Optional[str] = None
     active_learning_low_threshold: float = 0.55
     active_learning_high_threshold: float = 0.80
+    similarity_type: str = "default"
+    token_jaccard_fields: List[str] = field(default_factory=list)
+    token_jaccard_min_score: float = 0.0
     min_margin: float = 0.0
     require_token_overlap: bool = False
     token_overlap_bypass_score: float = 1.0

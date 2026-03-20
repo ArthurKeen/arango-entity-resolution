@@ -193,7 +193,11 @@ def _build_explain_gates(
     similarity = options.get("similarity") if isinstance(options.get("similarity"), dict) else {}
     gating = options.get("gating") if isinstance(options.get("gating"), dict) else {}
 
+    similarity_type = str(similarity.get("type", "default") or "default").strip().lower()
     score_threshold = float(similarity.get("confidence_threshold", 0.0))
+    token_jaccard_min_score = float(similarity.get("token_jaccard_min_score", 0.0))
+    token_jaccard_fields_raw = similarity.get("token_jaccard_fields", [])
+    token_jaccard_fields = [str(f).strip() for f in token_jaccard_fields_raw] if isinstance(token_jaccard_fields_raw, list) else []
     min_margin = float(gating.get("min_margin", 0.0))
     require_token_overlap = bool(gating.get("require_token_overlap", False))
     token_overlap_bypass_score = float(gating.get("token_overlap_bypass_score", 1.0))
@@ -203,12 +207,28 @@ def _build_explain_gates(
     affinity = _normalize_affinity(gating.get("token_type_affinity"))
     alias_profile = _normalize_aliasing_profile(options.get("aliasing"))
 
-    source_tokens = _tokens_from_doc(doc_a, compare_fields, stopwords, alias_profile=alias_profile)
-    target_tokens = _tokens_from_doc(doc_b, compare_fields, stopwords, alias_profile=alias_profile)
+    token_fields = _merge_unique_fields(token_jaccard_fields, compare_fields)
+    source_tokens = _tokens_from_doc(doc_a, token_fields, stopwords, alias_profile=alias_profile)
+    target_tokens = _tokens_from_doc(doc_b, token_fields, stopwords, alias_profile=alias_profile)
     overlap_tokens = sorted(source_tokens & target_tokens)
     candidate_type = str(doc_b.get(target_type_field, "") or "")
+    token_jaccard_score = _jaccard_tokens(source_tokens, target_tokens)
+    effective_token_jaccard_min_score = token_jaccard_min_score if token_jaccard_min_score > 0.0 else score_threshold
 
     gate_failures: List[Dict[str, Any]] = []
+
+    if similarity_type == "token_jaccard" and token_jaccard_score < effective_token_jaccard_min_score:
+        gate_failures.append(
+            {
+                "gate": "token_jaccard",
+                "reason": "BELOW_TOKEN_JACCARD_THRESHOLD",
+                "details": {
+                    "token_jaccard_score": round(token_jaccard_score, 4),
+                    "threshold": round(effective_token_jaccard_min_score, 4),
+                    "fields": token_fields,
+                },
+            }
+        )
 
     threshold_pass = overall_score >= score_threshold if score_threshold > 0.0 else True
     if not threshold_pass:
@@ -277,6 +297,14 @@ def _build_explain_gates(
             "pass": threshold_pass,
             "threshold": score_threshold,
             "score": overall_score,
+        },
+        "token_jaccard": {
+            "configured": similarity_type == "token_jaccard",
+            "pass": token_jaccard_score >= effective_token_jaccard_min_score,
+            "similarity_type": similarity_type,
+            "fields": token_fields,
+            "score": round(token_jaccard_score, 4),
+            "threshold": round(effective_token_jaccard_min_score, 4),
         },
         "margin": {
             "configured": min_margin > 0.0,
@@ -422,6 +450,17 @@ def _merge_unique_fields(primary: List[str], extra: List[str]) -> List[str]:
         seen.add(val)
         out.append(val)
     return out
+
+
+def _jaccard_tokens(tokens_a: set[str], tokens_b: set[str]) -> float:
+    if not tokens_a and not tokens_b:
+        return 1.0
+    if not tokens_a or not tokens_b:
+        return 0.0
+    union = tokens_a | tokens_b
+    if not union:
+        return 0.0
+    return float(len(tokens_a & tokens_b)) / float(len(union))
 
 
 def run_resolve_entity_cross_collection(

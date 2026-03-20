@@ -121,6 +121,23 @@ def test_normalize_find_duplicates_aliasing_sources():
     assert req.alias_sources[3] == {"type": "managed_ref", "ref": "entity_aliases_v1"}
 
 
+def test_normalize_find_duplicates_token_jaccard_similarity_options():
+    req = normalize_find_duplicates_args(
+        collection="companies",
+        fields=["name"],
+        options={
+            "similarity": {
+                "type": "token_jaccard",
+                "token_jaccard_fields": ["name", "aliases"],
+                "token_jaccard_min_score": 0.62,
+            }
+        },
+    )
+    assert req.similarity_type == "token_jaccard"
+    assert req.token_jaccard_fields == ["name", "aliases"]
+    assert req.token_jaccard_min_score == 0.62
+
+
 def test_normalize_resolve_entity_options_override():
     req = normalize_resolve_entity_args(
         collection="companies",
@@ -201,6 +218,15 @@ def test_normalize_find_duplicates_rejects_bad_aliasing_sources_shape():
             collection="companies",
             fields=["name"],
             options={"aliasing": {"sources": {"type": "inline"}}},
+        )
+
+
+def test_normalize_find_duplicates_rejects_non_list_token_jaccard_fields():
+    with pytest.raises(ValueError, match="token_jaccard_fields must be an array/list"):
+        normalize_find_duplicates_args(
+            collection="companies",
+            fields=["name"],
+            options={"similarity": {"token_jaccard_fields": "name"}},
         )
 
 

@@ -333,6 +333,56 @@ class TestFindDuplicates:
     @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
     @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
     @patch("entity_resolution.mcp.tools.pipeline._get_db")
+    def test_find_duplicates_request_applies_token_jaccard_similarity_gate(
+        self,
+        mock_get_db,
+        mock_has_any_edges,
+        mock_pipeline_cls,
+    ):
+        from entity_resolution.mcp.contracts import FindDuplicatesRequest
+        from entity_resolution.mcp.tools.pipeline import run_find_duplicates_request
+
+        mock_db = MagicMock()
+        mock_coll = MagicMock()
+        docs = {
+            "a1": {"name": "River Holdings Limited"},
+            "a2": {"name": "Sunset Bistro Group"},
+        }
+        mock_coll.get.side_effect = lambda key: docs.get(key)
+        mock_db.collection.return_value = mock_coll
+        mock_get_db.return_value = mock_db
+        mock_has_any_edges.return_value = False
+
+        mock_pipeline = MagicMock()
+        mock_pipeline._run_blocking.return_value = [("a1", "a2")]
+        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.95)]
+        mock_pipeline_cls.return_value = mock_pipeline
+
+        req = FindDuplicatesRequest(
+            collection="companies",
+            fields=["name"],
+            strategy="exact",
+            confidence_threshold=0.8,
+            similarity_type="token_jaccard",
+            token_jaccard_fields=["name"],
+            token_jaccard_min_score=0.6,
+        )
+        result = run_find_duplicates_request(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            request=req,
+        )
+
+        assert result["edges"]["edges_created"] == 0
+        assert result["similarity"]["gates"]["enabled"] is True
+        assert result["similarity"]["gates"]["rejected_token_jaccard"] == 1
+
+    @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
+    @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
+    @patch("entity_resolution.mcp.tools.pipeline._get_db")
     def test_find_duplicates_token_overlap_gate_respects_inline_aliases(
         self,
         mock_get_db,
@@ -531,6 +581,40 @@ class TestExplainMatch:
         assert gates["type_affinity"]["candidate_type"] == "restaurant"
         assert gates["aliasing"]["configured"] is True
         assert gates["aliasing"]["inline_alias_count"] == 1
+        assert gates["token_jaccard"]["configured"] is False
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_explain_match_token_jaccard_similarity_failure(self, mock_client_cls):
+        from entity_resolution.mcp.tools.entity import run_explain_match
+
+        doc_a = {"_key": "a1", "name": "Alpha Risk Corp"}
+        doc_b = {"_key": "b1", "name": "Sunset Bistro LLC"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        result = run_explain_match(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            collection="companies",
+            key_a="a1",
+            key_b="b1",
+            fields=["name"],
+            options={
+                "similarity": {
+                    "type": "token_jaccard",
+                    "token_jaccard_fields": ["name"],
+                    "token_jaccard_min_score": 0.8,
+                }
+            },
+        )
+        failures = [f["gate"] for f in result["gates"]["summary"]["gate_failures"]]
+        assert "token_jaccard" in failures
+        assert result["gates"]["token_jaccard"]["configured"] is True
 
 
 class TestResolveEntityCrossCollection:
@@ -1277,6 +1361,28 @@ class TestMcpServerOptionsCompatibility:
         assert len(req.alias_sources) == 2
         assert req.alias_sources[0]["type"] == "inline"
         assert req.alias_sources[1]["type"] == "field"
+
+    @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
+    def test_server_find_duplicates_accepts_token_jaccard_similarity_options(self, mock_run_find_duplicates):
+        from entity_resolution.mcp import server
+
+        mock_run_find_duplicates.return_value = {"ok": True}
+        server.find_duplicates(
+            collection="companies",
+            fields=["name"],
+            options={
+                "similarity": {
+                    "type": "token_jaccard",
+                    "token_jaccard_fields": ["name", "aliases"],
+                    "token_jaccard_min_score": 0.61,
+                }
+            },
+        )
+
+        req = mock_run_find_duplicates.call_args.kwargs["request"]
+        assert req.similarity_type == "token_jaccard"
+        assert req.token_jaccard_fields == ["name", "aliases"]
+        assert req.token_jaccard_min_score == 0.61
 
     @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
     def test_server_find_duplicates_surfaces_deprecation_warnings(self, mock_run_find_duplicates):
