@@ -206,6 +206,8 @@ To use server-managed alias dictionaries:
 }
 ```
 
+`managed_ref` sources require a non-empty `ref` value.
+
 `managed_refs` are applied in token-expansion paths for `find_duplicates` gates and `explain_match` diagnostics.
 Gate diagnostics now also surface:
 

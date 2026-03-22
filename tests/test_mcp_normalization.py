@@ -234,6 +234,24 @@ def test_normalize_find_duplicates_rejects_bad_aliasing_sources_shape():
         )
 
 
+def test_normalize_find_duplicates_rejects_managed_ref_without_ref():
+    with pytest.raises(ValueError, match="\\.ref is required for type=managed_ref"):
+        normalize_find_duplicates_args(
+            collection="companies",
+            fields=["name"],
+            options={"aliasing": {"sources": [{"type": "managed_ref"}]}},
+        )
+
+
+def test_normalize_find_duplicates_rejects_unknown_alias_source_type():
+    with pytest.raises(ValueError, match="must be one of inline, field, acronym, managed_ref"):
+        normalize_find_duplicates_args(
+            collection="companies",
+            fields=["name"],
+            options={"aliasing": {"sources": [{"type": "taxonomy"}]}},
+        )
+
+
 def test_normalize_find_duplicates_rejects_non_list_token_jaccard_fields():
     with pytest.raises(ValueError, match="token_jaccard_fields must be an array/list"):
         normalize_find_duplicates_args(
