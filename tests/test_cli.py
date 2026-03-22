@@ -790,6 +790,34 @@ def test_cli_runtime_quality_corpus_init(
     assert corpus_path.exists()
 
 
+def test_cli_runtime_quality_corpus_init_rejects_existing_without_overwrite(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    corpus_path = tmp_path / "corpus.json"
+    corpus_path.write_text("{}")
+
+    def _fake_scaffold_corpus(path: str, overwrite: bool) -> str:
+        raise FileExistsError(f"Refusing to overwrite existing file: {path}")
+
+    monkeypatch.setattr(
+        cli_module.RuntimeQualityBenchmarkService,
+        "scaffold_corpus",
+        staticmethod(_fake_scaffold_corpus),
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-quality-corpus-init",
+            "--output",
+            str(corpus_path),
+            "--no-overwrite",
+        ],
+    )
+    assert result.exit_code == 1
+    assert "Refusing to overwrite existing file" in result.output
+
+
 def test_cli_runtime_quality_benchmark_outputs_metrics(
     runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
