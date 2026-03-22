@@ -699,6 +699,30 @@ def runtime_health_compare(
     help="Optional baseline quality metrics JSON path for combined health+quality gating.",
 )
 @click.option(
+    "--quality-corpus",
+    type=click.Path(exists=True, dir_okay=False),
+    help="Optional benchmark corpus path to compute current quality metrics on the fly.",
+)
+@click.option(
+    "--quality-model-name",
+    default="all-MiniLM-L6-v2",
+    show_default=True,
+    help="Model name used when --quality-corpus is provided.",
+)
+@click.option(
+    "--quality-device",
+    default="cpu",
+    show_default=True,
+    help="Embedding device used when --quality-corpus is provided.",
+)
+@click.option(
+    "--quality-batch-size",
+    type=int,
+    default=32,
+    show_default=True,
+    help="Batch size used when --quality-corpus is provided.",
+)
+@click.option(
     "--quality-cosine-drift-max",
     type=float,
     default=0.01,
@@ -724,6 +748,10 @@ def runtime_health_gate(
     fail_on_regression,
     bootstrap_baseline,
     quality_current_metrics,
+    quality_corpus,
+    quality_model_name,
+    quality_device,
+    quality_batch_size,
     quality_baseline_metrics,
     quality_cosine_drift_max,
     quality_topk_overlap_min,
@@ -767,8 +795,35 @@ def runtime_health_gate(
                 filename_prefix=filename_prefix,
             )
 
-        if quality_current_metrics and quality_baseline_metrics:
-            quality_current = RuntimeQualityGateService.load_metrics(quality_current_metrics)
+        quality_inputs_provided = any(
+            [quality_current_metrics, quality_corpus, quality_baseline_metrics]
+        )
+        if quality_inputs_provided:
+            if not quality_baseline_metrics:
+                raise click.ClickException(
+                    "Quality gate requires --quality-baseline-metrics when quality inputs are provided."
+                )
+            if quality_current_metrics and quality_corpus:
+                raise click.ClickException(
+                    "Specify only one of --quality-current-metrics or --quality-corpus."
+                )
+            if not quality_current_metrics and not quality_corpus:
+                raise click.ClickException(
+                    "Quality gate requires either --quality-current-metrics or --quality-corpus."
+                )
+
+        if quality_baseline_metrics and (quality_current_metrics or quality_corpus):
+            if quality_current_metrics:
+                quality_current = RuntimeQualityGateService.load_metrics(quality_current_metrics)
+                quality_current_source = "metrics_file"
+            else:
+                quality_current = _build_runtime_quality_metrics(
+                    corpus=quality_corpus,
+                    model_name=quality_model_name,
+                    device=quality_device,
+                    batch_size=quality_batch_size,
+                )
+                quality_current_source = "corpus_benchmark"
             quality_baseline = RuntimeQualityGateService.load_metrics(quality_baseline_metrics)
             quality_comparison = RuntimeQualityGateService.compare_metrics(
                 current=quality_current,
@@ -777,6 +832,7 @@ def runtime_health_gate(
                 topk_overlap_min=quality_topk_overlap_min,
             )
             comparison["quality_gate"] = quality_comparison
+            comparison["quality_gate"]["current_source"] = quality_current_source
 
         _emit_json(comparison)
 

@@ -1093,6 +1093,121 @@ def test_cli_runtime_health_gate_includes_quality_gate(
     assert payload["quality_gate"]["regressions"]["quality_regression"] is False
 
 
+def test_cli_runtime_health_gate_includes_quality_gate_from_corpus(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("entity_resolution: {}\n")
+    registry = tmp_path / "runtime_registry.json"
+    registry.write_text('{"version":1,"baselines":[]}')
+    baseline = tmp_path / "baseline_quality.json"
+    corpus = tmp_path / "quality_corpus.json"
+    baseline.write_text('{"cosine_drift":0.003,"topk_overlap":0.99}')
+    corpus.write_text("{}")
+
+    monkeypatch.setattr(cli_module, "_get_db_from_options", lambda *args: object())
+
+    class FakePipeline:
+        def __init__(self, db: object, config_path: str):
+            pass
+
+        def get_embedding_runtime_health(self, startup_mode=None):
+            return {"enabled": True, "runtime": "pytorch"}
+
+    monkeypatch.setattr(cli_module, "ConfigurableERPipeline", FakePipeline)
+    monkeypatch.setattr(
+        cli_module.RuntimeProfileRegistry,
+        "compare_snapshot",
+        staticmethod(
+            lambda **kwargs: {
+                "baseline_found": True,
+                "key": "k",
+                "comparison": {},
+                "regressions": {
+                    "latency_regression": False,
+                    "fallback_regression": False,
+                },
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        cli_module,
+        "_build_runtime_quality_metrics",
+        lambda **kwargs: {"cosine_drift": 0.008, "topk_overlap": 0.97},
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-health-gate",
+            "-c",
+            str(cfg),
+            "--registry-file",
+            str(registry),
+            "--quality-corpus",
+            str(corpus),
+            "--quality-baseline-metrics",
+            str(baseline),
+        ],
+    )
+    assert result.exit_code == 0
+    payload = _extract_json_block(result.output)
+    assert payload["quality_gate"]["current_source"] == "corpus_benchmark"
+    assert payload["quality_gate"]["regressions"]["quality_regression"] is False
+
+
+def test_cli_runtime_health_gate_quality_corpus_requires_baseline(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("entity_resolution: {}\n")
+    registry = tmp_path / "runtime_registry.json"
+    registry.write_text('{"version":1,"baselines":[]}')
+    corpus = tmp_path / "quality_corpus.json"
+    corpus.write_text("{}")
+
+    monkeypatch.setattr(cli_module, "_get_db_from_options", lambda *args: object())
+
+    class FakePipeline:
+        def __init__(self, db: object, config_path: str):
+            pass
+
+        def get_embedding_runtime_health(self, startup_mode=None):
+            return {"enabled": True, "runtime": "pytorch"}
+
+    monkeypatch.setattr(cli_module, "ConfigurableERPipeline", FakePipeline)
+    monkeypatch.setattr(
+        cli_module.RuntimeProfileRegistry,
+        "compare_snapshot",
+        staticmethod(
+            lambda **kwargs: {
+                "baseline_found": True,
+                "key": "k",
+                "comparison": {},
+                "regressions": {
+                    "latency_regression": False,
+                    "fallback_regression": False,
+                },
+            }
+        ),
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-health-gate",
+            "-c",
+            str(cfg),
+            "--registry-file",
+            str(registry),
+            "--quality-corpus",
+            str(corpus),
+        ],
+    )
+    assert result.exit_code == 1
+    assert "Quality gate requires --quality-baseline-metrics" in result.output
+
+
 def test_cli_runtime_quality_compare_writes_report_artifacts(
     runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
