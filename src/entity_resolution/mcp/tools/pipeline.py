@@ -239,6 +239,7 @@ def _run_find_duplicates_multistage(*, db: Any, request: FindDuplicatesRequest, 
     from entity_resolution.core.configurable_pipeline import ConfigurableERPipeline
 
     started = time.time()
+    alias_profile = _build_aliasing_profile(request)
     stage_results: list[Dict[str, Any]] = []
     total_candidates = 0
     total_matches = 0
@@ -348,6 +349,12 @@ def _run_find_duplicates_multistage(*, db: Any, request: FindDuplicatesRequest, 
             "gating": {
                 "enabled": _has_precision_gates(request),
                 "mode": request.gating_mode,
+                "aliasing": {
+                    "configured": bool(alias_profile.get("inline_map") or alias_profile.get("field_sources") or alias_profile.get("acronym_auto")),
+                    "managed_ref_requested": alias_profile.get("managed_ref_requested", []),
+                    "managed_ref_applied": alias_profile.get("managed_ref_applied", []),
+                    "managed_ref_missing": alias_profile.get("managed_ref_missing", []),
+                },
                 "similarity_type": request.similarity_type,
                 "token_jaccard_fields": request.token_jaccard_fields,
                 "token_jaccard_min_score": request.token_jaccard_min_score,

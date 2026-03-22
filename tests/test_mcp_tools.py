@@ -213,6 +213,7 @@ class TestFindDuplicates:
             fields=["name"],
             strategy="exact",
             confidence_threshold=0.85,
+            alias_sources=[{"type": "managed_ref", "ref": "missing_ref"}],
             stages=[
                 {"type": "bm25", "fields": ["name", "city"], "min_score": 0.9},
                 {"type": "embedding", "fields": ["description"], "min_score": 0.78},
@@ -239,6 +240,9 @@ class TestFindDuplicates:
         assert result["stages"]["enabled"] is True
         assert result["stages"]["execution_mode"] == "multi_stage"
         assert result["stages"]["requested_stage_count"] == 2
+        assert result["stages"]["gating"]["aliasing"]["managed_ref_requested"] == ["missing_ref"]
+        assert result["stages"]["gating"]["aliasing"]["managed_ref_applied"] == []
+        assert result["stages"]["gating"]["aliasing"]["managed_ref_missing"] == ["missing_ref"]
         assert len(result["stages"]["stage_results"]) == 2
         assert result["edges"]["edges_created"] == 2
 
