@@ -1131,11 +1131,13 @@ def test_cli_runtime_health_gate_includes_quality_gate_from_corpus(
             }
         ),
     )
-    monkeypatch.setattr(
-        cli_module,
-        "_build_runtime_quality_metrics",
-        lambda **kwargs: {"cosine_drift": 0.008, "topk_overlap": 0.97},
-    )
+    captured = {}
+
+    def _fake_build_runtime_quality_metrics(**kwargs):
+        captured.update(kwargs)
+        return {"cosine_drift": 0.008, "topk_overlap": 0.97}
+
+    monkeypatch.setattr(cli_module, "_build_runtime_quality_metrics", _fake_build_runtime_quality_metrics)
 
     result = runner.invoke(
         cli_module.main,
@@ -1147,6 +1149,12 @@ def test_cli_runtime_health_gate_includes_quality_gate_from_corpus(
             str(registry),
             "--quality-corpus",
             str(corpus),
+            "--quality-model-name",
+            "all-mpnet-base-v2",
+            "--quality-device",
+            "auto",
+            "--quality-batch-size",
+            "64",
             "--quality-baseline-metrics",
             str(baseline),
         ],
@@ -1155,6 +1163,10 @@ def test_cli_runtime_health_gate_includes_quality_gate_from_corpus(
     payload = _extract_json_block(result.output)
     assert payload["quality_gate"]["current_source"] == "corpus_benchmark"
     assert payload["quality_gate"]["regressions"]["quality_regression"] is False
+    assert captured["corpus"] == str(corpus)
+    assert captured["model_name"] == "all-mpnet-base-v2"
+    assert captured["device"] == "auto"
+    assert captured["batch_size"] == 64
 
 
 def test_cli_runtime_health_gate_quality_corpus_requires_baseline(
