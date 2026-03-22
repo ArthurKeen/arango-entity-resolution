@@ -1906,6 +1906,25 @@ class TestMcpServerOptionsCompatibility:
                 },
             )
 
+    @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
+    def test_server_find_duplicates_accepts_null_managed_refs(self, mock_run_find_duplicates):
+        from entity_resolution.mcp import server
+
+        mock_run_find_duplicates.return_value = {"ok": True}
+        server.find_duplicates(
+            collection="companies",
+            fields=["name"],
+            options={
+                "aliasing": {
+                    "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                    "managed_refs": None,
+                }
+            },
+        )
+
+        req = mock_run_find_duplicates.call_args.kwargs["request"]
+        assert req.options.aliasing["managed_refs"] is None
+
     def test_server_find_duplicates_rejects_non_object_managed_ref_entry(self):
         from entity_resolution.mcp import server
 
@@ -2192,6 +2211,34 @@ class TestMcpServerOptionsCompatibility:
                     }
                 },
             )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_server_explain_match_accepts_null_managed_refs(self, mock_client_cls):
+        from entity_resolution.mcp import server
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        result = server.explain_match(
+            collection="companies",
+            key_a="a1",
+            key_b="b1",
+            fields=["name"],
+            options={
+                "aliasing": {
+                    "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                    "managed_refs": None,
+                }
+            },
+        )
+
+        assert result["gates"]["aliasing"]["managed_ref_requested"] == ["entity_aliases_v1"]
+        assert result["gates"]["aliasing"]["managed_ref_applied"] == []
+        assert result["gates"]["aliasing"]["managed_ref_missing"] == ["entity_aliases_v1"]
 
     @patch("entity_resolution.mcp.tools.entity.ArangoClient")
     def test_server_explain_match_rejects_managed_ref_without_ref(self, mock_client_cls):
