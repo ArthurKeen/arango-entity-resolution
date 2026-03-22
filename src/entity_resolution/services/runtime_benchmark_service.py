@@ -22,6 +22,7 @@ class RuntimeBenchmarkService:
         probe: Callable[[], Dict[str, Any]],
         repeats: int = 5,
         warmup_runs: int = 0,
+        profile: str = "default",
     ) -> Dict[str, Any]:
         if repeats < 1:
             raise ValueError(f"repeats must be >= 1, got: {repeats}")
@@ -69,6 +70,7 @@ class RuntimeBenchmarkService:
                 "generated_at": datetime.utcnow().isoformat(),
                 "repeats": repeats,
                 "warmup_runs": warmup_runs,
+                "profile": profile,
             },
             "summary": summary,
             "runs": runs,

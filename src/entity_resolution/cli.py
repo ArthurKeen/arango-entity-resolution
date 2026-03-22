@@ -242,6 +242,12 @@ def runtime_health_export(
     help="Warmup probes to run before measured benchmark repeats.",
 )
 @click.option(
+    "--profile",
+    default="default",
+    show_default=True,
+    help="Benchmark profile label included in output metadata.",
+)
+@click.option(
     "--startup-mode",
     type=click.Choice(["permissive", "strict"], case_sensitive=False),
     help="Optional override for embedding startup policy.",
@@ -262,6 +268,7 @@ def runtime_health_benchmark(
     config,
     repeats,
     warmup_runs,
+    profile,
     startup_mode,
     output_dir,
     filename_prefix,
@@ -279,6 +286,7 @@ def runtime_health_benchmark(
             probe=lambda: pipeline.get_embedding_runtime_health(startup_mode=startup_mode),
             repeats=repeats,
             warmup_runs=warmup_runs,
+            profile=profile,
         )
         if output_dir:
             result["output_file"] = RuntimeBenchmarkService.export_benchmark(

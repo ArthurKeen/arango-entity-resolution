@@ -438,8 +438,12 @@ def test_cli_runtime_health_benchmark_outputs_summary(
         cli_module.RuntimeBenchmarkService,
         "run_benchmark",
         staticmethod(
-            lambda probe, repeats, warmup_runs=0: {
-                "metadata": {"repeats": repeats, "warmup_runs": warmup_runs},
+            lambda probe, repeats, warmup_runs=0, profile="default": {
+                "metadata": {
+                    "repeats": repeats,
+                    "warmup_runs": warmup_runs,
+                    "profile": profile,
+                },
                 "summary": {"latency_ms": {"mean": 12.0}},
                 "runs": [],
             }
@@ -460,6 +464,7 @@ def test_cli_runtime_health_benchmark_outputs_summary(
     payload = _extract_json_block(result.output)
     assert payload["metadata"]["repeats"] == 3
     assert payload["metadata"]["warmup_runs"] == 0
+    assert payload["metadata"]["profile"] == "default"
     assert payload["summary"]["latency_ms"]["mean"] == 12.0
 
 
@@ -485,7 +490,11 @@ def test_cli_runtime_health_benchmark_writes_artifact(
         cli_module.RuntimeBenchmarkService,
         "run_benchmark",
         staticmethod(
-            lambda probe, repeats, warmup_runs=0: {"metadata": {}, "summary": {}, "runs": []}
+            lambda probe, repeats, warmup_runs=0, profile="default": {
+                "metadata": {},
+                "summary": {},
+                "runs": [],
+            }
         ),
     )
     monkeypatch.setattr(
@@ -520,7 +529,7 @@ def test_cli_runtime_health_benchmark_forwards_warmup_runs(
 ) -> None:
     cfg = tmp_path / "config.yaml"
     cfg.write_text("entity_resolution: {}\n")
-    captured: dict[str, int] = {}
+    captured: dict[str, int | str] = {}
 
     monkeypatch.setattr(cli_module, "_get_db_from_options", lambda *args: object())
 
@@ -533,11 +542,12 @@ def test_cli_runtime_health_benchmark_forwards_warmup_runs(
 
     monkeypatch.setattr(cli_module, "ConfigurableERPipeline", FakePipeline)
 
-    def _fake_run_benchmark(probe, repeats, warmup_runs=0):
+    def _fake_run_benchmark(probe, repeats, warmup_runs=0, profile="default"):
         captured["repeats"] = repeats
         captured["warmup_runs"] = warmup_runs
+        captured["profile"] = profile
         return {
-            "metadata": {"repeats": repeats, "warmup_runs": warmup_runs},
+            "metadata": {"repeats": repeats, "warmup_runs": warmup_runs, "profile": profile},
             "summary": {"latency_ms": {"mean": 10.0}},
             "runs": [],
         }
@@ -558,14 +568,18 @@ def test_cli_runtime_health_benchmark_forwards_warmup_runs(
             "4",
             "--warmup-runs",
             "2",
+            "--profile",
+            "ci-linux-cpu",
         ],
     )
     assert result.exit_code == 0
     payload = _extract_json_block(result.output)
     assert payload["metadata"]["repeats"] == 4
     assert payload["metadata"]["warmup_runs"] == 2
+    assert payload["metadata"]["profile"] == "ci-linux-cpu"
     assert captured["repeats"] == 4
     assert captured["warmup_runs"] == 2
+    assert captured["profile"] == "ci-linux-cpu"
 
 
 def test_cli_runtime_health_compare_writes_report_artifacts(

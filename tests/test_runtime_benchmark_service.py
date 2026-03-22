@@ -17,6 +17,7 @@ def test_run_benchmark_summarizes_latency_and_fallback() -> None:
         return value
 
     result = RuntimeBenchmarkService.run_benchmark(probe=probe, repeats=3)
+    assert result["metadata"]["profile"] == "default"
     assert result["summary"]["latency_ms"]["count"] == 3
     assert result["summary"]["latency_ms"]["mean"] == 20.0
     assert result["summary"]["latency_ms"]["median"] == 20.0
@@ -65,4 +66,16 @@ def test_run_benchmark_rejects_negative_warmup_runs() -> None:
         assert False, "Expected ValueError for warmup_runs=-1"
     except ValueError as exc:
         assert "warmup_runs must be" in str(exc)
+
+
+def test_run_benchmark_includes_custom_profile() -> None:
+    def probe():
+        return {"setup_latency_ms": 10.0, "telemetry": {"fallback_count": 0}}
+
+    result = RuntimeBenchmarkService.run_benchmark(
+        probe=probe,
+        repeats=1,
+        profile="ci-linux-gpu",
+    )
+    assert result["metadata"]["profile"] == "ci-linux-gpu"
 
