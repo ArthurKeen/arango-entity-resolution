@@ -249,6 +249,56 @@ class TestFindDuplicates:
     @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
     @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
     @patch("entity_resolution.mcp.tools.pipeline._get_db")
+    def test_find_duplicates_single_stage_scaffold_includes_aliasing_in_stage_gating(
+        self,
+        mock_get_db,
+        mock_has_any_edges,
+        mock_pipeline_cls,
+    ):
+        from entity_resolution.mcp.contracts import FindDuplicatesRequest
+        from entity_resolution.mcp.tools.pipeline import run_find_duplicates_request
+
+        mock_db = MagicMock()
+        mock_coll = MagicMock()
+        docs = {"a1": {"name": "ibm"}, "a2": {"name": "international business machines"}}
+        mock_coll.get.side_effect = lambda key: docs.get(key)
+        mock_db.collection.return_value = mock_coll
+        mock_get_db.return_value = mock_db
+        mock_has_any_edges.return_value = False
+
+        mock_pipeline = MagicMock()
+        mock_pipeline._run_blocking.return_value = [("a1", "a2")]
+        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.9)]
+        mock_pipeline._run_edge_creation.return_value = 0
+        mock_pipeline_cls.return_value = mock_pipeline
+
+        req = FindDuplicatesRequest(
+            collection="companies",
+            fields=["name"],
+            strategy="exact",
+            confidence_threshold=0.8,
+            require_token_overlap=True,
+            token_overlap_bypass_score=0.95,
+            alias_sources=[{"type": "managed_ref", "ref": "missing_ref"}],
+            stages=[{"type": "exact", "fields": ["name"], "min_score": 0.8}],
+        )
+        result = run_find_duplicates_request(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            request=req,
+        )
+
+        assert result["stages"]["execution_mode"] == "single_stage_scaffold"
+        assert result["stages"]["gating"]["aliasing"]["managed_ref_requested"] == ["missing_ref"]
+        assert result["stages"]["gating"]["aliasing"]["managed_ref_applied"] == []
+        assert result["stages"]["gating"]["aliasing"]["managed_ref_missing"] == ["missing_ref"]
+
+    @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
+    @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
+    @patch("entity_resolution.mcp.tools.pipeline._get_db")
     def test_find_duplicates_request_applies_margin_gate(
         self,
         mock_get_db,

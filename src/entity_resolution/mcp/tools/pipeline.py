@@ -440,10 +440,17 @@ def _run_single_stage_with_optional_gating(
         "total_runtime_seconds": runtime,
     }
     if stage_meta:
+        alias_profile = _build_aliasing_profile(request)
         meta = dict(stage_meta)
         meta["gating"] = {
             "enabled": _has_precision_gates(request),
             "mode": request.gating_mode,
+            "aliasing": {
+                "configured": bool(alias_profile.get("inline_map") or alias_profile.get("field_sources") or alias_profile.get("acronym_auto")),
+                "managed_ref_requested": alias_profile.get("managed_ref_requested", []),
+                "managed_ref_applied": alias_profile.get("managed_ref_applied", []),
+                "managed_ref_missing": alias_profile.get("managed_ref_missing", []),
+            },
             "similarity_type": request.similarity_type,
             "token_jaccard_fields": request.token_jaccard_fields,
             "token_jaccard_min_score": request.token_jaccard_min_score,

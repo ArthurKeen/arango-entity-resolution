@@ -218,8 +218,9 @@ Gate diagnostics now also surface:
 Equivalent aliasing diagnostics are included in `explain_match` under
 `gates.aliasing.{managed_ref_requested,managed_ref_applied,managed_ref_missing}`.
 
-For multi-stage `find_duplicates` runs, the same aliasing diagnostics are also
-emitted at `stages.gating.aliasing`.
+When stage metadata is present in `find_duplicates` (`single_stage_scaffold` or
+`multi_stage`), the same aliasing diagnostics are also emitted at
+`stages.gating.aliasing`.
 
 ---
 
