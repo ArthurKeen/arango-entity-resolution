@@ -417,6 +417,13 @@ def _normalize_aliasing_profile(value: Any) -> Dict[str, Any]:
     managed = value.get("managed_refs", {})
     if managed is not None and not isinstance(managed, dict):
         raise ValueError("options.aliasing.managed_refs must be an object/dict when provided")
+    if isinstance(managed, dict):
+        for ref_id, ref_map in managed.items():
+            ref = str(ref_id).strip()
+            if not ref:
+                continue
+            if not isinstance(ref_map, dict):
+                raise ValueError(f"options.aliasing.managed_refs.{ref} must be an object/dict")
     for idx, source in enumerate(sources):
         if not isinstance(source, dict):
             raise ValueError(f"options.aliasing.sources[{idx}] must be an object/dict")
