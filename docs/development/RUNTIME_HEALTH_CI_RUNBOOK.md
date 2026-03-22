@@ -396,4 +396,5 @@ arango-er runtime-health-benchmark \
 - Use `--profile` to tag benchmark artifacts by workload class (for example `ci-linux-cpu`, `ci-linux-gpu`, `dev-mac`).
 - Re-baseline deliberately after expected runtime stack changes (driver/toolchain/model updates).
 - Prefer `--warmup-runs` > 0 in CI benchmarks to reduce one-time initialization noise.
+- Benchmark artifacts include `metadata.startup_mode` and `metadata.profile` for downstream grouping.
 

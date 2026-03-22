@@ -465,6 +465,7 @@ def test_cli_runtime_health_benchmark_outputs_summary(
     assert payload["metadata"]["repeats"] == 3
     assert payload["metadata"]["warmup_runs"] == 0
     assert payload["metadata"]["profile"] == "default"
+    assert payload["metadata"]["startup_mode"] == "default"
     assert payload["summary"]["latency_ms"]["mean"] == 12.0
 
 
@@ -538,14 +539,20 @@ def test_cli_runtime_health_benchmark_forwards_warmup_runs(
             pass
 
         def get_embedding_runtime_health(self, startup_mode=None):
-            return {"setup_latency_ms": 10.0, "telemetry": {"fallback_count": 0}}
+            return {
+                "setup_latency_ms": 10.0,
+                "telemetry": {"fallback_count": 0},
+                "startup_mode": startup_mode,
+            }
 
     monkeypatch.setattr(cli_module, "ConfigurableERPipeline", FakePipeline)
 
     def _fake_run_benchmark(probe, repeats, warmup_runs=0, profile="default"):
+        sample = probe()
         captured["repeats"] = repeats
         captured["warmup_runs"] = warmup_runs
         captured["profile"] = profile
+        captured["startup_mode"] = sample.get("startup_mode", "default")
         return {
             "metadata": {"repeats": repeats, "warmup_runs": warmup_runs, "profile": profile},
             "summary": {"latency_ms": {"mean": 10.0}},
@@ -570,6 +577,8 @@ def test_cli_runtime_health_benchmark_forwards_warmup_runs(
             "2",
             "--profile",
             "ci-linux-cpu",
+            "--startup-mode",
+            "strict",
         ],
     )
     assert result.exit_code == 0
@@ -577,9 +586,11 @@ def test_cli_runtime_health_benchmark_forwards_warmup_runs(
     assert payload["metadata"]["repeats"] == 4
     assert payload["metadata"]["warmup_runs"] == 2
     assert payload["metadata"]["profile"] == "ci-linux-cpu"
+    assert payload["metadata"]["startup_mode"] == "strict"
     assert captured["repeats"] == 4
     assert captured["warmup_runs"] == 2
     assert captured["profile"] == "ci-linux-cpu"
+    assert captured["startup_mode"] == "strict"
 
 
 def test_cli_runtime_health_compare_writes_report_artifacts(
