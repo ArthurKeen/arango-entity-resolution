@@ -53,6 +53,7 @@ All tools return:
   "status": "ok",
   "tool_version": "1.0.0",
   "advisor_policy_version": "2026-03-01",
+  "er_options_schema_version": "1.0",
   "request_id": "uuid-or-client-id",
   "result": {}
 }
@@ -66,6 +67,7 @@ All tools return errors in this shape:
 {
   "status": "error",
   "tool_version": "1.0.0",
+  "er_options_schema_version": "1.0",
   "request_id": "uuid-or-client-id",
   "error": {
     "code": "INVALID_ARGUMENT | DATA_ACCESS_ERROR | NOT_ENOUGH_DATA | INTERNAL_ERROR",
@@ -566,6 +568,7 @@ Exports a normalized config artifact for downstream execution.
 
 - Additive fields are allowed in responses.
 - Existing fields must not change type.
+- `er_options_schema_version` must be present and stable within a compatibility window.
 - Breaking changes require:
   - new `tool_version`
   - migration note in release documentation.

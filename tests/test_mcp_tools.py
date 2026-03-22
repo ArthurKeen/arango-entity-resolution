@@ -213,6 +213,7 @@ class TestFindDuplicates:
             fields=["name"],
             strategy="exact",
             confidence_threshold=0.85,
+            alias_sources=[{"type": "managed_ref", "ref": "missing_ref"}],
             stages=[
                 {"type": "bm25", "fields": ["name", "city"], "min_score": 0.9},
                 {"type": "embedding", "fields": ["description"], "min_score": 0.78},
@@ -239,8 +240,61 @@ class TestFindDuplicates:
         assert result["stages"]["enabled"] is True
         assert result["stages"]["execution_mode"] == "multi_stage"
         assert result["stages"]["requested_stage_count"] == 2
+        assert result["stages"]["gating"]["aliasing"]["managed_ref_requested"] == ["missing_ref"]
+        assert result["stages"]["gating"]["aliasing"]["managed_ref_applied"] == []
+        assert result["stages"]["gating"]["aliasing"]["managed_ref_missing"] == ["missing_ref"]
         assert len(result["stages"]["stage_results"]) == 2
         assert result["edges"]["edges_created"] == 2
+
+    @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
+    @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
+    @patch("entity_resolution.mcp.tools.pipeline._get_db")
+    def test_find_duplicates_single_stage_scaffold_includes_aliasing_in_stage_gating(
+        self,
+        mock_get_db,
+        mock_has_any_edges,
+        mock_pipeline_cls,
+    ):
+        from entity_resolution.mcp.contracts import FindDuplicatesRequest
+        from entity_resolution.mcp.tools.pipeline import run_find_duplicates_request
+
+        mock_db = MagicMock()
+        mock_coll = MagicMock()
+        docs = {"a1": {"name": "ibm"}, "a2": {"name": "international business machines"}}
+        mock_coll.get.side_effect = lambda key: docs.get(key)
+        mock_db.collection.return_value = mock_coll
+        mock_get_db.return_value = mock_db
+        mock_has_any_edges.return_value = False
+
+        mock_pipeline = MagicMock()
+        mock_pipeline._run_blocking.return_value = [("a1", "a2")]
+        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.9)]
+        mock_pipeline._run_edge_creation.return_value = 0
+        mock_pipeline_cls.return_value = mock_pipeline
+
+        req = FindDuplicatesRequest(
+            collection="companies",
+            fields=["name"],
+            strategy="exact",
+            confidence_threshold=0.8,
+            require_token_overlap=True,
+            token_overlap_bypass_score=0.95,
+            alias_sources=[{"type": "managed_ref", "ref": "missing_ref"}],
+            stages=[{"type": "exact", "fields": ["name"], "min_score": 0.8}],
+        )
+        result = run_find_duplicates_request(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            request=req,
+        )
+
+        assert result["stages"]["execution_mode"] == "single_stage_scaffold"
+        assert result["stages"]["gating"]["aliasing"]["managed_ref_requested"] == ["missing_ref"]
+        assert result["stages"]["gating"]["aliasing"]["managed_ref_applied"] == []
+        assert result["stages"]["gating"]["aliasing"]["managed_ref_missing"] == ["missing_ref"]
 
     @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
     @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
@@ -490,6 +544,50 @@ class TestFindDuplicates:
     @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
     @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
     @patch("entity_resolution.mcp.tools.pipeline._get_db")
+    def test_find_duplicates_reports_missing_managed_ref_alias(self, mock_get_db, mock_has_any_edges, mock_pipeline_cls):
+        from entity_resolution.mcp.contracts import FindDuplicatesRequest, MCPOptions
+        from entity_resolution.mcp.tools.pipeline import run_find_duplicates_request
+
+        mock_db = MagicMock()
+        mock_coll = MagicMock()
+        docs = {"a1": {"name": "ibm"}, "a2": {"name": "international business machines"}}
+        mock_coll.get.side_effect = lambda key: docs.get(key)
+        mock_db.collection.return_value = mock_coll
+        mock_get_db.return_value = mock_db
+        mock_has_any_edges.return_value = False
+
+        mock_pipeline = MagicMock()
+        mock_pipeline._run_blocking.return_value = [("a1", "a2")]
+        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.90)]
+        mock_pipeline._run_edge_creation.return_value = 1
+        mock_pipeline_cls.return_value = mock_pipeline
+
+        req = FindDuplicatesRequest(
+            collection="companies",
+            fields=["name"],
+            strategy="exact",
+            confidence_threshold=0.8,
+            gating_mode="report_only",
+            require_token_overlap=True,
+            token_overlap_bypass_score=0.95,
+            alias_sources=[{"type": "managed_ref", "ref": "missing_ref"}],
+            options=MCPOptions(aliasing={"managed_refs": {"other_ref": {"ibm": ["international"]}}}),
+        )
+        result = run_find_duplicates_request(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            request=req,
+        )
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_requested"] == ["missing_ref"]
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_applied"] == []
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_missing"] == ["missing_ref"]
+
+    @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
+    @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
+    @patch("entity_resolution.mcp.tools.pipeline._get_db")
     def test_find_duplicates_token_overlap_gate_respects_managed_ref_aliases(
         self,
         mock_get_db,
@@ -545,6 +643,9 @@ class TestFindDuplicates:
 
         assert result["edges"]["edges_created"] == 1
         assert result["similarity"]["gates"]["rejected_token_overlap"] == 0
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_requested"] == ["entity_aliases_v1"]
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_applied"] == ["entity_aliases_v1"]
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_missing"] == []
 
     @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
     @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
@@ -594,6 +695,133 @@ class TestFindDuplicates:
         assert result["edges"]["edges_created"] == 0
         assert result["similarity"]["gates"]["enabled"] is True
         assert result["similarity"]["gates"]["rejected_type_affinity"] == 1
+
+    @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
+    @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
+    @patch("entity_resolution.mcp.tools.pipeline._get_db")
+    def test_find_duplicates_empty_managed_ref_map_counts_as_applied(
+        self,
+        mock_get_db,
+        mock_has_any_edges,
+        mock_pipeline_cls,
+    ):
+        from entity_resolution.mcp.contracts import FindDuplicatesRequest, MCPOptions
+        from entity_resolution.mcp.tools.pipeline import run_find_duplicates_request
+
+        mock_db = MagicMock()
+        mock_coll = MagicMock()
+        docs = {
+            "a1": {"name": "ibm"},
+            "a2": {"name": "international business machines"},
+        }
+        mock_coll.get.side_effect = lambda key: docs.get(key)
+        mock_db.collection.return_value = mock_coll
+        mock_get_db.return_value = mock_db
+        mock_has_any_edges.return_value = False
+
+        mock_pipeline = MagicMock()
+        mock_pipeline._run_blocking.return_value = [("a1", "a2")]
+        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.90)]
+        mock_pipeline._run_edge_creation.return_value = 0
+        mock_pipeline_cls.return_value = mock_pipeline
+
+        req = FindDuplicatesRequest(
+            collection="companies",
+            fields=["name"],
+            strategy="exact",
+            confidence_threshold=0.8,
+            require_token_overlap=True,
+            token_overlap_bypass_score=0.95,
+            alias_sources=[{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+            options=MCPOptions(aliasing={"managed_refs": {"entity_aliases_v1": {}}}),
+        )
+        result = run_find_duplicates_request(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            request=req,
+        )
+
+        assert result["edges"]["edges_created"] == 0
+        assert result["similarity"]["gates"]["rejected_token_overlap"] == 1
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_requested"] == ["entity_aliases_v1"]
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_applied"] == ["entity_aliases_v1"]
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_missing"] == []
+
+    @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
+    @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
+    @patch("entity_resolution.mcp.tools.pipeline._get_db")
+    def test_find_duplicates_no_matches_still_surfaces_aliasing_diagnostics(
+        self,
+        mock_get_db,
+        mock_has_any_edges,
+        mock_pipeline_cls,
+    ):
+        from entity_resolution.mcp.contracts import FindDuplicatesRequest
+        from entity_resolution.mcp.tools.pipeline import run_find_duplicates_request
+
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_has_any_edges.return_value = False
+
+        mock_pipeline = MagicMock()
+        mock_pipeline._run_blocking.return_value = []
+        mock_pipeline._run_similarity.return_value = []
+        mock_pipeline._run_edge_creation.return_value = 0
+        mock_pipeline_cls.return_value = mock_pipeline
+
+        req = FindDuplicatesRequest(
+            collection="companies",
+            fields=["name"],
+            strategy="exact",
+            confidence_threshold=0.8,
+            require_token_overlap=True,
+            alias_sources=[{"type": "managed_ref", "ref": "missing_ref"}],
+        )
+        result = run_find_duplicates_request(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            request=req,
+        )
+
+        assert result["similarity"]["gates"]["enabled"] is True
+        assert result["similarity"]["gates"]["input_matches"] == 0
+        assert result["similarity"]["gates"]["accepted_matches"] == 0
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_requested"] == ["missing_ref"]
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_applied"] == []
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_missing"] == ["missing_ref"]
+
+    def test_apply_precision_gates_without_rules_surfaces_aliasing_diagnostics(self):
+        from entity_resolution.mcp.contracts import FindDuplicatesRequest
+        from entity_resolution.mcp.tools.pipeline import _apply_precision_gates
+
+        req = FindDuplicatesRequest(
+            collection="companies",
+            fields=["name"],
+            strategy="exact",
+            confidence_threshold=0.8,
+            alias_sources=[{"type": "managed_ref", "ref": "missing_ref"}],
+        )
+        accepted, gate_stats = _apply_precision_gates(
+            db=None,
+            collection="companies",
+            matches=[("a1", "a2", 0.9)],
+            fields=["name"],
+            request=req,
+        )
+
+        assert len(accepted) == 1
+        assert gate_stats["enabled"] is False
+        assert gate_stats["input_matches"] == 1
+        assert gate_stats["accepted_matches"] == 1
+        assert gate_stats["aliasing"]["managed_ref_requested"] == ["missing_ref"]
+        assert gate_stats["aliasing"]["managed_ref_applied"] == []
+        assert gate_stats["aliasing"]["managed_ref_missing"] == ["missing_ref"]
 
 
 # ---------------------------------------------------------------------------
@@ -769,6 +997,322 @@ class TestExplainMatch:
         )
         failures = [f["gate"] for f in result["gates"]["summary"]["gate_failures"]]
         assert "token_overlap" not in failures
+        assert result["gates"]["aliasing"]["managed_ref_requested"] == ["entity_aliases_v1"]
+        assert result["gates"]["aliasing"]["managed_ref_applied"] == ["entity_aliases_v1"]
+        assert result["gates"]["aliasing"]["managed_ref_missing"] == []
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_explain_match_reports_missing_managed_ref_alias(self, mock_client_cls):
+        from entity_resolution.mcp.tools.entity import run_explain_match
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        result = run_explain_match(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            collection="companies",
+            key_a="a1",
+            key_b="b1",
+            fields=["name"],
+            options={
+                "gating": {
+                    "require_token_overlap": True,
+                    "token_overlap_bypass_score": 0.99,
+                },
+                "aliasing": {
+                    "sources": [{"type": "managed_ref", "ref": "missing_ref"}],
+                    "managed_refs": {"other_ref": {"ibm": ["international"]}},
+                },
+            },
+        )
+
+        assert result["gates"]["aliasing"]["managed_ref_requested"] == ["missing_ref"]
+        assert result["gates"]["aliasing"]["managed_ref_applied"] == []
+        assert result["gates"]["aliasing"]["managed_ref_missing"] == ["missing_ref"]
+        failures = [f["gate"] for f in result["gates"]["summary"]["gate_failures"]]
+        assert "token_overlap" in failures
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_explain_match_empty_managed_ref_map_counts_as_applied(self, mock_client_cls):
+        from entity_resolution.mcp.tools.entity import run_explain_match
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        result = run_explain_match(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            collection="companies",
+            key_a="a1",
+            key_b="b1",
+            fields=["name"],
+            options={
+                "gating": {
+                    "require_token_overlap": True,
+                    "token_overlap_bypass_score": 0.99,
+                },
+                "aliasing": {
+                    "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                    "managed_refs": {"entity_aliases_v1": {}},
+                },
+            },
+        )
+
+        assert result["gates"]["aliasing"]["managed_ref_requested"] == ["entity_aliases_v1"]
+        assert result["gates"]["aliasing"]["managed_ref_applied"] == ["entity_aliases_v1"]
+        assert result["gates"]["aliasing"]["managed_ref_missing"] == []
+        failures = [f["gate"] for f in result["gates"]["summary"]["gate_failures"]]
+        assert "token_overlap" in failures
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_explain_match_rejects_non_list_aliasing_sources(self, mock_client_cls):
+        from entity_resolution.mcp.tools.entity import run_explain_match
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="options.aliasing.sources must be an array/list"):
+            run_explain_match(
+                host="localhost",
+                port=8529,
+                username="root",
+                password="pass",
+                database="test",
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={"aliasing": {"sources": {"type": "managed_ref", "ref": "entity_aliases_v1"}}},
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_explain_match_rejects_non_object_alias_source_entry(self, mock_client_cls):
+        from entity_resolution.mcp.tools.entity import run_explain_match
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="options.aliasing.sources\\[0\\] must be an object/dict"):
+            run_explain_match(
+                host="localhost",
+                port=8529,
+                username="root",
+                password="pass",
+                database="test",
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={"aliasing": {"sources": ["managed_ref"]}},
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_explain_match_rejects_alias_source_without_type(self, mock_client_cls):
+        from entity_resolution.mcp.tools.entity import run_explain_match
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="options.aliasing.sources\\[0\\]\\.type is required"):
+            run_explain_match(
+                host="localhost",
+                port=8529,
+                username="root",
+                password="pass",
+                database="test",
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={"aliasing": {"sources": [{}]}},
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_explain_match_rejects_non_object_inline_alias_map(self, mock_client_cls):
+        from entity_resolution.mcp.tools.entity import run_explain_match
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="options.aliasing.sources\\[0\\]\\.map must be an object/dict"):
+            run_explain_match(
+                host="localhost",
+                port=8529,
+                username="root",
+                password="pass",
+                database="test",
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={"aliasing": {"sources": [{"type": "inline", "map": ["bad"]}]}},
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_explain_match_rejects_field_alias_source_without_field(self, mock_client_cls):
+        from entity_resolution.mcp.tools.entity import run_explain_match
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="options.aliasing.sources\\[0\\]\\.field is required for type=field"):
+            run_explain_match(
+                host="localhost",
+                port=8529,
+                username="root",
+                password="pass",
+                database="test",
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={"aliasing": {"sources": [{"type": "field"}]}},
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_explain_match_rejects_non_object_managed_refs(self, mock_client_cls):
+        from entity_resolution.mcp.tools.entity import run_explain_match
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="options.aliasing.managed_refs must be an object/dict"):
+            run_explain_match(
+                host="localhost",
+                port=8529,
+                username="root",
+                password="pass",
+                database="test",
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={
+                    "aliasing": {
+                        "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                        "managed_refs": ["bad"],
+                    }
+                },
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_explain_match_rejects_non_object_managed_ref_entry(self, mock_client_cls):
+        from entity_resolution.mcp.tools.entity import run_explain_match
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="options.aliasing.managed_refs.entity_aliases_v1 must be an object/dict"):
+            run_explain_match(
+                host="localhost",
+                port=8529,
+                username="root",
+                password="pass",
+                database="test",
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={
+                    "aliasing": {
+                        "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                        "managed_refs": {"entity_aliases_v1": ["bad"]},
+                    }
+                },
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_explain_match_rejects_managed_ref_without_ref(self, mock_client_cls):
+        from entity_resolution.mcp.tools.entity import run_explain_match
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="\\.ref is required for type=managed_ref"):
+            run_explain_match(
+                host="localhost",
+                port=8529,
+                username="root",
+                password="pass",
+                database="test",
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={"aliasing": {"sources": [{"type": "managed_ref"}]}},
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_explain_match_rejects_unknown_alias_source_type(self, mock_client_cls):
+        from entity_resolution.mcp.tools.entity import run_explain_match
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="must be one of inline, field, acronym, managed_ref"):
+            run_explain_match(
+                host="localhost",
+                port=8529,
+                username="root",
+                password="pass",
+                database="test",
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={"aliasing": {"sources": [{"type": "taxonomy"}]}},
+            )
 
 
 class TestResolveEntityCrossCollection:
@@ -1430,6 +1974,125 @@ class TestMcpServerOptionsCompatibility:
         assert req.confidence_threshold == 0.93
         assert req.max_block_size == 120
 
+    def test_server_find_duplicates_rejects_non_list_aliasing_sources(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="options.aliasing.sources must be an array/list"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={"aliasing": {"sources": {"type": "managed_ref", "ref": "entity_aliases_v1"}}},
+            )
+
+    def test_server_find_duplicates_rejects_non_object_managed_refs(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="options.aliasing.managed_refs must be an object/dict"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={
+                    "aliasing": {
+                        "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                        "managed_refs": ["bad"],
+                    }
+                },
+            )
+
+    @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
+    def test_server_find_duplicates_accepts_null_managed_refs(self, mock_run_find_duplicates):
+        from entity_resolution.mcp import server
+
+        mock_run_find_duplicates.return_value = {"ok": True}
+        server.find_duplicates(
+            collection="companies",
+            fields=["name"],
+            options={
+                "aliasing": {
+                    "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                    "managed_refs": None,
+                }
+            },
+        )
+
+        req = mock_run_find_duplicates.call_args.kwargs["request"]
+        assert req.options.aliasing["managed_refs"] is None
+
+    def test_server_find_duplicates_rejects_non_object_managed_ref_entry(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="options.aliasing.managed_refs.entity_aliases_v1 must be an object/dict"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={
+                    "aliasing": {
+                        "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                        "managed_refs": {"entity_aliases_v1": ["bad"]},
+                    }
+                },
+            )
+
+    def test_server_find_duplicates_rejects_non_object_alias_source_entry(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="options.aliasing.sources\\[0\\] must be an object/dict"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={"aliasing": {"sources": ["managed_ref"]}},
+            )
+
+    def test_server_find_duplicates_rejects_alias_source_without_type(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="options.aliasing.sources\\[0\\]\\.type is required"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={"aliasing": {"sources": [{}]}},
+            )
+
+    def test_server_find_duplicates_rejects_non_object_inline_alias_map(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="options.aliasing.sources\\[0\\]\\.map must be an object/dict"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={"aliasing": {"sources": [{"type": "inline", "map": ["bad"]}]}},
+            )
+
+    def test_server_find_duplicates_rejects_field_alias_source_without_field(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="options.aliasing.sources\\[0\\]\\.field is required for type=field"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={"aliasing": {"sources": [{"type": "field"}]}},
+            )
+
+    def test_server_find_duplicates_rejects_managed_ref_without_ref(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="\\.ref is required for type=managed_ref"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={"aliasing": {"sources": [{"type": "managed_ref"}]}},
+            )
+
+    def test_server_find_duplicates_rejects_unknown_alias_source_type(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="must be one of inline, field, acronym, managed_ref"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={"aliasing": {"sources": [{"type": "taxonomy"}]}},
+            )
+
     @patch("entity_resolution.mcp.tools.entity.run_explain_match")
     def test_server_explain_match_accepts_options(self, mock_run_explain_match):
         from entity_resolution.mcp import server
@@ -1444,6 +2107,271 @@ class TestMcpServerOptionsCompatibility:
         assert result["ok"] is True
         kwargs = mock_run_explain_match.call_args.kwargs
         assert kwargs["options"]["gating"]["require_token_overlap"] is True
+
+    @patch("entity_resolution.mcp.tools.entity.run_explain_match")
+    def test_server_explain_match_surfaces_aliasing_diagnostics(self, mock_run_explain_match):
+        from entity_resolution.mcp import server
+
+        mock_run_explain_match.return_value = {
+            "gates": {
+                "aliasing": {
+                    "managed_ref_requested": ["entity_aliases_v1"],
+                    "managed_ref_applied": ["entity_aliases_v1"],
+                    "managed_ref_missing": [],
+                }
+            }
+        }
+        result = server.explain_match(
+            collection="companies",
+            key_a="a1",
+            key_b="b1",
+            options={
+                "aliasing": {
+                    "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                    "managed_refs": {"entity_aliases_v1": {"ibm": ["international"]}},
+                }
+            },
+        )
+
+        aliasing = result["gates"]["aliasing"]
+        assert aliasing["managed_ref_requested"] == ["entity_aliases_v1"]
+        assert aliasing["managed_ref_applied"] == ["entity_aliases_v1"]
+        assert aliasing["managed_ref_missing"] == []
+        assert result["er_options_schema_version"] == "1.0"
+
+    @patch("entity_resolution.mcp.tools.entity.run_explain_match")
+    def test_server_explain_match_bubbles_alias_validation_errors(self, mock_run_explain_match):
+        from entity_resolution.mcp import server
+
+        mock_run_explain_match.side_effect = ValueError(
+            "options.aliasing.sources must be an array/list when provided"
+        )
+
+        with pytest.raises(ValueError, match="options.aliasing.sources must be an array/list"):
+            server.explain_match(
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                options={"aliasing": {"sources": {"type": "managed_ref"}}},
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_server_explain_match_rejects_non_list_aliasing_sources(self, mock_client_cls):
+        from entity_resolution.mcp import server
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="options.aliasing.sources must be an array/list"):
+            server.explain_match(
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={"aliasing": {"sources": {"type": "managed_ref", "ref": "entity_aliases_v1"}}},
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_server_explain_match_rejects_non_object_alias_source_entry(self, mock_client_cls):
+        from entity_resolution.mcp import server
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="options.aliasing.sources\\[0\\] must be an object/dict"):
+            server.explain_match(
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={"aliasing": {"sources": ["managed_ref"]}},
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_server_explain_match_rejects_alias_source_without_type(self, mock_client_cls):
+        from entity_resolution.mcp import server
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="options.aliasing.sources\\[0\\]\\.type is required"):
+            server.explain_match(
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={"aliasing": {"sources": [{}]}},
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_server_explain_match_rejects_non_object_inline_alias_map(self, mock_client_cls):
+        from entity_resolution.mcp import server
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="options.aliasing.sources\\[0\\]\\.map must be an object/dict"):
+            server.explain_match(
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={"aliasing": {"sources": [{"type": "inline", "map": ["bad"]}]}},
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_server_explain_match_rejects_field_alias_source_without_field(self, mock_client_cls):
+        from entity_resolution.mcp import server
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="options.aliasing.sources\\[0\\]\\.field is required for type=field"):
+            server.explain_match(
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={"aliasing": {"sources": [{"type": "field"}]}},
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_server_explain_match_rejects_non_object_managed_ref_entry(self, mock_client_cls):
+        from entity_resolution.mcp import server
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="options.aliasing.managed_refs.entity_aliases_v1 must be an object/dict"):
+            server.explain_match(
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={
+                    "aliasing": {
+                        "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                        "managed_refs": {"entity_aliases_v1": ["bad"]},
+                    }
+                },
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_server_explain_match_rejects_non_object_managed_refs(self, mock_client_cls):
+        from entity_resolution.mcp import server
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="options.aliasing.managed_refs must be an object/dict"):
+            server.explain_match(
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={
+                    "aliasing": {
+                        "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                        "managed_refs": ["bad"],
+                    }
+                },
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_server_explain_match_accepts_null_managed_refs(self, mock_client_cls):
+        from entity_resolution.mcp import server
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        result = server.explain_match(
+            collection="companies",
+            key_a="a1",
+            key_b="b1",
+            fields=["name"],
+            options={
+                "aliasing": {
+                    "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                    "managed_refs": None,
+                }
+            },
+        )
+
+        assert result["gates"]["aliasing"]["managed_ref_requested"] == ["entity_aliases_v1"]
+        assert result["gates"]["aliasing"]["managed_ref_applied"] == []
+        assert result["gates"]["aliasing"]["managed_ref_missing"] == ["entity_aliases_v1"]
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_server_explain_match_rejects_managed_ref_without_ref(self, mock_client_cls):
+        from entity_resolution.mcp import server
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="\\.ref is required for type=managed_ref"):
+            server.explain_match(
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={"aliasing": {"sources": [{"type": "managed_ref"}]}},
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_server_explain_match_rejects_unknown_alias_source_type(self, mock_client_cls):
+        from entity_resolution.mcp import server
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="must be one of inline, field, acronym, managed_ref"):
+            server.explain_match(
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={"aliasing": {"sources": [{"type": "taxonomy"}]}},
+            )
 
     @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
     def test_server_find_duplicates_accepts_stages_options(self, mock_run_find_duplicates):
@@ -1518,6 +2446,114 @@ class TestMcpServerOptionsCompatibility:
         assert len(req.alias_sources) == 2
         assert req.alias_sources[0]["type"] == "inline"
         assert req.alias_sources[1]["type"] == "field"
+
+    @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
+    def test_server_find_duplicates_surfaces_aliasing_diagnostics(self, mock_run_find_duplicates):
+        from entity_resolution.mcp import server
+
+        mock_run_find_duplicates.return_value = {
+            "similarity": {
+                "gates": {
+                    "aliasing": {
+                        "managed_ref_requested": ["entity_aliases_v1"],
+                        "managed_ref_applied": ["entity_aliases_v1"],
+                        "managed_ref_missing": [],
+                    }
+                }
+            }
+        }
+        result = server.find_duplicates(
+            collection="companies",
+            fields=["name"],
+            options={
+                "aliasing": {
+                    "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                    "managed_refs": {"entity_aliases_v1": {"ibm": ["international"]}},
+                }
+            },
+        )
+
+        aliasing = result["similarity"]["gates"]["aliasing"]
+        assert aliasing["managed_ref_requested"] == ["entity_aliases_v1"]
+        assert aliasing["managed_ref_applied"] == ["entity_aliases_v1"]
+        assert aliasing["managed_ref_missing"] == []
+        assert result["er_options_schema_version"] == "1.0"
+
+    @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
+    def test_server_find_duplicates_surfaces_multistage_gating_aliasing_diagnostics(self, mock_run_find_duplicates):
+        from entity_resolution.mcp import server
+
+        mock_run_find_duplicates.return_value = {
+            "stages": {
+                "enabled": True,
+                "execution_mode": "multi_stage",
+                "requested_stage_count": 2,
+                "gating": {
+                    "aliasing": {
+                        "managed_ref_requested": ["missing_ref"],
+                        "managed_ref_applied": [],
+                        "managed_ref_missing": ["missing_ref"],
+                    }
+                },
+                "stage_results": [],
+            }
+        }
+        result = server.find_duplicates(
+            collection="companies",
+            fields=["name"],
+            options={
+                "stages": [
+                    {"type": "bm25", "fields": ["name"], "min_score": 0.9},
+                    {"type": "embedding", "fields": ["description"], "min_score": 0.78},
+                ],
+                "aliasing": {
+                    "sources": [{"type": "managed_ref", "ref": "missing_ref"}],
+                    "managed_refs": {},
+                },
+            },
+        )
+
+        aliasing = result["stages"]["gating"]["aliasing"]
+        assert aliasing["managed_ref_requested"] == ["missing_ref"]
+        assert aliasing["managed_ref_applied"] == []
+        assert aliasing["managed_ref_missing"] == ["missing_ref"]
+        assert result["er_options_schema_version"] == "1.0"
+
+    @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
+    def test_server_find_duplicates_surfaces_single_stage_gating_aliasing_diagnostics(self, mock_run_find_duplicates):
+        from entity_resolution.mcp import server
+
+        mock_run_find_duplicates.return_value = {
+            "stages": {
+                "enabled": True,
+                "execution_mode": "single_stage_scaffold",
+                "requested_stage_count": 1,
+                "gating": {
+                    "aliasing": {
+                        "managed_ref_requested": ["missing_ref"],
+                        "managed_ref_applied": [],
+                        "managed_ref_missing": ["missing_ref"],
+                    }
+                },
+            }
+        }
+        result = server.find_duplicates(
+            collection="companies",
+            fields=["name"],
+            options={
+                "stages": [{"type": "exact", "fields": ["name"], "min_score": 0.8}],
+                "aliasing": {
+                    "sources": [{"type": "managed_ref", "ref": "missing_ref"}],
+                    "managed_refs": {},
+                },
+            },
+        )
+
+        aliasing = result["stages"]["gating"]["aliasing"]
+        assert aliasing["managed_ref_requested"] == ["missing_ref"]
+        assert aliasing["managed_ref_applied"] == []
+        assert aliasing["managed_ref_missing"] == ["missing_ref"]
+        assert result["er_options_schema_version"] == "1.0"
 
     @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
     def test_server_find_duplicates_accepts_token_jaccard_similarity_options(self, mock_run_find_duplicates):

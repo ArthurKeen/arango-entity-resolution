@@ -41,6 +41,7 @@ Supported blocks:
 - `gating`
 - `aliasing`
 - `diagnostics`
+- `execution`
 
 Unknown blocks are retained in passthrough for forward compatibility.
 
@@ -136,6 +137,11 @@ Options style:
 - `active_learning_model` -> `options.active_learning.model`
 - `active_learning_low_threshold` -> `options.active_learning.low_threshold`
 - `active_learning_high_threshold` -> `options.active_learning.high_threshold`
+- `gating.mode` -> `options.gating.mode` (`enforce` | `report_only` | `shadow`)
+- `similarity.type` -> `options.similarity.type` (e.g. `token_jaccard`)
+- `similarity.token_jaccard_fields` -> `options.similarity.token_jaccard_fields`
+- `similarity.token_jaccard_min_score` -> `options.similarity.token_jaccard_min_score`
+- `aliasing.sources[].type=managed_ref` with dictionary payload in `options.aliasing.managed_refs`
 
 ### `resolve_entity`
 
@@ -151,6 +157,97 @@ Options style:
 2. Move new feature flags/config to `options` first.
 3. Migrate all mapped legacy fields to `options`.
 4. Treat `deprecation_warnings` as migration TODOs.
+5. Persist `er_options_schema_version` from dict/envelope responses and reject unexpected versions.
+
+---
+
+## New Rollout + Aliasing Controls
+
+### Gating Rollout Modes
+
+`find_duplicates` supports a rollout-safe gate mode:
+
+```json
+{
+  "options": {
+    "gating": {
+      "mode": "report_only"
+    }
+  }
+}
+```
+
+Allowed values:
+
+- `enforce` - gate failures reject candidates
+- `report_only` - gate failures are counted in diagnostics only
+- `shadow` - alias of report-only semantics for phased rollout
+
+In `report_only`/`shadow`, diagnostics include `would_reject_*` counters.
+
+### Managed Alias References
+
+To use server-managed alias dictionaries:
+
+```json
+{
+  "options": {
+    "aliasing": {
+      "sources": [
+        { "type": "managed_ref", "ref": "entity_aliases_v1" }
+      ],
+      "managed_refs": {
+        "entity_aliases_v1": {
+          "ibm": ["international", "business", "machines"]
+        }
+      }
+    }
+  }
+}
+```
+
+`managed_ref` sources require a non-empty `ref` value.
+`managed_refs` must be an object keyed by `ref`, where each `ref` value is an
+alias-map object (`token -> alias string|array`).
+`managed_refs: null` is accepted and treated as no managed alias dictionaries
+provided.
+`explain_match` enforces these aliasing shape rules and raises validation errors
+for malformed `aliasing.sources` (non-list, missing `managed_ref.ref`, unknown
+source types) or malformed `aliasing.managed_refs` (non-object container or
+non-object per-ref alias maps).
+These validation errors are enforced consistently through the MCP server tool
+entry points as well (`find_duplicates`, `explain_match`).
+
+`managed_refs` are applied in token-expansion paths for `find_duplicates` gates and `explain_match` diagnostics.
+Gate diagnostics now also surface:
+
+- `similarity.gates.aliasing.managed_ref_requested`: all refs requested by `aliasing.sources`
+- `similarity.gates.aliasing.managed_ref_applied`: configured refs successfully resolved
+- `similarity.gates.aliasing.managed_ref_missing`: configured refs with no backing dictionary
+
+If a requested ref exists in `managed_refs` but its alias map is empty (`{}`), it is
+reported as **applied** (not missing).
+
+Equivalent aliasing diagnostics are included in `explain_match` under
+`gates.aliasing.{managed_ref_requested,managed_ref_applied,managed_ref_missing}`.
+
+When stage metadata is present in `find_duplicates` (`single_stage_scaffold` or
+`multi_stage`), the same aliasing diagnostics are also emitted at
+`stages.gating.aliasing`.
+
+---
+
+## Response Versioning
+
+Dict/envelope responses now include:
+
+```json
+{
+  "er_options_schema_version": "1.0"
+}
+```
+
+Use this field for compatibility checks as option contracts evolve.
 
 ---
 

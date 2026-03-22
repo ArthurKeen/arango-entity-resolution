@@ -122,7 +122,11 @@ def test_normalize_find_duplicates_aliasing_sources():
     assert req.alias_sources[1] == {"type": "field", "field": "aliases"}
     assert req.alias_sources[2]["type"] == "acronym"
     assert req.alias_sources[3] == {"type": "managed_ref", "ref": "entity_aliases_v1"}
-    assert "managed_refs" in req.options.aliasing
+    assert req.options.aliasing["managed_refs"]["entity_aliases_v1"]["ibm"] == [
+        "international",
+        "business",
+        "machines",
+    ]
 
 
 def test_normalize_find_duplicates_token_jaccard_similarity_options():
@@ -231,6 +235,114 @@ def test_normalize_find_duplicates_rejects_bad_aliasing_sources_shape():
             collection="companies",
             fields=["name"],
             options={"aliasing": {"sources": {"type": "inline"}}},
+        )
+
+
+def test_normalize_find_duplicates_rejects_managed_ref_without_ref():
+    with pytest.raises(ValueError, match="\\.ref is required for type=managed_ref"):
+        normalize_find_duplicates_args(
+            collection="companies",
+            fields=["name"],
+            options={"aliasing": {"sources": [{"type": "managed_ref"}]}},
+        )
+
+
+def test_normalize_find_duplicates_rejects_unknown_alias_source_type():
+    with pytest.raises(ValueError, match="must be one of inline, field, acronym, managed_ref"):
+        normalize_find_duplicates_args(
+            collection="companies",
+            fields=["name"],
+            options={"aliasing": {"sources": [{"type": "taxonomy"}]}},
+        )
+
+
+def test_normalize_find_duplicates_rejects_non_object_managed_refs():
+    with pytest.raises(ValueError, match="options.aliasing.managed_refs must be an object/dict"):
+        normalize_find_duplicates_args(
+            collection="companies",
+            fields=["name"],
+            options={"aliasing": {"managed_refs": ["bad"]}},
+        )
+
+
+def test_normalize_find_duplicates_accepts_null_managed_refs():
+    req = normalize_find_duplicates_args(
+        collection="companies",
+        fields=["name"],
+        options={
+            "aliasing": {
+                "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                "managed_refs": None,
+            }
+        },
+    )
+    assert req.alias_sources == [{"type": "managed_ref", "ref": "entity_aliases_v1"}]
+    assert req.options.aliasing["managed_refs"] is None
+
+
+def test_normalize_find_duplicates_canonicalizes_managed_ref_scalar_values():
+    req = normalize_find_duplicates_args(
+        collection="companies",
+        fields=["name"],
+        options={
+            "aliasing": {
+                "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                "managed_refs": {"entity_aliases_v1": {"IBM": "International Business Machines"}},
+            }
+        },
+    )
+    assert req.options.aliasing["managed_refs"]["entity_aliases_v1"] == {
+        "ibm": ["international business machines"]
+    }
+
+
+def test_normalize_find_duplicates_canonicalizes_managed_ref_list_values():
+    req = normalize_find_duplicates_args(
+        collection="companies",
+        fields=["name"],
+        options={
+            "aliasing": {
+                "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                "managed_refs": {
+                    "entity_aliases_v1": {
+                        "IBM ": [" International ", "", "Business", "  ", "MACHINES"],
+                    }
+                },
+            }
+        },
+    )
+    assert req.options.aliasing["managed_refs"]["entity_aliases_v1"] == {
+        "ibm": ["international", "business", "machines"]
+    }
+
+
+def test_normalize_find_duplicates_drops_empty_managed_ref_and_token_keys():
+    req = normalize_find_duplicates_args(
+        collection="companies",
+        fields=["name"],
+        options={
+            "aliasing": {
+                "managed_refs": {
+                    " ": {"ibm": ["international"]},
+                    "entity_aliases_v1": {
+                        "   ": ["ignored"],
+                        "IBM": ["International"],
+                    },
+                }
+            }
+        },
+    )
+    assert req.options.aliasing["managed_refs"] == {
+        "entity_aliases_v1": {"ibm": ["international"]}
+    }
+
+
+def test_normalize_find_duplicates_rejects_non_object_managed_ref_entry():
+    with pytest.raises(ValueError, match="options.aliasing.managed_refs.entity_aliases_v1 must be an object/dict"):
+        normalize_find_duplicates_args(
+            collection="companies",
+            fields=["name"],
+            options={"aliasing": {"managed_refs": {"entity_aliases_v1": ["bad"]}}},
         )
 
 
