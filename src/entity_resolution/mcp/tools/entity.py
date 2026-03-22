@@ -413,34 +413,45 @@ def _normalize_aliasing_profile(value: Any) -> Dict[str, Any]:
         return profile
     sources = value.get("sources", [])
     if not isinstance(sources, list):
-        return profile
-    for source in sources:
+        raise ValueError("options.aliasing.sources must be an array/list when provided")
+    managed = value.get("managed_refs", {})
+    if managed is not None and not isinstance(managed, dict):
+        raise ValueError("options.aliasing.managed_refs must be an object/dict when provided")
+    for idx, source in enumerate(sources):
         if not isinstance(source, dict):
-            continue
-        source_type = str(source.get("type", "")).lower()
+            raise ValueError(f"options.aliasing.sources[{idx}] must be an object/dict")
+        source_type = str(source.get("type", "")).strip().lower()
+        if not source_type:
+            raise ValueError(f"options.aliasing.sources[{idx}].type is required")
         if source_type == "inline":
             raw_map = source.get("map", {})
+            if not isinstance(raw_map, dict):
+                raise ValueError(f"options.aliasing.sources[{idx}].map must be an object/dict")
             _merge_alias_map(profile["inline_map"], raw_map)
         elif source_type == "field":
             field = str(source.get("field", "")).strip()
-            if field:
-                profile["field_sources"].append(field)
+            if not field:
+                raise ValueError(f"options.aliasing.sources[{idx}].field is required for type=field")
+            profile["field_sources"].append(field)
         elif source_type == "acronym":
             if bool(source.get("auto", True)):
                 profile["acronym_auto"] = True
             profile["acronym_min_word_len"] = int(source.get("min_word_len", 4))
         elif source_type == "managed_ref":
             ref = str(source.get("ref", "")).strip()
-            managed = value.get("managed_refs", {})
-            if ref:
-                profile["managed_ref_requested"].append(ref)
-            if ref and isinstance(managed, dict):
-                ref_map = managed.get(ref)
-                if isinstance(ref_map, dict):
-                    _merge_alias_map(profile["inline_map"], ref_map)
-                    profile["managed_ref_applied"].append(ref)
-                else:
-                    profile["managed_ref_missing"].append(ref)
+            if not ref:
+                raise ValueError(f"options.aliasing.sources[{idx}].ref is required for type=managed_ref")
+            profile["managed_ref_requested"].append(ref)
+            ref_map = managed.get(ref) if isinstance(managed, dict) else None
+            if isinstance(ref_map, dict):
+                _merge_alias_map(profile["inline_map"], ref_map)
+                profile["managed_ref_applied"].append(ref)
+            else:
+                profile["managed_ref_missing"].append(ref)
+        else:
+            raise ValueError(
+                f"options.aliasing.sources[{idx}].type must be one of inline, field, acronym, managed_ref"
+            )
     profile["field_sources"] = _merge_unique_fields(profile["field_sources"], [])
     profile["managed_ref_requested"] = _merge_unique_fields(profile["managed_ref_requested"], [])
     profile["managed_ref_applied"] = _merge_unique_fields(profile["managed_ref_applied"], [])
