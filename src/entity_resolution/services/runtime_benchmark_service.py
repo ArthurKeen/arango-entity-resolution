@@ -21,9 +21,18 @@ class RuntimeBenchmarkService:
     def run_benchmark(
         probe: Callable[[], Dict[str, Any]],
         repeats: int = 5,
+        warmup_runs: int = 0,
+        profile: str = "default",
     ) -> Dict[str, Any]:
         if repeats < 1:
             raise ValueError(f"repeats must be >= 1, got: {repeats}")
+        if warmup_runs < 0:
+            raise ValueError(f"warmup_runs must be >= 0, got: {warmup_runs}")
+
+        # Warmup probes prime model/runtime state and are intentionally excluded
+        # from measured benchmark runs.
+        for _ in range(warmup_runs):
+            probe()
 
         runs: List[Dict[str, Any]] = []
         latencies: List[float] = []
@@ -60,6 +69,8 @@ class RuntimeBenchmarkService:
             "metadata": {
                 "generated_at": datetime.utcnow().isoformat(),
                 "repeats": repeats,
+                "warmup_runs": warmup_runs,
+                "profile": profile,
             },
             "summary": summary,
             "runs": runs,

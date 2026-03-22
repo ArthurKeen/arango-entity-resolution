@@ -438,8 +438,12 @@ def test_cli_runtime_health_benchmark_outputs_summary(
         cli_module.RuntimeBenchmarkService,
         "run_benchmark",
         staticmethod(
-            lambda probe, repeats: {
-                "metadata": {"repeats": repeats},
+            lambda probe, repeats, warmup_runs=0, profile="default": {
+                "metadata": {
+                    "repeats": repeats,
+                    "warmup_runs": warmup_runs,
+                    "profile": profile,
+                },
                 "summary": {"latency_ms": {"mean": 12.0}},
                 "runs": [],
             }
@@ -459,6 +463,10 @@ def test_cli_runtime_health_benchmark_outputs_summary(
     assert result.exit_code == 0
     payload = _extract_json_block(result.output)
     assert payload["metadata"]["repeats"] == 3
+    assert payload["metadata"]["warmup_runs"] == 0
+    assert payload["metadata"]["profile"] == "default"
+    assert payload["metadata"]["startup_mode"] == "default"
+    assert payload["metadata"]["config"]["config_path"] == str(cfg)
     assert payload["summary"]["latency_ms"]["mean"] == 12.0
 
 
@@ -483,7 +491,13 @@ def test_cli_runtime_health_benchmark_writes_artifact(
     monkeypatch.setattr(
         cli_module.RuntimeBenchmarkService,
         "run_benchmark",
-        staticmethod(lambda probe, repeats: {"metadata": {}, "summary": {}, "runs": []}),
+        staticmethod(
+            lambda probe, repeats, warmup_runs=0, profile="default": {
+                "metadata": {},
+                "summary": {},
+                "runs": [],
+            }
+        ),
     )
     monkeypatch.setattr(
         cli_module.RuntimeBenchmarkService,
@@ -510,6 +524,75 @@ def test_cli_runtime_health_benchmark_writes_artifact(
     assert result.exit_code == 0
     payload = _extract_json_block(result.output)
     assert payload["output_file"].endswith("bench_20260314_000000.json")
+
+
+def test_cli_runtime_health_benchmark_forwards_warmup_runs(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("entity_resolution: {}\n")
+    captured: dict[str, int | str] = {}
+
+    monkeypatch.setattr(cli_module, "_get_db_from_options", lambda *args: object())
+
+    class FakePipeline:
+        def __init__(self, db: object, config_path: str):
+            pass
+
+        def get_embedding_runtime_health(self, startup_mode=None):
+            return {
+                "setup_latency_ms": 10.0,
+                "telemetry": {"fallback_count": 0},
+                "startup_mode": startup_mode,
+            }
+
+    monkeypatch.setattr(cli_module, "ConfigurableERPipeline", FakePipeline)
+
+    def _fake_run_benchmark(probe, repeats, warmup_runs=0, profile="default"):
+        sample = probe()
+        captured["repeats"] = repeats
+        captured["warmup_runs"] = warmup_runs
+        captured["profile"] = profile
+        captured["startup_mode"] = sample.get("startup_mode", "default")
+        return {
+            "metadata": {"repeats": repeats, "warmup_runs": warmup_runs, "profile": profile},
+            "summary": {"latency_ms": {"mean": 10.0}},
+            "runs": [],
+        }
+
+    monkeypatch.setattr(
+        cli_module.RuntimeBenchmarkService,
+        "run_benchmark",
+        staticmethod(_fake_run_benchmark),
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-health-benchmark",
+            "-c",
+            str(cfg),
+            "--repeats",
+            "4",
+            "--warmup-runs",
+            "2",
+            "--profile",
+            "ci-linux-cpu",
+            "--startup-mode",
+            "strict",
+        ],
+    )
+    assert result.exit_code == 0
+    payload = _extract_json_block(result.output)
+    assert payload["metadata"]["repeats"] == 4
+    assert payload["metadata"]["warmup_runs"] == 2
+    assert payload["metadata"]["profile"] == "ci-linux-cpu"
+    assert payload["metadata"]["startup_mode"] == "strict"
+    assert payload["metadata"]["config"]["config_path"] == str(cfg)
+    assert captured["repeats"] == 4
+    assert captured["warmup_runs"] == 2
+    assert captured["profile"] == "ci-linux-cpu"
+    assert captured["startup_mode"] == "strict"
 
 
 def test_cli_runtime_health_compare_writes_report_artifacts(
@@ -630,6 +713,7 @@ def test_cli_runtime_health_gate_success(
     assert result.exit_code == 0
     payload = _extract_json_block(result.output)
     assert payload["baseline_found"] is True
+    assert "quality_gate" not in payload
 
 
 def test_cli_runtime_health_gate_fail_on_regression_exits_2(
@@ -787,6 +871,68 @@ def test_cli_runtime_quality_corpus_init(
     payload = _extract_json_block(result.output)
     assert payload["corpus_file"] == str(corpus_path)
     assert corpus_path.exists()
+
+
+def test_cli_runtime_quality_corpus_init_rejects_existing_without_overwrite(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    corpus_path = tmp_path / "corpus.json"
+    corpus_path.write_text("{}")
+
+    def _fake_scaffold_corpus(path: str, overwrite: bool) -> str:
+        raise FileExistsError(f"Refusing to overwrite existing file: {path}")
+
+    monkeypatch.setattr(
+        cli_module.RuntimeQualityBenchmarkService,
+        "scaffold_corpus",
+        staticmethod(_fake_scaffold_corpus),
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-quality-corpus-init",
+            "--output",
+            str(corpus_path),
+            "--no-overwrite",
+        ],
+    )
+    assert result.exit_code == 1
+    assert "Refusing to overwrite existing file" in result.output
+
+
+def test_cli_runtime_quality_corpus_init_allows_existing_with_overwrite(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    corpus_path = tmp_path / "corpus.json"
+    corpus_path.write_text("{}")
+    captured: dict[str, object] = {}
+
+    def _fake_scaffold_corpus(path: str, overwrite: bool) -> str:
+        captured["path"] = path
+        captured["overwrite"] = overwrite
+        return path
+
+    monkeypatch.setattr(
+        cli_module.RuntimeQualityBenchmarkService,
+        "scaffold_corpus",
+        staticmethod(_fake_scaffold_corpus),
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-quality-corpus-init",
+            "--output",
+            str(corpus_path),
+            "--overwrite",
+        ],
+    )
+    assert result.exit_code == 0
+    payload = _extract_json_block(result.output)
+    assert payload["corpus_file"] == str(corpus_path)
+    assert captured["path"] == str(corpus_path)
+    assert captured["overwrite"] is True
 
 
 def test_cli_runtime_quality_benchmark_outputs_metrics(
@@ -1090,6 +1236,603 @@ def test_cli_runtime_health_gate_includes_quality_gate(
     )
     assert result.exit_code == 0
     payload = _extract_json_block(result.output)
+    assert payload["quality_gate"]["current_source"] == "metrics_file"
+    assert payload["quality_gate"]["regressions"]["quality_regression"] is False
+
+
+def test_cli_runtime_health_gate_includes_quality_gate_from_corpus(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("entity_resolution: {}\n")
+    registry = tmp_path / "runtime_registry.json"
+    registry.write_text('{"version":1,"baselines":[]}')
+    baseline = tmp_path / "baseline_quality.json"
+    corpus = tmp_path / "quality_corpus.json"
+    baseline.write_text('{"cosine_drift":0.003,"topk_overlap":0.99}')
+    corpus.write_text("{}")
+
+    monkeypatch.setattr(cli_module, "_get_db_from_options", lambda *args: object())
+
+    class FakePipeline:
+        def __init__(self, db: object, config_path: str):
+            pass
+
+        def get_embedding_runtime_health(self, startup_mode=None):
+            return {"enabled": True, "runtime": "pytorch"}
+
+    monkeypatch.setattr(cli_module, "ConfigurableERPipeline", FakePipeline)
+    monkeypatch.setattr(
+        cli_module.RuntimeProfileRegistry,
+        "compare_snapshot",
+        staticmethod(
+            lambda **kwargs: {
+                "baseline_found": True,
+                "key": "k",
+                "comparison": {},
+                "regressions": {
+                    "latency_regression": False,
+                    "fallback_regression": False,
+                },
+            }
+        ),
+    )
+    captured = {}
+
+    def _fake_build_runtime_quality_metrics(**kwargs):
+        captured.update(kwargs)
+        return {"cosine_drift": 0.008, "topk_overlap": 0.97}
+
+    monkeypatch.setattr(cli_module, "_build_runtime_quality_metrics", _fake_build_runtime_quality_metrics)
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-health-gate",
+            "-c",
+            str(cfg),
+            "--registry-file",
+            str(registry),
+            "--quality-corpus",
+            str(corpus),
+            "--quality-model-name",
+            "all-mpnet-base-v2",
+            "--quality-device",
+            "auto",
+            "--quality-batch-size",
+            "64",
+            "--quality-baseline-metrics",
+            str(baseline),
+        ],
+    )
+    assert result.exit_code == 0
+    payload = _extract_json_block(result.output)
+    assert payload["quality_gate"]["current_source"] == "corpus_benchmark"
+    assert payload["quality_gate"]["regressions"]["quality_regression"] is False
+    assert captured["corpus"] == str(corpus)
+    assert captured["model_name"] == "all-mpnet-base-v2"
+    assert captured["device"] == "auto"
+    assert captured["batch_size"] == 64
+
+
+def test_cli_runtime_health_gate_quality_corpus_requires_baseline(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("entity_resolution: {}\n")
+    registry = tmp_path / "runtime_registry.json"
+    registry.write_text('{"version":1,"baselines":[]}')
+    corpus = tmp_path / "quality_corpus.json"
+    corpus.write_text("{}")
+
+    monkeypatch.setattr(cli_module, "_get_db_from_options", lambda *args: object())
+
+    class FakePipeline:
+        def __init__(self, db: object, config_path: str):
+            pass
+
+        def get_embedding_runtime_health(self, startup_mode=None):
+            return {"enabled": True, "runtime": "pytorch"}
+
+    monkeypatch.setattr(cli_module, "ConfigurableERPipeline", FakePipeline)
+    monkeypatch.setattr(
+        cli_module.RuntimeProfileRegistry,
+        "compare_snapshot",
+        staticmethod(
+            lambda **kwargs: {
+                "baseline_found": True,
+                "key": "k",
+                "comparison": {},
+                "regressions": {
+                    "latency_regression": False,
+                    "fallback_regression": False,
+                },
+            }
+        ),
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-health-gate",
+            "-c",
+            str(cfg),
+            "--registry-file",
+            str(registry),
+            "--quality-corpus",
+            str(corpus),
+        ],
+    )
+    assert result.exit_code == 1
+    assert "Quality gate requires --quality-baseline-metrics" in result.output
+
+
+def test_cli_runtime_health_gate_quality_metrics_requires_baseline(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("entity_resolution: {}\n")
+    registry = tmp_path / "runtime_registry.json"
+    registry.write_text('{"version":1,"baselines":[]}')
+    current = tmp_path / "current_quality.json"
+    current.write_text('{"cosine_drift":0.008,"topk_overlap":0.97}')
+
+    monkeypatch.setattr(cli_module, "_get_db_from_options", lambda *args: object())
+
+    class FakePipeline:
+        def __init__(self, db: object, config_path: str):
+            pass
+
+        def get_embedding_runtime_health(self, startup_mode=None):
+            return {"enabled": True, "runtime": "pytorch"}
+
+    monkeypatch.setattr(cli_module, "ConfigurableERPipeline", FakePipeline)
+    monkeypatch.setattr(
+        cli_module.RuntimeProfileRegistry,
+        "compare_snapshot",
+        staticmethod(
+            lambda **kwargs: {
+                "baseline_found": True,
+                "key": "k",
+                "comparison": {},
+                "regressions": {
+                    "latency_regression": False,
+                    "fallback_regression": False,
+                },
+            }
+        ),
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-health-gate",
+            "-c",
+            str(cfg),
+            "--registry-file",
+            str(registry),
+            "--quality-current-metrics",
+            str(current),
+        ],
+    )
+    assert result.exit_code == 1
+    assert "Quality gate requires --quality-baseline-metrics" in result.output
+
+
+def test_cli_runtime_health_gate_rejects_metrics_and_corpus_together(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("entity_resolution: {}\n")
+    registry = tmp_path / "runtime_registry.json"
+    registry.write_text('{"version":1,"baselines":[]}')
+    baseline = tmp_path / "baseline_quality.json"
+    current = tmp_path / "current_quality.json"
+    corpus = tmp_path / "quality_corpus.json"
+    baseline.write_text('{"cosine_drift":0.003,"topk_overlap":0.99}')
+    current.write_text('{"cosine_drift":0.008,"topk_overlap":0.97}')
+    corpus.write_text("{}")
+
+    monkeypatch.setattr(cli_module, "_get_db_from_options", lambda *args: object())
+
+    class FakePipeline:
+        def __init__(self, db: object, config_path: str):
+            pass
+
+        def get_embedding_runtime_health(self, startup_mode=None):
+            return {"enabled": True, "runtime": "pytorch"}
+
+    monkeypatch.setattr(cli_module, "ConfigurableERPipeline", FakePipeline)
+    monkeypatch.setattr(
+        cli_module.RuntimeProfileRegistry,
+        "compare_snapshot",
+        staticmethod(
+            lambda **kwargs: {
+                "baseline_found": True,
+                "key": "k",
+                "comparison": {},
+                "regressions": {
+                    "latency_regression": False,
+                    "fallback_regression": False,
+                },
+            }
+        ),
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-health-gate",
+            "-c",
+            str(cfg),
+            "--registry-file",
+            str(registry),
+            "--quality-current-metrics",
+            str(current),
+            "--quality-corpus",
+            str(corpus),
+            "--quality-baseline-metrics",
+            str(baseline),
+        ],
+    )
+    assert result.exit_code == 1
+    assert "Specify only one of --quality-current-metrics or --quality-corpus." in result.output
+
+
+def test_cli_runtime_health_gate_rejects_baseline_without_current_input(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("entity_resolution: {}\n")
+    registry = tmp_path / "runtime_registry.json"
+    registry.write_text('{"version":1,"baselines":[]}')
+    baseline = tmp_path / "baseline_quality.json"
+    baseline.write_text('{"cosine_drift":0.003,"topk_overlap":0.99}')
+
+    monkeypatch.setattr(cli_module, "_get_db_from_options", lambda *args: object())
+
+    class FakePipeline:
+        def __init__(self, db: object, config_path: str):
+            pass
+
+        def get_embedding_runtime_health(self, startup_mode=None):
+            return {"enabled": True, "runtime": "pytorch"}
+
+    monkeypatch.setattr(cli_module, "ConfigurableERPipeline", FakePipeline)
+    monkeypatch.setattr(
+        cli_module.RuntimeProfileRegistry,
+        "compare_snapshot",
+        staticmethod(
+            lambda **kwargs: {
+                "baseline_found": True,
+                "key": "k",
+                "comparison": {},
+                "regressions": {
+                    "latency_regression": False,
+                    "fallback_regression": False,
+                },
+            }
+        ),
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-health-gate",
+            "-c",
+            str(cfg),
+            "--registry-file",
+            str(registry),
+            "--quality-baseline-metrics",
+            str(baseline),
+        ],
+    )
+    assert result.exit_code == 1
+    assert "Quality gate requires either --quality-current-metrics or --quality-corpus." in result.output
+
+
+@pytest.mark.parametrize(
+    "corpus_flag,corpus_value",
+    [
+        ("--quality-model-name", "all-MiniLM-L6-v2"),
+        ("--quality-device", "auto"),
+        ("--quality-batch-size", "64"),
+    ],
+)
+def test_cli_runtime_health_gate_rejects_corpus_tuning_without_corpus(
+    corpus_flag: str,
+    corpus_value: str,
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("entity_resolution: {}\n")
+    registry = tmp_path / "runtime_registry.json"
+    registry.write_text('{"version":1,"baselines":[]}')
+
+    monkeypatch.setattr(cli_module, "_get_db_from_options", lambda *args: object())
+
+    class FakePipeline:
+        def __init__(self, db: object, config_path: str):
+            pass
+
+        def get_embedding_runtime_health(self, startup_mode=None):
+            return {"enabled": True, "runtime": "pytorch"}
+
+    monkeypatch.setattr(cli_module, "ConfigurableERPipeline", FakePipeline)
+    monkeypatch.setattr(
+        cli_module.RuntimeProfileRegistry,
+        "compare_snapshot",
+        staticmethod(
+            lambda **kwargs: {
+                "baseline_found": True,
+                "key": "k",
+                "comparison": {},
+                "regressions": {
+                    "latency_regression": False,
+                    "fallback_regression": False,
+                },
+            }
+        ),
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-health-gate",
+            "-c",
+            str(cfg),
+            "--registry-file",
+            str(registry),
+            corpus_flag,
+            corpus_value,
+        ],
+    )
+    assert result.exit_code == 1
+    assert "require --quality-corpus" in result.output
+
+
+def test_cli_runtime_health_gate_fail_on_quality_regression_from_corpus_exits_2(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("entity_resolution: {}\n")
+    registry = tmp_path / "runtime_registry.json"
+    registry.write_text('{"version":1,"baselines":[]}')
+    baseline = tmp_path / "baseline_quality.json"
+    corpus = tmp_path / "quality_corpus.json"
+    baseline.write_text('{"cosine_drift":0.003,"topk_overlap":0.99}')
+    corpus.write_text("{}")
+
+    monkeypatch.setattr(cli_module, "_get_db_from_options", lambda *args: object())
+
+    class FakePipeline:
+        def __init__(self, db: object, config_path: str):
+            pass
+
+        def get_embedding_runtime_health(self, startup_mode=None):
+            return {"enabled": True, "runtime": "pytorch"}
+
+    monkeypatch.setattr(cli_module, "ConfigurableERPipeline", FakePipeline)
+    monkeypatch.setattr(
+        cli_module.RuntimeProfileRegistry,
+        "compare_snapshot",
+        staticmethod(
+            lambda **kwargs: {
+                "baseline_found": True,
+                "key": "k",
+                "comparison": {},
+                "regressions": {
+                    "latency_regression": False,
+                    "fallback_regression": False,
+                },
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        cli_module,
+        "_build_runtime_quality_metrics",
+        lambda **kwargs: {"cosine_drift": 0.02, "topk_overlap": 0.90},
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-health-gate",
+            "-c",
+            str(cfg),
+            "--registry-file",
+            str(registry),
+            "--quality-corpus",
+            str(corpus),
+            "--quality-baseline-metrics",
+            str(baseline),
+            "--fail-on-regression",
+        ],
+    )
+    assert result.exit_code == 2
+    payload = _extract_json_block(result.output)
+    assert payload["quality_gate"]["regressions"]["quality_regression"] is True
+
+
+def test_cli_runtime_health_gate_fail_on_quality_regression_from_metrics_exits_2(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("entity_resolution: {}\n")
+    registry = tmp_path / "runtime_registry.json"
+    registry.write_text('{"version":1,"baselines":[]}')
+    baseline = tmp_path / "baseline_quality.json"
+    current = tmp_path / "current_quality.json"
+    baseline.write_text('{"cosine_drift":0.003,"topk_overlap":0.99}')
+    current.write_text('{"cosine_drift":0.02,"topk_overlap":0.90}')
+
+    monkeypatch.setattr(cli_module, "_get_db_from_options", lambda *args: object())
+
+    class FakePipeline:
+        def __init__(self, db: object, config_path: str):
+            pass
+
+        def get_embedding_runtime_health(self, startup_mode=None):
+            return {"enabled": True, "runtime": "pytorch"}
+
+    monkeypatch.setattr(cli_module, "ConfigurableERPipeline", FakePipeline)
+    monkeypatch.setattr(
+        cli_module.RuntimeProfileRegistry,
+        "compare_snapshot",
+        staticmethod(
+            lambda **kwargs: {
+                "baseline_found": True,
+                "key": "k",
+                "comparison": {},
+                "regressions": {
+                    "latency_regression": False,
+                    "fallback_regression": False,
+                },
+            }
+        ),
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-health-gate",
+            "-c",
+            str(cfg),
+            "--registry-file",
+            str(registry),
+            "--quality-current-metrics",
+            str(current),
+            "--quality-baseline-metrics",
+            str(baseline),
+            "--fail-on-regression",
+        ],
+    )
+    assert result.exit_code == 2
+    payload = _extract_json_block(result.output)
+    assert payload["quality_gate"]["current_source"] == "metrics_file"
+    assert payload["quality_gate"]["regressions"]["quality_regression"] is True
+
+
+def test_cli_runtime_health_gate_fail_on_regression_quality_clean_exits_0(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("entity_resolution: {}\n")
+    registry = tmp_path / "runtime_registry.json"
+    registry.write_text('{"version":1,"baselines":[]}')
+    baseline = tmp_path / "baseline_quality.json"
+    current = tmp_path / "current_quality.json"
+    baseline.write_text('{"cosine_drift":0.003,"topk_overlap":0.99}')
+    current.write_text('{"cosine_drift":0.004,"topk_overlap":0.98}')
+
+    monkeypatch.setattr(cli_module, "_get_db_from_options", lambda *args: object())
+
+    class FakePipeline:
+        def __init__(self, db: object, config_path: str):
+            pass
+
+        def get_embedding_runtime_health(self, startup_mode=None):
+            return {"enabled": True, "runtime": "pytorch"}
+
+    monkeypatch.setattr(cli_module, "ConfigurableERPipeline", FakePipeline)
+    monkeypatch.setattr(
+        cli_module.RuntimeProfileRegistry,
+        "compare_snapshot",
+        staticmethod(
+            lambda **kwargs: {
+                "baseline_found": True,
+                "key": "k",
+                "comparison": {},
+                "regressions": {
+                    "latency_regression": False,
+                    "fallback_regression": False,
+                },
+            }
+        ),
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-health-gate",
+            "-c",
+            str(cfg),
+            "--registry-file",
+            str(registry),
+            "--quality-current-metrics",
+            str(current),
+            "--quality-baseline-metrics",
+            str(baseline),
+            "--fail-on-regression",
+        ],
+    )
+    assert result.exit_code == 0
+    payload = _extract_json_block(result.output)
+    assert payload["quality_gate"]["current_source"] == "metrics_file"
+    assert payload["quality_gate"]["regressions"]["quality_regression"] is False
+
+
+def test_cli_runtime_health_gate_fail_on_regression_quality_clean_from_corpus_exits_0(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("entity_resolution: {}\n")
+    registry = tmp_path / "runtime_registry.json"
+    registry.write_text('{"version":1,"baselines":[]}')
+    baseline = tmp_path / "baseline_quality.json"
+    corpus = tmp_path / "quality_corpus.json"
+    baseline.write_text('{"cosine_drift":0.003,"topk_overlap":0.99}')
+    corpus.write_text("{}")
+
+    monkeypatch.setattr(cli_module, "_get_db_from_options", lambda *args: object())
+
+    class FakePipeline:
+        def __init__(self, db: object, config_path: str):
+            pass
+
+        def get_embedding_runtime_health(self, startup_mode=None):
+            return {"enabled": True, "runtime": "pytorch"}
+
+    monkeypatch.setattr(cli_module, "ConfigurableERPipeline", FakePipeline)
+    monkeypatch.setattr(
+        cli_module.RuntimeProfileRegistry,
+        "compare_snapshot",
+        staticmethod(
+            lambda **kwargs: {
+                "baseline_found": True,
+                "key": "k",
+                "comparison": {},
+                "regressions": {
+                    "latency_regression": False,
+                    "fallback_regression": False,
+                },
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        cli_module,
+        "_build_runtime_quality_metrics",
+        lambda **kwargs: {"cosine_drift": 0.004, "topk_overlap": 0.98},
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-health-gate",
+            "-c",
+            str(cfg),
+            "--registry-file",
+            str(registry),
+            "--quality-corpus",
+            str(corpus),
+            "--quality-baseline-metrics",
+            str(baseline),
+            "--fail-on-regression",
+        ],
+    )
+    assert result.exit_code == 0
+    payload = _extract_json_block(result.output)
+    assert payload["quality_gate"]["current_source"] == "corpus_benchmark"
     assert payload["quality_gate"]["regressions"]["quality_regression"] is False
 
 

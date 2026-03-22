@@ -123,7 +123,9 @@ With persisted benchmark artifact:
 ```bash
 arango-er runtime-health-benchmark \
   -c config.yaml \
+  --profile ci-linux-cpu \
   --startup-mode strict \
+  --warmup-runs 2 \
   --repeats 10 \
   --output-dir artifacts/runtime/benchmark \
   --filename-prefix runtime_benchmark
@@ -209,6 +211,10 @@ This writes a baseline when no matching key exists and returns `baseline_bootstr
 - `0`: success (or no gated regressions)
 - `1`: command/runtime failure
 - `2`: regression detected when `--fail-on-regression` is enabled
+
+When quality inputs are supplied (`--quality-current-metrics` or `--quality-corpus`),
+`--fail-on-regression` still exits `0` unless `quality_gate.regressions.quality_regression`
+is true.
 
 ---
 
@@ -351,6 +357,20 @@ arango-er runtime-health-gate \
   --quality-topk-overlap-min 0.95 \
   --fail-on-regression
 
+# 3b.1) Alternative: compute current quality metrics inline from corpus
+arango-er runtime-health-gate \
+  -c config.yaml \
+  --registry-file artifacts/runtime/runtime_registry.json \
+  --label ci-linux \
+  --quality-corpus artifacts/quality/runtime_quality_corpus.json \
+  --quality-model-name all-MiniLM-L6-v2 \
+  --quality-device auto \
+  --quality-batch-size 32 \
+  --quality-baseline-metrics artifacts/quality/baseline_metrics.json \
+  --quality-cosine-drift-max 0.01 \
+  --quality-topk-overlap-min 0.95 \
+  --fail-on-regression
+
 # 4) Record benchmark trend artifact
 arango-er runtime-health-benchmark \
   -c config.yaml \
@@ -360,11 +380,22 @@ arango-er runtime-health-benchmark \
   --filename-prefix runtime_benchmark
 ```
 
+`runtime-health-gate` quality output includes `quality_gate.current_source`:
+- `metrics_file` when using `--quality-current-metrics`
+- `corpus_benchmark` when using `--quality-corpus`
+- `--quality-baseline-metrics` is required whenever either quality current source is provided
+- specify only one current source (`--quality-current-metrics` or `--quality-corpus`) per invocation
+- corpus tuning flags (`--quality-model-name`, `--quality-device`, `--quality-batch-size`) require `--quality-corpus`
+
 ---
 
 ## Notes
 
 - `startup_mode=strict` is recommended for pre-release validation and CI gates.
 - Use stable labels (for example `ci-linux`, `dev-mac`, `prod-apple-silicon`) for consistent baseline keys.
+- Use `--profile` to tag benchmark artifacts by workload class (for example `ci-linux-cpu`, `ci-linux-gpu`, `dev-mac`).
 - Re-baseline deliberately after expected runtime stack changes (driver/toolchain/model updates).
+- Prefer `--warmup-runs` > 0 in CI benchmarks to reduce one-time initialization noise.
+- Benchmark artifacts include `metadata.startup_mode` and `metadata.profile` for downstream grouping.
+- Benchmark artifacts include `metadata.config.config_path` to trace the exact config used by each run.
 

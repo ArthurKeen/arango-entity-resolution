@@ -5,6 +5,7 @@ Command Line Interface for ArangoDB Entity Resolution.
 from __future__ import annotations
 
 import click
+from click.core import ParameterSource
 import json
 import sys
 from pathlib import Path
@@ -234,6 +235,19 @@ def runtime_health_export(
 @click.option('--config', '-c', type=click.Path(exists=True), required=True, help='Path to YAML/JSON configuration file.')
 @click.option("--repeats", type=int, default=5, show_default=True, help="Number of repeated runtime-health probes.")
 @click.option(
+    "--warmup-runs",
+    type=int,
+    default=0,
+    show_default=True,
+    help="Warmup probes to run before measured benchmark repeats.",
+)
+@click.option(
+    "--profile",
+    default="default",
+    show_default=True,
+    help="Benchmark profile label included in output metadata.",
+)
+@click.option(
     "--startup-mode",
     type=click.Choice(["permissive", "strict"], case_sensitive=False),
     help="Optional override for embedding startup policy.",
@@ -253,6 +267,8 @@ def runtime_health_export(
 def runtime_health_benchmark(
     config,
     repeats,
+    warmup_runs,
+    profile,
     startup_mode,
     output_dir,
     filename_prefix,
@@ -269,7 +285,14 @@ def runtime_health_benchmark(
         result = RuntimeBenchmarkService.run_benchmark(
             probe=lambda: pipeline.get_embedding_runtime_health(startup_mode=startup_mode),
             repeats=repeats,
+            warmup_runs=warmup_runs,
+            profile=profile,
         )
+        result.setdefault("metadata", {})
+        result["metadata"]["startup_mode"] = startup_mode or "default"
+        result["metadata"]["config"] = {
+            "config_path": str(config),
+        }
         if output_dir:
             result["output_file"] = RuntimeBenchmarkService.export_benchmark(
                 benchmark_result=result,
@@ -699,6 +722,30 @@ def runtime_health_compare(
     help="Optional baseline quality metrics JSON path for combined health+quality gating.",
 )
 @click.option(
+    "--quality-corpus",
+    type=click.Path(exists=True, dir_okay=False),
+    help="Optional benchmark corpus path to compute current quality metrics on the fly.",
+)
+@click.option(
+    "--quality-model-name",
+    default="all-MiniLM-L6-v2",
+    show_default=True,
+    help="Model name used when --quality-corpus is provided.",
+)
+@click.option(
+    "--quality-device",
+    default="cpu",
+    show_default=True,
+    help="Embedding device used when --quality-corpus is provided.",
+)
+@click.option(
+    "--quality-batch-size",
+    type=int,
+    default=32,
+    show_default=True,
+    help="Batch size used when --quality-corpus is provided.",
+)
+@click.option(
     "--quality-cosine-drift-max",
     type=float,
     default=0.01,
@@ -724,6 +771,10 @@ def runtime_health_gate(
     fail_on_regression,
     bootstrap_baseline,
     quality_current_metrics,
+    quality_corpus,
+    quality_model_name,
+    quality_device,
+    quality_batch_size,
     quality_baseline_metrics,
     quality_cosine_drift_max,
     quality_topk_overlap_min,
@@ -767,8 +818,45 @@ def runtime_health_gate(
                 filename_prefix=filename_prefix,
             )
 
-        if quality_current_metrics and quality_baseline_metrics:
-            quality_current = RuntimeQualityGateService.load_metrics(quality_current_metrics)
+        ctx = click.get_current_context()
+
+        quality_inputs_provided = any(
+            [quality_current_metrics, quality_corpus, quality_baseline_metrics]
+        )
+        corpus_option_explicitly_set = any(
+            ctx.get_parameter_source(param_name) != ParameterSource.DEFAULT
+            for param_name in ("quality_model_name", "quality_device", "quality_batch_size")
+        )
+        if corpus_option_explicitly_set and not quality_corpus:
+            raise click.ClickException(
+                "Options --quality-model-name/--quality-device/--quality-batch-size require --quality-corpus."
+            )
+        if quality_inputs_provided:
+            if not quality_baseline_metrics:
+                raise click.ClickException(
+                    "Quality gate requires --quality-baseline-metrics when quality inputs are provided."
+                )
+            if quality_current_metrics and quality_corpus:
+                raise click.ClickException(
+                    "Specify only one of --quality-current-metrics or --quality-corpus."
+                )
+            if not quality_current_metrics and not quality_corpus:
+                raise click.ClickException(
+                    "Quality gate requires either --quality-current-metrics or --quality-corpus."
+                )
+
+        if quality_baseline_metrics and (quality_current_metrics or quality_corpus):
+            if quality_current_metrics:
+                quality_current = RuntimeQualityGateService.load_metrics(quality_current_metrics)
+                quality_current_source = "metrics_file"
+            else:
+                quality_current = _build_runtime_quality_metrics(
+                    corpus=quality_corpus,
+                    model_name=quality_model_name,
+                    device=quality_device,
+                    batch_size=quality_batch_size,
+                )
+                quality_current_source = "corpus_benchmark"
             quality_baseline = RuntimeQualityGateService.load_metrics(quality_baseline_metrics)
             quality_comparison = RuntimeQualityGateService.compare_metrics(
                 current=quality_current,
@@ -777,6 +865,7 @@ def runtime_health_gate(
                 topk_overlap_min=quality_topk_overlap_min,
             )
             comparison["quality_gate"] = quality_comparison
+            comparison["quality_gate"]["current_source"] = quality_current_source
 
         _emit_json(comparison)
 
