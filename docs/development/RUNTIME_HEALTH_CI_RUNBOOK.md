@@ -210,6 +210,10 @@ This writes a baseline when no matching key exists and returns `baseline_bootstr
 - `1`: command/runtime failure
 - `2`: regression detected when `--fail-on-regression` is enabled
 
+When quality inputs are supplied (`--quality-current-metrics` or `--quality-corpus`),
+`--fail-on-regression` still exits `0` unless `quality_gate.regressions.quality_regression`
+is true.
+
 ---
 
 ## Suggested CI Pattern
