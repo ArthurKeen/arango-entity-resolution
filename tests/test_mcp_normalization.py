@@ -265,6 +265,21 @@ def test_normalize_find_duplicates_rejects_non_object_managed_refs():
         )
 
 
+def test_normalize_find_duplicates_accepts_null_managed_refs():
+    req = normalize_find_duplicates_args(
+        collection="companies",
+        fields=["name"],
+        options={
+            "aliasing": {
+                "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                "managed_refs": None,
+            }
+        },
+    )
+    assert req.alias_sources == [{"type": "managed_ref", "ref": "entity_aliases_v1"}]
+    assert req.options.aliasing["managed_refs"] is None
+
+
 def test_normalize_find_duplicates_rejects_non_object_managed_ref_entry():
     with pytest.raises(ValueError, match="options.aliasing.managed_refs.entity_aliases_v1 must be an object/dict"):
         normalize_find_duplicates_args(
