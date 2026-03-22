@@ -1090,6 +1090,7 @@ def test_cli_runtime_health_gate_includes_quality_gate(
     )
     assert result.exit_code == 0
     payload = _extract_json_block(result.output)
+    assert payload["quality_gate"]["current_source"] == "metrics_file"
     assert payload["quality_gate"]["regressions"]["quality_regression"] is False
 
 
