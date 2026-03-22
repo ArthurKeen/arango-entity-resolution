@@ -235,6 +235,13 @@ def runtime_health_export(
 @click.option('--config', '-c', type=click.Path(exists=True), required=True, help='Path to YAML/JSON configuration file.')
 @click.option("--repeats", type=int, default=5, show_default=True, help="Number of repeated runtime-health probes.")
 @click.option(
+    "--warmup-runs",
+    type=int,
+    default=0,
+    show_default=True,
+    help="Warmup probes to run before measured benchmark repeats.",
+)
+@click.option(
     "--startup-mode",
     type=click.Choice(["permissive", "strict"], case_sensitive=False),
     help="Optional override for embedding startup policy.",
@@ -254,6 +261,7 @@ def runtime_health_export(
 def runtime_health_benchmark(
     config,
     repeats,
+    warmup_runs,
     startup_mode,
     output_dir,
     filename_prefix,
@@ -270,6 +278,7 @@ def runtime_health_benchmark(
         result = RuntimeBenchmarkService.run_benchmark(
             probe=lambda: pipeline.get_embedding_runtime_health(startup_mode=startup_mode),
             repeats=repeats,
+            warmup_runs=warmup_runs,
         )
         if output_dir:
             result["output_file"] = RuntimeBenchmarkService.export_benchmark(

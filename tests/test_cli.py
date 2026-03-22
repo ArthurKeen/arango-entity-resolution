@@ -438,8 +438,8 @@ def test_cli_runtime_health_benchmark_outputs_summary(
         cli_module.RuntimeBenchmarkService,
         "run_benchmark",
         staticmethod(
-            lambda probe, repeats: {
-                "metadata": {"repeats": repeats},
+            lambda probe, repeats, warmup_runs=0: {
+                "metadata": {"repeats": repeats, "warmup_runs": warmup_runs},
                 "summary": {"latency_ms": {"mean": 12.0}},
                 "runs": [],
             }
@@ -459,6 +459,7 @@ def test_cli_runtime_health_benchmark_outputs_summary(
     assert result.exit_code == 0
     payload = _extract_json_block(result.output)
     assert payload["metadata"]["repeats"] == 3
+    assert payload["metadata"]["warmup_runs"] == 0
     assert payload["summary"]["latency_ms"]["mean"] == 12.0
 
 
@@ -483,7 +484,9 @@ def test_cli_runtime_health_benchmark_writes_artifact(
     monkeypatch.setattr(
         cli_module.RuntimeBenchmarkService,
         "run_benchmark",
-        staticmethod(lambda probe, repeats: {"metadata": {}, "summary": {}, "runs": []}),
+        staticmethod(
+            lambda probe, repeats, warmup_runs=0: {"metadata": {}, "summary": {}, "runs": []}
+        ),
     )
     monkeypatch.setattr(
         cli_module.RuntimeBenchmarkService,
@@ -510,6 +513,59 @@ def test_cli_runtime_health_benchmark_writes_artifact(
     assert result.exit_code == 0
     payload = _extract_json_block(result.output)
     assert payload["output_file"].endswith("bench_20260314_000000.json")
+
+
+def test_cli_runtime_health_benchmark_forwards_warmup_runs(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("entity_resolution: {}\n")
+    captured: dict[str, int] = {}
+
+    monkeypatch.setattr(cli_module, "_get_db_from_options", lambda *args: object())
+
+    class FakePipeline:
+        def __init__(self, db: object, config_path: str):
+            pass
+
+        def get_embedding_runtime_health(self, startup_mode=None):
+            return {"setup_latency_ms": 10.0, "telemetry": {"fallback_count": 0}}
+
+    monkeypatch.setattr(cli_module, "ConfigurableERPipeline", FakePipeline)
+
+    def _fake_run_benchmark(probe, repeats, warmup_runs=0):
+        captured["repeats"] = repeats
+        captured["warmup_runs"] = warmup_runs
+        return {
+            "metadata": {"repeats": repeats, "warmup_runs": warmup_runs},
+            "summary": {"latency_ms": {"mean": 10.0}},
+            "runs": [],
+        }
+
+    monkeypatch.setattr(
+        cli_module.RuntimeBenchmarkService,
+        "run_benchmark",
+        staticmethod(_fake_run_benchmark),
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-health-benchmark",
+            "-c",
+            str(cfg),
+            "--repeats",
+            "4",
+            "--warmup-runs",
+            "2",
+        ],
+    )
+    assert result.exit_code == 0
+    payload = _extract_json_block(result.output)
+    assert payload["metadata"]["repeats"] == 4
+    assert payload["metadata"]["warmup_runs"] == 2
+    assert captured["repeats"] == 4
+    assert captured["warmup_runs"] == 2
 
 
 def test_cli_runtime_health_compare_writes_report_artifacts(

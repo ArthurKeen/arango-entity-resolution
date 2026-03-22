@@ -124,6 +124,7 @@ With persisted benchmark artifact:
 arango-er runtime-health-benchmark \
   -c config.yaml \
   --startup-mode strict \
+  --warmup-runs 2 \
   --repeats 10 \
   --output-dir artifacts/runtime/benchmark \
   --filename-prefix runtime_benchmark
@@ -392,4 +393,5 @@ arango-er runtime-health-benchmark \
 - `startup_mode=strict` is recommended for pre-release validation and CI gates.
 - Use stable labels (for example `ci-linux`, `dev-mac`, `prod-apple-silicon`) for consistent baseline keys.
 - Re-baseline deliberately after expected runtime stack changes (driver/toolchain/model updates).
+- Prefer `--warmup-runs` > 0 in CI benchmarks to reduce one-time initialization noise.
 
