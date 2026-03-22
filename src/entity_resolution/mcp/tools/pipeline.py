@@ -564,11 +564,17 @@ def _apply_precision_gates(
     fields: list[str],
     request: FindDuplicatesRequest,
 ) -> Tuple[list[Any], Dict[str, Any]]:
+    alias_profile = _build_aliasing_profile(request)
     if not matches:
         return [], {
             "enabled": _has_precision_gates(request),
             "mode": request.gating_mode,
             "enforcement_enabled": request.gating_mode == "enforce",
+            "aliasing": {
+                "configured": bool(alias_profile.get("inline_map") or alias_profile.get("field_sources") or alias_profile.get("acronym_auto")),
+                "managed_ref_applied": alias_profile.get("managed_ref_applied", []),
+                "managed_ref_missing": alias_profile.get("managed_ref_missing", []),
+            },
             "input_matches": 0,
             "accepted_matches": 0,
             "rejected_token_jaccard": 0,
@@ -586,6 +592,11 @@ def _apply_precision_gates(
             "enabled": False,
             "mode": request.gating_mode,
             "enforcement_enabled": False,
+            "aliasing": {
+                "configured": bool(alias_profile.get("inline_map") or alias_profile.get("field_sources") or alias_profile.get("acronym_auto")),
+                "managed_ref_applied": alias_profile.get("managed_ref_applied", []),
+                "managed_ref_missing": alias_profile.get("managed_ref_missing", []),
+            },
             "input_matches": len(matches),
             "accepted_matches": len(matches),
             "rejected_token_jaccard": 0,
@@ -610,7 +621,6 @@ def _apply_precision_gates(
     accepted: list[Any] = []
 
     margin_index = _build_margin_index(matches, collection=collection)
-    alias_profile = _build_aliasing_profile(request)
     token_index: Dict[str, set[str]] = {}
     jaccard_fields = _merge_unique_fields(request.token_jaccard_fields, fields)
     if request.similarity_type == "token_jaccard" or request.require_token_overlap or request.token_type_affinity:
@@ -690,6 +700,11 @@ def _apply_precision_gates(
         "enabled": True,
         "mode": request.gating_mode,
         "enforcement_enabled": enforce,
+        "aliasing": {
+            "configured": bool(alias_profile.get("inline_map") or alias_profile.get("field_sources") or alias_profile.get("acronym_auto")),
+            "managed_ref_applied": alias_profile.get("managed_ref_applied", []),
+            "managed_ref_missing": alias_profile.get("managed_ref_missing", []),
+        },
         "input_matches": len(matches),
         "accepted_matches": len(accepted),
         "rejected_token_jaccard": rejected_token_jaccard,
@@ -884,6 +899,8 @@ def _build_aliasing_profile(request: FindDuplicatesRequest) -> Dict[str, Any]:
         "field_sources": [],
         "acronym_auto": False,
         "acronym_min_word_len": 4,
+        "managed_ref_applied": [],
+        "managed_ref_missing": [],
     }
     for source in request.alias_sources:
         source_type = str(source.get("type", "")).lower()
@@ -902,8 +919,15 @@ def _build_aliasing_profile(request: FindDuplicatesRequest) -> Dict[str, Any]:
             ref = str(source.get("ref", "")).strip()
             managed = request.options.aliasing.get("managed_refs", {})
             if ref and isinstance(managed, dict):
-                _merge_alias_map(profile["inline_map"], managed.get(ref))
+                ref_map = managed.get(ref)
+                if isinstance(ref_map, dict):
+                    _merge_alias_map(profile["inline_map"], ref_map)
+                    profile["managed_ref_applied"].append(ref)
+                else:
+                    profile["managed_ref_missing"].append(ref)
     profile["field_sources"] = _merge_unique_fields(profile["field_sources"], [])
+    profile["managed_ref_applied"] = _merge_unique_fields(profile["managed_ref_applied"], [])
+    profile["managed_ref_missing"] = _merge_unique_fields(profile["managed_ref_missing"], [])
     return profile
 
 

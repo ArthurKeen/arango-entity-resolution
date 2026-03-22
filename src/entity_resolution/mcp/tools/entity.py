@@ -338,6 +338,8 @@ def _build_explain_gates(
             "field_sources": alias_profile.get("field_sources", []),
             "acronym_auto": bool(alias_profile.get("acronym_auto", False)),
             "acronym_min_word_len": int(alias_profile.get("acronym_min_word_len", 4)),
+            "managed_ref_applied": alias_profile.get("managed_ref_applied", []),
+            "managed_ref_missing": alias_profile.get("managed_ref_missing", []),
         },
     }
 
@@ -402,6 +404,8 @@ def _normalize_aliasing_profile(value: Any) -> Dict[str, Any]:
         "field_sources": [],
         "acronym_auto": False,
         "acronym_min_word_len": 4,
+        "managed_ref_applied": [],
+        "managed_ref_missing": [],
     }
     if not isinstance(value, dict):
         return profile
@@ -427,8 +431,15 @@ def _normalize_aliasing_profile(value: Any) -> Dict[str, Any]:
             ref = str(source.get("ref", "")).strip()
             managed = value.get("managed_refs", {})
             if ref and isinstance(managed, dict):
-                _merge_alias_map(profile["inline_map"], managed.get(ref))
+                ref_map = managed.get(ref)
+                if isinstance(ref_map, dict):
+                    _merge_alias_map(profile["inline_map"], ref_map)
+                    profile["managed_ref_applied"].append(ref)
+                else:
+                    profile["managed_ref_missing"].append(ref)
     profile["field_sources"] = _merge_unique_fields(profile["field_sources"], [])
+    profile["managed_ref_applied"] = _merge_unique_fields(profile["managed_ref_applied"], [])
+    profile["managed_ref_missing"] = _merge_unique_fields(profile["managed_ref_missing"], [])
     return profile
 
 

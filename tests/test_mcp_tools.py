@@ -490,6 +490,49 @@ class TestFindDuplicates:
     @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
     @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
     @patch("entity_resolution.mcp.tools.pipeline._get_db")
+    def test_find_duplicates_reports_missing_managed_ref_alias(self, mock_get_db, mock_has_any_edges, mock_pipeline_cls):
+        from entity_resolution.mcp.contracts import FindDuplicatesRequest, MCPOptions
+        from entity_resolution.mcp.tools.pipeline import run_find_duplicates_request
+
+        mock_db = MagicMock()
+        mock_coll = MagicMock()
+        docs = {"a1": {"name": "ibm"}, "a2": {"name": "international business machines"}}
+        mock_coll.get.side_effect = lambda key: docs.get(key)
+        mock_db.collection.return_value = mock_coll
+        mock_get_db.return_value = mock_db
+        mock_has_any_edges.return_value = False
+
+        mock_pipeline = MagicMock()
+        mock_pipeline._run_blocking.return_value = [("a1", "a2")]
+        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.90)]
+        mock_pipeline._run_edge_creation.return_value = 1
+        mock_pipeline_cls.return_value = mock_pipeline
+
+        req = FindDuplicatesRequest(
+            collection="companies",
+            fields=["name"],
+            strategy="exact",
+            confidence_threshold=0.8,
+            gating_mode="report_only",
+            require_token_overlap=True,
+            token_overlap_bypass_score=0.95,
+            alias_sources=[{"type": "managed_ref", "ref": "missing_ref"}],
+            options=MCPOptions(aliasing={"managed_refs": {"other_ref": {"ibm": ["international"]}}}),
+        )
+        result = run_find_duplicates_request(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            request=req,
+        )
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_applied"] == []
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_missing"] == ["missing_ref"]
+
+    @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
+    @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
+    @patch("entity_resolution.mcp.tools.pipeline._get_db")
     def test_find_duplicates_token_overlap_gate_respects_managed_ref_aliases(
         self,
         mock_get_db,
@@ -545,6 +588,8 @@ class TestFindDuplicates:
 
         assert result["edges"]["edges_created"] == 1
         assert result["similarity"]["gates"]["rejected_token_overlap"] == 0
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_applied"] == ["entity_aliases_v1"]
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_missing"] == []
 
     @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
     @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
@@ -769,6 +814,8 @@ class TestExplainMatch:
         )
         failures = [f["gate"] for f in result["gates"]["summary"]["gate_failures"]]
         assert "token_overlap" not in failures
+        assert result["gates"]["aliasing"]["managed_ref_applied"] == ["entity_aliases_v1"]
+        assert result["gates"]["aliasing"]["managed_ref_missing"] == []
 
 
 class TestResolveEntityCrossCollection:
