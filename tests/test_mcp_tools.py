@@ -1881,6 +1881,41 @@ class TestMcpServerOptionsCompatibility:
         assert req.confidence_threshold == 0.93
         assert req.max_block_size == 120
 
+    def test_server_find_duplicates_rejects_non_list_aliasing_sources(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="options.aliasing.sources must be an array/list"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={"aliasing": {"sources": {"type": "managed_ref", "ref": "entity_aliases_v1"}}},
+            )
+
+    def test_server_find_duplicates_rejects_non_object_managed_refs(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="options.aliasing.managed_refs must be an object/dict"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={
+                    "aliasing": {
+                        "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                        "managed_refs": ["bad"],
+                    }
+                },
+            )
+
+    def test_server_find_duplicates_rejects_managed_ref_without_ref(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="\\.ref is required for type=managed_ref"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={"aliasing": {"sources": [{"type": "managed_ref"}]}},
+            )
+
     @patch("entity_resolution.mcp.tools.entity.run_explain_match")
     def test_server_explain_match_accepts_options(self, mock_run_explain_match):
         from entity_resolution.mcp import server
