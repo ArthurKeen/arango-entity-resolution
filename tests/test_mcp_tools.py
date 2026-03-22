@@ -820,6 +820,45 @@ class TestExplainMatch:
         assert result["gates"]["aliasing"]["managed_ref_applied"] == ["entity_aliases_v1"]
         assert result["gates"]["aliasing"]["managed_ref_missing"] == []
 
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_explain_match_reports_missing_managed_ref_alias(self, mock_client_cls):
+        from entity_resolution.mcp.tools.entity import run_explain_match
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        result = run_explain_match(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            collection="companies",
+            key_a="a1",
+            key_b="b1",
+            fields=["name"],
+            options={
+                "gating": {
+                    "require_token_overlap": True,
+                    "token_overlap_bypass_score": 0.99,
+                },
+                "aliasing": {
+                    "sources": [{"type": "managed_ref", "ref": "missing_ref"}],
+                    "managed_refs": {"other_ref": {"ibm": ["international"]}},
+                },
+            },
+        )
+
+        assert result["gates"]["aliasing"]["managed_ref_requested"] == ["missing_ref"]
+        assert result["gates"]["aliasing"]["managed_ref_applied"] == []
+        assert result["gates"]["aliasing"]["managed_ref_missing"] == ["missing_ref"]
+        failures = [f["gate"] for f in result["gates"]["summary"]["gate_failures"]]
+        assert "token_overlap" in failures
+
 
 class TestResolveEntityCrossCollection:
     @patch("entity_resolution.mcp.tools.entity.ArangoClient")
