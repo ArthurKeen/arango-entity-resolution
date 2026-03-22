@@ -1320,6 +1320,69 @@ def test_cli_runtime_health_gate_rejects_baseline_without_current_input(
     assert "Quality gate requires either --quality-current-metrics or --quality-corpus." in result.output
 
 
+def test_cli_runtime_health_gate_fail_on_quality_regression_from_corpus_exits_2(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("entity_resolution: {}\n")
+    registry = tmp_path / "runtime_registry.json"
+    registry.write_text('{"version":1,"baselines":[]}')
+    baseline = tmp_path / "baseline_quality.json"
+    corpus = tmp_path / "quality_corpus.json"
+    baseline.write_text('{"cosine_drift":0.003,"topk_overlap":0.99}')
+    corpus.write_text("{}")
+
+    monkeypatch.setattr(cli_module, "_get_db_from_options", lambda *args: object())
+
+    class FakePipeline:
+        def __init__(self, db: object, config_path: str):
+            pass
+
+        def get_embedding_runtime_health(self, startup_mode=None):
+            return {"enabled": True, "runtime": "pytorch"}
+
+    monkeypatch.setattr(cli_module, "ConfigurableERPipeline", FakePipeline)
+    monkeypatch.setattr(
+        cli_module.RuntimeProfileRegistry,
+        "compare_snapshot",
+        staticmethod(
+            lambda **kwargs: {
+                "baseline_found": True,
+                "key": "k",
+                "comparison": {},
+                "regressions": {
+                    "latency_regression": False,
+                    "fallback_regression": False,
+                },
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        cli_module,
+        "_build_runtime_quality_metrics",
+        lambda **kwargs: {"cosine_drift": 0.02, "topk_overlap": 0.90},
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-health-gate",
+            "-c",
+            str(cfg),
+            "--registry-file",
+            str(registry),
+            "--quality-corpus",
+            str(corpus),
+            "--quality-baseline-metrics",
+            str(baseline),
+            "--fail-on-regression",
+        ],
+    )
+    assert result.exit_code == 2
+    payload = _extract_json_block(result.output)
+    assert payload["quality_gate"]["regressions"]["quality_regression"] is True
+
+
 def test_cli_runtime_quality_compare_writes_report_artifacts(
     runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
