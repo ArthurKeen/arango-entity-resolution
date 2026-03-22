@@ -316,6 +316,27 @@ def test_normalize_find_duplicates_canonicalizes_managed_ref_list_values():
     }
 
 
+def test_normalize_find_duplicates_drops_empty_managed_ref_and_token_keys():
+    req = normalize_find_duplicates_args(
+        collection="companies",
+        fields=["name"],
+        options={
+            "aliasing": {
+                "managed_refs": {
+                    " ": {"ibm": ["international"]},
+                    "entity_aliases_v1": {
+                        "   ": ["ignored"],
+                        "IBM": ["International"],
+                    },
+                }
+            }
+        },
+    )
+    assert req.options.aliasing["managed_refs"] == {
+        "entity_aliases_v1": {"ibm": ["international"]}
+    }
+
+
 def test_normalize_find_duplicates_rejects_non_object_managed_ref_entry():
     with pytest.raises(ValueError, match="options.aliasing.managed_refs.entity_aliases_v1 must be an object/dict"):
         normalize_find_duplicates_args(
