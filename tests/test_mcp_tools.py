@@ -1906,6 +1906,26 @@ class TestMcpServerOptionsCompatibility:
                 },
             )
 
+    def test_server_find_duplicates_rejects_non_object_alias_source_entry(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="options.aliasing.sources\\[0\\] must be an object/dict"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={"aliasing": {"sources": ["managed_ref"]}},
+            )
+
+    def test_server_find_duplicates_rejects_alias_source_without_type(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="options.aliasing.sources\\[0\\]\\.type is required"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={"aliasing": {"sources": [{}]}},
+            )
+
     def test_server_find_duplicates_rejects_managed_ref_without_ref(self):
         from entity_resolution.mcp import server
 
@@ -1914,6 +1934,16 @@ class TestMcpServerOptionsCompatibility:
                 collection="companies",
                 fields=["name"],
                 options={"aliasing": {"sources": [{"type": "managed_ref"}]}},
+            )
+
+    def test_server_find_duplicates_rejects_unknown_alias_source_type(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="must be one of inline, field, acronym, managed_ref"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={"aliasing": {"sources": [{"type": "taxonomy"}]}},
             )
 
     @patch("entity_resolution.mcp.tools.entity.run_explain_match")
