@@ -381,6 +381,8 @@ arango-er runtime-health-benchmark \
 `runtime-health-gate` quality output includes `quality_gate.current_source`:
 - `metrics_file` when using `--quality-current-metrics`
 - `corpus_benchmark` when using `--quality-corpus`
+- `--quality-baseline-metrics` is required whenever either quality current source is provided
+- specify only one current source (`--quality-current-metrics` or `--quality-corpus`) per invocation
 
 ---
 
