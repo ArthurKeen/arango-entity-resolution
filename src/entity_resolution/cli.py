@@ -5,6 +5,7 @@ Command Line Interface for ArangoDB Entity Resolution.
 from __future__ import annotations
 
 import click
+from click.core import ParameterSource
 import json
 import sys
 from pathlib import Path
@@ -795,9 +796,19 @@ def runtime_health_gate(
                 filename_prefix=filename_prefix,
             )
 
+        ctx = click.get_current_context()
+
         quality_inputs_provided = any(
             [quality_current_metrics, quality_corpus, quality_baseline_metrics]
         )
+        corpus_option_explicitly_set = any(
+            ctx.get_parameter_source(param_name) != ParameterSource.DEFAULT
+            for param_name in ("quality_model_name", "quality_device", "quality_batch_size")
+        )
+        if corpus_option_explicitly_set and not quality_corpus:
+            raise click.ClickException(
+                "Options --quality-model-name/--quality-device/--quality-batch-size require --quality-corpus."
+            )
         if quality_inputs_provided:
             if not quality_baseline_metrics:
                 raise click.ClickException(
