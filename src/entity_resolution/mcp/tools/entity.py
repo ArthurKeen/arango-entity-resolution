@@ -414,17 +414,7 @@ def _normalize_aliasing_profile(value: Any) -> Dict[str, Any]:
         source_type = str(source.get("type", "")).lower()
         if source_type == "inline":
             raw_map = source.get("map", {})
-            if isinstance(raw_map, dict):
-                for key, vals in raw_map.items():
-                    token = str(key).strip().lower()
-                    if not token:
-                        continue
-                    if isinstance(vals, list):
-                        mapped = [str(v).strip().lower() for v in vals if str(v).strip()]
-                    else:
-                        mapped = [str(vals).strip().lower()] if str(vals).strip() else []
-                    if mapped:
-                        profile["inline_map"][token] = mapped
+            _merge_alias_map(profile["inline_map"], raw_map)
         elif source_type == "field":
             field = str(source.get("field", "")).strip()
             if field:
@@ -433,6 +423,11 @@ def _normalize_aliasing_profile(value: Any) -> Dict[str, Any]:
             if bool(source.get("auto", True)):
                 profile["acronym_auto"] = True
             profile["acronym_min_word_len"] = int(source.get("min_word_len", 4))
+        elif source_type == "managed_ref":
+            ref = str(source.get("ref", "")).strip()
+            managed = value.get("managed_refs", {})
+            if ref and isinstance(managed, dict):
+                _merge_alias_map(profile["inline_map"], managed.get(ref))
     profile["field_sources"] = _merge_unique_fields(profile["field_sources"], [])
     return profile
 
@@ -458,6 +453,23 @@ def _merge_unique_fields(primary: List[str], extra: List[str]) -> List[str]:
         seen.add(val)
         out.append(val)
     return out
+
+
+def _merge_alias_map(target: Dict[str, List[str]], value: Any) -> None:
+    if not isinstance(value, dict):
+        return
+    for key, vals in value.items():
+        token = str(key).strip().lower()
+        if not token:
+            continue
+        if isinstance(vals, list):
+            mapped = [str(v).strip().lower() for v in vals if str(v).strip()]
+        else:
+            mapped = [str(vals).strip().lower()] if str(vals).strip() else []
+        if not mapped:
+            continue
+        existing = target.get(token, [])
+        target[token] = _merge_unique_fields(existing, mapped)
 
 
 def _jaccard_tokens(tokens_a: set[str], tokens_b: set[str]) -> float:

@@ -111,7 +111,8 @@ def test_normalize_find_duplicates_aliasing_sources():
                     {"type": "field", "field": "aliases"},
                     {"type": "acronym", "auto": True, "min_word_len": 3},
                     {"type": "managed_ref", "ref": "entity_aliases_v1"},
-                ]
+                ],
+                "managed_refs": {"entity_aliases_v1": {"ibm": ["international", "business", "machines"]}},
             }
         },
     )
@@ -121,6 +122,7 @@ def test_normalize_find_duplicates_aliasing_sources():
     assert req.alias_sources[1] == {"type": "field", "field": "aliases"}
     assert req.alias_sources[2]["type"] == "acronym"
     assert req.alias_sources[3] == {"type": "managed_ref", "ref": "entity_aliases_v1"}
+    assert "managed_refs" in req.options.aliasing
 
 
 def test_normalize_find_duplicates_token_jaccard_similarity_options():

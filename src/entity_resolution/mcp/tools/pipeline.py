@@ -889,17 +889,7 @@ def _build_aliasing_profile(request: FindDuplicatesRequest) -> Dict[str, Any]:
         source_type = str(source.get("type", "")).lower()
         if source_type == "inline":
             raw_map = source.get("map", {})
-            if isinstance(raw_map, dict):
-                for key, vals in raw_map.items():
-                    token = str(key).strip().lower()
-                    if not token:
-                        continue
-                    if isinstance(vals, list):
-                        mapped = [str(v).strip().lower() for v in vals if str(v).strip()]
-                    else:
-                        mapped = [str(vals).strip().lower()] if str(vals).strip() else []
-                    if mapped:
-                        profile["inline_map"][token] = mapped
+            _merge_alias_map(profile["inline_map"], raw_map)
         elif source_type == "field":
             field = str(source.get("field", "")).strip()
             if field:
@@ -908,6 +898,11 @@ def _build_aliasing_profile(request: FindDuplicatesRequest) -> Dict[str, Any]:
             if bool(source.get("auto", True)):
                 profile["acronym_auto"] = True
             profile["acronym_min_word_len"] = int(source.get("min_word_len", 4))
+        elif source_type == "managed_ref":
+            ref = str(source.get("ref", "")).strip()
+            managed = request.options.aliasing.get("managed_refs", {})
+            if ref and isinstance(managed, dict):
+                _merge_alias_map(profile["inline_map"], managed.get(ref))
     profile["field_sources"] = _merge_unique_fields(profile["field_sources"], [])
     return profile
 
@@ -922,6 +917,23 @@ def _expand_tokens_with_alias_map(tokens: set[str], inline_map: Dict[str, list[s
             if m:
                 expanded.add(m)
     return expanded
+
+
+def _merge_alias_map(target: Dict[str, list[str]], value: Any) -> None:
+    if not isinstance(value, dict):
+        return
+    for key, vals in value.items():
+        token = str(key).strip().lower()
+        if not token:
+            continue
+        if isinstance(vals, list):
+            mapped = [str(v).strip().lower() for v in vals if str(v).strip()]
+        else:
+            mapped = [str(vals).strip().lower()] if str(vals).strip() else []
+        if not mapped:
+            continue
+        existing = target.get(token, [])
+        target[token] = _merge_unique_fields(existing, mapped)
 
 
 def _augment_blocking_fields_with_alias_sources(fields: list[str], request: FindDuplicatesRequest) -> list[str]:
