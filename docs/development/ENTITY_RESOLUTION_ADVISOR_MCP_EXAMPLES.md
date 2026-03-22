@@ -25,6 +25,7 @@ Successful responses:
   "status": "ok",
   "tool_version": "1.0.0",
   "advisor_policy_version": "2026-03-01",
+  "er_options_schema_version": "1.0",
   "request_id": "req-123",
   "result": {}
 }
@@ -36,6 +37,7 @@ Error responses:
 {
   "status": "error",
   "tool_version": "1.0.0",
+  "er_options_schema_version": "1.0",
   "request_id": "req-123",
   "error": {
     "code": "INVALID_ARGUMENT",
