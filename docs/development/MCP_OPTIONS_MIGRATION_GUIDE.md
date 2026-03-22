@@ -213,6 +213,8 @@ alias-map object (`token -> alias string|array`).
 for malformed `aliasing.sources` (non-list, missing `managed_ref.ref`, unknown
 source types) or malformed `aliasing.managed_refs` (non-object container or
 non-object per-ref alias maps).
+These validation errors are enforced consistently through the MCP server tool
+entry points as well (`find_duplicates`, `explain_match`).
 
 `managed_refs` are applied in token-expansion paths for `find_duplicates` gates and `explain_match` diagnostics.
 Gate diagnostics now also surface:
