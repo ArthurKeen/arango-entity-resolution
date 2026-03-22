@@ -1448,7 +1448,17 @@ def test_cli_runtime_health_gate_rejects_baseline_without_current_input(
     assert "Quality gate requires either --quality-current-metrics or --quality-corpus." in result.output
 
 
+@pytest.mark.parametrize(
+    "corpus_flag,corpus_value",
+    [
+        ("--quality-model-name", "all-MiniLM-L6-v2"),
+        ("--quality-device", "auto"),
+        ("--quality-batch-size", "64"),
+    ],
+)
 def test_cli_runtime_health_gate_rejects_corpus_tuning_without_corpus(
+    corpus_flag: str,
+    corpus_value: str,
     runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     cfg = tmp_path / "config.yaml"
@@ -1490,8 +1500,8 @@ def test_cli_runtime_health_gate_rejects_corpus_tuning_without_corpus(
             str(cfg),
             "--registry-file",
             str(registry),
-            "--quality-device",
-            "auto",
+            corpus_flag,
+            corpus_value,
         ],
     )
     assert result.exit_code == 1

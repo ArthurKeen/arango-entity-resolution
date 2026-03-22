@@ -383,6 +383,7 @@ arango-er runtime-health-benchmark \
 - `corpus_benchmark` when using `--quality-corpus`
 - `--quality-baseline-metrics` is required whenever either quality current source is provided
 - specify only one current source (`--quality-current-metrics` or `--quality-corpus`) per invocation
+- corpus tuning flags (`--quality-model-name`, `--quality-device`, `--quality-batch-size`) require `--quality-corpus`
 
 ---
 
