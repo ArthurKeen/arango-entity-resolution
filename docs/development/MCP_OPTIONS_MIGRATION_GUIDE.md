@@ -225,6 +225,9 @@ Gate diagnostics now also surface:
 - `similarity.gates.aliasing.managed_ref_applied`: configured refs successfully resolved
 - `similarity.gates.aliasing.managed_ref_missing`: configured refs with no backing dictionary
 
+If a requested ref exists in `managed_refs` but its alias map is empty (`{}`), it is
+reported as **applied** (not missing).
+
 Equivalent aliasing diagnostics are included in `explain_match` under
 `gates.aliasing.{managed_ref_requested,managed_ref_applied,managed_ref_missing}`.
 
