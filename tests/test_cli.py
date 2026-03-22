@@ -630,6 +630,7 @@ def test_cli_runtime_health_gate_success(
     assert result.exit_code == 0
     payload = _extract_json_block(result.output)
     assert payload["baseline_found"] is True
+    assert "quality_gate" not in payload
 
 
 def test_cli_runtime_health_gate_fail_on_regression_exits_2(
