@@ -351,6 +351,20 @@ arango-er runtime-health-gate \
   --quality-topk-overlap-min 0.95 \
   --fail-on-regression
 
+# 3b.1) Alternative: compute current quality metrics inline from corpus
+arango-er runtime-health-gate \
+  -c config.yaml \
+  --registry-file artifacts/runtime/runtime_registry.json \
+  --label ci-linux \
+  --quality-corpus artifacts/quality/runtime_quality_corpus.json \
+  --quality-model-name all-MiniLM-L6-v2 \
+  --quality-device auto \
+  --quality-batch-size 32 \
+  --quality-baseline-metrics artifacts/quality/baseline_metrics.json \
+  --quality-cosine-drift-max 0.01 \
+  --quality-topk-overlap-min 0.95 \
+  --fail-on-regression
+
 # 4) Record benchmark trend artifact
 arango-er runtime-health-benchmark \
   -c config.yaml \
