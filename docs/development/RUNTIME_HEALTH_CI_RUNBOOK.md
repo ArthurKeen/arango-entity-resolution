@@ -374,6 +374,10 @@ arango-er runtime-health-benchmark \
   --filename-prefix runtime_benchmark
 ```
 
+`runtime-health-gate` quality output includes `quality_gate.current_source`:
+- `metrics_file` when using `--quality-current-metrics`
+- `corpus_benchmark` when using `--quality-corpus`
+
 ---
 
 ## Notes
