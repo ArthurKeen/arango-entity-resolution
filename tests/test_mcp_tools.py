@@ -2169,6 +2169,31 @@ class TestMcpServerOptionsCompatibility:
             )
 
     @patch("entity_resolution.mcp.tools.entity.ArangoClient")
+    def test_server_explain_match_rejects_non_object_managed_refs(self, mock_client_cls):
+        from entity_resolution.mcp import server
+
+        doc_a = {"_key": "a1", "name": "ibm"}
+        doc_b = {"_key": "b1", "name": "international business machines"}
+        mock_db = MagicMock()
+        mock_db.collection.return_value.get.side_effect = [doc_a, doc_b]
+        mock_db.has_collection.return_value = False
+        mock_client_cls.return_value.db.return_value = mock_db
+
+        with pytest.raises(ValueError, match="options.aliasing.managed_refs must be an object/dict"):
+            server.explain_match(
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                fields=["name"],
+                options={
+                    "aliasing": {
+                        "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                        "managed_refs": ["bad"],
+                    }
+                },
+            )
+
+    @patch("entity_resolution.mcp.tools.entity.ArangoClient")
     def test_server_explain_match_rejects_managed_ref_without_ref(self, mock_client_cls):
         from entity_resolution.mcp import server
 
