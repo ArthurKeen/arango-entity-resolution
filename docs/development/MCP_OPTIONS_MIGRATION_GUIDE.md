@@ -209,6 +209,8 @@ To use server-managed alias dictionaries:
 `managed_ref` sources require a non-empty `ref` value.
 `managed_refs` must be an object keyed by `ref`, where each `ref` value is an
 alias-map object (`token -> alias string|array`).
+`managed_refs: null` is accepted and treated as no managed alias dictionaries
+provided.
 `explain_match` enforces these aliasing shape rules and raises validation errors
 for malformed `aliasing.sources` (non-list, missing `managed_ref.ref`, unknown
 source types) or malformed `aliasing.managed_refs` (non-object container or
