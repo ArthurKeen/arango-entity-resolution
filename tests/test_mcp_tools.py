@@ -1927,6 +1927,22 @@ class TestMcpServerOptionsCompatibility:
         assert aliasing["managed_ref_missing"] == []
         assert result["er_options_schema_version"] == "1.0"
 
+    @patch("entity_resolution.mcp.tools.entity.run_explain_match")
+    def test_server_explain_match_bubbles_alias_validation_errors(self, mock_run_explain_match):
+        from entity_resolution.mcp import server
+
+        mock_run_explain_match.side_effect = ValueError(
+            "options.aliasing.sources must be an array/list when provided"
+        )
+
+        with pytest.raises(ValueError, match="options.aliasing.sources must be an array/list"):
+            server.explain_match(
+                collection="companies",
+                key_a="a1",
+                key_b="b1",
+                options={"aliasing": {"sources": {"type": "managed_ref"}}},
+            )
+
     @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
     def test_server_find_duplicates_accepts_stages_options(self, mock_run_find_duplicates):
         from entity_resolution.mcp import server
