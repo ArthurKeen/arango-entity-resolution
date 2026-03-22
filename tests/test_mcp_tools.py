@@ -1906,6 +1906,21 @@ class TestMcpServerOptionsCompatibility:
                 },
             )
 
+    def test_server_find_duplicates_rejects_non_object_managed_ref_entry(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="options.aliasing.managed_refs.entity_aliases_v1 must be an object/dict"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={
+                    "aliasing": {
+                        "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                        "managed_refs": {"entity_aliases_v1": ["bad"]},
+                    }
+                },
+            )
+
     def test_server_find_duplicates_rejects_non_object_alias_source_entry(self):
         from entity_resolution.mcp import server
 
@@ -1924,6 +1939,26 @@ class TestMcpServerOptionsCompatibility:
                 collection="companies",
                 fields=["name"],
                 options={"aliasing": {"sources": [{}]}},
+            )
+
+    def test_server_find_duplicates_rejects_non_object_inline_alias_map(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="options.aliasing.sources\\[0\\]\\.map must be an object/dict"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={"aliasing": {"sources": [{"type": "inline", "map": ["bad"]}]}},
+            )
+
+    def test_server_find_duplicates_rejects_field_alias_source_without_field(self):
+        from entity_resolution.mcp import server
+
+        with pytest.raises(ValueError, match="options.aliasing.sources\\[0\\]\\.field is required for type=field"):
+            server.find_duplicates(
+                collection="companies",
+                fields=["name"],
+                options={"aliasing": {"sources": [{"type": "field"}]}},
             )
 
     def test_server_find_duplicates_rejects_managed_ref_without_ref(self):
