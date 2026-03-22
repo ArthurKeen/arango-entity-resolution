@@ -466,6 +466,7 @@ def test_cli_runtime_health_benchmark_outputs_summary(
     assert payload["metadata"]["warmup_runs"] == 0
     assert payload["metadata"]["profile"] == "default"
     assert payload["metadata"]["startup_mode"] == "default"
+    assert payload["metadata"]["config"]["config_path"] == str(cfg)
     assert payload["summary"]["latency_ms"]["mean"] == 12.0
 
 
@@ -587,6 +588,7 @@ def test_cli_runtime_health_benchmark_forwards_warmup_runs(
     assert payload["metadata"]["warmup_runs"] == 2
     assert payload["metadata"]["profile"] == "ci-linux-cpu"
     assert payload["metadata"]["startup_mode"] == "strict"
+    assert payload["metadata"]["config"]["config_path"] == str(cfg)
     assert captured["repeats"] == 4
     assert captured["warmup_runs"] == 2
     assert captured["profile"] == "ci-linux-cpu"

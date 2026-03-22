@@ -290,6 +290,9 @@ def runtime_health_benchmark(
         )
         result.setdefault("metadata", {})
         result["metadata"]["startup_mode"] = startup_mode or "default"
+        result["metadata"]["config"] = {
+            "config_path": str(config),
+        }
         if output_dir:
             result["output_file"] = RuntimeBenchmarkService.export_benchmark(
                 benchmark_result=result,

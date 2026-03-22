@@ -397,4 +397,5 @@ arango-er runtime-health-benchmark \
 - Re-baseline deliberately after expected runtime stack changes (driver/toolchain/model updates).
 - Prefer `--warmup-runs` > 0 in CI benchmarks to reduce one-time initialization noise.
 - Benchmark artifacts include `metadata.startup_mode` and `metadata.profile` for downstream grouping.
+- Benchmark artifacts include `metadata.config.config_path` to trace the exact config used by each run.
 
