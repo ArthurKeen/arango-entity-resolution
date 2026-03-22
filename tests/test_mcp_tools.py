@@ -1839,6 +1839,42 @@ class TestMcpServerOptionsCompatibility:
         assert result["er_options_schema_version"] == "1.0"
 
     @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
+    def test_server_find_duplicates_surfaces_single_stage_gating_aliasing_diagnostics(self, mock_run_find_duplicates):
+        from entity_resolution.mcp import server
+
+        mock_run_find_duplicates.return_value = {
+            "stages": {
+                "enabled": True,
+                "execution_mode": "single_stage_scaffold",
+                "requested_stage_count": 1,
+                "gating": {
+                    "aliasing": {
+                        "managed_ref_requested": ["missing_ref"],
+                        "managed_ref_applied": [],
+                        "managed_ref_missing": ["missing_ref"],
+                    }
+                },
+            }
+        }
+        result = server.find_duplicates(
+            collection="companies",
+            fields=["name"],
+            options={
+                "stages": [{"type": "exact", "fields": ["name"], "min_score": 0.8}],
+                "aliasing": {
+                    "sources": [{"type": "managed_ref", "ref": "missing_ref"}],
+                    "managed_refs": {},
+                },
+            },
+        )
+
+        aliasing = result["stages"]["gating"]["aliasing"]
+        assert aliasing["managed_ref_requested"] == ["missing_ref"]
+        assert aliasing["managed_ref_applied"] == []
+        assert aliasing["managed_ref_missing"] == ["missing_ref"]
+        assert result["er_options_schema_version"] == "1.0"
+
+    @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
     def test_server_find_duplicates_accepts_token_jaccard_similarity_options(self, mock_run_find_duplicates):
         from entity_resolution.mcp import server
 
