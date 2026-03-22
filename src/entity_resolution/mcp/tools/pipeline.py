@@ -572,6 +572,7 @@ def _apply_precision_gates(
             "enforcement_enabled": request.gating_mode == "enforce",
             "aliasing": {
                 "configured": bool(alias_profile.get("inline_map") or alias_profile.get("field_sources") or alias_profile.get("acronym_auto")),
+                "managed_ref_requested": alias_profile.get("managed_ref_requested", []),
                 "managed_ref_applied": alias_profile.get("managed_ref_applied", []),
                 "managed_ref_missing": alias_profile.get("managed_ref_missing", []),
             },
@@ -594,6 +595,7 @@ def _apply_precision_gates(
             "enforcement_enabled": False,
             "aliasing": {
                 "configured": bool(alias_profile.get("inline_map") or alias_profile.get("field_sources") or alias_profile.get("acronym_auto")),
+                "managed_ref_requested": alias_profile.get("managed_ref_requested", []),
                 "managed_ref_applied": alias_profile.get("managed_ref_applied", []),
                 "managed_ref_missing": alias_profile.get("managed_ref_missing", []),
             },
@@ -702,6 +704,7 @@ def _apply_precision_gates(
         "enforcement_enabled": enforce,
         "aliasing": {
             "configured": bool(alias_profile.get("inline_map") or alias_profile.get("field_sources") or alias_profile.get("acronym_auto")),
+            "managed_ref_requested": alias_profile.get("managed_ref_requested", []),
             "managed_ref_applied": alias_profile.get("managed_ref_applied", []),
             "managed_ref_missing": alias_profile.get("managed_ref_missing", []),
         },
@@ -899,6 +902,7 @@ def _build_aliasing_profile(request: FindDuplicatesRequest) -> Dict[str, Any]:
         "field_sources": [],
         "acronym_auto": False,
         "acronym_min_word_len": 4,
+        "managed_ref_requested": [],
         "managed_ref_applied": [],
         "managed_ref_missing": [],
     }
@@ -918,6 +922,8 @@ def _build_aliasing_profile(request: FindDuplicatesRequest) -> Dict[str, Any]:
         elif source_type == "managed_ref":
             ref = str(source.get("ref", "")).strip()
             managed = request.options.aliasing.get("managed_refs", {})
+            if ref:
+                profile["managed_ref_requested"].append(ref)
             if ref and isinstance(managed, dict):
                 ref_map = managed.get(ref)
                 if isinstance(ref_map, dict):
@@ -926,6 +932,7 @@ def _build_aliasing_profile(request: FindDuplicatesRequest) -> Dict[str, Any]:
                 else:
                     profile["managed_ref_missing"].append(ref)
     profile["field_sources"] = _merge_unique_fields(profile["field_sources"], [])
+    profile["managed_ref_requested"] = _merge_unique_fields(profile["managed_ref_requested"], [])
     profile["managed_ref_applied"] = _merge_unique_fields(profile["managed_ref_applied"], [])
     profile["managed_ref_missing"] = _merge_unique_fields(profile["managed_ref_missing"], [])
     return profile

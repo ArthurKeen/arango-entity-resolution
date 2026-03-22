@@ -209,6 +209,7 @@ To use server-managed alias dictionaries:
 `managed_refs` are applied in token-expansion paths for `find_duplicates` gates and `explain_match` diagnostics.
 Gate diagnostics now also surface:
 
+- `similarity.gates.aliasing.managed_ref_requested`: all refs requested by `aliasing.sources`
 - `similarity.gates.aliasing.managed_ref_applied`: configured refs successfully resolved
 - `similarity.gates.aliasing.managed_ref_missing`: configured refs with no backing dictionary
 

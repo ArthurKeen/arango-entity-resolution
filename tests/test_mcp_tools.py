@@ -527,6 +527,7 @@ class TestFindDuplicates:
             database="test",
             request=req,
         )
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_requested"] == ["missing_ref"]
         assert result["similarity"]["gates"]["aliasing"]["managed_ref_applied"] == []
         assert result["similarity"]["gates"]["aliasing"]["managed_ref_missing"] == ["missing_ref"]
 
@@ -588,6 +589,7 @@ class TestFindDuplicates:
 
         assert result["edges"]["edges_created"] == 1
         assert result["similarity"]["gates"]["rejected_token_overlap"] == 0
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_requested"] == ["entity_aliases_v1"]
         assert result["similarity"]["gates"]["aliasing"]["managed_ref_applied"] == ["entity_aliases_v1"]
         assert result["similarity"]["gates"]["aliasing"]["managed_ref_missing"] == []
 
@@ -814,6 +816,7 @@ class TestExplainMatch:
         )
         failures = [f["gate"] for f in result["gates"]["summary"]["gate_failures"]]
         assert "token_overlap" not in failures
+        assert result["gates"]["aliasing"]["managed_ref_requested"] == ["entity_aliases_v1"]
         assert result["gates"]["aliasing"]["managed_ref_applied"] == ["entity_aliases_v1"]
         assert result["gates"]["aliasing"]["managed_ref_missing"] == []
 
@@ -1492,6 +1495,37 @@ class TestMcpServerOptionsCompatibility:
         kwargs = mock_run_explain_match.call_args.kwargs
         assert kwargs["options"]["gating"]["require_token_overlap"] is True
 
+    @patch("entity_resolution.mcp.tools.entity.run_explain_match")
+    def test_server_explain_match_surfaces_aliasing_diagnostics(self, mock_run_explain_match):
+        from entity_resolution.mcp import server
+
+        mock_run_explain_match.return_value = {
+            "gates": {
+                "aliasing": {
+                    "managed_ref_requested": ["entity_aliases_v1"],
+                    "managed_ref_applied": ["entity_aliases_v1"],
+                    "managed_ref_missing": [],
+                }
+            }
+        }
+        result = server.explain_match(
+            collection="companies",
+            key_a="a1",
+            key_b="b1",
+            options={
+                "aliasing": {
+                    "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                    "managed_refs": {"entity_aliases_v1": {"ibm": ["international"]}},
+                }
+            },
+        )
+
+        aliasing = result["gates"]["aliasing"]
+        assert aliasing["managed_ref_requested"] == ["entity_aliases_v1"]
+        assert aliasing["managed_ref_applied"] == ["entity_aliases_v1"]
+        assert aliasing["managed_ref_missing"] == []
+        assert result["er_options_schema_version"] == "1.0"
+
     @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
     def test_server_find_duplicates_accepts_stages_options(self, mock_run_find_duplicates):
         from entity_resolution.mcp import server
@@ -1565,6 +1599,38 @@ class TestMcpServerOptionsCompatibility:
         assert len(req.alias_sources) == 2
         assert req.alias_sources[0]["type"] == "inline"
         assert req.alias_sources[1]["type"] == "field"
+
+    @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
+    def test_server_find_duplicates_surfaces_aliasing_diagnostics(self, mock_run_find_duplicates):
+        from entity_resolution.mcp import server
+
+        mock_run_find_duplicates.return_value = {
+            "similarity": {
+                "gates": {
+                    "aliasing": {
+                        "managed_ref_requested": ["entity_aliases_v1"],
+                        "managed_ref_applied": ["entity_aliases_v1"],
+                        "managed_ref_missing": [],
+                    }
+                }
+            }
+        }
+        result = server.find_duplicates(
+            collection="companies",
+            fields=["name"],
+            options={
+                "aliasing": {
+                    "sources": [{"type": "managed_ref", "ref": "entity_aliases_v1"}],
+                    "managed_refs": {"entity_aliases_v1": {"ibm": ["international"]}},
+                }
+            },
+        )
+
+        aliasing = result["similarity"]["gates"]["aliasing"]
+        assert aliasing["managed_ref_requested"] == ["entity_aliases_v1"]
+        assert aliasing["managed_ref_applied"] == ["entity_aliases_v1"]
+        assert aliasing["managed_ref_missing"] == []
+        assert result["er_options_schema_version"] == "1.0"
 
     @patch("entity_resolution.mcp.tools.pipeline.run_find_duplicates_request")
     def test_server_find_duplicates_accepts_token_jaccard_similarity_options(self, mock_run_find_duplicates):
