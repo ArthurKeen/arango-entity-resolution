@@ -13,6 +13,8 @@ from entity_resolution.mcp.contracts import FindDuplicatesRequest
 from entity_resolution.mcp.connection import get_arango_hosts
 from entity_resolution.utils.pipeline_utils import count_inferred_edges, validate_edge_quality
 
+ER_OPTIONS_SCHEMA_VERSION = "1.0"
+
 
 def _get_db(host: str, port: int, username: str, password: str, database: str):
     """Return an authenticated ArangoDB database handle."""
@@ -110,7 +112,7 @@ def run_find_duplicates_request(
             store_clusters=request.store_clusters,
         )
         pipeline = ConfigurableERPipeline(db=db, config=cfg)
-        return pipeline.run()
+        return _with_schema_version(pipeline.run())
 
     if len(request.stages) == 1:
         stage_strategy, stage_fields, stage_threshold, stage_meta = _resolve_stage_scaffold(request)
@@ -136,7 +138,7 @@ def run_find_duplicates_request(
         pipeline = ConfigurableERPipeline(db=db, config=cfg)
         results = pipeline.run()
         results["stages"] = stage_meta
-        return results
+        return _with_schema_version(results)
 
     # C2: true staged execution for >=2 stages with unresolved escalation.
     return _run_find_duplicates_multistage(
@@ -213,7 +215,7 @@ def _build_pipeline_config(
         cluster_collection=f"{request.collection}_clusters",
         blocking=BlockingConfig(
             strategy=strategy,
-            fields=fields,
+            fields=_augment_blocking_fields_with_alias_sources(fields, request),
             max_block_size=request.max_block_size,
         ),
         similarity=SimilarityConfig(
@@ -311,7 +313,7 @@ def _run_find_duplicates_multistage(*, db: Any, request: FindDuplicatesRequest, 
         clusters_found = len(clusters)
 
     total_runtime = round(time.time() - started, 3)
-    return {
+    return _with_schema_version({
         "embedding": {},
         "blocking": {
             "candidate_pairs": total_candidates,
@@ -345,13 +347,17 @@ def _run_find_duplicates_multistage(*, db: Any, request: FindDuplicatesRequest, 
             "stage_results": stage_results,
             "gating": {
                 "enabled": _has_precision_gates(request),
+                "mode": request.gating_mode,
+                "similarity_type": request.similarity_type,
+                "token_jaccard_fields": request.token_jaccard_fields,
+                "token_jaccard_min_score": request.token_jaccard_min_score,
                 "min_margin": request.min_margin,
                 "require_token_overlap": request.require_token_overlap,
                 "token_overlap_bypass_score": request.token_overlap_bypass_score,
                 "target_type_field": request.target_type_field,
             },
         },
-    }
+    })
 
 
 def _run_single_stage_with_optional_gating(
@@ -430,13 +436,17 @@ def _run_single_stage_with_optional_gating(
         meta = dict(stage_meta)
         meta["gating"] = {
             "enabled": _has_precision_gates(request),
+            "mode": request.gating_mode,
+            "similarity_type": request.similarity_type,
+            "token_jaccard_fields": request.token_jaccard_fields,
+            "token_jaccard_min_score": request.token_jaccard_min_score,
             "min_margin": request.min_margin,
             "require_token_overlap": request.require_token_overlap,
             "token_overlap_bypass_score": request.token_overlap_bypass_score,
             "target_type_field": request.target_type_field,
         }
         result["stages"] = meta
-    return result
+    return _with_schema_version(result)
 
 
 def _resolve_stage_config(stage: Dict[str, Any], request: FindDuplicatesRequest) -> Tuple[str, list[str], float]:
@@ -538,7 +548,9 @@ def _has_any_edges(db: Any, edge_collection: str) -> bool:
 
 def _has_precision_gates(request: FindDuplicatesRequest) -> bool:
     return bool(
-        request.min_margin > 0.0
+        request.similarity_type == "token_jaccard"
+        or request.token_jaccard_min_score > 0.0
+        or request.min_margin > 0.0
         or request.require_token_overlap
         or bool(request.token_type_affinity)
     )
@@ -555,37 +567,60 @@ def _apply_precision_gates(
     if not matches:
         return [], {
             "enabled": _has_precision_gates(request),
+            "mode": request.gating_mode,
+            "enforcement_enabled": request.gating_mode == "enforce",
             "input_matches": 0,
             "accepted_matches": 0,
+            "rejected_token_jaccard": 0,
             "rejected_margin": 0,
             "rejected_token_overlap": 0,
             "rejected_type_affinity": 0,
+            "would_reject_token_jaccard": 0,
+            "would_reject_margin": 0,
+            "would_reject_token_overlap": 0,
+            "would_reject_type_affinity": 0,
         }
 
     if not _has_precision_gates(request):
         return matches, {
             "enabled": False,
+            "mode": request.gating_mode,
+            "enforcement_enabled": False,
             "input_matches": len(matches),
             "accepted_matches": len(matches),
+            "rejected_token_jaccard": 0,
             "rejected_margin": 0,
             "rejected_token_overlap": 0,
             "rejected_type_affinity": 0,
+            "would_reject_token_jaccard": 0,
+            "would_reject_margin": 0,
+            "would_reject_token_overlap": 0,
+            "would_reject_type_affinity": 0,
         }
 
+    enforce = request.gating_mode == "enforce"
+    would_reject_token_jaccard = 0
+    would_reject_margin = 0
+    would_reject_overlap = 0
+    would_reject_type_affinity = 0
+    rejected_token_jaccard = 0
     rejected_margin = 0
     rejected_overlap = 0
     rejected_type_affinity = 0
     accepted: list[Any] = []
 
     margin_index = _build_margin_index(matches, collection=collection)
+    alias_profile = _build_aliasing_profile(request)
     token_index: Dict[str, set[str]] = {}
-    if request.require_token_overlap or request.token_type_affinity:
+    jaccard_fields = _merge_unique_fields(request.token_jaccard_fields, fields)
+    if request.similarity_type == "token_jaccard" or request.require_token_overlap or request.token_type_affinity:
         token_index = _build_doc_token_index(
             db=db,
             collection=collection,
             matches=matches,
-            fields=fields,
+            fields=jaccard_fields,
             stopwords=request.word_index_stopwords,
+            alias_profile=alias_profile,
         )
     type_index: Dict[str, str] = {}
     if request.token_type_affinity:
@@ -595,6 +630,11 @@ def _apply_precision_gates(
             matches=matches,
             target_type_field=request.target_type_field,
         )
+    min_token_jaccard = (
+        request.token_jaccard_min_score
+        if request.token_jaccard_min_score > 0.0
+        else request.confidence_threshold
+    )
 
     for m in matches:
         doc1, doc2, score = _match_parts(m, collection=collection)
@@ -602,19 +642,33 @@ def _apply_precision_gates(
             continue
         score_f = float(score)
 
+        if request.similarity_type == "token_jaccard":
+            t1 = token_index.get(doc1, set())
+            t2 = token_index.get(doc2, set())
+            token_jaccard = _jaccard_tokens(t1, t2)
+            if token_jaccard < min_token_jaccard:
+                would_reject_token_jaccard += 1
+                if enforce:
+                    rejected_token_jaccard += 1
+                    continue
+
         if request.min_margin > 0.0:
             margin_a = score_f - margin_index[doc1][1]
             margin_b = score_f - margin_index[doc2][1]
             if margin_a < request.min_margin or margin_b < request.min_margin:
-                rejected_margin += 1
-                continue
+                would_reject_margin += 1
+                if enforce:
+                    rejected_margin += 1
+                    continue
 
         if request.require_token_overlap and score_f < request.token_overlap_bypass_score:
             t1 = token_index.get(doc1, set())
             t2 = token_index.get(doc2, set())
             if not (t1 & t2):
-                rejected_overlap += 1
-                continue
+                would_reject_overlap += 1
+                if enforce:
+                    rejected_overlap += 1
+                    continue
 
         if request.token_type_affinity:
             source_tokens = token_index.get(doc1, set())
@@ -625,18 +679,30 @@ def _apply_precision_gates(
                     candidate_type=candidate_type,
                     affinity=request.token_type_affinity,
                 ):
-                    rejected_type_affinity += 1
-                    continue
+                    would_reject_type_affinity += 1
+                    if enforce:
+                        rejected_type_affinity += 1
+                        continue
 
         accepted.append(m)
 
     return accepted, {
         "enabled": True,
+        "mode": request.gating_mode,
+        "enforcement_enabled": enforce,
         "input_matches": len(matches),
         "accepted_matches": len(accepted),
+        "rejected_token_jaccard": rejected_token_jaccard,
         "rejected_margin": rejected_margin,
         "rejected_token_overlap": rejected_overlap,
         "rejected_type_affinity": rejected_type_affinity,
+        "would_reject_token_jaccard": would_reject_token_jaccard,
+        "would_reject_margin": would_reject_margin,
+        "would_reject_token_overlap": would_reject_overlap,
+        "would_reject_type_affinity": would_reject_type_affinity,
+        "similarity_type": request.similarity_type,
+        "token_jaccard_min_score": min_token_jaccard if request.similarity_type == "token_jaccard" else 0.0,
+        "token_jaccard_fields": jaccard_fields if request.similarity_type == "token_jaccard" else [],
         "min_margin": request.min_margin,
         "require_token_overlap": request.require_token_overlap,
         "token_overlap_bypass_score": request.token_overlap_bypass_score,
@@ -670,6 +736,7 @@ def _build_doc_token_index(
     matches: list[Any],
     fields: list[str],
     stopwords: list[str],
+    alias_profile: Dict[str, Any],
 ) -> Dict[str, set[str]]:
     coll = db.collection(collection)
     doc_ids: set[str] = set()
@@ -681,20 +748,32 @@ def _build_doc_token_index(
             doc_ids.add(doc2)
 
     index: Dict[str, set[str]] = {}
+    alias_fields = alias_profile.get("field_sources", [])
     for doc_id in doc_ids:
         key = doc_id.split("/", 1)[1] if "/" in doc_id else doc_id
         doc = coll.get(key) or {}
         tokens: set[str] = set()
-        for field in fields:
+        for field in _merge_unique_fields(fields, alias_fields):
             val = doc.get(field)
             if val is None:
                 continue
             if isinstance(val, str):
-                tokens |= _tokenize_text(val, stopwords)
+                tokens |= _tokenize_text(
+                    val,
+                    stopwords,
+                    acronym_auto=alias_profile.get("acronym_auto", False),
+                    acronym_min_word_len=alias_profile.get("acronym_min_word_len", 4),
+                )
             elif isinstance(val, list):
                 for item in val:
                     if isinstance(item, str):
-                        tokens |= _tokenize_text(item, stopwords)
+                        tokens |= _tokenize_text(
+                            item,
+                            stopwords,
+                            acronym_auto=alias_profile.get("acronym_auto", False),
+                            acronym_min_word_len=alias_profile.get("acronym_min_word_len", 4),
+                        )
+        tokens = _expand_tokens_with_alias_map(tokens, alias_profile.get("inline_map", {}))
         index[doc_id] = tokens
     return index
 
@@ -726,10 +805,34 @@ def _build_doc_type_index(
     return index
 
 
-def _tokenize_text(value: str, stopwords: list[str]) -> set[str]:
+def _tokenize_text(
+    value: str,
+    stopwords: list[str],
+    *,
+    acronym_auto: bool = False,
+    acronym_min_word_len: int = 4,
+) -> set[str]:
     raw = re.findall(r"[A-Za-z0-9]+", value.lower())
     sw = set(stopwords or [])
-    return {tok for tok in raw if tok and tok not in sw}
+    tokens = {tok for tok in raw if tok and tok not in sw}
+    if acronym_auto:
+        words = [tok for tok in raw if tok and len(tok) >= max(1, int(acronym_min_word_len))]
+        if len(words) >= 2:
+            acronym = "".join(w[0] for w in words)
+            if acronym:
+                tokens.add(acronym)
+    return tokens
+
+
+def _jaccard_tokens(tokens_a: set[str], tokens_b: set[str]) -> float:
+    if not tokens_a and not tokens_b:
+        return 1.0
+    if not tokens_a or not tokens_b:
+        return 0.0
+    union = tokens_a | tokens_b
+    if not union:
+        return 0.0
+    return float(len(tokens_a & tokens_b)) / float(len(union))
 
 
 def _reject_by_type_affinity(
@@ -775,6 +878,85 @@ def _match_parts(match: Any, *, collection: str) -> Tuple[Optional[str], Optiona
     return a, b, s
 
 
+def _build_aliasing_profile(request: FindDuplicatesRequest) -> Dict[str, Any]:
+    profile: Dict[str, Any] = {
+        "inline_map": {},
+        "field_sources": [],
+        "acronym_auto": False,
+        "acronym_min_word_len": 4,
+    }
+    for source in request.alias_sources:
+        source_type = str(source.get("type", "")).lower()
+        if source_type == "inline":
+            raw_map = source.get("map", {})
+            _merge_alias_map(profile["inline_map"], raw_map)
+        elif source_type == "field":
+            field = str(source.get("field", "")).strip()
+            if field:
+                profile["field_sources"].append(field)
+        elif source_type == "acronym":
+            if bool(source.get("auto", True)):
+                profile["acronym_auto"] = True
+            profile["acronym_min_word_len"] = int(source.get("min_word_len", 4))
+        elif source_type == "managed_ref":
+            ref = str(source.get("ref", "")).strip()
+            managed = request.options.aliasing.get("managed_refs", {})
+            if ref and isinstance(managed, dict):
+                _merge_alias_map(profile["inline_map"], managed.get(ref))
+    profile["field_sources"] = _merge_unique_fields(profile["field_sources"], [])
+    return profile
+
+
+def _expand_tokens_with_alias_map(tokens: set[str], inline_map: Dict[str, list[str]]) -> set[str]:
+    if not inline_map:
+        return tokens
+    expanded = set(tokens)
+    for tok in list(tokens):
+        mapped = inline_map.get(tok, [])
+        for m in mapped:
+            if m:
+                expanded.add(m)
+    return expanded
+
+
+def _merge_alias_map(target: Dict[str, list[str]], value: Any) -> None:
+    if not isinstance(value, dict):
+        return
+    for key, vals in value.items():
+        token = str(key).strip().lower()
+        if not token:
+            continue
+        if isinstance(vals, list):
+            mapped = [str(v).strip().lower() for v in vals if str(v).strip()]
+        else:
+            mapped = [str(vals).strip().lower()] if str(vals).strip() else []
+        if not mapped:
+            continue
+        existing = target.get(token, [])
+        target[token] = _merge_unique_fields(existing, mapped)
+
+
+def _augment_blocking_fields_with_alias_sources(fields: list[str], request: FindDuplicatesRequest) -> list[str]:
+    alias_fields = [
+        str(s.get("field", "")).strip()
+        for s in request.alias_sources
+        if str(s.get("type", "")).lower() == "field"
+    ]
+    return _merge_unique_fields(fields, alias_fields)
+
+
+def _merge_unique_fields(primary: list[str], extra: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for raw in list(primary or []) + list(extra or []):
+        f = str(raw).strip()
+        if not f or f in seen:
+            continue
+        seen.add(f)
+        out.append(f)
+    return out
+
+
 def run_pipeline_status(
     *,
     host: str,
@@ -809,11 +991,17 @@ def run_pipeline_status(
         except Exception:
             pass
 
-    return {
+    return _with_schema_version({
         "collection": collection,
         "total_documents": total_docs,
         "edge_collection": edge_coll,
         "edge_stats": edge_stats,
         "cluster_collection": cluster_coll,
         "cluster_count": cluster_count,
-    }
+    })
+
+
+def _with_schema_version(payload: Dict[str, Any]) -> Dict[str, Any]:
+    out = dict(payload)
+    out.setdefault("er_options_schema_version", ER_OPTIONS_SCHEMA_VERSION)
+    return out

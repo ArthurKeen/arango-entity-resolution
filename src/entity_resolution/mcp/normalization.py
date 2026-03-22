@@ -137,6 +137,15 @@ def normalize_find_duplicates_args(
             warnings=warnings,
         )
     )
+    similarity_type = str(_nested_get(normalized_options, "similarity", "type") or "default").strip().lower()
+    token_jaccard_fields_raw = _nested_get(normalized_options, "similarity", "token_jaccard_fields") or []
+    if token_jaccard_fields_raw and not isinstance(token_jaccard_fields_raw, list):
+        raise ValueError("options.similarity.token_jaccard_fields must be an array/list when provided")
+    token_jaccard_fields = [str(f).strip() for f in token_jaccard_fields_raw if str(f).strip()]
+    token_jaccard_min_score = float(_nested_get(normalized_options, "similarity", "token_jaccard_min_score") or 0.0)
+    gating_mode = str(_nested_get(normalized_options, "gating", "mode") or "enforce").strip().lower()
+    if gating_mode not in {"enforce", "report_only", "shadow"}:
+        raise ValueError("options.gating.mode must be one of: enforce, report_only, shadow")
     min_margin = float(_nested_get(normalized_options, "gating", "min_margin") or 0.0)
     require_token_overlap = bool(_nested_get(normalized_options, "gating", "require_token_overlap") or False)
     token_overlap_bypass_score = float(
@@ -150,6 +159,7 @@ def normalize_find_duplicates_args(
         _nested_get(normalized_options, "gating", "token_type_affinity")
     )
     target_type_field = str(_nested_get(normalized_options, "gating", "target_type_field") or "type")
+    alias_sources = _normalize_aliasing_sources(_nested_get(normalized_options, "aliasing", "sources"))
     stages = _normalize_stages(_nested_get(normalized_options, "passthrough", "stages"))
 
     return FindDuplicatesRequest(
@@ -166,12 +176,17 @@ def normalize_find_duplicates_args(
         active_learning_model=active_learning_model,
         active_learning_low_threshold=active_learning_low_threshold,
         active_learning_high_threshold=active_learning_high_threshold,
+        similarity_type=similarity_type,
+        token_jaccard_fields=token_jaccard_fields,
+        token_jaccard_min_score=max(0.0, min(1.0, token_jaccard_min_score)),
+        gating_mode=gating_mode,
         min_margin=max(0.0, min_margin),
         require_token_overlap=require_token_overlap,
         token_overlap_bypass_score=max(0.0, min(1.0, token_overlap_bypass_score)),
         word_index_stopwords=word_index_stopwords,
         token_type_affinity=token_type_affinity,
         target_type_field=target_type_field,
+        alias_sources=alias_sources,
         stages=stages,
         options=MCPOptions(**normalized_options),
         deprecation_warnings=warnings,
@@ -488,3 +503,65 @@ def _normalize_token_type_affinity(value: Any) -> Dict[str, List[str]]:
         if allowed:
             normalized[token_key] = allowed
     return normalized
+
+
+def _normalize_aliasing_sources(value: Any) -> List[Dict[str, Any]]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError("options.aliasing.sources must be an array/list when provided")
+
+    out: List[Dict[str, Any]] = []
+    for idx, item in enumerate(value):
+        if not isinstance(item, dict):
+            raise ValueError(f"options.aliasing.sources[{idx}] must be an object/dict")
+        source_type = str(item.get("type", "")).strip().lower()
+        if not source_type:
+            raise ValueError(f"options.aliasing.sources[{idx}].type is required")
+
+        if source_type == "inline":
+            raw_map = item.get("map", {})
+            if not isinstance(raw_map, dict):
+                raise ValueError(f"options.aliasing.sources[{idx}].map must be an object/dict")
+            norm_map: Dict[str, List[str]] = {}
+            for key, raw_vals in raw_map.items():
+                token = str(key).strip().lower()
+                if not token:
+                    continue
+                if isinstance(raw_vals, list):
+                    vals = [str(v).strip().lower() for v in raw_vals if str(v).strip()]
+                else:
+                    vals = [str(raw_vals).strip().lower()] if str(raw_vals).strip() else []
+                if vals:
+                    norm_map[token] = vals
+            out.append({"type": "inline", "map": norm_map})
+            continue
+
+        if source_type == "field":
+            field = str(item.get("field", "")).strip()
+            if not field:
+                raise ValueError(f"options.aliasing.sources[{idx}].field is required for type=field")
+            out.append({"type": "field", "field": field})
+            continue
+
+        if source_type == "acronym":
+            out.append(
+                {
+                    "type": "acronym",
+                    "auto": bool(item.get("auto", True)),
+                    "min_word_len": int(item.get("min_word_len", 4)),
+                }
+            )
+            continue
+
+        if source_type == "managed_ref":
+            ref = str(item.get("ref", "")).strip()
+            if not ref:
+                raise ValueError(f"options.aliasing.sources[{idx}].ref is required for type=managed_ref")
+            out.append({"type": "managed_ref", "ref": ref})
+            continue
+
+        raise ValueError(
+            f"options.aliasing.sources[{idx}].type must be one of inline, field, acronym, managed_ref"
+        )
+    return out

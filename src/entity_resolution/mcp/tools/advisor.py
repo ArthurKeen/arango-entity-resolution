@@ -16,6 +16,7 @@ from entity_resolution.mcp.connection import get_arango_hosts
 
 TOOL_VERSION = "1.0.0"
 ADVISOR_POLICY_VERSION = "2026-03-01"
+ER_OPTIONS_SCHEMA_VERSION = "1.0"
 
 
 def _get_db(host: str, port: int, username: str, password: str, database: str):
@@ -547,6 +548,7 @@ def _ok(*, result: Dict[str, Any], request_id: Optional[str]) -> Dict[str, Any]:
         "status": "ok",
         "tool_version": TOOL_VERSION,
         "advisor_policy_version": ADVISOR_POLICY_VERSION,
+        "er_options_schema_version": ER_OPTIONS_SCHEMA_VERSION,
         "request_id": request_id,
         "result": result,
     }
@@ -562,6 +564,7 @@ def _error(
     return {
         "status": "error",
         "tool_version": TOOL_VERSION,
+        "er_options_schema_version": ER_OPTIONS_SCHEMA_VERSION,
         "request_id": request_id,
         "error": {
             "code": code,

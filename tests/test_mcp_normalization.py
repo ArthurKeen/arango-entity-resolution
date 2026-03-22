@@ -78,6 +78,7 @@ def test_normalize_find_duplicates_gating_options():
         options={
             "gating": {
                 "min_margin": 0.07,
+                "mode": "report_only",
                 "require_token_overlap": True,
                 "token_overlap_bypass_score": 0.93,
                 "word_index_stopwords": ["llc", "inc"],
@@ -90,12 +91,55 @@ def test_normalize_find_duplicates_gating_options():
         },
     )
     assert req.min_margin == 0.07
+    assert req.gating_mode == "report_only"
     assert req.require_token_overlap is True
     assert req.token_overlap_bypass_score == 0.93
     assert req.word_index_stopwords == ["llc", "inc"]
     assert req.target_type_field == "entity_type"
     assert req.token_type_affinity["bank"] == ["financial_institution"]
     assert req.token_type_affinity["school"] == ["educational_institution"]
+
+
+def test_normalize_find_duplicates_aliasing_sources():
+    req = normalize_find_duplicates_args(
+        collection="companies",
+        fields=["name"],
+        options={
+            "aliasing": {
+                "sources": [
+                    {"type": "inline", "map": {"co": ["company"], "corp": "corporation"}},
+                    {"type": "field", "field": "aliases"},
+                    {"type": "acronym", "auto": True, "min_word_len": 3},
+                    {"type": "managed_ref", "ref": "entity_aliases_v1"},
+                ],
+                "managed_refs": {"entity_aliases_v1": {"ibm": ["international", "business", "machines"]}},
+            }
+        },
+    )
+    assert len(req.alias_sources) == 4
+    assert req.alias_sources[0]["type"] == "inline"
+    assert req.alias_sources[0]["map"]["corp"] == ["corporation"]
+    assert req.alias_sources[1] == {"type": "field", "field": "aliases"}
+    assert req.alias_sources[2]["type"] == "acronym"
+    assert req.alias_sources[3] == {"type": "managed_ref", "ref": "entity_aliases_v1"}
+    assert "managed_refs" in req.options.aliasing
+
+
+def test_normalize_find_duplicates_token_jaccard_similarity_options():
+    req = normalize_find_duplicates_args(
+        collection="companies",
+        fields=["name"],
+        options={
+            "similarity": {
+                "type": "token_jaccard",
+                "token_jaccard_fields": ["name", "aliases"],
+                "token_jaccard_min_score": 0.62,
+            }
+        },
+    )
+    assert req.similarity_type == "token_jaccard"
+    assert req.token_jaccard_fields == ["name", "aliases"]
+    assert req.token_jaccard_min_score == 0.62
 
 
 def test_normalize_resolve_entity_options_override():
@@ -169,6 +213,33 @@ def test_normalize_find_duplicates_rejects_bad_token_type_affinity():
             collection="companies",
             fields=["name"],
             options={"gating": {"token_type_affinity": {"bank": "financial_institution"}}},
+        )
+
+
+def test_normalize_find_duplicates_rejects_invalid_gating_mode():
+    with pytest.raises(ValueError, match="options.gating.mode must be one of"):
+        normalize_find_duplicates_args(
+            collection="companies",
+            fields=["name"],
+            options={"gating": {"mode": "strict_only"}},
+        )
+
+
+def test_normalize_find_duplicates_rejects_bad_aliasing_sources_shape():
+    with pytest.raises(ValueError, match="options.aliasing.sources must be an array/list"):
+        normalize_find_duplicates_args(
+            collection="companies",
+            fields=["name"],
+            options={"aliasing": {"sources": {"type": "inline"}}},
+        )
+
+
+def test_normalize_find_duplicates_rejects_non_list_token_jaccard_fields():
+    with pytest.raises(ValueError, match="token_jaccard_fields must be an array/list"):
+        normalize_find_duplicates_args(
+            collection="companies",
+            fields=["name"],
+            options={"similarity": {"token_jaccard_fields": "name"}},
         )
 
 

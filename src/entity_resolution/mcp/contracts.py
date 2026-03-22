@@ -44,12 +44,17 @@ class FindDuplicatesRequest:
     active_learning_model: Optional[str] = None
     active_learning_low_threshold: float = 0.55
     active_learning_high_threshold: float = 0.80
+    similarity_type: str = "default"
+    token_jaccard_fields: List[str] = field(default_factory=list)
+    token_jaccard_min_score: float = 0.0
+    gating_mode: str = "enforce"
     min_margin: float = 0.0
     require_token_overlap: bool = False
     token_overlap_bypass_score: float = 1.0
     word_index_stopwords: List[str] = field(default_factory=list)
     token_type_affinity: Dict[str, List[str]] = field(default_factory=dict)
     target_type_field: str = "type"
+    alias_sources: List[Dict[str, Any]] = field(default_factory=list)
     stages: List[Dict[str, Any]] = field(default_factory=list)
     options: MCPOptions = field(default_factory=MCPOptions)
     deprecation_warnings: List[str] = field(default_factory=list)
