@@ -37,6 +37,9 @@ def normalize_find_duplicates_args(
 ) -> FindDuplicatesRequest:
     """Normalize find_duplicates args into a canonical request contract."""
     normalized_options = _normalize_options(options)
+    managed_refs = _normalize_managed_refs(_nested_get(normalized_options, "aliasing", "managed_refs"))
+    if managed_refs and "aliasing" in normalized_options and isinstance(normalized_options["aliasing"], dict):
+        normalized_options["aliasing"]["managed_refs"] = managed_refs
     warnings: List[str] = []
 
     strategy = _select_value(
@@ -564,4 +567,33 @@ def _normalize_aliasing_sources(value: Any) -> List[Dict[str, Any]]:
         raise ValueError(
             f"options.aliasing.sources[{idx}].type must be one of inline, field, acronym, managed_ref"
         )
+    return out
+
+
+def _normalize_managed_refs(value: Any) -> Dict[str, Dict[str, List[str]]]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError("options.aliasing.managed_refs must be an object/dict when provided")
+
+    out: Dict[str, Dict[str, List[str]]] = {}
+    for ref_id, alias_map in value.items():
+        ref = str(ref_id).strip()
+        if not ref:
+            continue
+        if not isinstance(alias_map, dict):
+            raise ValueError(f"options.aliasing.managed_refs.{ref} must be an object/dict")
+
+        normalized_map: Dict[str, List[str]] = {}
+        for key, raw_vals in alias_map.items():
+            token = str(key).strip().lower()
+            if not token:
+                continue
+            if isinstance(raw_vals, list):
+                vals = [str(v).strip().lower() for v in raw_vals if str(v).strip()]
+            else:
+                vals = [str(raw_vals).strip().lower()] if str(raw_vals).strip() else []
+            if vals:
+                normalized_map[token] = vals
+        out[ref] = normalized_map
     return out
