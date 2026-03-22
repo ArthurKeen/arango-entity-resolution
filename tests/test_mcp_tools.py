@@ -642,6 +642,79 @@ class TestFindDuplicates:
         assert result["similarity"]["gates"]["enabled"] is True
         assert result["similarity"]["gates"]["rejected_type_affinity"] == 1
 
+    @patch("entity_resolution.core.configurable_pipeline.ConfigurableERPipeline")
+    @patch("entity_resolution.mcp.tools.pipeline._has_any_edges")
+    @patch("entity_resolution.mcp.tools.pipeline._get_db")
+    def test_find_duplicates_no_matches_still_surfaces_aliasing_diagnostics(
+        self,
+        mock_get_db,
+        mock_has_any_edges,
+        mock_pipeline_cls,
+    ):
+        from entity_resolution.mcp.contracts import FindDuplicatesRequest
+        from entity_resolution.mcp.tools.pipeline import run_find_duplicates_request
+
+        mock_db = MagicMock()
+        mock_get_db.return_value = mock_db
+        mock_has_any_edges.return_value = False
+
+        mock_pipeline = MagicMock()
+        mock_pipeline._run_blocking.return_value = []
+        mock_pipeline._run_similarity.return_value = []
+        mock_pipeline._run_edge_creation.return_value = 0
+        mock_pipeline_cls.return_value = mock_pipeline
+
+        req = FindDuplicatesRequest(
+            collection="companies",
+            fields=["name"],
+            strategy="exact",
+            confidence_threshold=0.8,
+            require_token_overlap=True,
+            alias_sources=[{"type": "managed_ref", "ref": "missing_ref"}],
+        )
+        result = run_find_duplicates_request(
+            host="localhost",
+            port=8529,
+            username="root",
+            password="pass",
+            database="test",
+            request=req,
+        )
+
+        assert result["similarity"]["gates"]["enabled"] is True
+        assert result["similarity"]["gates"]["input_matches"] == 0
+        assert result["similarity"]["gates"]["accepted_matches"] == 0
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_requested"] == ["missing_ref"]
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_applied"] == []
+        assert result["similarity"]["gates"]["aliasing"]["managed_ref_missing"] == ["missing_ref"]
+
+    def test_apply_precision_gates_without_rules_surfaces_aliasing_diagnostics(self):
+        from entity_resolution.mcp.contracts import FindDuplicatesRequest
+        from entity_resolution.mcp.tools.pipeline import _apply_precision_gates
+
+        req = FindDuplicatesRequest(
+            collection="companies",
+            fields=["name"],
+            strategy="exact",
+            confidence_threshold=0.8,
+            alias_sources=[{"type": "managed_ref", "ref": "missing_ref"}],
+        )
+        accepted, gate_stats = _apply_precision_gates(
+            db=None,
+            collection="companies",
+            matches=[("a1", "a2", 0.9)],
+            fields=["name"],
+            request=req,
+        )
+
+        assert len(accepted) == 1
+        assert gate_stats["enabled"] is False
+        assert gate_stats["input_matches"] == 1
+        assert gate_stats["accepted_matches"] == 1
+        assert gate_stats["aliasing"]["managed_ref_requested"] == ["missing_ref"]
+        assert gate_stats["aliasing"]["managed_ref_applied"] == []
+        assert gate_stats["aliasing"]["managed_ref_missing"] == ["missing_ref"]
+
 
 # ---------------------------------------------------------------------------
 # MCP tool: explain_match
