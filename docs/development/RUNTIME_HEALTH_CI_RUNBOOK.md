@@ -438,6 +438,16 @@ Use this flow for intentional runtime/quality re-baselines:
    - update `ci/runtime-quality/quality_gate_policy.json` only when thresholds or baseline paths intentionally change
    - record rationale in PR description (model/runtime change, platform drift, or corpus change)
 
+Optional helper for threshold calibration from CI artifacts:
+
+```bash
+python scripts/calibrate_runtime_quality_policy.py \
+  --policy ci/runtime-quality/quality_gate_policy.json \
+  --calibration linux-cpu=artifacts/quality/quality_gate_linux-cpu.json \
+  --write \
+  --update-baselines
+```
+
 ---
 
 ## Notes
