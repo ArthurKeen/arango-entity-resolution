@@ -394,6 +394,10 @@ To run self-hosted lanes manually:
 2. click `Run workflow`
 3. set `enable_self_hosted=true`
 
+Expected self-hosted labels:
+- Apple Silicon runner: `self-hosted`, `macOS`, `ARM64`
+- Linux GPU runner: `self-hosted`, `linux`, `x64`, `gpu`, `nvidia`
+
 `runtime-health-gate` quality output includes `quality_gate.current_source`:
 - `metrics_file` when using `--quality-current-metrics`
 - `corpus_benchmark` when using `--quality-corpus`

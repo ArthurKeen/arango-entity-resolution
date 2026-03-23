@@ -20,7 +20,7 @@ jobs:
   runtime-platform-tests:
     name: ${{ matrix.name }}
     runs-on: ${{ fromJson(matrix.runs_on) }}
-    if: ${{ matrix.self_hosted == false || (github.event_name == 'workflow_dispatch' && inputs.enable_self_hosted == true) }}
+    if: ${{ !matrix.self_hosted || (github.event_name == 'workflow_dispatch' && github.event.inputs.enable_self_hosted == 'true') }}
     strategy:
       fail-fast: false
       matrix:
