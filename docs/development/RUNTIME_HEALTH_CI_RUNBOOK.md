@@ -404,6 +404,12 @@ Workflow behavior notes:
 - push/PR triggers are path-filtered to runtime benchmark/gate workflow, code, tests, and runbook files
 - runtime matrix artifacts are best-effort (`if-no-files-found: ignore`) with `7` day retention
 - each lane writes `artifacts/runtime/runtime_env_<platform>.json` with platform/runtime evidence (`python_version`, system/machine, torch availability + cuda/mps flags, and onnxruntime providers)
+- quality-gate thresholds and pinned corpus/baselines are sourced from `ci/runtime-quality/quality_gate_policy.json`
+- default `linux-cpu` lane executes corpus-driven `runtime-health-gate` with pinned artifacts and emits `artifacts/quality/quality_gate_linux-cpu.json`
+- workflow fails fast if policy profiles are missing or if referenced corpus/baseline files do not exist
+- runtime matrix unit checks include policy validator tests (`test_runtime_quality_policy_service.py`, `test_runtime_quality_policy_ci.py`)
+- linux-cpu quality-gate lane generates an ephemeral ArangoDB password at runtime (no hardcoded credential in repository)
+- prefer `ARANGO_ROOT_PASSWORD` as canonical for Docker-root auth; `ARANGO_PASSWORD` is supported only as a fallback alias
 
 `runtime-health-gate` quality output includes `quality_gate.current_source`:
 - `metrics_file` when using `--quality-current-metrics`
@@ -411,6 +417,26 @@ Workflow behavior notes:
 - `--quality-baseline-metrics` is required whenever either quality current source is provided
 - specify only one current source (`--quality-current-metrics` or `--quality-corpus`) per invocation
 - corpus tuning flags (`--quality-model-name`, `--quality-device`, `--quality-batch-size`) require `--quality-corpus`
+
+---
+
+## Baseline Rotation Procedure
+
+Use this flow for intentional runtime/quality re-baselines:
+
+1. **Open a dedicated baseline PR**
+   - include only baseline artifact updates and runbook/policy updates
+   - do not bundle feature changes
+2. **Approval signal**
+   - require explicit reviewer acknowledgement in the PR (for example comment: `baseline-rotation-approved`)
+   - merge only after this acknowledgement is present
+3. **Artifact naming convention**
+   - keep promoted stable files under `ci/runtime-quality/baselines/<profile>.json`
+   - attach timestamped evidence artifacts in CI as `artifacts/quality/quality_gate_<profile>.json`
+   - if storing historical baseline snapshots, use `baseline_<profile>_<YYYYMMDD>.json`
+4. **Policy sync**
+   - update `ci/runtime-quality/quality_gate_policy.json` only when thresholds or baseline paths intentionally change
+   - record rationale in PR description (model/runtime change, platform drift, or corpus change)
 
 ---
 
