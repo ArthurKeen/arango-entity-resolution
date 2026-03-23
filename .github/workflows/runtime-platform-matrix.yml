@@ -1,0 +1,74 @@
+name: Runtime Platform Matrix
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      enable_self_hosted:
+        description: "Enable Apple Silicon and Linux GPU self-hosted jobs"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-platform-tests:
+    name: ${{ matrix.name }}
+    runs-on: ${{ fromJson(matrix.runs_on) }}
+    if: ${{ matrix.self_hosted == false || (github.event_name == 'workflow_dispatch' && inputs.enable_self_hosted == true) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-cpu
+            runs_on: '["ubuntu-latest"]'
+            self_hosted: false
+            platform_tag: linux-cpu
+          - name: apple-silicon
+            runs_on: '["self-hosted","macOS","ARM64"]'
+            self_hosted: true
+            platform_tag: apple-silicon
+          - name: linux-gpu
+            runs_on: '["self-hosted","linux","x64","gpu","nvidia"]'
+            self_hosted: true
+            platform_tag: linux-gpu
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[test,ml,mcp]"
+
+      - name: Runtime CLI contract smoke checks
+        run: |
+          arango-er runtime-health-benchmark --help
+          arango-er runtime-health-gate --help
+
+      - name: Runtime benchmark/gate unit checks
+        env:
+          USE_DEFAULT_PASSWORD: "true"
+        run: |
+          pytest -q tests/test_runtime_benchmark_service.py
+          pytest -q tests/test_cli.py -k "runtime_health_benchmark or runtime_health_gate"
+
+      - name: Upload runtime matrix logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-matrix-${{ matrix.platform_tag }}
+          path: |
+            .pytest_cache

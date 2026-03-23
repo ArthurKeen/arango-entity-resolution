@@ -374,11 +374,25 @@ arango-er runtime-health-gate \
 # 4) Record benchmark trend artifact
 arango-er runtime-health-benchmark \
   -c config.yaml \
+  --profile ci-linux-cpu \
   --startup-mode strict \
+  --warmup-runs 2 \
   --repeats 10 \
   --output-dir artifacts/runtime/benchmark \
   --filename-prefix runtime_benchmark
 ```
+
+### Platform Matrix Workflow
+
+This repository includes a dedicated runtime matrix workflow:
+- workflow: `.github/workflows/runtime-platform-matrix.yml`
+- default lanes on push/PR: `linux-cpu`
+- optional self-hosted lanes via manual dispatch: `apple-silicon`, `linux-gpu`
+
+To run self-hosted lanes manually:
+1. open GitHub Actions -> `Runtime Platform Matrix`
+2. click `Run workflow`
+3. set `enable_self_hosted=true`
 
 `runtime-health-gate` quality output includes `quality_gate.current_source`:
 - `metrics_file` when using `--quality-current-metrics`
