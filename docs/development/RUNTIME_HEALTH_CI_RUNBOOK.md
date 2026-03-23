@@ -401,6 +401,7 @@ Expected self-hosted labels:
 Workflow behavior notes:
 - matrix runs are configured with branch-level concurrency (newer runs cancel older in-progress runs on the same ref)
 - each matrix lane has a `30` minute timeout guard
+- push/PR triggers are path-filtered to runtime benchmark/gate workflow, code, tests, and runbook files
 
 `runtime-health-gate` quality output includes `quality_gate.current_source`:
 - `metrics_file` when using `--quality-current-metrics`
