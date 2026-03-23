@@ -374,11 +374,36 @@ arango-er runtime-health-gate \
 # 4) Record benchmark trend artifact
 arango-er runtime-health-benchmark \
   -c config.yaml \
+  --profile ci-linux-cpu \
   --startup-mode strict \
+  --warmup-runs 2 \
   --repeats 10 \
   --output-dir artifacts/runtime/benchmark \
   --filename-prefix runtime_benchmark
 ```
+
+### Platform Matrix Workflow
+
+This repository includes a dedicated runtime matrix workflow:
+- workflow: `.github/workflows/runtime-platform-matrix.yml`
+- default lanes on push/PR: `linux-cpu`
+- optional self-hosted lanes via manual dispatch: `apple-silicon`, `linux-gpu`
+
+To run self-hosted lanes manually:
+1. open GitHub Actions -> `Runtime Platform Matrix`
+2. click `Run workflow`
+3. set `enable_self_hosted=true`
+
+Expected self-hosted labels:
+- Apple Silicon runner: `self-hosted`, `macOS`, `ARM64`
+- Linux GPU runner: `self-hosted`, `linux`, `x64`, `gpu`, `nvidia`
+
+Workflow behavior notes:
+- matrix runs are configured with branch-level concurrency (newer runs cancel older in-progress runs on the same ref)
+- each matrix lane has a `30` minute timeout guard
+- push/PR triggers are path-filtered to runtime benchmark/gate workflow, code, tests, and runbook files
+- runtime matrix artifacts are best-effort (`if-no-files-found: ignore`) with `7` day retention
+- each lane writes `artifacts/runtime/runtime_env_<platform>.json` with platform/runtime evidence (`python_version`, system/machine, torch availability + cuda/mps flags, and onnxruntime providers)
 
 `runtime-health-gate` quality output includes `quality_gate.current_source`:
 - `metrics_file` when using `--quality-current-metrics`
