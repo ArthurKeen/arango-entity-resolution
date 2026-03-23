@@ -84,6 +84,52 @@ jobs:
           pytest -q tests/test_runtime_benchmark_service.py
           pytest -q tests/test_cli.py -k "runtime_health_benchmark or runtime_health_gate"
 
+      - name: Collect runtime environment evidence
+        if: always()
+        run: |
+          mkdir -p artifacts/runtime
+          python - <<'PY'
+          import json
+          import platform
+          from pathlib import Path
+
+          payload = {
+              "platform_tag": "${{ matrix.platform_tag }}",
+              "python_version": platform.python_version(),
+              "system": platform.system(),
+              "machine": platform.machine(),
+              "processor": platform.processor(),
+          }
+
+          try:
+              import torch
+              payload["torch"] = {
+                  "available": True,
+                  "version": getattr(torch, "__version__", None),
+                  "cuda_available": bool(torch.cuda.is_available()),
+                  "mps_available": bool(
+                      hasattr(torch.backends, "mps")
+                      and torch.backends.mps.is_available()
+                  ),
+              }
+          except Exception as exc:
+              payload["torch"] = {"available": False, "error": str(exc)}
+
+          try:
+              import onnxruntime as ort
+              payload["onnxruntime"] = {
+                  "available": True,
+                  "version": ort.__version__,
+                  "providers": ort.get_available_providers(),
+              }
+          except Exception as exc:
+              payload["onnxruntime"] = {"available": False, "error": str(exc)}
+
+          out = Path("artifacts/runtime") / f"runtime_env_${{ matrix.platform_tag }}.json"
+          out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+          print(f"Wrote {out}")
+          PY
+
       - name: Upload runtime matrix logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -93,3 +139,4 @@ jobs:
           retention-days: 7
           path: |
             .pytest_cache
+            artifacts/runtime/runtime_env_${{ matrix.platform_tag }}.json
