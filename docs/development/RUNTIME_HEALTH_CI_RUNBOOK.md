@@ -398,6 +398,10 @@ Expected self-hosted labels:
 - Apple Silicon runner: `self-hosted`, `macOS`, `ARM64`
 - Linux GPU runner: `self-hosted`, `linux`, `x64`, `gpu`, `nvidia`
 
+Workflow behavior notes:
+- matrix runs are configured with branch-level concurrency (newer runs cancel older in-progress runs on the same ref)
+- each matrix lane has a `30` minute timeout guard
+
 `runtime-health-gate` quality output includes `quality_gate.current_source`:
 - `metrics_file` when using `--quality-current-metrics`
 - `corpus_benchmark` when using `--quality-corpus`
