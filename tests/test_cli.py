@@ -1182,6 +1182,56 @@ def test_cli_runtime_quality_baseline_passes_no_overwrite_flag(
     assert captured["overwrite"] is False
 
 
+def test_cli_runtime_quality_policy_validate_success(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    policy_file = tmp_path / "quality_gate_policy.json"
+    policy_file.write_text("{}")
+    captured: Dict[str, Any] = {}
+
+    def fake_validate_policy_file(path: str) -> None:
+        captured["path"] = path
+
+    monkeypatch.setattr(
+        cli_module.RuntimeQualityPolicyService,
+        "validate_policy_file",
+        staticmethod(fake_validate_policy_file),
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        ["runtime-quality-policy-validate", "--policy-file", str(policy_file)],
+    )
+    assert result.exit_code == 0
+    payload = _extract_json_block(result.output)
+    assert payload["ok"] is True
+    assert payload["policy_file"] == str(policy_file)
+    assert captured["path"] == str(policy_file)
+
+
+def test_cli_runtime_quality_policy_validate_failure_exits_1(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    policy_file = tmp_path / "quality_gate_policy.json"
+    policy_file.write_text("{}")
+
+    def fake_validate_policy_file(path: str) -> None:
+        raise ValueError("bad policy")
+
+    monkeypatch.setattr(
+        cli_module.RuntimeQualityPolicyService,
+        "validate_policy_file",
+        staticmethod(fake_validate_policy_file),
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        ["runtime-quality-policy-validate", "--policy-file", str(policy_file)],
+    )
+    assert result.exit_code == 1
+    assert "Error: bad policy" in result.output
+
+
 def test_cli_runtime_health_gate_includes_quality_gate(
     runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
