@@ -425,6 +425,10 @@ Suggested PR checklist template for first activation run:
 ## Runtime Matrix Self-Hosted Activation
 - [ ] Ran `Runtime Platform Matrix` from `main` with `enable_self_hosted=true`
 - [ ] `linux-cpu`, `apple-silicon`, and `linux-gpu` lanes completed
+- [ ] Opened run artifacts: <workflow-run-url>
+- [ ] Reviewed `runtime-activation-evidence` artifact:
+  - [ ] `activation_summary.md` confirms expected checklist outcomes
+  - [ ] `activation_summary.json` is attached for machine-readable evidence
 - [ ] Uploaded artifacts reviewed:
   - [ ] `runtime_env_linux-cpu.json`
   - [ ] `runtime_env_apple-silicon.json`
