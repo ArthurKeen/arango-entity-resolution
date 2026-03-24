@@ -83,6 +83,7 @@ jobs:
         run: |
           arango-er runtime-health-benchmark --help
           arango-er runtime-health-gate --help
+          arango-er runtime-quality-policy-validate --help
           arango-er runtime-activation-summary --help
 
       - name: Runtime benchmark/gate unit checks
@@ -95,15 +96,8 @@ jobs:
 
       - name: Validate quality policy and artifact references
         run: |
-          python - <<'PY'
-          from entity_resolution.services.runtime_quality_policy_service import (
-              RuntimeQualityPolicyService,
-          )
-
-          RuntimeQualityPolicyService.validate_policy_file(
-              "ci/runtime-quality/quality_gate_policy.json"
-          )
-          PY
+          arango-er runtime-quality-policy-validate \
+            --policy-file ci/runtime-quality/quality_gate_policy.json
 
       - name: Start ephemeral ArangoDB for quality gate
         if: ${{ matrix.run_quality_gate }}

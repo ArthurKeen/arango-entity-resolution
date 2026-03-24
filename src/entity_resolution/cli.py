@@ -25,6 +25,7 @@ from .services.runtime_profile_registry import RuntimeProfileRegistry
 from .services.runtime_activation_evidence_service import RuntimeActivationEvidenceService
 from .services.runtime_quality_benchmark_service import RuntimeQualityBenchmarkService
 from .services.runtime_quality_gate_service import RuntimeQualityGateService
+from .services.runtime_quality_policy_service import RuntimeQualityPolicyService
 from .services.runtime_telemetry_service import RuntimeTelemetryService
 from .utils.config import DatabaseConfig
 from .utils.constants import get_version_string
@@ -472,6 +473,24 @@ def runtime_quality_benchmark(
             )
 
         _emit_json(metrics)
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
+
+@main.command("runtime-quality-policy-validate")
+@click.option(
+    "--policy-file",
+    default="ci/runtime-quality/quality_gate_policy.json",
+    show_default=True,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Quality gate policy JSON path to validate.",
+)
+def runtime_quality_policy_validate(policy_file):
+    """Validate runtime quality policy file and referenced artifacts."""
+    try:
+        RuntimeQualityPolicyService.validate_policy_file(policy_file)
+        _emit_json({"ok": True, "policy_file": policy_file})
     except Exception as e:
         click.echo(click.style(f"Error: {e}", fg="red"), err=True)
         sys.exit(1)
