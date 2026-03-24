@@ -419,6 +419,23 @@ Use this checklist for the first `enable_self_hosted=true` run to ensure results
    - if drift is expected, open a dedicated baseline-rotation PR (see section below)
    - if drift is unexpected, keep baselines unchanged and investigate runner/model/runtime changes first
 
+Suggested PR checklist template for first activation run:
+
+```markdown
+## Runtime Matrix Self-Hosted Activation
+- [ ] Ran `Runtime Platform Matrix` from `main` with `enable_self_hosted=true`
+- [ ] `linux-cpu`, `apple-silicon`, and `linux-gpu` lanes completed
+- [ ] Uploaded artifacts reviewed:
+  - [ ] `runtime_env_linux-cpu.json`
+  - [ ] `runtime_env_apple-silicon.json`
+  - [ ] `runtime_env_linux-gpu.json`
+  - [ ] `quality_gate_linux-cpu.json`
+  - [ ] `runtime_registry_linux-cpu.json`
+- [ ] Reviewed provider signals in runtime-env artifacts (MPS/CUDA/TensorRT availability as expected)
+- [ ] Reviewed `quality_gate_linux-cpu.json` for `current_source=corpus_benchmark`
+- [ ] No unexpected quality regression, or follow-up baseline-rotation PR linked: <link>
+```
+
 Workflow behavior notes:
 - matrix runs are configured with branch-level concurrency (newer runs cancel older in-progress runs on the same ref)
 - each matrix lane has a `30` minute timeout guard
