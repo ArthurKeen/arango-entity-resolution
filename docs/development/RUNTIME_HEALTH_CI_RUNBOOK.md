@@ -443,6 +443,15 @@ Suggested PR checklist template for first activation run:
 Optional helper to generate activation evidence summary from artifacts:
 
 ```bash
+arango-er runtime-activation-summary \
+  --artifacts-root artifacts \
+  --output-json artifacts/runtime/activation_summary.json \
+  --output-md artifacts/runtime/activation_summary.md
+```
+
+Equivalent standalone script:
+
+```bash
 python scripts/summarize_runtime_activation.py \
   --artifacts-root artifacts \
   --output-json artifacts/runtime/activation_summary.json \
