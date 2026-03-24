@@ -18,8 +18,8 @@
       "quality_model_name": "all-MiniLM-L6-v2",
       "quality_device": "auto",
       "quality_batch_size": 16,
-      "quality_cosine_drift_max": 0.2,
-      "quality_topk_overlap_min": 0.5
+      "quality_cosine_drift_max": 0.12,
+      "quality_topk_overlap_min": 0.8
     },
     "linux-gpu": {
       "label": "ci-linux-gpu",
