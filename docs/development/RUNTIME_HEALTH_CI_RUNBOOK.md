@@ -450,6 +450,7 @@ Workflow behavior notes:
 - each matrix lane has a `30` minute timeout guard
 - push/PR triggers are path-filtered to runtime benchmark/gate workflow, code, tests, and runbook files
 - runtime matrix artifacts are best-effort (`if-no-files-found: ignore`) with `7` day retention
+- workflow also publishes `runtime-activation-evidence` artifact containing `activation_summary.json` and `activation_summary.md` generated from available matrix artifacts
 - each lane writes `artifacts/runtime/runtime_env_<platform>.json` with platform/runtime evidence (`python_version`, system/machine, torch availability + cuda/mps flags, and onnxruntime providers)
 - quality-gate thresholds and pinned corpus/baselines are sourced from `ci/runtime-quality/quality_gate_policy.json`
 - default `linux-cpu` lane executes corpus-driven `runtime-health-gate` with pinned artifacts and emits `artifacts/quality/quality_gate_linux-cpu.json`
