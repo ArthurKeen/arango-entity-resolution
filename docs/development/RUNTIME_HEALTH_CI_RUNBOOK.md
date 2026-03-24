@@ -398,6 +398,27 @@ Expected self-hosted labels:
 - Apple Silicon runner: `self-hosted`, `macOS`, `ARM64`
 - Linux GPU runner: `self-hosted`, `linux`, `x64`, `gpu`, `nvidia`
 
+### First Self-Hosted Activation Checklist
+
+Use this checklist for the first `enable_self_hosted=true` run to ensure results are comparable and repeatable:
+
+1. **Runner readiness**
+   - confirm both runner label sets are online and idle
+   - verify Docker is available on runner hosts
+2. **Workflow dispatch**
+   - run `Runtime Platform Matrix` from `main` with `enable_self_hosted=true`
+   - wait for all lanes (`linux-cpu`, `apple-silicon`, `linux-gpu`) to complete
+3. **Artifact capture check**
+   - confirm each lane uploaded `runtime_env_<platform>.json`
+   - confirm `linux-cpu` uploaded `quality_gate_linux-cpu.json` and `runtime_registry_linux-cpu.json`
+4. **Artifact review criteria**
+   - `runtime_env_<platform>.json` shows expected platform + provider availability (for example MPS on Apple Silicon, CUDA/TensorRT providers on Linux GPU where installed)
+   - `quality_gate_linux-cpu.json` includes `quality_gate.current_source=corpus_benchmark`
+   - no unexpected `quality_regression` when using approved baseline/policy
+5. **Follow-up action**
+   - if drift is expected, open a dedicated baseline-rotation PR (see section below)
+   - if drift is unexpected, keep baselines unchanged and investigate runner/model/runtime changes first
+
 Workflow behavior notes:
 - matrix runs are configured with branch-level concurrency (newer runs cancel older in-progress runs on the same ref)
 - each matrix lane has a `30` minute timeout guard
