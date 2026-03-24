@@ -83,6 +83,7 @@ jobs:
         run: |
           arango-er runtime-health-benchmark --help
           arango-er runtime-health-gate --help
+          arango-er runtime-activation-summary --help
 
       - name: Runtime benchmark/gate unit checks
         env:
@@ -266,8 +267,7 @@ jobs:
 
       - name: Build activation evidence summary
         run: |
-          mkdir -p artifacts
-          python scripts/summarize_runtime_activation.py \
+          arango-er runtime-activation-summary \
             --artifacts-root artifacts \
             --output-json artifacts/runtime/activation_summary.json \
             --output-md artifacts/runtime/activation_summary.md
