@@ -387,6 +387,7 @@ arango-er runtime-health-benchmark \
 This repository includes a dedicated runtime matrix workflow:
 - workflow: `.github/workflows/runtime-platform-matrix.yml`
 - default lanes on push/PR: `linux-cpu`
+- default lanes (run on every push/PR): `linux-cpu`, `windows-cpu`
 - optional self-hosted lanes via manual dispatch: `apple-silicon`, `linux-gpu`
 
 To run self-hosted lanes manually:
@@ -407,7 +408,7 @@ Use this checklist for the first `enable_self_hosted=true` run to ensure results
    - verify Docker is available on runner hosts
 2. **Workflow dispatch**
    - run `Runtime Platform Matrix` from `main` with `enable_self_hosted=true`
-   - wait for all lanes (`linux-cpu`, `apple-silicon`, `linux-gpu`) to complete
+   - wait for all lanes (`linux-cpu`, `windows-cpu`, `apple-silicon`, `linux-gpu`) to complete
 3. **Artifact capture check**
    - confirm each lane uploaded `runtime_env_<platform>.json`
    - confirm `linux-cpu` uploaded `quality_gate_linux-cpu.json` and `runtime_registry_linux-cpu.json`
@@ -424,13 +425,14 @@ Suggested PR checklist template for first activation run:
 ```markdown
 ## Runtime Matrix Self-Hosted Activation
 - [ ] Ran `Runtime Platform Matrix` from `main` with `enable_self_hosted=true`
-- [ ] `linux-cpu`, `apple-silicon`, and `linux-gpu` lanes completed
+- [ ] `linux-cpu`, `windows-cpu`, `apple-silicon`, and `linux-gpu` lanes completed
 - [ ] Opened run artifacts: <workflow-run-url>
 - [ ] Reviewed `runtime-activation-evidence` artifact:
   - [ ] `activation_summary.md` confirms expected checklist outcomes
   - [ ] `activation_summary.json` is attached for machine-readable evidence
 - [ ] Uploaded artifacts reviewed:
   - [ ] `runtime_env_linux-cpu.json`
+  - [ ] `runtime_env_windows-cpu.json`
   - [ ] `runtime_env_apple-silicon.json`
   - [ ] `runtime_env_linux-gpu.json`
   - [ ] `quality_gate_linux-cpu.json`

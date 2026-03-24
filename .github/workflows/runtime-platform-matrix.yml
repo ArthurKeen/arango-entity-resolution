@@ -48,8 +48,8 @@ jobs:
       - name: Compute matrix include list
         id: set
         run: |
-          BASE='[{"name":"linux-cpu","runs_on":"[\"ubuntu-latest\"]","self_hosted":false,"platform_tag":"linux-cpu","run_quality_gate":true}]'
-          FULL='[{"name":"linux-cpu","runs_on":"[\"ubuntu-latest\"]","self_hosted":false,"platform_tag":"linux-cpu","run_quality_gate":true},{"name":"apple-silicon","runs_on":"[\"self-hosted\",\"macOS\",\"ARM64\"]","self_hosted":true,"platform_tag":"apple-silicon","run_quality_gate":false},{"name":"linux-gpu","runs_on":"[\"self-hosted\",\"linux\",\"x64\",\"gpu\",\"nvidia\"]","self_hosted":true,"platform_tag":"linux-gpu","run_quality_gate":false}]'
+          BASE='[{"name":"linux-cpu","runs_on":"[\"ubuntu-latest\"]","self_hosted":false,"platform_tag":"linux-cpu","run_quality_gate":true},{"name":"windows-cpu","runs_on":"[\"windows-latest\"]","self_hosted":false,"platform_tag":"windows-cpu","run_quality_gate":false}]'
+          FULL='[{"name":"linux-cpu","runs_on":"[\"ubuntu-latest\"]","self_hosted":false,"platform_tag":"linux-cpu","run_quality_gate":true},{"name":"windows-cpu","runs_on":"[\"windows-latest\"]","self_hosted":false,"platform_tag":"windows-cpu","run_quality_gate":false},{"name":"apple-silicon","runs_on":"[\"self-hosted\",\"macOS\",\"ARM64\"]","self_hosted":true,"platform_tag":"apple-silicon","run_quality_gate":false},{"name":"linux-gpu","runs_on":"[\"self-hosted\",\"linux\",\"x64\",\"gpu\",\"nvidia\"]","self_hosted":true,"platform_tag":"linux-gpu","run_quality_gate":false}]'
 
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.enable_self_hosted }}" == "true" ]]; then
             echo "matrix={\"include\":$FULL}" >> "$GITHUB_OUTPUT"
@@ -62,6 +62,9 @@ jobs:
     needs: build-matrix
     runs-on: ${{ fromJson(matrix.runs_on) }}
     timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.build-matrix.outputs.matrix) }}
