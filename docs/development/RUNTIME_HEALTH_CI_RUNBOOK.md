@@ -436,6 +436,15 @@ Suggested PR checklist template for first activation run:
 - [ ] No unexpected quality regression, or follow-up baseline-rotation PR linked: <link>
 ```
 
+Optional helper to generate activation evidence summary from artifacts:
+
+```bash
+python scripts/summarize_runtime_activation.py \
+  --artifacts-root artifacts \
+  --output-json artifacts/runtime/activation_summary.json \
+  --output-md artifacts/runtime/activation_summary.md
+```
+
 Workflow behavior notes:
 - matrix runs are configured with branch-level concurrency (newer runs cancel older in-progress runs on the same ref)
 - each matrix lane has a `30` minute timeout guard
