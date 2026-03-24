@@ -1876,6 +1876,67 @@ def test_cli_runtime_quality_compare_writes_report_artifacts(
     assert payload["output_files"]["json"].endswith("quality_cmp.json")
 
 
+def test_cli_runtime_activation_summary_writes_outputs(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    artifacts_root = tmp_path / "artifacts"
+    output_json = tmp_path / "runtime" / "activation_summary.json"
+    output_md = tmp_path / "runtime" / "activation_summary.md"
+
+    expected_summary = {
+        "platforms": {},
+        "linux_cpu_quality_gate": {},
+        "linux_cpu_registry": {},
+        "checklist": {"all_runtime_env_found": True},
+    }
+    monkeypatch.setattr(
+        cli_module.RuntimeActivationEvidenceService,
+        "summarize",
+        staticmethod(lambda artifacts_root: expected_summary),
+    )
+    monkeypatch.setattr(
+        cli_module.RuntimeActivationEvidenceService,
+        "to_markdown",
+        staticmethod(lambda summary: "## Runtime Matrix Activation Evidence"),
+    )
+
+    result = runner.invoke(
+        cli_module.main,
+        [
+            "runtime-activation-summary",
+            "--artifacts-root",
+            str(artifacts_root),
+            "--output-json",
+            str(output_json),
+            "--output-md",
+            str(output_md),
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = _extract_json_block(result.output)
+    assert payload["output_files"]["json"] == str(output_json)
+    assert payload["output_files"]["markdown"] == str(output_md)
+    assert output_json.exists()
+    assert output_md.exists()
+    assert json.loads(output_json.read_text(encoding="utf-8")) == expected_summary
+    assert "Runtime Matrix Activation Evidence" in output_md.read_text(encoding="utf-8")
+
+
+def test_cli_runtime_activation_summary_exits_1_on_service_error(
+    runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        cli_module.RuntimeActivationEvidenceService,
+        "summarize",
+        staticmethod(lambda artifacts_root: (_ for _ in ()).throw(RuntimeError("boom"))),
+    )
+
+    result = runner.invoke(cli_module.main, ["runtime-activation-summary"])
+    assert result.exit_code == 1
+    assert "Error: boom" in result.output
+
+
 def test_cli_clusters_outputs_json(runner: CliRunner, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         cli_module,

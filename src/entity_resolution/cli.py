@@ -22,6 +22,7 @@ from .services.cluster_export_service import ClusterExportService
 from .services.embedding_service import EmbeddingService
 from .services.runtime_compare_report_service import RuntimeCompareReportService
 from .services.runtime_profile_registry import RuntimeProfileRegistry
+from .services.runtime_activation_evidence_service import RuntimeActivationEvidenceService
 from .services.runtime_quality_benchmark_service import RuntimeQualityBenchmarkService
 from .services.runtime_quality_gate_service import RuntimeQualityGateService
 from .services.runtime_telemetry_service import RuntimeTelemetryService
@@ -879,6 +880,56 @@ def runtime_health_gate(
             )
         if fail_on_regression and has_regression:
             sys.exit(2)
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
+
+@main.command("runtime-activation-summary")
+@click.option(
+    "--artifacts-root",
+    default="artifacts",
+    show_default=True,
+    help="Root artifact directory containing runtime/ and quality/ subdirectories.",
+)
+@click.option(
+    "--output-json",
+    default="artifacts/runtime/activation_summary.json",
+    show_default=True,
+    type=click.Path(dir_okay=False),
+    help="Path to write machine-readable activation summary JSON.",
+)
+@click.option(
+    "--output-md",
+    default="artifacts/runtime/activation_summary.md",
+    show_default=True,
+    type=click.Path(dir_okay=False),
+    help="Path to write markdown activation checklist summary.",
+)
+def runtime_activation_summary(artifacts_root, output_json, output_md):
+    """Summarize runtime matrix artifacts into activation evidence files."""
+    try:
+        summary = RuntimeActivationEvidenceService.summarize(artifacts_root=artifacts_root)
+        markdown = RuntimeActivationEvidenceService.to_markdown(summary)
+
+        output_json_path = Path(output_json)
+        output_json_path.parent.mkdir(parents=True, exist_ok=True)
+        output_json_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+
+        output_md_path = Path(output_md)
+        output_md_path.parent.mkdir(parents=True, exist_ok=True)
+        output_md_path.write_text(markdown + "\n", encoding="utf-8")
+
+        _emit_json(
+            {
+                "artifacts_root": artifacts_root,
+                "output_files": {
+                    "json": str(output_json_path),
+                    "markdown": str(output_md_path),
+                },
+                "checklist": summary.get("checklist", {}),
+            }
+        )
     except Exception as e:
         click.echo(click.style(f"Error: {e}", fg="red"), err=True)
         sys.exit(1)
