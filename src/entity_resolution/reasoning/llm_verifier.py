@@ -109,6 +109,41 @@ class LLMMatchVerifier:
     # Public API
     # ------------------------------------------------------------------
 
+    def healthcheck(self) -> Dict[str, Any]:
+        """Check whether the configured model/provider is reachable.
+
+        Sends a minimal one-token probe and reports latency.
+
+        Returns:
+            Dict with ``ok``, ``model``, ``latency_ms``, ``error``.
+        """
+        import time as _time
+
+        start = _time.time()
+        try:
+            kwargs: Dict[str, Any] = {
+                "model": self.model,
+                "messages": [{"role": "user", "content": "ping"}],
+                "max_tokens": 1,
+                "timeout": 5,
+            }
+            if self.base_url:
+                kwargs["api_base"] = self.base_url
+            litellm.completion(**kwargs)
+            return {
+                "ok": True,
+                "model": self.model,
+                "latency_ms": round((_time.time() - start) * 1000, 1),
+                "error": None,
+            }
+        except Exception as exc:
+            return {
+                "ok": False,
+                "model": self.model,
+                "latency_ms": None,
+                "error": str(exc),
+            }
+
     def needs_verification(self, score: float) -> bool:
         """Return True if the score falls in the uncertain range."""
         return self.low_threshold <= score < self.high_threshold

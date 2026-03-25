@@ -11,3 +11,9 @@ __all__ = [
     "PythonUnionFindBackend",
     "AQLGraphBackend",
 ]
+
+try:
+    from .python_sparse import PythonSparseBackend
+    __all__.append("PythonSparseBackend")
+except ImportError:
+    pass

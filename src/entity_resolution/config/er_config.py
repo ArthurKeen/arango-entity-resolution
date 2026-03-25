@@ -211,9 +211,11 @@ class ClusteringConfig:
 
     The ``backend`` field selects the WCC algorithm implementation:
 
-    - ``python_dfs`` -- bulk edge fetch + iterative DFS (current default)
-    - ``python_union_find`` -- bulk edge fetch + Union-Find
+    - ``python_dfs`` -- bulk edge fetch + iterative DFS
+    - ``python_union_find`` -- bulk edge fetch + Union-Find (default since 3.4.0)
+    - ``python_sparse`` -- scipy sparse matrix WCC (optional, large graphs)
     - ``aql_graph`` -- per-vertex server-side AQL traversal
+    - ``auto`` -- automatic selection based on edge count (opt-in in 3.4.0)
 
     The legacy ``wcc_algorithm`` parameter is still accepted for backward
     compatibility but emits a ``DeprecationWarning``.
@@ -224,15 +226,17 @@ class ClusteringConfig:
         "aql_graph": "aql_graph",
     }
 
-    VALID_BACKENDS = ("python_dfs", "python_union_find", "aql_graph")
+    VALID_BACKENDS = ("python_dfs", "python_union_find", "python_sparse", "aql_graph", "auto")
 
     def __init__(
         self,
         algorithm: str = "wcc",
         min_cluster_size: int = 2,
         store_results: bool = True,
-        backend: str = "python_dfs",
+        backend: str = "python_union_find",
         wcc_algorithm: Optional[str] = None,
+        auto_select_threshold_edges: int = 2_000_000,
+        sparse_backend_enabled: bool = True,
     ):
         """
         Initialize clustering configuration.
@@ -241,15 +245,23 @@ class ClusteringConfig:
             algorithm: Clustering algorithm ("wcc")
             min_cluster_size: Minimum entities per cluster
             store_results: Whether to store cluster results
-            backend: Clustering backend ("python_dfs", "python_union_find", "aql_graph")
+            backend: Clustering backend. Default changed to ``python_union_find``
+                in 3.4.0 (parity confirmed in 3.3.0). Set to ``auto`` for
+                automatic selection based on edge count.
             wcc_algorithm: Deprecated -- use ``backend`` instead.
                 If provided, maps to ``backend`` and emits a DeprecationWarning.
+            auto_select_threshold_edges: Edge count above which ``auto`` backend
+                prefers ``python_sparse`` (if scipy available). Default 2M.
+            sparse_backend_enabled: Whether ``auto`` backend may select
+                ``python_sparse``. Default True.
         """
         import warnings
 
         self.algorithm = algorithm
         self.min_cluster_size = min_cluster_size
         self.store_results = store_results
+        self.auto_select_threshold_edges = auto_select_threshold_edges
+        self.sparse_backend_enabled = sparse_backend_enabled
 
         if wcc_algorithm is not None:
             warnings.warn(
@@ -274,18 +286,25 @@ class ClusteringConfig:
             algorithm=config_dict.get('algorithm', 'wcc'),
             min_cluster_size=config_dict.get('min_cluster_size', 2),
             store_results=config_dict.get('store_results', True),
-            backend=config_dict.get('backend', 'python_dfs'),
+            backend=config_dict.get('backend', 'python_union_find'),
             wcc_algorithm=config_dict.get('wcc_algorithm'),
+            auto_select_threshold_edges=config_dict.get('auto_select_threshold_edges', 2_000_000),
+            sparse_backend_enabled=config_dict.get('sparse_backend_enabled', True),
         )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
-        return {
+        result = {
             'algorithm': self.algorithm,
             'min_cluster_size': self.min_cluster_size,
             'store_results': self.store_results,
             'backend': self.backend,
         }
+        if self.auto_select_threshold_edges != 2_000_000:
+            result['auto_select_threshold_edges'] = self.auto_select_threshold_edges
+        if not self.sparse_backend_enabled:
+            result['sparse_backend_enabled'] = self.sparse_backend_enabled
+        return result
 
     def validate(self) -> List[str]:
         """Validate clustering configuration."""
@@ -298,6 +317,10 @@ class ClusteringConfig:
             errors.append(
                 f"min_cluster_size must be >= 1, got: {self.min_cluster_size}"
             )
+        if self.auto_select_threshold_edges < 1:
+            errors.append(
+                f"auto_select_threshold_edges must be >= 1, got: {self.auto_select_threshold_edges}"
+            )
         return errors
 
 
@@ -308,7 +331,7 @@ class EmbeddingConfig:
         self,
         model_name: str = 'all-MiniLM-L6-v2',
         runtime: str = 'pytorch',
-        device: str = 'cpu',
+        device: str = 'auto',
         provider: str = 'cpu',
         provider_options: Optional[Dict[str, Any]] = None,
         onnx_model_path: Optional[str] = None,
@@ -325,7 +348,8 @@ class EmbeddingConfig:
         embedding_field_coarse: str = 'embedding_vector_coarse',
         embedding_field_fine: str = 'embedding_vector_fine',
         profile: str = 'default',
-        batch_size: int = 32
+        batch_size: int = 32,
+        max_batch_size: Optional[int] = None,
     ):
         """
         Initialize embedding configuration.
@@ -333,7 +357,8 @@ class EmbeddingConfig:
         Args:
             model_name: Sentence-transformers model name (legacy mode or fine model)
             runtime: Embedding runtime ('pytorch' or 'onnxruntime')
-            device: Device for pytorch inference ('cpu', 'cuda', 'mps', or 'auto')
+            device: Device for pytorch inference ('cpu', 'cuda', 'mps', or 'auto').
+                Default changed to 'auto' in 3.4.0 (MPS/CUDA parity confirmed in 3.3.0).
             provider: Provider for onnxruntime ('cpu', 'coreml', 'cuda', 'tensorrt', or 'auto')
             provider_options: Optional provider-specific options for onnxruntime
             onnx_model_path: Optional path to ONNX model artifact when using onnxruntime
@@ -351,6 +376,7 @@ class EmbeddingConfig:
             embedding_field_fine: Field name for fine embeddings
             profile: Profile name for metadata tracking
             batch_size: Batch size for embedding generation
+            max_batch_size: Hard ceiling for batch size to prevent OOM on GPU devices
         """
         self.model_name = model_name
         self.runtime = runtime
@@ -372,6 +398,7 @@ class EmbeddingConfig:
         self.embedding_field_fine = embedding_field_fine
         self.profile = profile
         self.batch_size = batch_size
+        self.max_batch_size = max_batch_size
     
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> 'EmbeddingConfig':
@@ -379,7 +406,7 @@ class EmbeddingConfig:
         return cls(
             model_name=config_dict.get('model_name', 'all-MiniLM-L6-v2'),
             runtime=config_dict.get('runtime', 'pytorch'),
-            device=config_dict.get('device', 'cpu'),
+            device=config_dict.get('device', 'auto'),
             provider=config_dict.get('provider', 'cpu'),
             provider_options=config_dict.get('provider_options', {}),
             onnx_model_path=config_dict.get('onnx_model_path'),
@@ -396,7 +423,8 @@ class EmbeddingConfig:
             embedding_field_coarse=config_dict.get('embedding_field_coarse', 'embedding_vector_coarse'),
             embedding_field_fine=config_dict.get('embedding_field_fine', 'embedding_vector_fine'),
             profile=config_dict.get('profile', 'default'),
-            batch_size=config_dict.get('batch_size', 32)
+            batch_size=config_dict.get('batch_size', 32),
+            max_batch_size=config_dict.get('max_batch_size'),
         )
     
     def to_dict(self) -> Dict[str, Any]:
@@ -416,8 +444,10 @@ class EmbeddingConfig:
             'embedding_field': self.embedding_field,
             'multi_resolution_mode': self.multi_resolution_mode,
             'profile': self.profile,
-            'batch_size': self.batch_size
+            'batch_size': self.batch_size,
         }
+        if self.max_batch_size is not None:
+            result['max_batch_size'] = self.max_batch_size
         if self.onnx_model_path is not None:
             result['onnx_model_path'] = self.onnx_model_path
         
@@ -495,6 +525,8 @@ class EmbeddingConfig:
         
         if self.batch_size < 1:
             errors.append(f"batch_size must be >= 1, got: {self.batch_size}")
+        if self.max_batch_size is not None and self.max_batch_size < 1:
+            errors.append(f"max_batch_size must be >= 1, got: {self.max_batch_size}")
         
         return errors
 
@@ -530,12 +562,16 @@ class LLMProviderConfig:
         base_url: Optional[str] = None,
         api_key_env: Optional[str] = None,
         timeout_seconds: int = 60,
+        healthcheck_on_start: bool = False,
+        fallback_provider: Optional[str] = None,
     ):
         self.provider = provider
         self.model = model
         self.base_url = base_url or self.PROVIDER_BASE_URLS.get(provider)
         self.api_key_env = api_key_env
         self.timeout_seconds = timeout_seconds
+        self.healthcheck_on_start = healthcheck_on_start
+        self.fallback_provider = fallback_provider
 
     def to_litellm_model_string(self) -> Optional[str]:
         """Return the litellm model string, or ``None`` if model is unset."""
@@ -553,12 +589,15 @@ class LLMProviderConfig:
             base_url=config_dict.get("base_url"),
             api_key_env=config_dict.get("api_key_env"),
             timeout_seconds=config_dict.get("timeout_seconds", 60),
+            healthcheck_on_start=config_dict.get("healthcheck_on_start", False),
+            fallback_provider=config_dict.get("fallback_provider"),
         )
 
     def to_dict(self) -> Dict[str, Any]:
         result: Dict[str, Any] = {
             "provider": self.provider,
             "timeout_seconds": self.timeout_seconds,
+            "healthcheck_on_start": self.healthcheck_on_start,
         }
         if self.model is not None:
             result["model"] = self.model
@@ -566,6 +605,8 @@ class LLMProviderConfig:
             result["base_url"] = self.base_url
         if self.api_key_env is not None:
             result["api_key_env"] = self.api_key_env
+        if self.fallback_provider is not None:
+            result["fallback_provider"] = self.fallback_provider
         return result
 
     def validate(self) -> List[str]:
@@ -577,6 +618,11 @@ class LLMProviderConfig:
         if self.timeout_seconds < 1:
             errors.append(
                 f"timeout_seconds must be >= 1, got: {self.timeout_seconds}"
+            )
+        if self.fallback_provider is not None and self.fallback_provider not in self.VALID_PROVIDERS:
+            errors.append(
+                f"fallback_provider must be one of {self.VALID_PROVIDERS}, "
+                f"got: {self.fallback_provider!r}"
             )
         return errors
 
@@ -994,10 +1040,10 @@ class ERPipelineConfig:
                 f"clustering.algorithm must be 'wcc', got: {self.clustering.algorithm}"
             )
         
-        if self.clustering.wcc_algorithm not in ('python_dfs', 'aql_graph'):
+        if self.clustering.backend not in ClusteringConfig.VALID_BACKENDS:
             errors.append(
-                f"clustering.wcc_algorithm must be 'python_dfs' or 'aql_graph', "
-                f"got: {self.clustering.wcc_algorithm}"
+                f"clustering.backend must be one of {ClusteringConfig.VALID_BACKENDS}, "
+                f"got: {self.clustering.backend}"
             )
         
         if self.clustering.min_cluster_size < 1:

@@ -104,6 +104,7 @@ class EmbeddingService:
         profile: str = 'default',
         serializer: Optional[TupleEmbeddingSerializer] = None,
         batch_size: int = DEFAULT_BATCH_SIZE,
+        max_batch_size: Optional[int] = None,
         runtime: str = 'pytorch',
         provider: str = 'cpu',
         provider_options: Optional[Dict[str, Any]] = None,
@@ -187,6 +188,7 @@ class EmbeddingService:
         self.provider_options = provider_options or {}
         self.onnx_model_path = onnx_model_path
         self.batch_size = batch_size
+        self.max_batch_size = max_batch_size
         self.profile = profile
         self.db_manager = db_manager or DatabaseManager()
         self.serializer = serializer  # Optional tuple serializer
@@ -254,6 +256,27 @@ class EmbeddingService:
         if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
             return 'mps'
         return 'cpu'
+
+    def _effective_batch_size(self, override: Optional[int] = None) -> int:
+        """Compute clamped batch size respecting ``max_batch_size``."""
+        bs = override or self.batch_size
+        if self.max_batch_size is not None:
+            bs = min(bs, self.max_batch_size)
+        return bs
+
+    def _encode_with_oom_guard(self, model, texts, batch_size, **kwargs):
+        """Wrap ``model.encode`` with an informative OOM warning."""
+        try:
+            return model.encode(texts, batch_size=batch_size, **kwargs)
+        except RuntimeError as exc:
+            if "out of memory" in str(exc).lower():
+                self.logger.warning(
+                    "OOM during embedding encode. Consider reducing batch_size "
+                    "or setting max_batch_size. device=%s, batch_size=%d",
+                    self.device,
+                    batch_size,
+                )
+            raise
 
     def get_runtime_health(self) -> Dict[str, Any]:
         """
@@ -527,18 +550,14 @@ class EmbeddingService:
         if not records:
             return np.array([])
         
-        # Convert all records to text
         texts = [self._record_to_text(record, text_fields) for record in records]
-        effective_batch_size = batch_size or self.batch_size
-        
-        # Generate embeddings in batch
-        embeddings = self.model.encode(
-            texts,
-            batch_size=effective_batch_size,
-            show_progress_bar=show_progress,
-            convert_to_numpy=True
+        effective_batch_size = self._effective_batch_size(batch_size)
+
+        embeddings = self._encode_with_oom_guard(
+            self.model, texts, effective_batch_size,
+            show_progress_bar=show_progress, convert_to_numpy=True,
         )
-        
+
         return embeddings
     
     def generate_coarse_embeddings_batch(
@@ -576,12 +595,10 @@ class EmbeddingService:
             return np.array([])
         
         texts = [self._record_to_text(record, text_fields) for record in records]
-        effective_batch_size = batch_size or self.batch_size
-        embeddings = self.coarse_model.encode(
-            texts,
-            batch_size=effective_batch_size,
-            show_progress_bar=show_progress,
-            convert_to_numpy=True
+        effective_batch_size = self._effective_batch_size(batch_size)
+        embeddings = self._encode_with_oom_guard(
+            self.coarse_model, texts, effective_batch_size,
+            show_progress_bar=show_progress, convert_to_numpy=True,
         )
         
         return embeddings
@@ -621,12 +638,10 @@ class EmbeddingService:
             return np.array([])
         
         texts = [self._record_to_text(record, text_fields) for record in records]
-        effective_batch_size = batch_size or self.batch_size
-        embeddings = self.fine_model.encode(
-            texts,
-            batch_size=effective_batch_size,
-            show_progress_bar=show_progress,
-            convert_to_numpy=True
+        effective_batch_size = self._effective_batch_size(batch_size)
+        embeddings = self._encode_with_oom_guard(
+            self.fine_model, texts, effective_batch_size,
+            show_progress_bar=show_progress, convert_to_numpy=True,
         )
         
         return embeddings
