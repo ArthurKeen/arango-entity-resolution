@@ -446,12 +446,11 @@ class EmbeddingConfig:
                     "coarse_model_name is required when multi_resolution_mode=True"
                 )
         
-        if self.device not in ('cpu', 'cuda'):
-            if self.device not in ('cpu', 'cuda', 'mps', 'auto'):
-                errors.append(
-                    "device must be 'cpu', 'cuda', 'mps', or 'auto', "
-                    f"got: {self.device}"
-                )
+        if self.device not in ('cpu', 'cuda', 'mps', 'auto'):
+            errors.append(
+                "device must be 'cpu', 'cuda', 'mps', or 'auto', "
+                f"got: {self.device}"
+            )
 
         if self.runtime not in ('pytorch', 'onnxruntime'):
             errors.append(
