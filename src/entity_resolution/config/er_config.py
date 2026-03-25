@@ -207,29 +207,66 @@ class SimilarityConfig:
 
 
 class ClusteringConfig:
-    """Clustering configuration."""
-    
+    """Clustering configuration.
+
+    The ``backend`` field selects the WCC algorithm implementation:
+
+    - ``python_dfs`` -- bulk edge fetch + iterative DFS (current default)
+    - ``python_union_find`` -- bulk edge fetch + Union-Find
+    - ``aql_graph`` -- per-vertex server-side AQL traversal
+
+    The legacy ``wcc_algorithm`` parameter is still accepted for backward
+    compatibility but emits a ``DeprecationWarning``.
+    """
+
+    _WCC_ALGORITHM_TO_BACKEND = {
+        "python_dfs": "python_dfs",
+        "aql_graph": "aql_graph",
+    }
+
+    VALID_BACKENDS = ("python_dfs", "python_union_find", "aql_graph")
+
     def __init__(
         self,
         algorithm: str = "wcc",
         min_cluster_size: int = 2,
         store_results: bool = True,
-        wcc_algorithm: str = "python_dfs"
+        backend: str = "python_dfs",
+        wcc_algorithm: Optional[str] = None,
     ):
         """
         Initialize clustering configuration.
-        
+
         Args:
             algorithm: Clustering algorithm ("wcc")
             min_cluster_size: Minimum entities per cluster
             store_results: Whether to store cluster results
-            wcc_algorithm: WCC algorithm ("python_dfs" or "aql_graph")
+            backend: Clustering backend ("python_dfs", "python_union_find", "aql_graph")
+            wcc_algorithm: Deprecated -- use ``backend`` instead.
+                If provided, maps to ``backend`` and emits a DeprecationWarning.
         """
+        import warnings
+
         self.algorithm = algorithm
         self.min_cluster_size = min_cluster_size
         self.store_results = store_results
-        self.wcc_algorithm = wcc_algorithm
-    
+
+        if wcc_algorithm is not None:
+            warnings.warn(
+                "ClusteringConfig.wcc_algorithm is deprecated and will be removed "
+                "in 3.5.0. Use backend= instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.backend = self._WCC_ALGORITHM_TO_BACKEND.get(
+                wcc_algorithm, wcc_algorithm
+            )
+        else:
+            self.backend = backend
+
+        # Keep wcc_algorithm in sync for any code that still reads it
+        self.wcc_algorithm = self.backend
+
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> 'ClusteringConfig':
         """Create from dictionary."""
@@ -237,17 +274,31 @@ class ClusteringConfig:
             algorithm=config_dict.get('algorithm', 'wcc'),
             min_cluster_size=config_dict.get('min_cluster_size', 2),
             store_results=config_dict.get('store_results', True),
-            wcc_algorithm=config_dict.get('wcc_algorithm', 'python_dfs')
+            backend=config_dict.get('backend', 'python_dfs'),
+            wcc_algorithm=config_dict.get('wcc_algorithm'),
         )
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
             'algorithm': self.algorithm,
             'min_cluster_size': self.min_cluster_size,
             'store_results': self.store_results,
-            'wcc_algorithm': self.wcc_algorithm
+            'backend': self.backend,
         }
+
+    def validate(self) -> List[str]:
+        """Validate clustering configuration."""
+        errors: List[str] = []
+        if self.backend not in self.VALID_BACKENDS:
+            errors.append(
+                f"backend must be one of {self.VALID_BACKENDS}, got: {self.backend!r}"
+            )
+        if self.min_cluster_size < 1:
+            errors.append(
+                f"min_cluster_size must be >= 1, got: {self.min_cluster_size}"
+            )
+        return errors
 
 
 class EmbeddingConfig:
@@ -395,12 +446,11 @@ class EmbeddingConfig:
                     "coarse_model_name is required when multi_resolution_mode=True"
                 )
         
-        if self.device not in ('cpu', 'cuda'):
-            if self.device not in ('cpu', 'cuda', 'mps', 'auto'):
-                errors.append(
-                    "device must be 'cpu', 'cuda', 'mps', or 'auto', "
-                    f"got: {self.device}"
-                )
+        if self.device not in ('cpu', 'cuda', 'mps', 'auto'):
+            errors.append(
+                "device must be 'cpu', 'cuda', 'mps', or 'auto', "
+                f"got: {self.device}"
+            )
 
         if self.runtime not in ('pytorch', 'onnxruntime'):
             errors.append(
@@ -449,8 +499,95 @@ class EmbeddingConfig:
         return errors
 
 
+class LLMProviderConfig:
+    """Structured LLM provider configuration.
+
+    Translates provider/model settings into a litellm model string.
+    litellm already supports Ollama natively via ``ollama/model_name``
+    with ``base_url`` pointing at the local server.
+
+    Example (Ollama)::
+
+        LLMProviderConfig(provider='ollama', model='llama3.1:8b')
+        # to_litellm_model_string() -> 'ollama/llama3.1:8b'
+
+    Example (OpenRouter)::
+
+        LLMProviderConfig(provider='openrouter', model='google/gemini-2.0-flash')
+        # to_litellm_model_string() -> 'openrouter/google/gemini-2.0-flash'
+    """
+
+    PROVIDER_BASE_URLS = {
+        "ollama": "http://localhost:11434",
+    }
+
+    VALID_PROVIDERS = ("openrouter", "openai", "anthropic", "ollama")
+
+    def __init__(
+        self,
+        provider: str = "openrouter",
+        model: Optional[str] = None,
+        base_url: Optional[str] = None,
+        api_key_env: Optional[str] = None,
+        timeout_seconds: int = 60,
+    ):
+        self.provider = provider
+        self.model = model
+        self.base_url = base_url or self.PROVIDER_BASE_URLS.get(provider)
+        self.api_key_env = api_key_env
+        self.timeout_seconds = timeout_seconds
+
+    def to_litellm_model_string(self) -> Optional[str]:
+        """Return the litellm model string, or ``None`` if model is unset."""
+        if not self.model:
+            return None
+        if self.provider in self.VALID_PROVIDERS:
+            return f"{self.provider}/{self.model}"
+        return self.model
+
+    @classmethod
+    def from_dict(cls, config_dict: Dict[str, Any]) -> 'LLMProviderConfig':
+        return cls(
+            provider=config_dict.get("provider", "openrouter"),
+            model=config_dict.get("model"),
+            base_url=config_dict.get("base_url"),
+            api_key_env=config_dict.get("api_key_env"),
+            timeout_seconds=config_dict.get("timeout_seconds", 60),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        result: Dict[str, Any] = {
+            "provider": self.provider,
+            "timeout_seconds": self.timeout_seconds,
+        }
+        if self.model is not None:
+            result["model"] = self.model
+        if self.base_url is not None:
+            result["base_url"] = self.base_url
+        if self.api_key_env is not None:
+            result["api_key_env"] = self.api_key_env
+        return result
+
+    def validate(self) -> List[str]:
+        errors: List[str] = []
+        if self.provider not in self.VALID_PROVIDERS:
+            errors.append(
+                f"provider must be one of {self.VALID_PROVIDERS}, got: {self.provider!r}"
+            )
+        if self.timeout_seconds < 1:
+            errors.append(
+                f"timeout_seconds must be >= 1, got: {self.timeout_seconds}"
+            )
+        return errors
+
+
 class ActiveLearningConfig:
-    """Opt-in active learning / LLM verification configuration."""
+    """Opt-in active learning / LLM verification configuration.
+
+    The ``llm`` field accepts a structured :class:`LLMProviderConfig`.
+    When set, ``effective_model_string()`` prefers it over the bare
+    ``model`` string for backward compatibility.
+    """
 
     def __init__(
         self,
@@ -462,6 +599,7 @@ class ActiveLearningConfig:
         high_threshold: float = 0.80,
         optimizer_target_precision: float = 0.95,
         optimizer_min_samples: int = 20,
+        llm: Optional[LLMProviderConfig] = None,
     ):
         self.enabled = enabled
         self.feedback_collection = feedback_collection
@@ -471,10 +609,19 @@ class ActiveLearningConfig:
         self.high_threshold = high_threshold
         self.optimizer_target_precision = optimizer_target_precision
         self.optimizer_min_samples = optimizer_min_samples
+        self.llm = llm
+
+    def effective_model_string(self) -> Optional[str]:
+        """Return the litellm model string, preferring ``llm`` over bare ``model``."""
+        if self.llm is not None:
+            return self.llm.to_litellm_model_string()
+        return self.model
 
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> 'ActiveLearningConfig':
         """Create from dictionary."""
+        llm_dict = config_dict.get("llm")
+        llm = LLMProviderConfig.from_dict(llm_dict) if llm_dict else None
         return cls(
             enabled=config_dict.get('enabled', False),
             feedback_collection=config_dict.get('feedback_collection'),
@@ -484,6 +631,7 @@ class ActiveLearningConfig:
             high_threshold=config_dict.get('high_threshold', 0.80),
             optimizer_target_precision=config_dict.get('optimizer_target_precision', 0.95),
             optimizer_min_samples=config_dict.get('optimizer_min_samples', 20),
+            llm=llm,
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -500,6 +648,8 @@ class ActiveLearningConfig:
             result['feedback_collection'] = self.feedback_collection
         if self.model is not None:
             result['model'] = self.model
+        if self.llm is not None:
+            result['llm'] = self.llm.to_dict()
         return result
 
     def validate(self) -> List[str]:
@@ -524,6 +674,8 @@ class ActiveLearningConfig:
             errors.append(
                 f"optimizer_min_samples must be >= 1, got: {self.optimizer_min_samples}"
             )
+        if self.llm is not None:
+            errors.extend(self.llm.validate())
         return errors
 
 

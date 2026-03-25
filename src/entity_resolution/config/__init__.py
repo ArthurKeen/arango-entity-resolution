@@ -12,6 +12,7 @@ from .er_config import (
     ClusteringConfig,
     EmbeddingConfig,
     CanonicalETLConfig,
+    LLMProviderConfig,
 )
 
 __all__ = [
@@ -21,5 +22,6 @@ __all__ = [
     'ClusteringConfig',
     'EmbeddingConfig',
     'CanonicalETLConfig',
+    'LLMProviderConfig',
 ]
 

@@ -61,7 +61,8 @@ class WCCClusteringService:
         vertex_collection: Optional[str] = None,
         min_cluster_size: int = 2,
         graph_name: Optional[str] = None,
-        use_bulk_fetch: bool = True
+        backend: str = "python_dfs",
+        use_bulk_fetch: Optional[bool] = None,
     ):
         """
         Initialize WCC clustering service.
@@ -75,27 +76,33 @@ class WCCClusteringService:
             min_cluster_size: Minimum entities per cluster to store. Default 2.
             graph_name: Named graph to use (optional). If None, will use
                 anonymous graph traversal.
-            use_bulk_fetch: Use bulk edge fetch + Python DFS (FAST, recommended) 
-                instead of per-vertex AQL traversal (SLOW). Default True.
-                Set to False only if graph is too large for memory (>10M edges).
-        
-        Note:
-            Bulk fetch is recommended for graphs up to 10M edges (typical ER use case).
-            This approach is 40-100x faster than per-vertex AQL traversal.
-            
-            Performance comparison (16K edges, 24K vertices):
-            - Bulk fetch: 3-8 seconds (1 query)
-            - AQL traversal: 300+ seconds (24K queries)
-            
-            For extremely large graphs (>10M edges), set use_bulk_fetch=False.
+            backend: Clustering backend to use.  One of ``python_dfs``,
+                ``python_union_find``, or ``aql_graph``.  Default ``python_dfs``.
+            use_bulk_fetch: Deprecated -- use ``backend`` instead.
+                ``True`` maps to ``python_dfs``, ``False`` to ``aql_graph``.
         """
+        import warnings
+
         self.db = db
         self.edge_collection_name = validate_collection_name(edge_collection)
         self.cluster_collection_name = validate_collection_name(cluster_collection)
         self.vertex_collection = validate_collection_name(vertex_collection) if vertex_collection else None
         self.min_cluster_size = min_cluster_size
         self.graph_name = graph_name
-        self.use_bulk_fetch = use_bulk_fetch
+
+        if use_bulk_fetch is not None:
+            warnings.warn(
+                "WCCClusteringService.use_bulk_fetch is deprecated and will be "
+                "removed in 3.5.0. Use backend= instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.backend = "python_dfs" if use_bulk_fetch else "aql_graph"
+        else:
+            self.backend = backend
+
+        # Keep use_bulk_fetch in sync for any code that still reads it
+        self.use_bulk_fetch = self.backend != "aql_graph"
         
         # Initialize logger
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
@@ -117,7 +124,7 @@ class WCCClusteringService:
             'max_cluster_size': 0,
             'min_cluster_size': 0,
             'cluster_size_distribution': {},
-            'algorithm_used': 'bulk_python_dfs' if use_bulk_fetch else 'aql_graph_traversal',
+            'backend_used': self.backend,
             'execution_time_seconds': 0.0,
             'timestamp': None
         }
@@ -147,13 +154,9 @@ class WCCClusteringService:
         """
         start_time = time.time()
         
-        # Choose algorithm based on configuration
-        if self.use_bulk_fetch:
-            self.logger.info("Using bulk fetch + Python DFS (recommended for <10M edges)")
-            clusters = self._find_connected_components_bulk()
-        else:
-            self.logger.info("Using per-vertex AQL traversal (slow, use only for huge graphs)")
-            clusters = self._find_connected_components_aql()
+        backend_impl = self._get_backend()
+        self.logger.info("Using clustering backend: %s", backend_impl.backend_name())
+        clusters = backend_impl.cluster()
         
         # Filter by minimum cluster size
         filtered_clusters = [
@@ -167,8 +170,8 @@ class WCCClusteringService:
                 self.cluster_collection.truncate()
             self._store_clusters(filtered_clusters)
         
-        # Update statistics
         execution_time = time.time() - start_time
+        self._stats['backend_used'] = backend_impl.backend_name()
         self._update_statistics(filtered_clusters, execution_time)
         
         return filtered_clusters
@@ -317,6 +320,29 @@ class WCCClusteringService:
             'edges_checked': edges_checked
         }
     
+    def _get_backend(self):
+        """Instantiate the selected clustering backend."""
+        from .clustering_backends.python_dfs import PythonDFSBackend
+        from .clustering_backends.python_union_find import PythonUnionFindBackend
+        from .clustering_backends.aql_graph import AQLGraphBackend
+
+        if self.backend == "python_union_find":
+            return PythonUnionFindBackend(
+                self.db, self.edge_collection_name, self.vertex_collection
+            )
+        if self.backend in ("python_dfs", "bulk_python_dfs"):
+            return PythonDFSBackend(
+                self.db, self.edge_collection_name, self.vertex_collection
+            )
+        if self.backend == "aql_graph":
+            return AQLGraphBackend(
+                self.db,
+                self.edge_collection_name,
+                self.vertex_collection,
+                self.graph_name,
+            )
+        raise ValueError(f"Unknown clustering backend: {self.backend!r}")
+
     def _find_connected_components_aql(self) -> List[List[str]]:
         """
         Use AQL graph traversal to find connected components.

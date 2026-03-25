@@ -78,12 +78,32 @@ class LLMMatchVerifier:
         high_threshold: float = 0.80,
         entity_type: str = "entity",
         api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        timeout_seconds: int = 60,
     ) -> None:
         self.model = model or os.getenv("OPENROUTER_MODEL", "openrouter/google/gemini-2.0-flash")
         self.low_threshold = low_threshold
         self.high_threshold = high_threshold
         self.entity_type = entity_type
         self.api_key = api_key or os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
+        self.base_url = base_url
+        self.timeout_seconds = timeout_seconds
+
+    @classmethod
+    def from_provider_config(
+        cls,
+        provider_config: "LLMProviderConfig",
+        **kwargs,
+    ) -> "LLMMatchVerifier":
+        """Build a verifier from a structured :class:`LLMProviderConfig`."""
+        from entity_resolution.config.er_config import LLMProviderConfig as _LPC  # noqa: F811
+
+        return cls(
+            model=provider_config.to_litellm_model_string(),
+            base_url=provider_config.base_url,
+            timeout_seconds=provider_config.timeout_seconds,
+            **kwargs,
+        )
 
     # ------------------------------------------------------------------
     # Public API
@@ -187,9 +207,12 @@ class LLMMatchVerifier:
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": 256,
             "temperature": 0.1,
+            "timeout": self.timeout_seconds,
         }
         if self.api_key:
             kwargs["api_key"] = self.api_key
+        if self.base_url:
+            kwargs["api_base"] = self.base_url
 
         response = litellm.completion(**kwargs)
         raw = response.choices[0].message.content.strip()
