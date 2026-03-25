@@ -58,7 +58,7 @@ entity_resolution:
     algorithm: "wcc"  # "wcc" (Weakly Connected Components)
     min_cluster_size: 2  # Minimum entities per cluster
     store_results: true  # Whether to store cluster results in database
-    wcc_algorithm: "python_dfs"  # "python_dfs" or "aql_graph"
+    backend: "python_dfs"  # "python_dfs", "python_union_find", or "aql_graph"
   
   # Performance Configuration (optional)
   performance:

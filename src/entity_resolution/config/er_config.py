@@ -207,29 +207,66 @@ class SimilarityConfig:
 
 
 class ClusteringConfig:
-    """Clustering configuration."""
-    
+    """Clustering configuration.
+
+    The ``backend`` field selects the WCC algorithm implementation:
+
+    - ``python_dfs`` -- bulk edge fetch + iterative DFS (current default)
+    - ``python_union_find`` -- bulk edge fetch + Union-Find
+    - ``aql_graph`` -- per-vertex server-side AQL traversal
+
+    The legacy ``wcc_algorithm`` parameter is still accepted for backward
+    compatibility but emits a ``DeprecationWarning``.
+    """
+
+    _WCC_ALGORITHM_TO_BACKEND = {
+        "python_dfs": "python_dfs",
+        "aql_graph": "aql_graph",
+    }
+
+    VALID_BACKENDS = ("python_dfs", "python_union_find", "aql_graph")
+
     def __init__(
         self,
         algorithm: str = "wcc",
         min_cluster_size: int = 2,
         store_results: bool = True,
-        wcc_algorithm: str = "python_dfs"
+        backend: str = "python_dfs",
+        wcc_algorithm: Optional[str] = None,
     ):
         """
         Initialize clustering configuration.
-        
+
         Args:
             algorithm: Clustering algorithm ("wcc")
             min_cluster_size: Minimum entities per cluster
             store_results: Whether to store cluster results
-            wcc_algorithm: WCC algorithm ("python_dfs" or "aql_graph")
+            backend: Clustering backend ("python_dfs", "python_union_find", "aql_graph")
+            wcc_algorithm: Deprecated -- use ``backend`` instead.
+                If provided, maps to ``backend`` and emits a DeprecationWarning.
         """
+        import warnings
+
         self.algorithm = algorithm
         self.min_cluster_size = min_cluster_size
         self.store_results = store_results
-        self.wcc_algorithm = wcc_algorithm
-    
+
+        if wcc_algorithm is not None:
+            warnings.warn(
+                "ClusteringConfig.wcc_algorithm is deprecated and will be removed "
+                "in 3.5.0. Use backend= instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.backend = self._WCC_ALGORITHM_TO_BACKEND.get(
+                wcc_algorithm, wcc_algorithm
+            )
+        else:
+            self.backend = backend
+
+        # Keep wcc_algorithm in sync for any code that still reads it
+        self.wcc_algorithm = self.backend
+
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> 'ClusteringConfig':
         """Create from dictionary."""
@@ -237,17 +274,31 @@ class ClusteringConfig:
             algorithm=config_dict.get('algorithm', 'wcc'),
             min_cluster_size=config_dict.get('min_cluster_size', 2),
             store_results=config_dict.get('store_results', True),
-            wcc_algorithm=config_dict.get('wcc_algorithm', 'python_dfs')
+            backend=config_dict.get('backend', 'python_dfs'),
+            wcc_algorithm=config_dict.get('wcc_algorithm'),
         )
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
             'algorithm': self.algorithm,
             'min_cluster_size': self.min_cluster_size,
             'store_results': self.store_results,
-            'wcc_algorithm': self.wcc_algorithm
+            'backend': self.backend,
         }
+
+    def validate(self) -> List[str]:
+        """Validate clustering configuration."""
+        errors: List[str] = []
+        if self.backend not in self.VALID_BACKENDS:
+            errors.append(
+                f"backend must be one of {self.VALID_BACKENDS}, got: {self.backend!r}"
+            )
+        if self.min_cluster_size < 1:
+            errors.append(
+                f"min_cluster_size must be >= 1, got: {self.min_cluster_size}"
+            )
+        return errors
 
 
 class EmbeddingConfig:

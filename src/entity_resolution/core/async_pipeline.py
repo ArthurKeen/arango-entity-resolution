@@ -269,7 +269,11 @@ class AsyncERPipeline:
             self.config.similarity.edge_collection
             or f"{self.config.collection_name}_similarity_edges"
         )
-        svc = WCCClusteringService(db=self.db, edge_collection=edge_coll)
+        svc = WCCClusteringService(
+            db=self.db,
+            edge_collection=edge_coll,
+            backend=clust_cfg.backend,
+        )
         clusters = svc.find_clusters()
 
         return {"clusters_found": len(clusters), "total_entities": sum(len(c) for c in clusters)}
