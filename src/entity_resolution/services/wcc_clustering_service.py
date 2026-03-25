@@ -61,8 +61,10 @@ class WCCClusteringService:
         vertex_collection: Optional[str] = None,
         min_cluster_size: int = 2,
         graph_name: Optional[str] = None,
-        backend: str = "python_dfs",
+        backend: str = "python_union_find",
         use_bulk_fetch: Optional[bool] = None,
+        auto_select_threshold_edges: int = 2_000_000,
+        sparse_backend_enabled: bool = True,
     ):
         """
         Initialize WCC clustering service.
@@ -76,10 +78,13 @@ class WCCClusteringService:
             min_cluster_size: Minimum entities per cluster to store. Default 2.
             graph_name: Named graph to use (optional). If None, will use
                 anonymous graph traversal.
-            backend: Clustering backend to use.  One of ``python_dfs``,
-                ``python_union_find``, or ``aql_graph``.  Default ``python_dfs``.
+            backend: Clustering backend to use.  Default ``python_union_find``
+                (changed in 3.4.0).  Set to ``auto`` for automatic selection.
             use_bulk_fetch: Deprecated -- use ``backend`` instead.
                 ``True`` maps to ``python_dfs``, ``False`` to ``aql_graph``.
+            auto_select_threshold_edges: Edge count above which ``auto`` prefers
+                ``python_sparse`` (if scipy is available). Default 2M.
+            sparse_backend_enabled: Whether ``auto`` may select ``python_sparse``.
         """
         import warnings
 
@@ -89,6 +94,8 @@ class WCCClusteringService:
         self.vertex_collection = validate_collection_name(vertex_collection) if vertex_collection else None
         self.min_cluster_size = min_cluster_size
         self.graph_name = graph_name
+        self.auto_select_threshold_edges = auto_select_threshold_edges
+        self.sparse_backend_enabled = sparse_backend_enabled
 
         if use_bulk_fetch is not None:
             warnings.warn(
@@ -326,12 +333,19 @@ class WCCClusteringService:
         from .clustering_backends.python_union_find import PythonUnionFindBackend
         from .clustering_backends.aql_graph import AQLGraphBackend
 
+        if self.backend == "auto":
+            return self._auto_select_backend()
         if self.backend == "python_union_find":
             return PythonUnionFindBackend(
                 self.db, self.edge_collection_name, self.vertex_collection
             )
         if self.backend in ("python_dfs", "bulk_python_dfs"):
             return PythonDFSBackend(
+                self.db, self.edge_collection_name, self.vertex_collection
+            )
+        if self.backend == "python_sparse":
+            from .clustering_backends.python_sparse import PythonSparseBackend
+            return PythonSparseBackend(
                 self.db, self.edge_collection_name, self.vertex_collection
             )
         if self.backend == "aql_graph":
@@ -342,6 +356,33 @@ class WCCClusteringService:
                 self.graph_name,
             )
         raise ValueError(f"Unknown clustering backend: {self.backend!r}")
+
+    def _auto_select_backend(self):
+        """Pick the best backend based on edge count and availability."""
+        from .clustering_backends.python_union_find import PythonUnionFindBackend
+
+        edge_count = self.edge_collection.count()
+        self.logger.info(
+            "Auto-selecting backend (edge_count=%s, threshold=%s, sparse_enabled=%s)",
+            f"{edge_count:,}",
+            f"{self.auto_select_threshold_edges:,}",
+            self.sparse_backend_enabled,
+        )
+
+        if self.sparse_backend_enabled and edge_count > self.auto_select_threshold_edges:
+            try:
+                from .clustering_backends.python_sparse import PythonSparseBackend
+                self.logger.info("Auto-selected python_sparse (edge_count > threshold)")
+                return PythonSparseBackend(
+                    self.db, self.edge_collection_name, self.vertex_collection
+                )
+            except ImportError:
+                self.logger.info("scipy not available; falling back to python_union_find")
+
+        self.logger.info("Auto-selected python_union_find")
+        return PythonUnionFindBackend(
+            self.db, self.edge_collection_name, self.vertex_collection
+        )
 
     def _find_connected_components_aql(self) -> List[List[str]]:
         """

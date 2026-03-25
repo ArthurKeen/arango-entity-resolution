@@ -162,9 +162,9 @@ class TestClusteringConfigDeprecation:
         cfg = ClusteringConfig(backend="python_union_find")
         assert cfg.backend == "python_union_find"
 
-    def test_default_backend_is_python_dfs(self):
+    def test_default_backend_is_python_union_find(self):
         cfg = ClusteringConfig()
-        assert cfg.backend == "python_dfs"
+        assert cfg.backend == "python_union_find"
 
     def test_wcc_algorithm_triggers_deprecation_warning(self):
         with warnings.catch_warnings(record=True) as w:

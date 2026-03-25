@@ -150,11 +150,11 @@ class TestClusteringConfig:
     def test_initialization_defaults(self):
         """Test initialization with defaults."""
         config = ClusteringConfig()
-        
+
         assert config.algorithm == 'wcc'
         assert config.min_cluster_size == 2
         assert config.store_results is True
-        assert config.wcc_algorithm == 'python_dfs'
+        assert config.backend == 'python_union_find'
     
     def test_from_dict(self):
         """Test creation from dictionary."""
@@ -179,7 +179,7 @@ class TestEmbeddingConfig:
         config = EmbeddingConfig()
         assert config.model_name == 'all-MiniLM-L6-v2'
         assert config.runtime == 'pytorch'
-        assert config.device == 'cpu'
+        assert config.device == 'auto'
         assert config.provider == 'cpu'
         assert config.provider_options == {}
         assert config.onnx_model_path is None
