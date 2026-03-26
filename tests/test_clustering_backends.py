@@ -162,9 +162,9 @@ class TestClusteringConfigDeprecation:
         cfg = ClusteringConfig(backend="python_union_find")
         assert cfg.backend == "python_union_find"
 
-    def test_default_backend_is_python_union_find(self):
+    def test_default_backend_is_auto(self):
         cfg = ClusteringConfig()
-        assert cfg.backend == "python_union_find"
+        assert cfg.backend == "auto"
 
     def test_wcc_algorithm_triggers_deprecation_warning(self):
         with warnings.catch_warnings(record=True) as w:
@@ -200,7 +200,7 @@ class TestClusteringConfigDeprecation:
         assert "wcc_algorithm" not in d
 
     def test_validate_accepts_valid_backends(self):
-        for name in ("python_dfs", "python_union_find", "aql_graph"):
+        for name in ("python_dfs", "python_union_find", "python_sparse", "aql_graph", "gae_wcc", "auto"):
             cfg = ClusteringConfig(backend=name)
             assert cfg.validate() == []
 

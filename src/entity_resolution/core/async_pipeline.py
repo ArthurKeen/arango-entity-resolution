@@ -273,6 +273,9 @@ class AsyncERPipeline:
             db=self.db,
             edge_collection=edge_coll,
             backend=clust_cfg.backend,
+            auto_select_threshold_edges=clust_cfg.auto_select_threshold_edges,
+            sparse_backend_enabled=clust_cfg.sparse_backend_enabled,
+            gae_config=clust_cfg.gae,
         )
         clusters = svc.find_clusters()
 

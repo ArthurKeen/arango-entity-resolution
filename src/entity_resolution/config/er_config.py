@@ -206,16 +206,90 @@ class SimilarityConfig:
         }
 
 
+class GAEClusteringConfig:
+    """Configuration for optional ArangoDB Graph Analytics Engine (GAE) clustering.
+
+    GAE is an enterprise capability for very large graphs (>10M edges).
+    This backend is optional and capability-gated; the system falls back
+    to local backends when GAE is unavailable.
+
+    ``deployment_mode`` values:
+
+    - ``self_managed`` -- caller manages the graph lifecycle
+    - ``auto`` -- service creates/deletes a temporary graph automatically
+    """
+
+    VALID_DEPLOYMENT_MODES = ("self_managed", "auto")
+
+    def __init__(
+        self,
+        enabled: bool = False,
+        deployment_mode: str = "self_managed",
+        graph_name: Optional[str] = None,
+        engine_size: str = "e16",
+        auto_cleanup: bool = True,
+        timeout_seconds: int = 3600,
+    ):
+        self.enabled = enabled
+        self.deployment_mode = deployment_mode
+        self.graph_name = graph_name
+        self.engine_size = engine_size
+        self.auto_cleanup = auto_cleanup
+        self.timeout_seconds = timeout_seconds
+
+    @classmethod
+    def from_dict(cls, config_dict: Dict[str, Any]) -> "GAEClusteringConfig":
+        return cls(
+            enabled=config_dict.get("enabled", False),
+            deployment_mode=config_dict.get("deployment_mode", "self_managed"),
+            graph_name=config_dict.get("graph_name"),
+            engine_size=config_dict.get("engine_size", "e16"),
+            auto_cleanup=config_dict.get("auto_cleanup", True),
+            timeout_seconds=config_dict.get("timeout_seconds", 3600),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        result: Dict[str, Any] = {
+            "enabled": self.enabled,
+            "deployment_mode": self.deployment_mode,
+            "engine_size": self.engine_size,
+            "auto_cleanup": self.auto_cleanup,
+            "timeout_seconds": self.timeout_seconds,
+        }
+        if self.graph_name is not None:
+            result["graph_name"] = self.graph_name
+        return result
+
+    def validate(self) -> List[str]:
+        errors: List[str] = []
+        if self.deployment_mode not in self.VALID_DEPLOYMENT_MODES:
+            errors.append(
+                f"deployment_mode must be one of {self.VALID_DEPLOYMENT_MODES}, "
+                f"got: {self.deployment_mode!r}"
+            )
+        if self.timeout_seconds < 1:
+            errors.append(
+                f"timeout_seconds must be >= 1, got: {self.timeout_seconds}"
+            )
+        if self.enabled and self.deployment_mode == "self_managed" and not self.graph_name:
+            errors.append(
+                "graph_name is required when gae.enabled=True and "
+                "deployment_mode='self_managed'"
+            )
+        return errors
+
+
 class ClusteringConfig:
     """Clustering configuration.
 
     The ``backend`` field selects the WCC algorithm implementation:
 
     - ``python_dfs`` -- bulk edge fetch + iterative DFS
-    - ``python_union_find`` -- bulk edge fetch + Union-Find (default since 3.4.0)
+    - ``python_union_find`` -- bulk edge fetch + Union-Find
     - ``python_sparse`` -- scipy sparse matrix WCC (optional, large graphs)
     - ``aql_graph`` -- per-vertex server-side AQL traversal
-    - ``auto`` -- automatic selection based on edge count (opt-in in 3.4.0)
+    - ``gae_wcc`` -- ArangoDB Graph Analytics Engine (enterprise)
+    - ``auto`` -- automatic selection based on edge count (default since 3.5.0)
 
     The legacy ``wcc_algorithm`` parameter is still accepted for backward
     compatibility but emits a ``DeprecationWarning``.
@@ -226,17 +300,21 @@ class ClusteringConfig:
         "aql_graph": "aql_graph",
     }
 
-    VALID_BACKENDS = ("python_dfs", "python_union_find", "python_sparse", "aql_graph", "auto")
+    VALID_BACKENDS = (
+        "python_dfs", "python_union_find", "python_sparse",
+        "aql_graph", "gae_wcc", "auto",
+    )
 
     def __init__(
         self,
         algorithm: str = "wcc",
         min_cluster_size: int = 2,
         store_results: bool = True,
-        backend: str = "python_union_find",
+        backend: str = "auto",
         wcc_algorithm: Optional[str] = None,
         auto_select_threshold_edges: int = 2_000_000,
         sparse_backend_enabled: bool = True,
+        gae: Optional[GAEClusteringConfig] = None,
     ):
         """
         Initialize clustering configuration.
@@ -245,15 +323,14 @@ class ClusteringConfig:
             algorithm: Clustering algorithm ("wcc")
             min_cluster_size: Minimum entities per cluster
             store_results: Whether to store cluster results
-            backend: Clustering backend. Default changed to ``python_union_find``
-                in 3.4.0 (parity confirmed in 3.3.0). Set to ``auto`` for
-                automatic selection based on edge count.
+            backend: Clustering backend. Default changed to ``auto`` in 3.5.0.
             wcc_algorithm: Deprecated -- use ``backend`` instead.
                 If provided, maps to ``backend`` and emits a DeprecationWarning.
             auto_select_threshold_edges: Edge count above which ``auto`` backend
-                prefers ``python_sparse`` (if scipy available). Default 2M.
+                prefers ``python_sparse`` or GAE. Default 2M.
             sparse_backend_enabled: Whether ``auto`` backend may select
                 ``python_sparse``. Default True.
+            gae: Optional GAE clustering configuration.
         """
         import warnings
 
@@ -262,11 +339,12 @@ class ClusteringConfig:
         self.store_results = store_results
         self.auto_select_threshold_edges = auto_select_threshold_edges
         self.sparse_backend_enabled = sparse_backend_enabled
+        self.gae = gae
 
         if wcc_algorithm is not None:
             warnings.warn(
                 "ClusteringConfig.wcc_algorithm is deprecated and will be removed "
-                "in 3.5.0. Use backend= instead.",
+                "in a future release. Use backend= instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
@@ -282,14 +360,17 @@ class ClusteringConfig:
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> 'ClusteringConfig':
         """Create from dictionary."""
+        gae_dict = config_dict.get("gae")
+        gae = GAEClusteringConfig.from_dict(gae_dict) if gae_dict else None
         return cls(
             algorithm=config_dict.get('algorithm', 'wcc'),
             min_cluster_size=config_dict.get('min_cluster_size', 2),
             store_results=config_dict.get('store_results', True),
-            backend=config_dict.get('backend', 'python_union_find'),
+            backend=config_dict.get('backend', 'auto'),
             wcc_algorithm=config_dict.get('wcc_algorithm'),
             auto_select_threshold_edges=config_dict.get('auto_select_threshold_edges', 2_000_000),
             sparse_backend_enabled=config_dict.get('sparse_backend_enabled', True),
+            gae=gae,
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -304,6 +385,8 @@ class ClusteringConfig:
             result['auto_select_threshold_edges'] = self.auto_select_threshold_edges
         if not self.sparse_backend_enabled:
             result['sparse_backend_enabled'] = self.sparse_backend_enabled
+        if self.gae is not None:
+            result['gae'] = self.gae.to_dict()
         return result
 
     def validate(self) -> List[str]:
@@ -321,6 +404,8 @@ class ClusteringConfig:
             errors.append(
                 f"auto_select_threshold_edges must be >= 1, got: {self.auto_select_threshold_edges}"
             )
+        if self.gae is not None:
+            errors.extend(self.gae.validate())
         return errors
 
 

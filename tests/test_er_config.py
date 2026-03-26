@@ -154,7 +154,7 @@ class TestClusteringConfig:
         assert config.algorithm == 'wcc'
         assert config.min_cluster_size == 2
         assert config.store_results is True
-        assert config.backend == 'python_union_find'
+        assert config.backend == 'auto'
     
     def test_from_dict(self):
         """Test creation from dictionary."""

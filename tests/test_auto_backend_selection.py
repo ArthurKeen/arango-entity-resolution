@@ -49,9 +49,9 @@ MIXED_EDGES = [
 # ---------------------------------------------------------------------------
 
 class TestClusteringConfigV34:
-    def test_default_backend_is_python_union_find(self):
+    def test_default_backend_is_auto(self):
         cfg = ClusteringConfig()
-        assert cfg.backend == "python_union_find"
+        assert cfg.backend == "auto"
 
     def test_auto_backend_accepted(self):
         cfg = ClusteringConfig(backend="auto")
