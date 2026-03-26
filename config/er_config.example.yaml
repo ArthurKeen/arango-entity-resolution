@@ -58,7 +58,16 @@ entity_resolution:
     algorithm: "wcc"  # "wcc" (Weakly Connected Components)
     min_cluster_size: 2  # Minimum entities per cluster
     store_results: true  # Whether to store cluster results in database
-    backend: "python_union_find"  # "python_dfs", "python_union_find", "python_sparse", "aql_graph", or "auto"
+    backend: "auto"  # "python_dfs", "python_union_find", "python_sparse", "aql_graph", "gae_wcc", or "auto"
+
+    # Optional: Graph Analytics Engine (enterprise) configuration
+    # gae:
+    #   enabled: false
+    #   deployment_mode: "self_managed"  # or "auto"
+    #   graph_name: "my_er_graph"       # required for self_managed
+    #   engine_size: "e16"
+    #   auto_cleanup: true
+    #   timeout_seconds: 3600
   
   # Performance Configuration (optional)
   performance:

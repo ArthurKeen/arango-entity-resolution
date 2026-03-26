@@ -743,6 +743,7 @@ class ConfigurableERPipeline:
             backend=self.config.clustering.backend,
             auto_select_threshold_edges=self.config.clustering.auto_select_threshold_edges,
             sparse_backend_enabled=self.config.clustering.sparse_backend_enabled,
+            gae_config=self.config.clustering.gae,
         )
         
         clusters = clustering_service.cluster(

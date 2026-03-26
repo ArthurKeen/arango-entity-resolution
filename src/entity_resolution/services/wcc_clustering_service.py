@@ -61,10 +61,11 @@ class WCCClusteringService:
         vertex_collection: Optional[str] = None,
         min_cluster_size: int = 2,
         graph_name: Optional[str] = None,
-        backend: str = "python_union_find",
+        backend: str = "auto",
         use_bulk_fetch: Optional[bool] = None,
         auto_select_threshold_edges: int = 2_000_000,
         sparse_backend_enabled: bool = True,
+        gae_config=None,
     ):
         """
         Initialize WCC clustering service.
@@ -78,13 +79,13 @@ class WCCClusteringService:
             min_cluster_size: Minimum entities per cluster to store. Default 2.
             graph_name: Named graph to use (optional). If None, will use
                 anonymous graph traversal.
-            backend: Clustering backend to use.  Default ``python_union_find``
-                (changed in 3.4.0).  Set to ``auto`` for automatic selection.
+            backend: Clustering backend to use.  Default ``auto`` (since 3.5.0).
             use_bulk_fetch: Deprecated -- use ``backend`` instead.
                 ``True`` maps to ``python_dfs``, ``False`` to ``aql_graph``.
             auto_select_threshold_edges: Edge count above which ``auto`` prefers
-                ``python_sparse`` (if scipy is available). Default 2M.
+                ``python_sparse`` or GAE. Default 2M.
             sparse_backend_enabled: Whether ``auto`` may select ``python_sparse``.
+            gae_config: Optional GAEClusteringConfig for GAE backend.
         """
         import warnings
 
@@ -96,11 +97,12 @@ class WCCClusteringService:
         self.graph_name = graph_name
         self.auto_select_threshold_edges = auto_select_threshold_edges
         self.sparse_backend_enabled = sparse_backend_enabled
+        self.gae_config = gae_config
 
         if use_bulk_fetch is not None:
             warnings.warn(
                 "WCCClusteringService.use_bulk_fetch is deprecated and will be "
-                "removed in 3.5.0. Use backend= instead.",
+                "removed in a future release. Use backend= instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
@@ -179,6 +181,9 @@ class WCCClusteringService:
         
         execution_time = time.time() - start_time
         self._stats['backend_used'] = backend_impl.backend_name()
+        if hasattr(backend_impl, 'gae_job_id') and backend_impl.gae_job_id:
+            self._stats['gae_job_id'] = backend_impl.gae_job_id
+            self._stats['gae_runtime_seconds'] = backend_impl.gae_runtime_seconds
         self._update_statistics(filtered_clusters, execution_time)
         
         return filtered_clusters
@@ -348,6 +353,12 @@ class WCCClusteringService:
             return PythonSparseBackend(
                 self.db, self.edge_collection_name, self.vertex_collection
             )
+        if self.backend == "gae_wcc":
+            from .clustering_backends.gae_wcc import GAEWCCBackend
+            return GAEWCCBackend(
+                self.db, self.edge_collection_name, self.vertex_collection,
+                self.gae_config,
+            )
         if self.backend == "aql_graph":
             return AQLGraphBackend(
                 self.db,
@@ -358,7 +369,7 @@ class WCCClusteringService:
         raise ValueError(f"Unknown clustering backend: {self.backend!r}")
 
     def _auto_select_backend(self):
-        """Pick the best backend based on edge count and availability."""
+        """Pick the best backend based on edge count, GAE, and availability."""
         from .clustering_backends.python_union_find import PythonUnionFindBackend
 
         edge_count = self.edge_collection.count()
@@ -369,6 +380,22 @@ class WCCClusteringService:
             self.sparse_backend_enabled,
         )
 
+        # Try GAE first when enabled and above threshold
+        if self.gae_config and self.gae_config.enabled and edge_count > self.auto_select_threshold_edges:
+            try:
+                from .clustering_backends.gae_wcc import GAEWCCBackend
+                gae = GAEWCCBackend(
+                    self.db, self.edge_collection_name,
+                    self.vertex_collection, self.gae_config,
+                )
+                if gae.is_available():
+                    self.logger.info("Auto-selected gae_wcc (GAE available, edge_count > threshold)")
+                    return gae
+                self.logger.info("GAE enabled but not available; trying local backends")
+            except Exception as exc:
+                self.logger.warning("GAE probe failed: %s; trying local backends", exc)
+
+        # Try python_sparse for large graphs
         if self.sparse_backend_enabled and edge_count > self.auto_select_threshold_edges:
             try:
                 from .clustering_backends.python_sparse import PythonSparseBackend

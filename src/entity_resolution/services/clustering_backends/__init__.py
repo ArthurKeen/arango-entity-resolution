@@ -17,3 +17,6 @@ try:
     __all__.append("PythonSparseBackend")
 except ImportError:
     pass
+
+from .gae_wcc import GAEWCCBackend
+__all__.append("GAEWCCBackend")

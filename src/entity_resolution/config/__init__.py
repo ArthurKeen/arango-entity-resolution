@@ -13,6 +13,7 @@ from .er_config import (
     EmbeddingConfig,
     CanonicalETLConfig,
     LLMProviderConfig,
+    GAEClusteringConfig,
 )
 
 __all__ = [
@@ -23,5 +24,6 @@ __all__ = [
     'EmbeddingConfig',
     'CanonicalETLConfig',
     'LLMProviderConfig',
+    'GAEClusteringConfig',
 ]
 
