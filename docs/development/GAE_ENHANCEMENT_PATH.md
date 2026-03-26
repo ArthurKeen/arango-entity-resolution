@@ -1,464 +1,166 @@
 # GAE Enhancement Path for WCC Clustering
 
-**Date:** November 12, 2025 
-**Status:** Future Enhancement Documentation
+**Date:** November 12, 2025 (original), March 16, 2026 (updated)  
+**Status:** IMPLEMENTED in Release 3.5.0
 
 ---
 
 ## Overview
 
-This document outlines the path for adding GAE (Graph Analytics Engine) support to `WCCClusteringService` as a future enhancement for handling extremely large graphs.
+This document originally outlined the path for adding GAE (Graph Analytics Engine) support to `WCCClusteringService`. **GAE support was implemented in Release 3.5.0** (March 2026) with a full dual-mode connection layer supporting both self-managed and ArangoGraph Managed Platform deployments.
 
-### Current Implementation
+### Current Implementation (3.5.0)
 
-**AQL Graph Traversal (Primary)**
-- Server-side processing
-- Works on all ArangoDB 3.11+
-- Efficient for graphs up to millions of edges
-- No additional backend requirements
+**Six Pluggable WCC Backends:**
+- **`python_dfs`** — bulk edge fetch + iterative DFS
+- **`python_union_find`** — near-linear Union-Find with path compression
+- **`python_sparse`** — scipy sparse matrix WCC (optional dependency)
+- **`aql_graph`** — server-side AQL traversal
+- **`gae_wcc`** — ArangoDB Graph Analytics Engine (enterprise)
+- **`auto`** — automatic selection based on context (default since 3.5.0)
 
-### Why GAE?
+### GAE Backend
 
-**Graph Analytics Engine (GAE)** is ArangoDB's optimized graph analytics engine designed for:
-- Very large graphs (millions to billions of edges)
-- Complex graph algorithms
-- Distributed processing
-- Enhanced performance for large-scale analytics
-
----
-
-## When to Add GAE Support
-
-### Triggers for Implementation
-
-1. **User Demand**
-- Multiple users report performance issues with large graphs
-- Users specifically request GAE support
-- Community feedback indicates need
-
-2. **Performance Requirements**
-- Graphs exceeding 10 million edges
-- Clustering time exceeds acceptable thresholds
-- Memory constraints with current approach
-
-3. **ArangoDB Adoption**
-- GAE becomes widely available in target environments
-- Backend capabilities commonly enabled
-- Enterprise deployments standard
-
-### Current Assessment
-
-**As of November 2025:**
-- AQL implementation handles typical use cases efficiently
-- Most ER graphs are < 1 million edges
-- GAE requires additional backend configuration
-- **Recommendation:** Wait for user demand
+**Graph Analytics Engine (GAE)** is ArangoDB's enterprise graph analytics engine. The `GAEWCCBackend` manages the full engine lifecycle:
+- Engine deployment and readiness polling
+- Graph data loading
+- WCC algorithm execution
+- Result storage to vertex documents
+- Optional engine cleanup
 
 ---
 
-## GAE Requirements
+## Implemented Architecture (3.5.0)
 
-### Technical Requirements
+### Connection Layer
 
-1. **ArangoDB Version**
-- ArangoDB 3.11+ with GAE capabilities enabled
-- Enterprise Edition (GAE may be enterprise-only)
+**`gae_connection.py`** provides a dual-mode connection abstraction:
 
-2. **Backend Configuration**
-- Graph Analytics Engine backend enabled
-- Sufficient memory allocation for GAE
-- Proper permissions configured
+- **`SelfManagedGAEConnection`** — Authenticates via JWT obtained from `/_open/auth`.
+  Engine lifecycle managed via `/gen-ai/v1/graphanalytics`. Engine API via `/gral/<short_id>/v1/...`.
+- **`AMPGAEConnection`** — Authenticates via `oasisctl` bearer token.
+  GAE management API on port 8829. Engine API on a dynamic base URL.
+- **`get_gae_connection()`** — Factory function that routes by `TEST_DEPLOYMENT_MODE` or `GAE_DEPLOYMENT_MODE` environment variable.
 
-3. **Python Driver**
-- python-arango 8.0+ with GAE support
-- Access to GAE API methods
+### Backend
 
-### Detection Code
+**`GAEWCCBackend`** (`gae_wcc.py`) orchestrates the full GAE pipeline:
 
-```python
-def _is_gae_available(self) -> bool:
-"""
-Check if GAE is available in this ArangoDB instance.
+1. Deploy or reuse an existing GAE engine
+2. Wait for engine API readiness (consecutive-OK probes)
+3. Load graph data (vertex + edge collections)
+4. Run WCC algorithm
+5. Store results back to vertex documents
+6. Read component labels from vertex attributes with key mapping
+7. Optional engine cleanup
 
-Returns:
-True if GAE is available and enabled
-"""
-try:
-# Check ArangoDB version
-server_version = self.db.version()
-version_number = server_version.get('version', '')
+### Configuration
 
-# GAE available in 3.11+
-if not version_number.startswith('3.11') and not version_number.startswith('3.12'):
-return False
-
-# Check if GAE endpoint exists
-# (Specific check depends on GAE API)
-# This is placeholder - actual implementation depends on GAE API
-
-return True
-except Exception:
-return False
+```yaml
+clustering:
+  backend: "auto"
+  gae:
+    enabled: true
+    deployment_mode: "self_managed"
+    graph_name: "companies_similarity_graph"
+    engine_size: "e16"
+    auto_cleanup: true
+    timeout_seconds: 3600
 ```
 
+### Auto-Selection Logic
+
+When `backend='auto'` (default since 3.5.0), `WCCClusteringService._auto_select_backend()`:
+
+1. Checks if GAE is enabled and available — selects `gae_wcc` for large graphs
+2. Falls back to `python_sparse` (if scipy installed and edge count exceeds threshold)
+3. Falls back to `python_union_find` as general-purpose default
+
 ---
 
-## Implementation Plan
+## Testing
 
-### Phase 1: API Design
+### Unit Tests (`tests/test_gae_clustering.py`)
 
-Add GAE support as an optional enhancement:
+29 unit tests covering:
+- `GAEClusteringConfig` defaults, `from_dict`/`to_dict`, validation
+- `ClusteringConfig` GAE integration
+- `GAEWCCBackend` backend name, `is_available` (mocked)
+- `WCCClusteringService` auto-selection with GAE priority
 
-```python
-class WCCClusteringService:
-def __init__(
-self,
-db: StandardDatabase,
-edge_collection: str = "similarTo",
-cluster_collection: str = "entity_clusters",
-vertex_collection: Optional[str] = None,
-min_cluster_size: int = 2,
-graph_name: Optional[str] = None,
-prefer_gae: bool = False # NEW: Use GAE if available
-):
-"""
-prefer_gae: If True, use GAE when available. Falls back to AQL
-if GAE not available. Default False (always use AQL).
-"""
-self.prefer_gae = prefer_gae
-...
+### Integration Tests (`tests/test_gae_integration.py`)
+
+Skip-marked with `@requires_gae` (checks `ARANGO_GAE_ENABLED=1`):
+- Engine availability test
+- Full cluster pipeline: seed graph, deploy, load, WCC, store, read clusters
+- Fallback behavior when GAE is unavailable
+
+### Validated
+
+Live integration validated against self-managed GAE on `prod.demo.pilot.arango.ai:8529`.
+
+---
+
+## Usage
+
+### Configuration-Driven
+
+```yaml
+entity_resolution:
+  clustering:
+    backend: "auto"
+    gae:
+      enabled: true
+      deployment_mode: "self_managed"
+      engine_size: "e16"
+      timeout_seconds: 3600
 ```
 
-### Phase 2: GAE Implementation
-
-Add GAE clustering method:
+### Programmatic
 
 ```python
-def _find_connected_components_gae(self) -> List[List[str]]:
-"""
-Use GAE (Graph Analytics Engine) WCC algorithm.
+from entity_resolution.services.wcc_clustering_service import WCCClusteringService
+from entity_resolution.config import GAEClusteringConfig
 
-GAE is ArangoDB's optimized graph analytics engine for
-large graphs. Requires additional backend capabilities.
-
-Returns:
-List of clusters (each cluster is a list of document keys)
-
-Raises:
-RuntimeError: If GAE not available
-"""
-# Check GAE availability
-if not self._is_gae_available():
-raise RuntimeError(
-"GAE not available. Requires ArangoDB 3.11+ Enterprise "
-"with Graph Analytics Engine enabled."
+gae_config = GAEClusteringConfig(enabled=True, deployment_mode="self_managed")
+service = WCCClusteringService(
+    db=db,
+    edge_collection="similarTo",
+    backend="auto",
+    gae_config=gae_config,
 )
-
-# Create temporary graph if needed
-graph_name = self.graph_name or f"_temp_graph_{int(time.time())}"
-
-try:
-# Use GAE WCC algorithm
-# Note: Exact API depends on final GAE implementation
-
-# Example (placeholder - actual API may differ):
-result = self.db.execute_graph_analytics(
-algorithm='weakly_connected_components',
-graph=graph_name,
-edge_collections=[self.edge_collection_name],
-options={
-'min_component_size': self.min_cluster_size
-}
-)
-
-# Parse GAE results into cluster format
-clusters = self._parse_gae_results(result)
-
-return clusters
-
-finally:
-# Clean up temporary graph if created
-if not self.graph_name and graph_name.startswith('_temp_'):
-try:
-self.db.delete_graph(graph_name)
-except Exception:
-pass
-
-def _parse_gae_results(self, gae_result: Any) -> List[List[str]]:
-"""
-Parse GAE WCC results into standard cluster format.
-
-Args:
-gae_result: Result from GAE WCC algorithm
-
-Returns:
-List of clusters
-"""
-# Implementation depends on GAE result format
-# This is a placeholder
-pass
-```
-
-### Phase 3: Algorithm Selection
-
-Update cluster() method to support GAE:
-
-```python
-def cluster(
-self,
-store_results: bool = True,
-truncate_existing: bool = True
-) -> List[List[str]]:
-"""
-Run WCC clustering.
-
-Automatically selects best available algorithm:
-- GAE if prefer_gae=True and GAE available
-- AQL otherwise (fallback, works everywhere)
-"""
-start_time = time.time()
-
-# Select algorithm
-if self.prefer_gae and self._is_gae_available():
-clusters = self._find_connected_components_gae()
-algorithm_used = 'gae'
-else:
-clusters = self._find_connected_components_aql()
-algorithm_used = 'aql_graph_traversal'
-
-# Filter and store
-filtered_clusters = [
-cluster for cluster in clusters
-if len(cluster) >= self.min_cluster_size
-]
-
-if store_results:
-if truncate_existing:
-self.cluster_collection.truncate()
-self._store_clusters(filtered_clusters, algorithm_used)
-
-# Update statistics
-execution_time = time.time() - start_time
-self._stats['algorithm_used'] = algorithm_used
-self._update_statistics(filtered_clusters, execution_time)
-
-return filtered_clusters
-```
-
----
-
-## Testing Strategy
-
-### Unit Tests
-
-```python
-def test_gae_availability_detection():
-"""Test GAE availability detection."""
-service = WCCClusteringService(db, prefer_gae=True)
-is_available = service._is_gae_available()
-# Assert based on environment
-
-def test_gae_fallback_to_aql():
-"""Test fallback to AQL when GAE unavailable."""
-service = WCCClusteringService(db, prefer_gae=True)
 clusters = service.cluster()
 stats = service.get_statistics()
-# Should use AQL if GAE not available
-assert stats['algorithm_used'] in ['aql_graph_traversal', 'gae']
-
-def test_gae_clustering(skip_if_unavailable=True):
-"""Test GAE clustering if available."""
-service = WCCClusteringService(db, prefer_gae=True)
-if not service._is_gae_available() and skip_if_unavailable:
-pytest.skip("GAE not available")
-
-clusters = service.cluster()
-stats = service.get_statistics()
-assert stats['algorithm_used'] == 'gae'
-assert len(clusters) > 0
+# stats includes: backend_used, gae_job_id, gae_runtime_seconds (when GAE used)
 ```
 
-### Performance Benchmarks
+### When to Use GAE
 
-Compare AQL vs GAE for various graph sizes:
-
-```python
-def benchmark_aql_vs_gae():
-"""
-Compare performance of AQL vs GAE for different graph sizes.
-
-Graph sizes tested:
-- Small: 1K nodes, 5K edges
-- Medium: 100K nodes, 500K edges
-- Large: 1M nodes, 5M edges
-- Very Large: 10M nodes, 50M edges
-"""
-results = {
-'aql': {},
-'gae': {}
-}
-
-for size in ['small', 'medium', 'large', 'very_large']:
-# Test AQL
-service_aql = WCCClusteringService(db, prefer_gae=False)
-start = time.time()
-clusters = service_aql.cluster()
-aql_time = time.time() - start
-results['aql'][size] = aql_time
-
-# Test GAE (if available)
-service_gae = WCCClusteringService(db, prefer_gae=True)
-if service_gae._is_gae_available():
-start = time.time()
-clusters = service_gae.cluster()
-gae_time = time.time() - start
-results['gae'][size] = gae_time
-
-return results
-```
+| Scenario | Recommended Backend |
+|----------|-------------------|
+| Most use cases (< 2M edges) | `python_union_find` (auto-selected) |
+| Large dense graphs with scipy | `python_sparse` (auto-selected) |
+| Enterprise-scale (> 2M edges, GAE available) | `gae_wcc` (auto-selected) |
+| Server-side processing preference | `aql_graph` (explicit) |
+| Legacy compatibility | `python_dfs` (explicit) |
 
 ---
 
-## Migration Path
+## Key Implementation Files
 
-### For Existing Users
-
-When GAE support is added:
-
-1. **Default Behavior: No Change**
-- `prefer_gae=False` by default
-- Existing code continues using AQL
-- No breaking changes
-
-2. **Opt-In GAE**
-- Users can set `prefer_gae=True`
-- Automatic fallback to AQL if unavailable
-- Clear messaging in logs
-
-3. **Documentation**
-- When to use GAE (very large graphs)
-- How to enable GAE in ArangoDB
-- Performance comparison
-
-### Example Migration
-
-```python
-# Before (current)
-service = WCCClusteringService(
-db=db,
-edge_collection="similarTo"
-)
-clusters = service.cluster()
-
-# After (with GAE support)
-service = WCCClusteringService(
-db=db,
-edge_collection="similarTo",
-prefer_gae=True # New parameter, optional
-)
-clusters = service.cluster()
-# Uses GAE if available, falls back to AQL otherwise
-```
+| File | Purpose |
+|------|---------|
+| `services/clustering_backends/gae_connection.py` | Dual-mode GAE connection abstraction |
+| `services/clustering_backends/gae_wcc.py` | GAE WCC backend implementation |
+| `config/er_config.py` | `GAEClusteringConfig` class |
+| `services/wcc_clustering_service.py` | Backend dispatch and auto-selection |
+| `tests/test_gae_clustering.py` | Unit tests |
+| `tests/test_gae_integration.py` | Integration tests (skip-marked) |
 
 ---
 
-## Documentation Requirements
-
-### API Documentation
-
-Update `WCCClusteringService` docstring:
-
-```python
-"""
-Weakly Connected Components clustering.
-
-Supports two algorithms:
-1. AQL graph traversal (default, works everywhere)
-- Server-side, efficient
-- Works on all ArangoDB 3.11+
-- Good for graphs up to millions of edges
-
-2. GAE (Graph Analytics Engine) - optional
-- Optimized for very large graphs
-- Requires GAE backend capabilities
-- Best for graphs > 10M edges
-- Set prefer_gae=True to enable
-
-The service automatically falls back to AQL if GAE unavailable.
-"""
-```
-
-### User Guide
-
-Add section: "When to Use GAE"
-
-```markdown
-## When to Use GAE for Clustering
-
-### Use AQL (Default)
-- Most use cases
-- Graphs < 10M edges
-- Standard ArangoDB installations
-- When backend setup is limited
-
-### Use GAE (Optional)
-- Very large graphs (> 10M edges)
-- Performance-critical applications
-- Enterprise deployments with GAE enabled
-- When clustering time is a bottleneck
-
-### Enabling GAE
-
-1. Check ArangoDB version (3.11+ required)
-2. Enable GAE in ArangoDB configuration
-3. Verify GAE backend is running
-4. Set `prefer_gae=True` in service initialization
-```
-
----
-
-## Reference Implementation
-
-See customer environment for GAE WCC reference implementation (if available).
-
----
-
-## Decision Timeline
-
-### Review Points
-
-1. **6 Months (May 2026)**
-- Review user feedback
-- Assess GAE adoption in community
-- Evaluate performance reports
-
-2. **1 Year (November 2026)**
-- Decide on GAE implementation
-- If proceeding, assign to roadmap
-- Create detailed implementation spec
-
-3. **Ongoing**
-- Monitor ArangoDB GAE development
-- Track enterprise adoption
-- Respond to user requests
-
----
-
-## Conclusion
-
-**Current Status:** AQL implementation is sufficient for current needs
-
-**GAE Addition:** Future enhancement based on:
-- User demand
-- Performance requirements
-- GAE ecosystem maturity
-- Enterprise adoption
-
-**Recommendation:** Document this path, implement when triggered by above factors
-
----
-
-**Document Version:** 1.0 
+**Document Version:** 2.0 
 **Created:** November 12, 2025 
-**Next Review:** May 2026
+**Updated:** March 16, 2026 
+**Status:** Implemented in Release 3.5.0
 

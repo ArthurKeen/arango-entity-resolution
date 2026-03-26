@@ -11,7 +11,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 - [Main README](../README.md) - Project overview and installation
 
 ### API Documentation
-- [API Reference](api/API_REFERENCE.md) - Current CLI, MCP, and Python API surface for v3.2.3
+- [API Reference](api/API_REFERENCE.md) - Current CLI, MCP, and Python API surface for v3.5.0
 
 ### User Guides
 - [Migration Guide v3.0](guides/MIGRATION_GUIDE_V3.md) - Upgrade from v1.x or v2.x
@@ -26,8 +26,8 @@ Welcome to the ArangoDB Entity Resolution documentation!
 
 ### Development
 - [Enhancement Plan](guides/LIBRARY_ENHANCEMENT_PLAN.md) - Historical formalization plan
-- [Next Release Brief](development/NEXT_RELEASE_IMPLEMENTATION_BRIEF.md) - Reconstructed roadmap for planned post-`3.2.3` work
-- [GAE Enhancement Path](development/GAE_ENHANCEMENT_PATH.md) - Future graph engine support
+- [Next Release Brief](development/NEXT_RELEASE_IMPLEMENTATION_BRIEF.md) - Implementation brief for releases `3.3.0`–`3.5.0` (all shipped)
+- [GAE Enhancement Path](development/GAE_ENHANCEMENT_PATH.md) - GAE clustering design (implemented in 3.5.0)
 - [Batch vs Bulk Processing](development/BATCH_VS_BULK_PROCESSING.md) - Performance patterns
 - [Blocking Benchmarks](development/BLOCKING_BENCHMARKS.md) - Supported evaluator workflow
 - [Runtime Health CI Runbook](development/RUNTIME_HEALTH_CI_RUNBOOK.md) - Runtime baseline, compare, and gate workflows
@@ -119,9 +119,9 @@ Historical documentation is preserved in [`archive/`](archive/):
 
 ## Version Information
 
-- **Current Version:** 3.2.3
+- **Current Version:** 3.5.0
 - **API Version:** v3
-- **Last Updated:** March 8, 2026
+- **Last Updated:** March 16, 2026
 
 For version history, see [CHANGELOG.md](../CHANGELOG.md)
 

@@ -121,11 +121,12 @@ class LLMMatchVerifier:
 
         start = _time.time()
         try:
+            healthcheck_timeout = 30 if "ollama" in (self.model or "") else 5
             kwargs: Dict[str, Any] = {
                 "model": self.model,
                 "messages": [{"role": "user", "content": "ping"}],
                 "max_tokens": 1,
-                "timeout": 5,
+                "timeout": healthcheck_timeout,
             }
             if self.base_url:
                 kwargs["api_base"] = self.base_url

@@ -1,12 +1,12 @@
 # Next Release Implementation Brief
 
 > Reconstructed from a prior planning discussion and captured here as a durable repo document.
-> This is a forward-looking implementation brief, not the current shipped product contract.
+> **All three releases described below (3.3.0, 3.4.0, 3.5.0) have been implemented and shipped.**
 > For the current shipped surface, see `README.md`, `docs/PRD.md`, and `VERSION_HISTORY.md`.
 
-**Date:** 2026-03-08
-**Status:** Draft — ready for implementation
-**Scope:** Planned work beyond `v3.2.3`
+**Date:** 2026-03-08 (original), 2026-03-16 (updated)
+**Status:** All releases shipped
+**Scope:** Work delivered in `v3.3.0`–`v3.5.0`
 
 ---
 
@@ -260,17 +260,17 @@ Required integration approach:
 
 ---
 
-## Recommended Release Sequence
+## Release Sequence (All Shipped)
 
-| Release | Theme |
-|---------|-------|
-| `3.3.0` | ONNX runtime/provider abstraction (CPU default), explicit Ollama support, clustering backend abstraction, `python_union_find` |
-| `3.4.0` | Provider auto-selection promotion (gate-based), embedding throughput tuning, `python_sparse`, LLM health and fallback controls |
-| `3.5.0` | Optional TensorRT optimization for selected models and optional `GAE` clustering backend for enterprise-scale graphs |
+| Release | Theme | Status |
+|---------|-------|--------|
+| `3.3.0` | ONNX runtime/provider abstraction (CPU default), explicit Ollama support, clustering backend abstraction, `python_union_find` | **Shipped 2026-03-14** |
+| `3.4.0` | Provider auto-selection promotion (gate-based), embedding throughput tuning, `python_sparse`, LLM health and fallback controls | **Shipped 2026-03-15** |
+| `3.5.0` | GAE clustering backend for enterprise-scale graphs, `backend='auto'` as default | **Shipped 2026-03-16** |
 
 ---
 
-## Release 3.3.0
+## Release 3.3.0 (SHIPPED — 2026-03-14)
 
 Primary theme: make hardware, provider, and backend selection explicit without breaking existing users.
 
@@ -1050,7 +1050,7 @@ tests/unit/test_llm_provider_config.py
 
 ---
 
-## Release 3.4.0
+## Release 3.4.0 (SHIPPED — 2026-03-15)
 
 Primary theme: make abstractions operationally strong and performance-aware.
 
@@ -1328,7 +1328,7 @@ tests/unit/test_llm_healthcheck.py
 
 ---
 
-## Release 3.5.0
+## Release 3.5.0 (SHIPPED — 2026-03-16)
 
 Primary theme: enterprise-scale clustering with optional GAE integration.
 

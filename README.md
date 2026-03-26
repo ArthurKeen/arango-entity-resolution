@@ -1,165 +1,140 @@
-# ArangoDB Advanced Entity Resolution System
+# ArangoDB Advanced Entity Resolution System (experimental)
 
-**Current Version**: 3.2.3 | [Version History](VERSION_HISTORY.md) | [Changelog](CHANGELOG.md) | [PyPI](https://pypi.org/project/arango-entity-resolution/)
+**Current Version**: 3.5.0 | [Version History](VERSION_HISTORY.md) | [Changelog](CHANGELOG.md) | [PyPI](https://pypi.org/project/arango-entity-resolution/)
 
-## What's New in v3.2.3
+## What's New in v3.5.0
 
-### SmartGraph Deterministic Edge Keys
+### GAE Clustering Backend (Enterprise)
 
-`SimilarityEdgeService` now supports SmartGraph-compatible deterministic edge keys for
-ArangoDB SmartGraph edge collections.
-
-- `deterministic_key_mode="standard"` preserves the legacy MD5-only behavior for standard collections
-- `deterministic_key_mode="smartgraph"` emits shard-aware keys in the form
-  `<fromShard>:<stableHash>:<toShard>`
-- `deterministic_key_mode="auto"` detects SmartGraph collections from graph metadata and switches automatically
-- The fix was validated against a real local Docker-based Enterprise ArangoDB SmartGraph
-  and reproduces then resolves `ERR 1466`
-
-## What's New in v3.2.2
-
-### MCP Server — AI Agent Integration
-
-Any MCP-compatible AI agent (Claude, Gemini, GPT-4, Cursor) can now perform entity resolution
-through natural language using the new `arango-er-mcp` server:
-
-```bash
-# Install with MCP support
-pip install "arango-entity-resolution[mcp]"
-
-# Start the server (stdio for Claude Desktop / Cursor)
-arango-er-mcp
-
-# Or as an HTTP SSE server for remote MCP-capable clients
-arango-er-mcp --transport sse --port 8080
-```
-
-Use `stdio` for Claude Desktop and local IDE integrations. Use SSE only with clients that support remote HTTP MCP connections.
-
-**7 tools exposed**: `list_collections`, `find_duplicates`, `pipeline_status`,
-`resolve_entity`, `explain_match`, `get_clusters`, `merge_entities`
-
-`get_clusters` now returns cluster quality signals when available, including
-`edge_count`, `average_similarity`, `min_similarity`, `max_similarity`, `density`,
-and a composite `quality_score` to help distinguish strong clusters from
-human-review candidates.
-
-**2 resources**: `arango://collections/{name}/summary`, `arango://clusters/{collection}/{key}`
-
-**Claude Desktop config** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
-```json
-{
-  "mcpServers": {
-    "entity-resolution": {
-      "command": "arango-er-mcp",
-      "env": {
-        "ARANGO_HOST": "localhost",
-        "ARANGO_PORT": "8529",
-        "ARANGO_PASSWORD": "your-password",
-        "ARANGO_DATABASE": "your-db"
-      }
-    }
-  }
-}
-```
-
-### Incremental / Real-Time Resolution
-
-Resolve a single new record against an existing collection without re-running the full batch pipeline:
-
-```python
-from entity_resolution.core.incremental_resolver import IncrementalResolver
-
-resolver = IncrementalResolver(db, collection="companies", fields=["name", "city"])
-matches = resolver.resolve({"name": "Acme Corp", "city": "Boston"}, top_k=5)
-# → [{"_key": "...", "score": 0.94, "field_scores": {...}, "match": True}]
-```
-
-Uses prefix-based blocking so it never scans the full collection.
-
-### LLM-Powered Match Verification
-
-For pairs in the uncertain confidence range (default 0.55–0.80), automatically call an LLM
-to make a binary match/no-match decision:
-
-```python
-from entity_resolution.reasoning.llm_verifier import LLMMatchVerifier
-
-verifier = LLMMatchVerifier()  # reads OPENROUTER_API_KEY from env
-result = verifier.verify(record_a, record_b, score=0.70, field_scores=breakdown)
-# → {"decision": "match", "confidence": 0.92, "reasoning": "...", "score_override": 0.87}
-```
-
-Supports OpenRouter, OpenAI, Anthropic, and local Ollama via `litellm`.
-Only calls the LLM for ambiguous pairs — high/low confidence is a fast-path.
-
-```bash
-pip install "arango-entity-resolution[llm]"
-```
-
-Enable persisted active learning in configuration-driven pipelines:
+WCC clustering can now run on the **ArangoDB Graph Analytics Engine (GAE)** for
+enterprise-scale graphs with millions of edges. The backend manages the full
+GAE lifecycle — engine deployment, graph loading, WCC execution, result storage,
+and cleanup — through a dual-mode connection layer supporting both self-managed
+and ArangoGraph Managed Platform (AMP) deployments.
 
 ```yaml
 entity_resolution:
-  entity_type: "company"
-  collection_name: "companies"
-  blocking:
-    strategy: "exact"
-    fields: ["name", "city"]
-  similarity:
-    threshold: 0.85
-  active_learning:
-    enabled: true
-    feedback_collection: "companies_llm_feedback"
-    refresh_every: 25
-    low_threshold: 0.55
-    high_threshold: 0.80
+  clustering:
+    backend: "auto"
+    gae:
+      enabled: true
+      deployment_mode: "self_managed"
+      graph_name: "companies_similarity_graph"
+      engine_size: "e16"
+      auto_cleanup: true
+      timeout_seconds: 3600
 ```
 
-When enabled, uncertain pairs are reviewed by `AdaptiveLLMVerifier`, LLM verdicts are saved to the feedback collection, and thresholds are refreshed from accumulated feedback over time.
+When `backend: "auto"` (now the default) and GAE is enabled and available,
+the system automatically selects GAE for large graphs and falls back to local
+backends when GAE is unavailable.
 
-### Field Transformers for Similarity
+### `auto` Backend Default
 
-Configuration-driven pipelines can now normalize tricky fields before similarity scoring with
-per-field transformer chains. This is especially useful for phone numbers, state names,
-street suffixes, and company suffix variants.
+`ClusteringConfig.backend` now defaults to `"auto"`, which selects the best
+available clustering backend based on edge count and optional dependency
+availability:
+
+- **GAE WCC** when `gae.enabled=True`, GAE is reachable, and edge count exceeds threshold
+- **`python_sparse`** (scipy) for very large local graphs when scipy is installed
+- **`python_union_find`** as the general-purpose default
+
+## What's New in v3.4.0
+
+### Promoted Defaults
+
+- **Embedding device** default changed from `'cpu'` to `'auto'` — automatically
+  selects CUDA, MPS (Apple Silicon), or CPU at runtime.
+- **Clustering backend** default changed from `'python_dfs'` to `'python_union_find'`
+  after parity tests confirmed identical cluster outputs.
+
+### New Clustering Backends
+
+- **`python_sparse`** — scipy-backed WCC using `scipy.sparse.csgraph.connected_components()`.
+  Faster than Union-Find for very dense, large graphs. Optional dependency (scipy).
+- **`auto`** backend selection introduced (opt-in in 3.4.0, default in 3.5.0).
+
+### LLM Provider Health Checks
+
+- `LLMMatchVerifier.healthcheck()` validates provider reachability before pipeline runs.
+- `LLMProviderConfig` gains `healthcheck_on_start` and `fallback_provider` fields.
+- Embedding `max_batch_size` cap and OOM warnings for GPU workloads.
+
+## What's New in v3.3.0
+
+### Clustering Backend Abstraction
+
+The WCC clustering service now uses pluggable backends instead of a binary
+`use_bulk_fetch` flag:
+
+- **`python_dfs`** — existing bulk-fetch DFS implementation
+- **`python_union_find`** — near-linear Union-Find with path compression
+- **`aql_graph`** — server-side AQL traversal
+
+```python
+from entity_resolution.services.wcc_clustering_service import WCCClusteringService
+
+service = WCCClusteringService(db, edge_collection="similarTo", backend="python_union_find")
+clusters = service.cluster()
+stats = service.get_statistics()
+print(stats['backend_used'])  # 'python_union_find'
+```
+
+### Embedding Runtime/Device Expansion
+
+- New valid device values: `'cpu'`, `'cuda'`, `'mps'`, `'auto'`
+- `EmbeddingService.resolve_device('auto')` detects CUDA or MPS at runtime
+- `runtime` config field added (`'pytorch'` in 3.3.0)
+- ONNX Runtime backend scaffold for future GPU provider acceleration
+- Embedding batch size now explicitly configurable
+
+### Structured LLM Provider Configuration
 
 ```yaml
-entity_resolution:
-  entity_type: "company"
-  collection_name: "companies"
-  blocking:
-    strategy: "exact"
-    fields: ["name", "phone"]
-  similarity:
-    algorithm: "jaro_winkler"
-    threshold: 0.85
-    field_weights:
-      name: 0.7
-      phone: 0.3
-    transformers:
-      name: ["strip", "collapse_whitespace", "company_suffix"]
-      phone: ["e164"]
-      state: ["state_code"]
-      address: ["street_suffix"]
+active_learning:
+  llm:
+    provider: ollama
+    model: llama3.1:8b
+    base_url: http://localhost:11434
+    timeout_seconds: 60
 ```
 
-Supported built-ins today: `strip`, `lower`, `upper`, `collapse_whitespace`,
-`remove_punctuation`, `digits_only`, `alphanumeric_only`, `e164`, `metaphone`,
-`state_code`, `street_suffix`, and `company_suffix`.
+`LLMProviderConfig` translates structured provider settings into litellm model
+strings. Explicit support for Ollama, OpenRouter, OpenAI, and Anthropic.
 
-### Security
-- **AQL injection prevention** across all blocking strategy filter conditions — dynamic
-  string values are now placed in AQL bind variables, never interpolated inline.
+### Runtime Health and CI Gate Commands
 
-### Other Improvements (v3.2.2)
-- `BlockingConfig.parse_fields()` — single canonical field-parsing method (no more duplication)
-- `arangosearch` strategy now aliases `bm25` instead of silently returning empty results
-- Configurable record limit with `UserWarning` when truncation occurs
-- `count_inferred_edges` now executes 2 AQL round-trips instead of 3
-- Correct distinct count in `validate_edge_quality`
-- Dead code removed from `EntityResolutionPipeline`
-- **625 tests passed** during `3.2.2` release validation, including Docker-backed integration coverage
+Phase 0 GPU-readiness foundation delivered:
+
+- `arango-er runtime-health` — runtime diagnostics
+- `arango-er runtime-health-baseline` — capture baseline snapshots
+- `arango-er runtime-health-compare` — compare against baseline
+- `arango-er runtime-health-gate` — CI gate with optional `--fail-on-regression`
+
+### Deprecation Notices (3.3.0)
+
+- `WCCClusteringService(use_bulk_fetch=...)` emits `DeprecationWarning` — use `backend=` instead.
+- `ClusteringConfig(wcc_algorithm=...)` emits `DeprecationWarning` — use `backend=` instead.
+
+---
+
+## Earlier Releases
+
+### v3.2.3
+
+- SmartGraph-aware deterministic edge keys for `SimilarityEdgeService`
+- Automatic SmartGraph detection from graph metadata
+
+### v3.2.2
+
+- **MCP Server** (`arango-er-mcp`): 7 tools + 2 resources for AI agent integration
+- **Incremental Resolver**: Real-time single-record resolution
+- **LLM Match Verification**: Auto-calls LLM for ambiguous pairs (0.55–0.80 range)
+- Config-driven similarity field transformers (phone, state, street suffix, company suffix)
+- `arango-er` CLI expanded with `status`, `clusters`, `export`, `benchmark`
+- JSON/CSV cluster export and blocking benchmark workflows
+- Cluster quality metadata (edge_count, density, quality_score)
+- AQL injection prevention across all blocking strategies
 
 ---
 
@@ -560,8 +535,9 @@ The project is organized into logical modules for maintainability and scalabilit
 
 **Core Implementation (`src/`)**:
 - `entity_resolution/` — Main package with core services, data management, and utilities
-  - `core/` — Entity resolver, configurable pipeline, **incremental resolver**
+  - `core/` — Entity resolver, configurable pipeline, async pipeline, **incremental resolver**
   - `services/` — Blocking, similarity, clustering, golden record, embedding services
+  - `services/clustering_backends/` — Pluggable WCC backends (DFS, Union-Find, Sparse, AQL, GAE)
   - `strategies/` — Exact, BM25, vector, geographic, graph-traversal, LSH blocking
   - `mcp/` — **MCP server** with 7 tools and 2 resources for AI agent integration
   - `reasoning/` — **LLM match verifier** (OpenRouter / OpenAI / Anthropic / Ollama)
@@ -580,7 +556,7 @@ The project is organized into logical modules for maintainability and scalabilit
 **Research & Utilities**:
 - `research/` — Academic papers and research materials
 - `examples/` — Usage examples and integration demos
-- `tests/` — 625-test release-validated suite with auto-Docker integration coverage
+- `tests/` — Release-validated suite with auto-Docker integration coverage (65+ test files)
 - `config/` — Configuration files and templates
 - `docker-compose.yml` — ArangoDB container configuration
 
@@ -589,14 +565,29 @@ The project is organized into logical modules for maintainability and scalabilit
 ### **[IMPLEMENTED] Foundation: Traditional Entity Resolution**
 - **Record Blocking**: Multi-strategy (exact/COLLECT, BM25/ArangoSearch, Vector/ANN, Geographic, Graph-Traversal, LSH)
 - **Similarity Matching**: Fellegi-Sunter probabilistic framework (Jaro-Winkler, Levenshtein, Jaccard)
-- **Graph-Based Clustering**: Weakly Connected Components (Python DFS + AQL Graph modes)
+- **Graph-Based Clustering**: Weakly Connected Components with pluggable backends (Python DFS, Union-Find, Sparse, AQL Graph, GAE)
 - **Golden Record Generation**: Automated master record creation with conflict resolution
 - **Bulk Processing**: 3-5x faster for large datasets using set-based AQL operations
 
-### **[IMPLEMENTED] AI & Agent Integration (v3.2)**
+### **[IMPLEMENTED] Clustering Backend Abstraction (v3.3–3.5)**
+- **Pluggable Backends**: `python_dfs`, `python_union_find`, `python_sparse`, `aql_graph`, `gae_wcc`
+- **Auto-Selection**: `backend='auto'` (default) picks the best backend based on edge count and available dependencies
+- **GAE Integration**: Enterprise-scale clustering via ArangoDB Graph Analytics Engine with dual-mode connection (self-managed + AMP)
+- **Union-Find**: Near-linear amortized complexity with path compression and union by rank
+- **Sparse Backend**: scipy-backed WCC for large dense graphs (optional dependency)
+
+### **[IMPLEMENTED] Embedding Runtime Expansion (v3.3–3.4)**
+- **Device Auto-Detection**: `device='auto'` (default) selects CUDA, MPS, or CPU at runtime
+- **ONNX Runtime Scaffold**: Provider abstraction for future CoreML/CUDA/TensorRT acceleration
+- **Runtime Health Commands**: `arango-er runtime-health`, baseline, compare, and CI gate workflows
+- **Batch Size Control**: Explicit `batch_size` and `max_batch_size` (OOM safety)
+
+### **[IMPLEMENTED] AI & Agent Integration (v3.2–3.3)**
 - **MCP Server** (`arango-er-mcp`): 7 tools + 2 resources for Claude, Gemini, GPT-4, Cursor
 - **Incremental Resolver**: Real-time single-record resolution without batch re-run
 - **LLM Match Verification**: Auto-calls LLM for ambiguous pairs (0.55–0.80 range); fast-path otherwise
+- **Structured LLM Provider Config**: `LLMProviderConfig` with explicit Ollama, OpenRouter, OpenAI, Anthropic support
+- **LLM Health Checks**: `healthcheck()` method on `LLMMatchVerifier` for provider reachability
 - **Vector/Semantic Blocking**: sentence-transformers + ArangoDB 3.12 vector search
 - **Node2Vec Embeddings**: Graph structural embeddings for relationship-aware matching
 
@@ -625,31 +616,25 @@ The project is organized into logical modules for maintainability and scalabilit
 - **ERPipelineConfig**: YAML/JSON configuration system
 - **ConfigurableERPipeline**: Run ER from configuration files
 
-### **[ROADMAP] Advanced AI/ML Capabilities**
-
-**Graph Embeddings & Vector Search**
-- **GraphML Integration**: Generate node and edge embeddings from entity graphs
-- **Behavioral Embeddings**: Capture entity behavior patterns in vector space
-- **Vector Similarity Search**: ArangoSearch vector capabilities for semantic matching
-- **Approximate Nearest Neighbor**: Fast embedding-based similarity queries
+### **[ROADMAP] Future Capabilities**
 
 **GraphRAG & LLM Integration**
 - **Document Entity Extraction**: Use LLMs to extract entities from unstructured text
 - **Semantic Entity Linking**: Connect extracted entities via embedding similarity
 - **Knowledge Graph Construction**: Build comprehensive entity knowledge graphs
-- **LLM-Powered Curation**: Automated evaluation of entity match evidence
 
 **Geospatial-Temporal Analysis**
 - **Location-Time Validation**: Verify entity co-location for match confirmation
 - **Spatial Impossibility Detection**: Reject matches for entities proven to be in different locations
-- **Movement Pattern Analysis**: Track entity trajectories for behavior-based matching
-- **Temporal Consistency Checks**: Ensure entity timelines are logically consistent
+
+**GPU Acceleration (ONNX)**
+- **CoreML Provider**: Apple Silicon GPU acceleration for embedding workloads
+- **CUDA/TensorRT Provider**: Linux NVIDIA GPU acceleration for high-throughput inference
+- **Provider Auto-Selection**: Platform-aware provider chain with CPU fallback
 
 **Advanced Alias Detection**
 - **Shared Identifier Networks**: Graph analysis to find entities sharing phone/email/address
 - **Transitive Alias Resolution**: Multi-hop alias discovery through graph traversal
-- **Confidence Scoring**: Probabilistic scoring of alias relationships
-- **Network Visualization**: Interactive exploration of entity alias networks
 
 ### **[IMPLEMENTED] Demo & Presentation System**
 - **Interactive Presentations**: Step-by-step demos with manual pace control
@@ -675,14 +660,14 @@ The project is organized into logical modules for maintainability and scalabilit
 ### **Algorithms & Similarity**
 - **Blocking**: Exact (COLLECT), BM25/ArangoSearch, Vector/ANN, Geographic, GraphTraversal
 - **Similarity**: Jaro-Winkler, Levenshtein, Jaccard, Fellegi-Sunter probabilistic scoring
-- **Clustering**: Weakly Connected Components (Python DFS + AQL Graph modes)
+- **Clustering**: Weakly Connected Components with 6 backends (Python DFS, Union-Find, Sparse, AQL Graph, GAE WCC, Auto)
 - **LLM Curation**: Automated match evaluation for ambiguous pairs (0.55–0.80 confidence range)
 
 ### **Infrastructure**
 - **Containerization**: Docker & Docker Compose (tests auto-spin containers as needed)
 - **Configuration**: Environment-based with `.env` support
 - **Logging**: Structured logging with multiple output formats
-- **Testing**: 625-test release-validated suite with auto-Docker integration coverage
+- **Testing**: Release-validated test suite with auto-Docker integration coverage
 
 ## Installation
 
@@ -1057,7 +1042,7 @@ The following areas will be documented with relevant academic papers:
 Please ensure any contributions align with the project requirements outlined in the [PRD](docs/PRD.md) and follow the established coding standards:
 
 ### Code Standards
-- **Python 3.8+** with type hints
+- **Python 3.10+** with type hints
 - **DRY Principles**: Use shared utilities in `scripts/common/`
 - **Error Handling**: Consistent messaging patterns
 - **Documentation**: Comprehensive docstrings and comments

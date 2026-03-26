@@ -7,6 +7,105 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-03-16
+
+### Added — GAE Clustering Backend
+- **`GAEWCCBackend`** — WCC clustering via ArangoDB Graph Analytics Engine (enterprise).
+  Manages the full engine lifecycle: deployment, graph loading, WCC execution,
+  result storage to vertex documents, and optional cleanup.
+- **`gae_connection.py`** — Dual-mode connection layer supporting both self-managed
+  (JWT auth via `/_open/auth`) and ArangoGraph Managed Platform (oasisctl bearer token)
+  deployments. Factory function `get_gae_connection()` routes by `TEST_DEPLOYMENT_MODE`.
+- **`GAEClusteringConfig`** — Configuration class for GAE-specific settings:
+  `enabled`, `deployment_mode`, `graph_name`, `engine_size`, `auto_cleanup`, `timeout_seconds`.
+- Engine readiness polling with consecutive-OK probes for Kubernetes pod spin-up.
+- GAE job polling (`loaddata`, `wcc`, `storeresults`) with configurable timeouts.
+- Result reading from vertex document attributes with key mapping via AQL.
+
+### Changed
+- `ClusteringConfig.backend` default changed from `'python_union_find'` to `'auto'`.
+- `ClusteringConfig.VALID_BACKENDS` now includes `'gae_wcc'`.
+- `WCCClusteringService._auto_select_backend()` prioritizes GAE when `gae_config.enabled=True`,
+  GAE is available, and edge count exceeds threshold.
+- `WCCClusteringService.get_statistics()` includes `gae_job_id` and `gae_runtime_seconds`
+  when GAE backend is used.
+- `configurable_pipeline.py` and `async_pipeline.py` now pass GAE configuration to
+  `WCCClusteringService`.
+- Deprecation warning for `wcc_algorithm` updated to "future release" timeline.
+
+### Testing
+- New unit tests (`test_gae_clustering.py`): 29 tests covering GAE config, backend,
+  and auto-selection with GAE priority.
+- New integration test skeleton (`test_gae_integration.py`) with `@requires_gae` skip
+  marker for environments with GAE access.
+- Live integration validated against self-managed GAE on `prod.demo.pilot.arango.ai`.
+
+## [3.4.0] - 2026-03-15
+
+### Changed — Promoted Defaults
+- `EmbeddingConfig.device` default changed from `'cpu'` to `'auto'` — automatically
+  selects CUDA, MPS (Apple Silicon), or CPU at runtime. MPS/CUDA parity confirmed in 3.3.0.
+- `ClusteringConfig.backend` default changed from `'python_dfs'` to `'python_union_find'`.
+  Parity with `python_dfs` output confirmed in 3.3.0.
+
+### Added
+- **`PythonSparseBackend`** — WCC via `scipy.sparse.csgraph.connected_components()`.
+  Faster than Union-Find for very dense large graphs. Optional dependency (scipy).
+- **`backend='auto'`** selection logic in `WCCClusteringService` — selects `python_sparse`
+  above `auto_select_threshold_edges` (default 2M) when scipy is available, otherwise
+  `python_union_find`.
+- `ClusteringConfig` gains `auto_select_threshold_edges` and `sparse_backend_enabled` fields.
+- `EmbeddingConfig.max_batch_size` cap for OOM safety on GPU workloads.
+- `LLMMatchVerifier.healthcheck()` — validates provider reachability before pipeline runs.
+- `LLMProviderConfig` gains `healthcheck_on_start` and `fallback_provider` fields.
+
+### Testing
+- New `test_auto_backend_selection.py` covering auto selection, sparse parity, and
+  scipy-unavailable fallback.
+- Updated existing tests for new `'auto'` device and `'python_union_find'` backend defaults.
+
+## [3.3.0] - 2026-03-14
+
+### Added — Clustering Backend Abstraction
+- **`clustering_backends/`** package with pluggable WCC backend architecture:
+  - `ClusteringBackend` protocol (`base.py`)
+  - `PythonDFSBackend` — extracted from existing bulk-fetch DFS logic
+  - `PythonUnionFindBackend` — near-linear Union-Find with path compression and union by rank
+  - `AQLGraphBackend` — extracted from existing AQL traversal logic
+- `WCCClusteringService` refactored to dispatch to named backends via `backend=` parameter.
+- `get_statistics()` now includes `backend_used` key.
+
+### Added — Embedding Runtime Expansion
+- `EmbeddingConfig` gains `runtime` field (`'pytorch'` in 3.3.0) and accepts
+  `'mps'` and `'auto'` as valid `device` values.
+- `EmbeddingService.resolve_device()` detects CUDA or MPS availability at runtime.
+- `requested_device` and `resolved_device` added to embedding metadata.
+- `batch_size` now explicitly configurable on `EmbeddingService`.
+
+### Added — LLM Provider Configuration
+- **`LLMProviderConfig`** — structured provider settings for Ollama, OpenRouter, OpenAI,
+  and Anthropic. Translates to litellm model strings automatically.
+- `ActiveLearningConfig` gains `llm: LLMProviderConfig` field;
+  `effective_model_string()` prefers `llm` over bare `model` string.
+- `LLMMatchVerifier` gains `base_url` and `timeout_seconds` for Ollama support.
+- `LLMMatchVerifier.from_provider_config()` class method for structured construction.
+
+### Added — Runtime Health Infrastructure
+- ONNX Runtime backend scaffold with provider resolution and CPU fallback.
+- Runtime telemetry, baseline registry, compare workflows, and CI gate commands:
+  `arango-er runtime-health`, `runtime-health-export`, `runtime-health-baseline`,
+  `runtime-health-compare`, `runtime-health-gate`.
+- Startup policy controls (`permissive` / `strict`).
+
+### Changed
+- `ClusteringConfig` gains `backend` field; `wcc_algorithm` deprecated with warning.
+- `WCCClusteringService(use_bulk_fetch=...)` deprecated with warning; maps to `backend=`.
+
+### Testing
+- New `test_clustering_backends.py` covering Union-Find, DFS parity, backend dispatch,
+  deprecation warnings, and statistics.
+- New `test_llm_provider_config.py` and embedding device resolution tests.
+
 ## [3.2.3] - 2026-03-08
 
 ### Fixed
@@ -595,16 +694,17 @@ full backward compatibility with version 1.x.
 ## Future Enhancements
 
 ### Planned Features
-- GAE (Graph Analytics Engine) support for very large graphs (> 10M edges)
-- Additional similarity algorithms
-- Advanced blocking strategies
-- Performance optimizations
+- ONNX Runtime GPU acceleration (CoreML on Apple Silicon, CUDA/TensorRT on Linux)
+- GraphRAG and document entity extraction
+- Geospatial-temporal validation
+- Shard-parallel address blocking for ArangoDB clusters
+- `AddressERPipeline` first-class library class
 
 ### How to Contribute
 See CONTRIBUTING.md (if available) or open issues/PRs on the project repository.
 
 ---
 
-**Document Version:** 1.0 
-**Date:** November 12, 2025 
-**Library Version:** 2.0.0
+**Document Version:** 2.0 
+**Date:** March 16, 2026 
+**Library Version:** 3.5.0

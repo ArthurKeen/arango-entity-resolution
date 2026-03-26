@@ -4,9 +4,44 @@ High-level capability timeline for the public library.
 
 ---
 
-## 3.2.3 (Current) - 2026-03-08
+## 3.5.0 (Current) - 2026-03-16
 
-**Status**: Release-prepared and locally validated
+**Status**: Release-prepared and validated
+
+### Highlights
+- GAE clustering backend with dual-mode connection layer (self-managed JWT + AMP oasisctl)
+- Full GAE engine lifecycle: deploy, load graph, run WCC, store results, read results, cleanup
+- `backend='auto'` becomes the default — auto-selects GAE, sparse, or union-find based on context
+- `GAEClusteringConfig` for enterprise GAE settings (engine size, deployment mode, timeouts)
+- Live integration validated against self-managed GAE platform
+
+## 3.4.0 - 2026-03-15
+
+**Status**: Released
+
+### Highlights
+- Embedding `device` default promoted from `'cpu'` to `'auto'` (CUDA/MPS/CPU detection)
+- Clustering `backend` default promoted from `'python_dfs'` to `'python_union_find'`
+- `PythonSparseBackend` for large dense graphs (scipy, optional dependency)
+- `backend='auto'` introduced as opt-in value
+- `LLMMatchVerifier.healthcheck()` for provider reachability checks
+- `max_batch_size` cap and OOM warnings for GPU embedding workloads
+
+## 3.3.0 - 2026-03-14
+
+**Status**: Released
+
+### Highlights
+- Clustering backend abstraction: `python_dfs`, `python_union_find`, `aql_graph` as pluggable backends
+- Embedding runtime/device expansion: `'mps'`, `'auto'` devices; `runtime` config field
+- `LLMProviderConfig` for structured Ollama/OpenRouter/OpenAI/Anthropic provider settings
+- ONNX Runtime backend scaffold with provider resolution and CPU fallback
+- Runtime health CLI commands: baseline, compare, gate workflows for CI
+- Phase 0 GPU-readiness foundation completed
+
+## 3.2.3 - 2026-03-08
+
+**Status**: Historical release
 
 ### Highlights
 - SmartGraph-aware deterministic keys for `SimilarityEdgeService`
@@ -15,7 +50,7 @@ High-level capability timeline for the public library.
 
 ## 3.2.2 - 2026-03-08
 
-**Status**: Published and release-validated
+**Status**: Historical release
 
 ### Highlights
 - Config-driven similarity field transformers
@@ -24,24 +59,15 @@ High-level capability timeline for the public library.
 - Supported exact-vs-BM25 blocking benchmark workflow
 - Cluster quality metadata surfaced in stored clusters and MCP `get_clusters`
 
-## 3.2.1 - 2026-03-06
+## 3.2.x - 2026 Q1
 
-**Status**: Historical release
-
-### Highlights
-- MCP server package and demo quickstart
-- Incremental single-record resolver
-- LLM match verifier and active-learning support groundwork
-- Release-publish workflow stabilization
-
-## 3.2.0 - 2026-03-05
-
-**Status**: Historical release
+**Status**: Historical release line
 
 ### Highlights
 - MCP tool/resource surface introduced
+- Incremental single-record resolver
+- LLM match verifier and active-learning support
 - Security hardening across blocking and pipeline utility AQL paths
-- General pipeline cleanup and broader test coverage
 
 ## 3.1.x - 2026 Q1
 
@@ -102,5 +128,5 @@ print(VERSION_INFO)
 
 ---
 
-**Last Updated**: 2026-03-08
+**Last Updated**: 2026-03-16
 

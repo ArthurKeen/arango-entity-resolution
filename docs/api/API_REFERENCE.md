@@ -1,4 +1,4 @@
-# API Reference - v3.2.3
+# API Reference - v3.5.0
 
 Current reference for the shipped public surface of `arango-entity-resolution`.
 

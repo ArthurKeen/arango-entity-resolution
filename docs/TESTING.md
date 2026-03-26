@@ -1,6 +1,6 @@
 # Testing Guide
 
-Current testing and release-validation guidance for `v3.2.3`.
+Current testing and release-validation guidance for `v3.5.0`.
 
 ---
 
@@ -14,7 +14,7 @@ The test surface combines:
 
 ## Current Release Snapshot
 
-During the `3.2.3` release pass:
+During the `3.2.3` release pass (historical):
 - focused regression suites passed locally
 - Docker-backed end-to-end validation passed for pipeline run, status, clusters, export, and benchmark flows
 - SmartGraph deterministic edge-key validation passed against a local Docker-based Enterprise ArangoDB SmartGraph

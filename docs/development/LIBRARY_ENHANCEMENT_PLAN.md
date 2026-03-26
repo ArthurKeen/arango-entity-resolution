@@ -1,8 +1,8 @@
 # ArangoER Library Enhancement Plan
 ## Adding Advanced Entity Resolution Capabilities
 
-**Date:** November 12, 2025 
-**Status:** Planning Phase (updated for cross-platform GPU alignment)
+**Date:** November 12, 2025 (original), March 16, 2026 (updated)  
+**Status:** Phases 0–3 Completed; Phase 4 partially completed  
 **Goal:** Enhance arango-entity-resolution library with production-proven ER features
 
 ---
@@ -754,27 +754,25 @@ class OnnxRuntimeEmbeddingBackend:
 
 ## Implementation Plan
 
-### Phase 0: GPU Foundation Track (Week 1-2, parallel)
+### Phase 0: GPU Foundation Track (Week 1-2, parallel) — COMPLETED
+
+**Status:** Completed in Release 3.3.0 (March 2026)
 
 **Deliverables:**
-1. Runtime/provider config surface for embeddings
-2. ONNX Runtime backend scaffold
-3. Provider resolver (`coreml`, `cuda`, `tensorrt`, `cpu`)
-4. Startup health checks and fallback metrics
-5. Initial benchmark harness and CPU baselines
+1. ~~Runtime/provider config surface for embeddings~~ DONE
+2. ~~ONNX Runtime backend scaffold~~ DONE
+3. ~~Provider resolver (`coreml`, `cuda`, `tensorrt`, `cpu`)~~ DONE
+4. ~~Startup health checks and fallback metrics~~ DONE
+5. ~~Initial benchmark harness and CPU baselines~~ DONE
 
 **Tasks:**
-- [ ] Add embedding config fields: `runtime`, `provider`, `provider_options`, `onnx_model_path`
-- [ ] Add provider resolution logic with platform-aware priorities
-- [ ] Add `requested_provider` and `resolved_provider` to embedding metadata
-- [ ] Add provider fallback counter and startup diagnostics
-- [ ] Add smoke tests for provider selection and fallback behavior
+- [x] Add embedding config fields: `runtime`, `provider`, `provider_options`, `onnx_model_path`
+- [x] Add provider resolution logic with platform-aware priorities
+- [x] Add `requested_provider` and `resolved_provider` to embedding metadata
+- [x] Add provider fallback counter and startup diagnostics
+- [x] Add smoke tests for provider selection and fallback behavior
 
-**Success Criteria:**
-- ONNX backend loads with `provider='cpu'` in all environments
-- `provider='auto'` resolves correctly by platform
-- Provider failures trigger deterministic CPU fallback
-- Baseline benchmark results captured for target models
+See `docs/development/PHASE_0_COMPLETION_NOTES.md` for full details.
 
 ---
 
@@ -833,32 +831,34 @@ class OnnxRuntimeEmbeddingBackend:
 
 ---
 
-### Phase 3: Clustering Service (Week 5-6)
+### Phase 3: Clustering Service (Week 5-6) — COMPLETED
+
+**Status:** Completed across Releases 3.3.0–3.5.0 (March 2026)
 
 **Deliverables:**
-1. Enhanced `WCCClusteringService` class
-2. AQL graph traversal implementation
-3. Cluster validation and statistics
-4. Unit and integration tests
-5. API documentation
-6. Future: GAE implementation plan
+1. ~~Enhanced `WCCClusteringService` class~~ DONE — refactored to pluggable backend architecture
+2. ~~AQL graph traversal implementation~~ DONE — `AQLGraphBackend`
+3. ~~Cluster validation and statistics~~ DONE
+4. ~~Unit and integration tests~~ DONE
+5. ~~API documentation~~ DONE
+6. ~~GAE implementation~~ DONE in 3.5.0
 
 **Tasks:**
-- [ ] Enhance existing `ClusteringService` or create new `WCCClusteringService`
-- [ ] Implement AQL graph traversal for connected components
-- [ ] Implement cluster storage with metadata
-- [ ] Add validation methods and statistics
-- [ ] Write comprehensive tests
-- [ ] Document usage patterns
-- [ ] Document GAE future enhancement path for very large graphs
+- [x] Enhance existing `ClusteringService` or create new `WCCClusteringService`
+- [x] Implement AQL graph traversal for connected components
+- [x] Implement cluster storage with metadata
+- [x] Add validation methods and statistics
+- [x] Write comprehensive tests
+- [x] Document usage patterns
+- [x] Implement GAE backend with dual-mode connection layer (self-managed + AMP)
 
-**Success Criteria:**
-- AQL implementation works on all ArangoDB 3.9+
-- Server-side processing (no need to fetch all edges to Python)
-- Cluster validation working
-- All tests passing
-- API documentation complete
-- Clear path for GAE enhancement
+**Additional Scope Delivered (beyond original plan):**
+- `PythonUnionFindBackend` — near-linear Union-Find with path compression
+- `PythonSparseBackend` — scipy-backed WCC for large dense graphs
+- `GAEWCCBackend` — full GAE engine lifecycle with result reading
+- `gae_connection.py` — dual-mode connection abstraction
+- `backend='auto'` heuristic selection (default since 3.5.0)
+- Deprecation path for `use_bulk_fetch` and `wcc_algorithm`
 
 ---
 
@@ -1103,15 +1103,17 @@ If any existing APIs need changes:
 
 ---
 
-## Release Alignment (Authoritative)
+## Release Alignment
 
-This plan aligns to the active release sequence in `docs/development/NEXT_RELEASE_IMPLEMENTATION_BRIEF.md`.
+This plan aligned to the release sequence in `docs/development/NEXT_RELEASE_IMPLEMENTATION_BRIEF.md`.
 
-- `3.3.0`: Introduce runtime/provider abstraction and ONNX opt-in path; keep CPU default.
-- `3.4.0`: Promote `provider='auto'` only after parity and quality/performance gates are green.
-- `3.5.0`: Add selective TensorRT optimization for high-volume Linux workloads.
+**All three releases have been shipped:**
 
-If this document conflicts with release-level guidance, the release implementation brief is authoritative.
+- `3.3.0` (shipped): Introduced runtime/provider abstraction and ONNX opt-in path; kept CPU default. Clustering backend abstraction with Union-Find. LLM provider configuration.
+- `3.4.0` (shipped): Promoted `device='auto'` and `backend='python_union_find'` as defaults. Added sparse backend and auto-selection. LLM health checks.
+- `3.5.0` (shipped): GAE clustering backend with dual-mode connection layer. `backend='auto'` as default.
+
+GPU provider promotion (CoreML, CUDA, TensorRT) remains future work pending parity and quality gates.
 
 ---
 
@@ -1137,7 +1139,7 @@ If this document conflicts with release-level guidance, the release implementati
 
 ---
 
-**Document Version:** 1.1 
-**Last Updated:** March 14, 2026 
-**Next Review:** Start of each phase
+**Document Version:** 1.2 
+**Last Updated:** March 16, 2026 
+**Next Review:** Post-3.5.0 roadmap planning
 
