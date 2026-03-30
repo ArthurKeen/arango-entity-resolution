@@ -96,13 +96,54 @@ Optional AI stages can be inserted into the pipeline:
 | **Shard-Parallel** | Optimised for sharded ArangoDB clusters |
 
 ### Clustering Backends
-| Backend | Best For |
-|---------|----------|
-| `python_union_find` | General purpose (default via `auto`) |
-| `python_dfs` | Reliable DFS traversal |
-| `python_sparse` | Very large dense graphs (scipy) |
-| `aql_graph` | Server-side processing |
-| `gae_wcc` | Enterprise-scale via Graph Analytics Engine |
+
+The default `backend: auto` selects the best available backend based on edge count, optional dependencies, and whether the ArangoDB Graph Analytics Engine is reachable:
+
+| Backend | Best For | Selection |
+|---------|----------|-----------|
+| `python_union_find` | General purpose | Default when GAE is unavailable |
+| `python_dfs` | Reliable DFS traversal | Explicit only |
+| `python_sparse` | Very large dense graphs | Auto-selected above 2M edges when scipy installed |
+| `aql_graph` | Server-side processing | Explicit only |
+| `gae_wcc` | Enterprise-scale (millions of edges) | Auto-selected when GAE is enabled and reachable |
+
+#### GAE Clustering (Enterprise)
+
+For graphs too large for in-process clustering, the `gae_wcc` backend offloads WCC to the [ArangoDB Graph Analytics Engine](https://docs.arangodb.com/stable/data-science/graph-analytics-engine/) — a dedicated compute cluster. The backend manages the full lifecycle: engine deployment, graph loading, WCC execution, result storage, and cleanup.
+
+```yaml
+clustering:
+  backend: auto
+  gae:
+    enabled: true
+    deployment_mode: self_managed   # or "amp" for ArangoGraph Managed Platform
+    graph_name: companies_similarity_graph
+    engine_size: e16
+    auto_cleanup: true
+    timeout_seconds: 3600
+```
+
+Supports both self-managed deployments (JWT auth) and ArangoGraph Managed Platform (oasisctl bearer token).
+
+### Embedding & GPU Support
+
+Embedding generation for vector blocking auto-detects the best available hardware:
+
+| Device | Platform | How to use |
+|--------|----------|------------|
+| **CUDA** | Linux / Windows with NVIDIA GPU | `device: auto` (auto-detected) or `device: cuda` |
+| **MPS** | macOS with Apple Silicon | `device: auto` (auto-detected) or `device: mps` |
+| **CPU** | Any platform | `device: cpu` (fallback) |
+
+```yaml
+embedding:
+  model: all-MiniLM-L6-v2
+  device: auto              # selects CUDA > MPS > CPU at runtime
+  max_batch_size: 256       # OOM safety cap for GPU workloads
+  runtime: pytorch          # or onnx for faster CPU inference
+```
+
+The ONNX Runtime backend (`pip install "arango-entity-resolution[onnx]"`) provides faster CPU inference and supports export from any sentence-transformers model via `OnnxModelExporter`.
 
 ### AI & Agent Integration
 - **MCP Server** — 7 tools + 2 resources for Claude, Gemini, GPT-4, Cursor
