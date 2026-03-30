@@ -55,7 +55,7 @@ arango-er-mcp
 arango-er-mcp --transport sse --port 8080
 ```
 
-Exposes 7 tools (`find_duplicates`, `resolve_entity`, `explain_match`, `get_clusters`, `merge_entities`, `pipeline_status`, `list_collections`) and 2 resources for any MCP-compatible AI agent.
+Exposes 14 tools and 2 resources for any MCP-compatible AI agent. See [MCP Tools](#mcp-tools) below for the full inventory.
 
 ## How It Works
 
@@ -177,8 +177,57 @@ The LLM receives both records, the overall similarity score, and field-level sco
 
 **Active Learning** wraps the verifier in a feedback loop (`AdaptiveLLMVerifier`). Every verdict is persisted to a feedback store in ArangoDB. Human corrections can be recorded via `record_human_correction()`, and the system periodically re-optimizes the low/high thresholds based on accumulated feedback — reducing LLM calls over time as the thresholds converge on the data distribution.
 
-### AI & Agent Integration
-- **MCP Server** — 7 tools + 2 resources for Claude, Gemini, GPT-4, Cursor
+### MCP Tools
+
+The MCP server exposes 14 tools organized into two groups — core ER operations and an advisory layer that helps an AI agent decide *how* to resolve before running the pipeline.
+
+#### Core ER Tools
+
+| Tool | What it does |
+|------|-------------|
+| `list_collections` | Discover all document/edge collections with counts |
+| `find_duplicates` | Run the full blocking → similarity → clustering pipeline |
+| `pipeline_status` | Document count, edge stats, cluster count for a collection |
+| `resolve_entity` | Find existing records matching a given record (read-only) |
+| `resolve_entity_cross_collection` | Link entities across two collections with field mapping |
+| `explain_match` | Field-level similarity breakdown between two records |
+| `get_clusters` | Return entity clusters with quality metadata (density, similarity stats) |
+| `merge_entities` | Preview a golden record merge ("most_complete", "newest", or "first") |
+
+#### Advisor Tools
+
+An AI agent can use the advisor tools to analyze a dataset, choose the right strategy (including pre-ingest canonicalization vs post-ingest matching), tune weights, and simulate pipeline variants — all before executing anything.
+
+| Tool | What it does |
+|------|-------------|
+| `profile_dataset` | Profile fields: null rates, distinct counts, heavy hitters, duplicate/hub risk |
+| `recommend_resolution_strategy` | Rank strategy families from a profile and objective constraints |
+| `recommend_blocking_candidates` | Rank single-field and composite blocking keys by fit score |
+| `evaluate_blocking_plan` | Estimate pair volume, block-size distribution, and risk flags |
+| `estimate_feature_weights` | Estimate field weights and threshold from labeled pairs |
+| `simulate_pipeline_variants` | Compare multiple pipeline configs (runtime, memory, precision, recall) |
+| `export_recommended_config` | Export a recommendation as deployable YAML/JSON with SHA256 hash |
+
+The `recommend_resolution_strategy` tool evaluates five strategy families and ranks them against your data profile and objectives:
+
+| Strategy | When it fits |
+|----------|-------------|
+| `hybrid_block_then_weighted_match` | General purpose — balanced precision, recall, throughput |
+| `pre_ingest_canonicalize_then_match` | Canonicalize addresses/names *before* loading to reduce variant noise |
+| `deterministic_rules_then_review` | Auditable rule-based matching with human review |
+| `embedding_first_nearest_neighbor` | Semantic recall on noisy text (requires embeddings) |
+| `graph_first_collective_resolution` | Multi-hop graph reasoning for complex relationship networks |
+
+For address resolution specifically, there is a dedicated `AddressERPipeline` that handles street/city/state/postal normalization, custom analyzers, and address-specific blocking — usable standalone or as part of the recommended strategy.
+
+#### Resources
+
+| URI | Returns |
+|-----|---------|
+| `arango://collections/{collection}/summary` | Document count, inferred schema, sample documents |
+| `arango://clusters/{collection}/{key}` | Full cluster details with all member documents |
+
+### Other Integrations
 - **ONNX Runtime** — faster CPU inference for embedding workloads
 - **Incremental Resolver** — real-time single-record matching without batch re-run
 
