@@ -145,12 +145,42 @@ embedding:
 
 The ONNX Runtime backend (`pip install "arango-entity-resolution[onnx]"`) provides faster CPU inference and supports export from any sentence-transformers model via `OnnxModelExporter`.
 
+### LLM Match Curation
+
+When similarity scoring produces ambiguous pairs (default 0.55–0.80 confidence), the pipeline can auto-delegate them to an LLM for a match/no-match decision. This dramatically improves precision for hard cases like abbreviated company names, nickname variations, and varied address formats — without manual review.
+
+The verifier works with any provider supported by [litellm](https://docs.litellm.ai/), including fully local models that need no API key:
+
+| Provider | Example model string | API key required |
+|----------|---------------------|------------------|
+| **Ollama** (local) | `ollama/llama3.1:8b`, `ollama/mistral` | No |
+| **OpenRouter** | `openrouter/google/gemini-2.0-flash` | `OPENROUTER_API_KEY` |
+| **OpenAI** | `openai/gpt-4o` | `OPENAI_API_KEY` |
+| **Anthropic** | `anthropic/claude-3-5-sonnet-20241022` | `ANTHROPIC_API_KEY` |
+
+```yaml
+active_learning:
+  enabled: true
+  llm:
+    provider: ollama                # local LLM, no API key needed
+    model: llama3.1:8b
+    base_url: http://localhost:11434
+    timeout_seconds: 120
+    healthcheck_on_start: true
+    fallback_provider: openrouter   # auto-fallback if Ollama is unreachable
+  low_threshold: 0.55              # below this → auto no_match
+  high_threshold: 0.80             # above this → auto match
+  refresh_every_n: 100             # re-optimize thresholds every N verifications
+```
+
+The LLM receives both records, the overall similarity score, and field-level scores, and returns a structured JSON verdict with decision, confidence, and reasoning. When the LLM overrides a score, the system synthesises a new score that pushes the pair above or below the thresholds so downstream clustering reflects the decision.
+
+**Active Learning** wraps the verifier in a feedback loop (`AdaptiveLLMVerifier`). Every verdict is persisted to a feedback store in ArangoDB. Human corrections can be recorded via `record_human_correction()`, and the system periodically re-optimizes the low/high thresholds based on accumulated feedback — reducing LLM calls over time as the thresholds converge on the data distribution.
+
 ### AI & Agent Integration
 - **MCP Server** — 7 tools + 2 resources for Claude, Gemini, GPT-4, Cursor
-- **LLM Verification** — OpenRouter, OpenAI, Anthropic, Ollama via litellm
 - **ONNX Runtime** — faster CPU inference for embedding workloads
 - **Incremental Resolver** — real-time single-record matching without batch re-run
-- **Active Learning** — feedback loop with adaptive threshold optimization
 
 ## Configuration
 
