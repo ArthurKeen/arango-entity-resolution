@@ -4,9 +4,16 @@ High-level capability timeline for the public library.
 
 ---
 
-## 3.5.0 (Current) - 2026-03-16
+## 3.5.1 (Current) - 2026-03-30
 
 **Status**: Release-prepared and validated
+
+### Highlights
+- Codebase hardening, security fixes, AQL bind variables, 117 new tests, thread-safe DatabaseManager
+
+## 3.5.0 - 2026-03-16
+
+**Status**: Historical release
 
 ### Highlights
 - GAE clustering backend with dual-mode connection layer (self-managed JWT + AMP oasisctl)
@@ -128,5 +135,5 @@ print(VERSION_INFO)
 
 ---
 
-**Last Updated**: 2026-03-16
+**Last Updated**: March 30, 2026
 

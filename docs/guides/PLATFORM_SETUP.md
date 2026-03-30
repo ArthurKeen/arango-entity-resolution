@@ -1,6 +1,6 @@
 # Platform Setup Guide
 
-**Version:** 3.5.0 | **Last Updated:** March 2026
+**Version:** 3.5.1 | **Last Updated:** March 30, 2026
 
 This guide covers hardware-specific setup for embedding generation and GPU-accelerated workloads across supported platforms.
 

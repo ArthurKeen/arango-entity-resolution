@@ -4,9 +4,10 @@ Quick reference for the currently shipped release.
 
 ---
 
-## Current Version: 3.5.0
+## Current Version: 3.5.1
 
-- **Released**: March 16, 2026
+- **Released**: March 30, 2026
+- **Highlights**: Codebase hardening, security fixes, AQL bind variables, 117 new tests, thread-safe DatabaseManager.
 - **Status**: Release-prepared and validated
 - **PyPI**: Pending publish
 
@@ -14,7 +15,7 @@ Quick reference for the currently shipped release.
 
 ```python
 import entity_resolution
-print(entity_resolution.__version__)  # "3.5.0"
+print(entity_resolution.__version__)  # "3.5.1"
 ```
 
 ## Source of Truth
@@ -24,8 +25,8 @@ Version metadata lives in `src/entity_resolution/utils/constants.py`.
 ```python
 from entity_resolution.utils.constants import VERSION_INFO, get_version_string
 
-print(get_version_string())  # "3.5.0"
-print(VERSION_INFO)          # {'major': 3, 'minor': 5, 'patch': 0, 'release': ''}
+print(get_version_string())  # "3.5.1"
+print(VERSION_INFO)          # {'major': 3, 'minor': 5, 'patch': 1, 'release': ''}
 ```
 
 ## What 3.5.0 Includes
@@ -72,7 +73,8 @@ print(VERSION_INFO)          # {'major': 3, 'minor': 5, 'patch': 0, 'release': '
 
 | Version | Status | Highlights |
 |---------|--------|------------|
-| **3.5.0** | Current | GAE clustering backend, `backend='auto'` default, dual-mode GAE connection |
+| **3.5.1** | Current | Codebase hardening, security fixes, AQL bind variables, 117 new tests, thread-safe DatabaseManager |
+| **3.5.0** | Historical | GAE clustering backend, `backend='auto'` default, dual-mode GAE connection |
 | 3.4.0 | Historical | Promoted `device='auto'` and `backend='python_union_find'`, sparse backend, LLM healthcheck |
 | 3.3.0 | Historical | Clustering backend abstraction, embedding runtime expansion, LLM provider config, runtime health CLI |
 | 3.2.3 | Historical | SmartGraph deterministic edge-key fix and SmartGraph auto-detection |
@@ -94,5 +96,5 @@ print(VERSION_INFO)          # {'major': 3, 'minor': 5, 'patch': 0, 'release': '
 
 ---
 
-**Last Updated**: 2026-03-16
+**Last Updated**: March 30, 2026
 

@@ -1,13 +1,13 @@
 # Product Requirements and Roadmap
 
-This document captures the shipped baseline through `v3.5.0` and the forward-looking product roadmap.
+This document captures the shipped baseline through `v3.5.1` and the forward-looking product roadmap.
 
 ---
 
 ## Product Overview
 
 **Product**: ArangoDB Entity Resolution System  
-**Current Release**: `3.5.0`  
+**Current Release**: `3.5.1`  
 **Status**: Published, tested, and production-ready for the currently shipped scope
 
 ### Goal
@@ -135,9 +135,9 @@ The product must support optional GAE clustering for enterprise-scale graphs, wi
 
 ---
 
-## Roadmap Beyond 3.5.0
+## Roadmap Beyond 3.5.1
 
-These items remain forward-looking and are not part of the currently shipped `3.5.0` baseline.
+These items remain forward-looking and are not part of the currently shipped `3.5.1` baseline.
 
 ### Future Investigation Areas
 
@@ -177,3 +177,7 @@ The current product is successful when users can:
 - [Blocking Benchmarks](development/BLOCKING_BENCHMARKS.md)
 - [Release Checklist](development/RELEASE_CHECKLIST.md)
 - [GAE Enhancement Path](development/GAE_ENHANCEMENT_PATH.md)
+
+---
+
+**Last Updated:** March 30, 2026

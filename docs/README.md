@@ -11,7 +11,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 - [Main README](../README.md) - Project overview and installation
 
 ### API Documentation
-- [API Reference](api/API_REFERENCE.md) - Current CLI, MCP, and Python API surface for v3.5.0
+- [API Reference](api/API_REFERENCE.md) - Current CLI, MCP, and Python API surface for v3.5.1
 
 ### User Guides
 - [Migration Guide v3.0](guides/MIGRATION_GUIDE_V3.md) - Upgrade from v1.x or v2.x
@@ -121,9 +121,9 @@ Historical documentation is preserved in [`archive/`](archive/):
 
 ## Version Information
 
-- **Current Version:** 3.5.0
+- **Current Version:** 3.5.1
 - **API Version:** v3
-- **Last Updated:** March 16, 2026
+- **Last Updated:** March 30, 2026
 
 For version history, see [CHANGELOG.md](../CHANGELOG.md)
 

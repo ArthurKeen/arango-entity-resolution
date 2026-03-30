@@ -1,4 +1,4 @@
-# API Reference - v3.5.0
+# API Reference - v3.5.1
 
 Current reference for the shipped public surface of `arango-entity-resolution`.
 
@@ -10,6 +10,8 @@ This document focuses on the interfaces users are most likely to touch directly:
 - core Python services
 
 For deeper historical notes, see `VERSION_HISTORY.md` and older planning documents in `docs/`.
+
+**Last Updated:** March 30, 2026
 
 ---
 

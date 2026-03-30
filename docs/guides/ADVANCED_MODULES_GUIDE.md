@@ -1,6 +1,6 @@
 # Advanced Modules Guide
 
-**Version:** 3.5.0 | **Last Updated:** March 2026
+**Version:** 3.5.1 | **Last Updated:** March 30, 2026
 
 Reference documentation for advanced modules exported by `arango-entity-resolution` that extend the core pipeline with orchestration, geospatial validation, graph-RAG linking, ETL canonicalization, and more.
 

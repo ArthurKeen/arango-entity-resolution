@@ -7,6 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.1] - 2026-03-30
+
+### Security
+- **AQL injection hardening** — converted ~30 f-string collection name interpolations
+  across 13 service files to `@@collection` AQL bind variables. Collection names are now
+  never placed directly into query strings.
+- **MCP SSE default bind** changed from `0.0.0.0` to `127.0.0.1` — prevents unintentional
+  network exposure when running the MCP server without explicit `--host`.
+- **Silent exception logging** — 12 `except Exception: pass` blocks across services, MCP,
+  ETL, and utils now log with `logger.debug` (or `logger.warning` for data-loss-risk paths
+  like `batch_similarity_service` document fetches).
+
+### Added
+- **`MultiStrategyOrchestrator`** — run multiple blocking strategies with union/intersection
+  modes and configurable field weights.
+- **`AddressERPipeline`** — first-class pipeline for address entity resolution with
+  built-in normalization and geocoding support.
+- **`GraphRAGLinker` / `DocumentEntityExtractor`** — LLM-powered document entity extraction
+  and graph-based record linking via litellm.
+- **`GeospatialValidator` / `TemporalValidator`** — coordinate distance and date-range
+  validation for candidate pairs.
+- **`ShardParallelBlockingStrategy`** — blocking strategy optimised for sharded ArangoDB
+  clusters with parallel shard queries.
+- **`OnnxModelExporter`** — export sentence-transformers models to ONNX format with
+  validation and metadata.
+- **ONNX Runtime embedding backend** — `OnnxRuntimeEmbeddingBackend` for faster CPU
+  inference via onnxruntime; includes encode, normalize, and batch support.
+- **New CLI commands** — additional pipeline and export commands in `arango-er`.
+- **`Makefile`** with 14 standard development targets (install, test, lint, format,
+  typecheck, build, clean, docker-up/down/test).
+- **`docs/guides/ADVANCED_MODULES_GUIDE.md`** — comprehensive documentation for 12
+  previously undocumented modules (orchestrator, address pipeline, GraphRAG, geospatial,
+  shard-parallel, incremental resolver, feedback, ETL normalizers).
+- 3 new guides: `PERFORMANCE_GUIDE.md`, `PLATFORM_SETUP.md`, `PROVIDER_MATRIX.md`.
+- 3 new examples: `onnx_runtime_embedding.py`, `yaml_config_pipeline.py`,
+  `incremental_resolution.py`.
+
+### Changed
+- **`__init__.py` lazy loading** refactored from a 150-line `if/elif` `__getattr__` chain
+  to a compact `_LAZY_IMPORTS` registry dict with `importlib`-based resolution and
+  `globals()` caching.
+- **Pipeline methods promoted to public API** — `run_blocking()`, `run_similarity()`,
+  `run_clustering()`, `run_edge_creation()`, `batch_fetch_documents()`,
+  `check_embeddings_exist()` are now public on their respective classes. All `# noqa: SLF001`
+  suppressions eliminated.
+- **`AdaptiveLLMVerifier.verifier`** attribute is now public (was `_verifier`).
+- **`DatabaseManager`** singleton is now thread-safe via `threading.Lock` with
+  double-checked locking on instance creation, client init, database cache, and cleanup.
+- **Hardcoded defaults consolidated** — `localhost`, `8529`, `root`, `_system` are now
+  defined once in `utils/constants.py` (`DEFAULT_HOST`, `DEFAULT_PORT`, `DEFAULT_USERNAME`,
+  `DEFAULT_DATABASE`) and imported everywhere.
+
+### Removed
+- **`utils/archive_unused/`** directory deleted (322 lines) — contained `enhanced_config.py`
+  (which wrote plaintext passwords to disk) and `enhanced_logging.py`.
+- **Deprecated `ArangoBaseConnection`** class and **`get_default_connection_args()`** function
+  removed from `utils/database.py`.
+- Commented-out `_default_logger` singleton code removed from `utils/logging.py`.
+- Dead `if name == '_system': pass` branch removed from `utils/validation.py`.
+
+### Fixed
+- **Always-passing test assertion** in `test_onnx_encode_and_export.py` — removed `or True`
+  that made the norm check meaningless; tightened empty-array assertion.
+- **6 broken links** in `README.md` corrected to actual file paths; empty stub section removed.
+- Misplaced test files moved from `examples/` to `tests/` (4 files).
+- `enhanced_er_examples.py` updated from stale "v2.0" branding; `main()` now runs at least
+  one example.
+- `complete_entity_resolution_demo.py` given deprecation header for its pre-v3.0 API usage;
+  `sys.path.insert` hack removed.
+
+### Testing
+- **117 new unit tests** across 4 new test files:
+  - `test_validation.py` (52 tests) — all public validation functions
+  - `test_feedback.py` (17 tests) — FeedbackStore and ThresholdOptimizer
+  - `test_geographic_blocking.py` (20 tests) — GeographicBlockingStrategy
+  - `test_hybrid_blocking.py` (28 tests) — HybridBlockingStrategy
+- 6 new test files for new modules: `test_address_pipeline.py`, `test_graph_rag.py`,
+  `test_geospatial_validator.py`, `test_orchestrator.py`, `test_shard_parallel_blocking.py`,
+  `test_onnx_encode_and_export.py`.
+- All existing tests updated for method renames and AQL bind variable changes.
+- **1,184 tests passing**, 7 skipped (3 GAE enterprise, 4 legacy scripts).
+
 ## [3.5.0] - 2026-03-16
 
 ### Added — GAE Clustering Backend
@@ -695,16 +777,23 @@ full backward compatibility with version 1.x.
 
 ### Planned Features
 - ONNX Runtime GPU acceleration (CoreML on Apple Silicon, CUDA/TensorRT on Linux)
-- GraphRAG and document entity extraction
-- Geospatial-temporal validation
-- Shard-parallel address blocking for ArangoDB clusters
-- `AddressERPipeline` first-class library class
+- End-to-end integration test suite with real ArangoDB in CI
+- MCP server endpoint lifecycle tests
+- Replace `fuzzywuzzy` dependency with `thefuzz`
+- `py.typed` marker for downstream mypy consumers
+
+### Shipped (see 3.5.1)
+- ~~ONNX Runtime embedding backend~~ (3.5.1)
+- ~~GraphRAG and document entity extraction~~ (3.5.1)
+- ~~Geospatial-temporal validation~~ (3.5.1)
+- ~~Shard-parallel address blocking for ArangoDB clusters~~ (3.5.1)
+- ~~`AddressERPipeline` first-class library class~~ (3.5.1)
 
 ### How to Contribute
 See CONTRIBUTING.md (if available) or open issues/PRs on the project repository.
 
 ---
 
-**Document Version:** 2.0 
-**Date:** March 16, 2026 
-**Library Version:** 3.5.0
+**Document Version:** 2.1 
+**Date:** March 30, 2026 
+**Library Version:** 3.5.1

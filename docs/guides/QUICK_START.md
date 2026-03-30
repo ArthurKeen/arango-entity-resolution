@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-Current quick start for `arango-entity-resolution` `v3.5.0`.
+Current quick start for `arango-entity-resolution` `v3.5.1`.
 
 ---
 

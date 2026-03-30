@@ -1,6 +1,6 @@
 # Testing Guide
 
-Current testing and release-validation guidance for `v3.5.0`.
+Current testing and release-validation guidance for `v3.5.1`.
 
 ---
 
@@ -117,3 +117,7 @@ Older status reports and archived testing artifacts remain under `docs/testing/`
 - [docs/testing/README.md](testing/README.md)
 - [Release Checklist](development/RELEASE_CHECKLIST.md)
 - [README](../README.md)
+
+---
+
+**Last Updated:** March 30, 2026

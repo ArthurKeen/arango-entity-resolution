@@ -1,6 +1,6 @@
 # ArangoDB Advanced Entity Resolution System (experimental)
 
-**Current Version**: 3.5.0 | [Version History](VERSION_HISTORY.md) | [Changelog](CHANGELOG.md) | [PyPI](https://pypi.org/project/arango-entity-resolution/)
+**Current Version**: 3.5.1 | [Version History](VERSION_HISTORY.md) | [Changelog](CHANGELOG.md) | [PyPI](https://pypi.org/project/arango-entity-resolution/)
 
 ## What's New in v3.5.0
 
