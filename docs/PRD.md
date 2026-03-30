@@ -76,7 +76,7 @@ Provide a practical, ArangoDB-native entity-resolution toolkit that supports:
 - `arango-er` CLI:
   - `run`, `status`, `clusters`, `export`, `benchmark`
   - `runtime-health`, `runtime-health-export`, `runtime-health-baseline`, `runtime-health-compare`, `runtime-health-gate`
-- `arango-er-mcp` MCP server: 7 tools, 2 resources
+- `arango-er-mcp` MCP server: 14 tools, 2 resources
 - `arango-er-demo`
 
 ### Reporting and Evaluation
@@ -139,7 +139,60 @@ The product must support optional GAE clustering for enterprise-scale graphs, wi
 
 These items remain forward-looking and are not part of the currently shipped `3.5.1` baseline.
 
-### Future Investigation Areas
+### Centralized Enterprise ER Service (v4.x)
+
+The highest-priority roadmap initiative is evolving the toolkit into a **centralized entity resolution service** — a shared enterprise infrastructure component where multiple business units submit records and receive resolved entities with global identifiers, golden records, relationship context, and enrichment signals from a continuously updated knowledge graph.
+
+See [Centralized ER Service Design](architecture/CENTRALIZED_ER_SERVICE.md) for the full architecture and implementation plan.
+
+#### Phase 1: Foundation (v4.0)
+
+| Requirement | Description |
+|-------------|-------------|
+| **FR-8: Submit-and-Resolve API** | REST endpoint that accepts a single record, resolves it against the knowledge graph, and returns the matched entity with golden record and global identifiers. Synchronous, sub-500ms p95 latency. |
+| **FR-9: Schema Registry** | Configurable field mapping per source/tenant, translating business-unit-specific field names to the canonical entity model. |
+| **FR-10: Global ID Allocation** | Stable internal entity identifiers with cross-reference index to external IDs (LEI, DUNS, IMO, Tax ID, etc.). Entity IDs must not change after initial assignment except in explicit merge operations. |
+| **FR-11: Source Provenance** | Every contributed record is preserved with full lineage: source identifier, ingestion timestamp, match confidence, and original payload. |
+| **FR-12: Tenant Access Control** | Multi-tenant read/write permissions defining which entity types, fields, and operations each business unit can access. Authority ranking for survivorship decisions. |
+
+#### Phase 2: Knowledge Graph (v4.1)
+
+| Requirement | Description |
+|-------------|-------------|
+| **FR-13: Multi-Entity-Type Graph** | Support for company, person, vessel, and address entity types within the same knowledge graph, with typed relationship edges (subsidiary_of, beneficial_owner, operates_vessel, registered_at, same_as). |
+| **FR-14: Authority-Ranked Survivorship** | Golden record field values determined by source authority rank, completeness, and freshness. Conflicts flagged for review when sources disagree beyond a configurable threshold. |
+| **FR-15: External Feed Integration** | Scheduled ETL for authoritative external sources (GLEIF LEI registry, sanctions lists, vessel registries, company house filings). Resolved against the knowledge graph like any other source. |
+| **FR-16: Graph Traversal API** | Query endpoint for walking the knowledge graph from an entity — following relationship edges with configurable depth, direction, and edge-type filters. |
+
+#### Phase 3: Continuous Operation (v4.2)
+
+| Requirement | Description |
+|-------------|-------------|
+| **FR-17: Entity Subscriptions** | Business units subscribe to entity change events (golden record updates, new relationships, sanctions flag changes) via webhooks or event bus. |
+| **FR-18: Streaming Ingest** | Kafka/CDC connector for real-time record ingestion in addition to REST and batch modes. |
+| **FR-19: Audit Trail** | Immutable log of every resolution decision — match/no-match verdicts, golden record field changes, merge operations, and human overrides — with full source provenance. |
+| **FR-20: Batch Backfill** | When a new business unit onboards, its historical data is bulk-ingested via `ConfigurableERPipeline` and spliced into the live knowledge graph without downtime. Target: 1M records within 1 hour. |
+
+#### Phase 4: Intelligence Layer (v4.3)
+
+| Requirement | Description |
+|-------------|-------------|
+| **FR-21: AI Data Steward** | MCP-based workflow where an AI agent acts as a data steward — submitting records, reviewing ambiguous matches, querying relationships, and monitoring entity changes through natural language. |
+| **FR-22: Automated Anomaly Detection** | Alerts for new sanctions matches, ownership structure changes, dormant entities becoming active, and data quality degradation. |
+| **FR-23: Network Analysis** | Hidden relationship discovery through multi-hop graph analysis — identifying shared beneficial owners, circular ownership, and sanctions-adjacent entities. |
+
+#### Non-Functional Requirements (Centralized Service)
+
+| Requirement | Target |
+|-------------|--------|
+| **NFR-8: Synchronous resolution latency** | < 500ms p95 |
+| **NFR-9: Batch backfill throughput** | 1M records/hour |
+| **NFR-10: Entity ID stability** | < 0.1% reassignment rate |
+| **NFR-11: Subscription delivery latency** | < 60 seconds from resolution to notification |
+| **NFR-12: Audit coverage** | 100% of resolution decisions logged |
+| **NFR-13: Multi-tenancy isolation** | Tenant data access enforced at query and API layer |
+
+### Other Future Investigation Areas
 
 - ONNX Runtime GPU provider promotion (CoreML on Apple Silicon, CUDA/TensorRT on Linux) after parity and quality gates pass
 - Richer GraphRAG and document-entity extraction flows
@@ -152,7 +205,7 @@ These items remain forward-looking and are not part of the currently shipped `3.
 
 ### Roadmap Principle
 
-Future additions should extend the current pipeline, CLI, MCP, and reporting surfaces rather than creating parallel systems.
+Future additions should extend the current pipeline, CLI, MCP, and reporting surfaces rather than creating parallel systems. The centralized service specifically builds on `IncrementalResolver`, `ConfigurableERPipeline`, the MCP server, and the advisor tools rather than introducing parallel resolution paths.
 
 ---
 
@@ -172,6 +225,8 @@ The current product is successful when users can:
 ## Related Docs
 
 - [README](../README.md)
+- [Centralized ER Service Design](architecture/CENTRALIZED_ER_SERVICE.md)
+- [System Design](architecture/DESIGN.md)
 - [Quick Start Guide](guides/QUICK_START.md)
 - [API Reference](api/API_REFERENCE.md)
 - [Blocking Benchmarks](development/BLOCKING_BENCHMARKS.md)

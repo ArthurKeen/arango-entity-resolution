@@ -21,6 +21,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 
 ### Architecture & Design
 - [System Design](architecture/DESIGN.md) - How the system works
+- [Centralized ER Service](architecture/CENTRALIZED_ER_SERVICE.md) - Enterprise service with shared knowledge graph
 - [Graph Algorithms](architecture/GRAPH_ALGORITHMS_EXPLANATION.md) - Algorithm explanations
 - [Foxx Architecture](architecture/FOXX_ARCHITECTURE.md) - Foxx service design
 - [Foxx Deployment](architecture/FOXX_DEPLOYMENT.md) - Deploy Foxx services
@@ -76,6 +77,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 
 **System Architecture:**
 - System Design
+- Centralized ER Service
 - Foxx Architecture
 - Component diagrams
 
