@@ -8,6 +8,7 @@ validation.
 import os
 from typing import List, Tuple, Optional
 from .logging import get_logger
+from .constants import DEFAULT_HOST, DEFAULT_PORT
 
 
 _ALIASES = {
@@ -119,8 +120,8 @@ def get_arango_config_from_env() -> Optional[dict]:
         return None
     
     endpoint = _get_first("ARANGO_ENDPOINT")
-    host = _get_first("ARANGO_HOST", "ARANGO_DB_HOST") or "localhost"
-    port = _get_first("ARANGO_PORT", "ARANGO_DB_PORT") or "8529"
+    host = _get_first("ARANGO_HOST", "ARANGO_DB_HOST") or DEFAULT_HOST
+    port = _get_first("ARANGO_PORT", "ARANGO_DB_PORT") or str(DEFAULT_PORT)
     if not endpoint:
         endpoint = f"http://{host}:{port}"
 

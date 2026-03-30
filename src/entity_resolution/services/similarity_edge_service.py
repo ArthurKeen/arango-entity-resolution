@@ -357,7 +357,7 @@ class SimilarityEdgeService:
             service.clear_edges(older_than="2025-01-01T00:00:00")
             ```
         """
-        query_parts = [f"FOR e IN {self.edge_collection_name}"]
+        query_parts = ["FOR e IN @@edge_collection"]
         filters = []
         
         if method:
@@ -367,12 +367,15 @@ class SimilarityEdgeService:
             filters.append(f'FILTER e.timestamp < "{older_than}"')
         
         query_parts.extend(filters)
-        query_parts.append("REMOVE e IN " + self.edge_collection_name)
+        query_parts.append("REMOVE e IN @@edge_collection")
         query_parts.append("RETURN OLD")
         
         query = "\n    ".join(query_parts)
         
-        cursor = self.db.aql.execute(query)
+        cursor = self.db.aql.execute(
+            query,
+            bind_vars={"@edge_collection": self.edge_collection_name},
+        )
         removed = list(cursor)
         
         return len(removed)

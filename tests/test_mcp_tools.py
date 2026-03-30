@@ -197,15 +197,15 @@ class TestFindDuplicates:
         ]
         mock_has_any_edges.return_value = False
         mock_pipeline = MagicMock()
-        mock_pipeline._run_blocking.side_effect = [
+        mock_pipeline.run_blocking.side_effect = [
             [{"doc1_key": "a1", "doc2_key": "a2"}],
             [{"doc1_key": "a2", "doc2_key": "a3"}],
         ]
-        mock_pipeline._run_similarity.side_effect = [
+        mock_pipeline.run_similarity.side_effect = [
             [("a1", "a2", 0.91)],
             [("a2", "a3", 0.82)],
         ]
-        mock_pipeline._run_edge_creation.side_effect = [1, 1]
+        mock_pipeline.run_edge_creation.side_effect = [1, 1]
         mock_pipeline_cls.return_value = mock_pipeline
 
         req = FindDuplicatesRequest(
@@ -267,9 +267,9 @@ class TestFindDuplicates:
         mock_has_any_edges.return_value = False
 
         mock_pipeline = MagicMock()
-        mock_pipeline._run_blocking.return_value = [("a1", "a2")]
-        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.9)]
-        mock_pipeline._run_edge_creation.return_value = 0
+        mock_pipeline.run_blocking.return_value = [("a1", "a2")]
+        mock_pipeline.run_similarity.return_value = [("a1", "a2", 0.9)]
+        mock_pipeline.run_edge_creation.return_value = 0
         mock_pipeline_cls.return_value = mock_pipeline
 
         req = FindDuplicatesRequest(
@@ -312,8 +312,8 @@ class TestFindDuplicates:
         mock_get_db.return_value = mock_db
         mock_has_any_edges.return_value = False
         mock_pipeline = MagicMock()
-        mock_pipeline._run_blocking.return_value = [("a1", "a2"), ("a1", "a3")]
-        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.91), ("a1", "a3", 0.88)]
+        mock_pipeline.run_blocking.return_value = [("a1", "a2"), ("a1", "a3")]
+        mock_pipeline.run_similarity.return_value = [("a1", "a2", 0.91), ("a1", "a3", 0.88)]
         mock_pipeline_cls.return_value = mock_pipeline
 
         req = FindDuplicatesRequest(
@@ -360,8 +360,8 @@ class TestFindDuplicates:
         mock_has_any_edges.return_value = False
 
         mock_pipeline = MagicMock()
-        mock_pipeline._run_blocking.return_value = [("a1", "a2")]
-        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.9)]
+        mock_pipeline.run_blocking.return_value = [("a1", "a2")]
+        mock_pipeline.run_similarity.return_value = [("a1", "a2", 0.9)]
         mock_pipeline_cls.return_value = mock_pipeline
 
         req = FindDuplicatesRequest(
@@ -410,9 +410,9 @@ class TestFindDuplicates:
         mock_has_any_edges.return_value = False
 
         mock_pipeline = MagicMock()
-        mock_pipeline._run_blocking.return_value = [("a1", "a2")]
-        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.9)]
-        mock_pipeline._run_edge_creation.return_value = 1
+        mock_pipeline.run_blocking.return_value = [("a1", "a2")]
+        mock_pipeline.run_similarity.return_value = [("a1", "a2", 0.9)]
+        mock_pipeline.run_edge_creation.return_value = 1
         mock_pipeline_cls.return_value = mock_pipeline
 
         req = FindDuplicatesRequest(
@@ -463,8 +463,8 @@ class TestFindDuplicates:
         mock_has_any_edges.return_value = False
 
         mock_pipeline = MagicMock()
-        mock_pipeline._run_blocking.return_value = [("a1", "a2")]
-        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.95)]
+        mock_pipeline.run_blocking.return_value = [("a1", "a2")]
+        mock_pipeline.run_similarity.return_value = [("a1", "a2", 0.95)]
         mock_pipeline_cls.return_value = mock_pipeline
 
         req = FindDuplicatesRequest(
@@ -513,9 +513,9 @@ class TestFindDuplicates:
         mock_has_any_edges.return_value = False
 
         mock_pipeline = MagicMock()
-        mock_pipeline._run_blocking.return_value = [("a1", "a2")]
-        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.90)]
-        mock_pipeline._run_edge_creation.return_value = 1
+        mock_pipeline.run_blocking.return_value = [("a1", "a2")]
+        mock_pipeline.run_similarity.return_value = [("a1", "a2", 0.90)]
+        mock_pipeline.run_edge_creation.return_value = 1
         mock_pipeline_cls.return_value = mock_pipeline
 
         req = FindDuplicatesRequest(
@@ -557,9 +557,9 @@ class TestFindDuplicates:
         mock_has_any_edges.return_value = False
 
         mock_pipeline = MagicMock()
-        mock_pipeline._run_blocking.return_value = [("a1", "a2")]
-        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.90)]
-        mock_pipeline._run_edge_creation.return_value = 1
+        mock_pipeline.run_blocking.return_value = [("a1", "a2")]
+        mock_pipeline.run_similarity.return_value = [("a1", "a2", 0.90)]
+        mock_pipeline.run_edge_creation.return_value = 1
         mock_pipeline_cls.return_value = mock_pipeline
 
         req = FindDuplicatesRequest(
@@ -609,9 +609,9 @@ class TestFindDuplicates:
         mock_has_any_edges.return_value = False
 
         mock_pipeline = MagicMock()
-        mock_pipeline._run_blocking.return_value = [("a1", "a2")]
-        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.90)]
-        mock_pipeline._run_edge_creation.return_value = 1
+        mock_pipeline.run_blocking.return_value = [("a1", "a2")]
+        mock_pipeline.run_similarity.return_value = [("a1", "a2", 0.90)]
+        mock_pipeline.run_edge_creation.return_value = 1
         mock_pipeline_cls.return_value = mock_pipeline
 
         req = FindDuplicatesRequest(
@@ -671,8 +671,8 @@ class TestFindDuplicates:
         mock_has_any_edges.return_value = False
 
         mock_pipeline = MagicMock()
-        mock_pipeline._run_blocking.return_value = [("a1", "a2")]
-        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.96)]
+        mock_pipeline.run_blocking.return_value = [("a1", "a2")]
+        mock_pipeline.run_similarity.return_value = [("a1", "a2", 0.96)]
         mock_pipeline_cls.return_value = mock_pipeline
 
         req = FindDuplicatesRequest(
@@ -720,9 +720,9 @@ class TestFindDuplicates:
         mock_has_any_edges.return_value = False
 
         mock_pipeline = MagicMock()
-        mock_pipeline._run_blocking.return_value = [("a1", "a2")]
-        mock_pipeline._run_similarity.return_value = [("a1", "a2", 0.90)]
-        mock_pipeline._run_edge_creation.return_value = 0
+        mock_pipeline.run_blocking.return_value = [("a1", "a2")]
+        mock_pipeline.run_similarity.return_value = [("a1", "a2", 0.90)]
+        mock_pipeline.run_edge_creation.return_value = 0
         mock_pipeline_cls.return_value = mock_pipeline
 
         req = FindDuplicatesRequest(
@@ -767,9 +767,9 @@ class TestFindDuplicates:
         mock_has_any_edges.return_value = False
 
         mock_pipeline = MagicMock()
-        mock_pipeline._run_blocking.return_value = []
-        mock_pipeline._run_similarity.return_value = []
-        mock_pipeline._run_edge_creation.return_value = 0
+        mock_pipeline.run_blocking.return_value = []
+        mock_pipeline.run_similarity.return_value = []
+        mock_pipeline.run_edge_creation.return_value = 0
         mock_pipeline_cls.return_value = mock_pipeline
 
         req = FindDuplicatesRequest(

@@ -258,7 +258,9 @@ class CrossCollectionMatchingService:
         
         # Count total source records (for progress tracking)
         total_query = self._build_count_query()
-        cursor = self.db.aql.execute(total_query)
+        cursor = self.db.aql.execute(
+            total_query, bind_vars=self._collection_bind_vars()
+        )
         result = list(cursor)
         total_records = result[0] if result else 0
         
@@ -367,18 +369,21 @@ class CrossCollectionMatchingService:
         Returns:
             Number of edges removed
         """
-        query_parts = [f"FOR e IN {self.edge_collection_name}"]
+        query_parts = ["FOR e IN @@edge_collection"]
         query_parts.append("    FILTER e.inferred == true")
         
         if older_than:
             query_parts.append(f'    FILTER e.created_at < "{older_than}"')
         
-        query_parts.append(f"    REMOVE e IN {self.edge_collection_name}")
+        query_parts.append("    REMOVE e IN @@edge_collection")
         query_parts.append("    RETURN OLD")
         
         query = "\n".join(query_parts)
         
-        cursor = self.db.aql.execute(query)
+        cursor = self.db.aql.execute(
+            query,
+            bind_vars={"@edge_collection": self.edge_collection_name},
+        )
         removed = list(cursor)
         
         self.logger.info(f"Removed {len(removed)} inferred edges")
@@ -387,7 +392,7 @@ class CrossCollectionMatchingService:
     
     def _build_count_query(self) -> str:
         """Build query to count source records to process."""
-        query_parts = [f"FOR s IN {self.source_collection_name}"]
+        query_parts = ["FOR s IN @@source_collection"]
         
         # Add filters
         if 'source' in self.custom_filters:
@@ -395,8 +400,8 @@ class CrossCollectionMatchingService:
                 query_parts.append(f"    FILTER {condition}")
         
         # Check if already has edge
-        query_parts.append(f"""    FILTER s._id NOT IN (
-            FOR e IN {self.edge_collection_name}
+        query_parts.append("""    FILTER s._id NOT IN (
+            FOR e IN @@edge_collection
             FILTER e._to == s._id
             LIMIT 1
             RETURN e._to
@@ -425,7 +430,7 @@ class CrossCollectionMatchingService:
         3. Compute similarity scores (BM25 + Levenshtein)
         4. Return matches above threshold
         """
-        query_parts = [f"FOR s IN {self.source_collection_name}"]
+        query_parts = ["FOR s IN @@source_collection"]
         
         # Add source filters
         if 'source' in self.custom_filters:
@@ -433,8 +438,8 @@ class CrossCollectionMatchingService:
                 query_parts.append(f"    FILTER {condition}")
         
         # Check if already has edge (skip already matched)
-        query_parts.append(f"""    FILTER s._id NOT IN (
-            FOR e IN {self.edge_collection_name}
+        query_parts.append("""    FILTER s._id NOT IN (
+            FOR e IN @@edge_collection
             FILTER e._to == s._id
             LIMIT 1
             RETURN e._to
@@ -454,7 +459,7 @@ class CrossCollectionMatchingService:
         """Build candidate generation using BM25 + Levenshtein verification."""
         lines = []
         lines.append("    LET candidates = (")
-        lines.append(f"        FOR t IN {self.search_view}")
+        lines.append("        FOR t IN @@search_view")
         lines.append("            SEARCH")
         
         # Add blocking conditions
@@ -507,7 +512,7 @@ class CrossCollectionMatchingService:
         """Build candidate generation using only Levenshtein distance."""
         lines = []
         lines.append("    LET candidates = (")
-        lines.append(f"        FOR t IN {self.target_collection_name}")
+        lines.append("        FOR t IN @@target_collection")
         
         # Add target filters
         if 'target' in self.custom_filters:
@@ -635,13 +640,27 @@ class CrossCollectionMatchingService:
         
         return conditions
     
+    def _collection_bind_vars(self) -> Dict[str, Any]:
+        """Build collection bind variables shared across queries."""
+        bv: Dict[str, Any] = {
+            "@source_collection": self.source_collection_name,
+            "@edge_collection": self.edge_collection_name,
+        }
+        if self.target_collection_name:
+            bv["@target_collection"] = self.target_collection_name
+        if self.search_view:
+            bv["@search_view"] = self.search_view
+        return bv
+
     def _build_bind_vars(self, threshold: float, batch_size: int, offset: int) -> Dict[str, Any]:
         """Build bind variables for the query."""
-        return {
+        bv = self._collection_bind_vars()
+        bv.update({
             'threshold': threshold,
             'batch_size': batch_size,
-            'offset': offset
-        }
+            'offset': offset,
+        })
+        return bv
     
     def _create_edges_from_matches(
         self,

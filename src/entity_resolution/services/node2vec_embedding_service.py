@@ -134,7 +134,7 @@ class Node2VecEmbeddingService:
             bind_vars["limit"] = int(limit)
 
         query = f"""
-        FOR e IN {self.edge_collection}
+        FOR e IN @@edge_collection
             {filter_clause}
             {limit_clause}
             RETURN {{
@@ -143,6 +143,7 @@ class Node2VecEmbeddingService:
                 w: (e.confidence != null ? e.confidence : 1.0)
             }}
         """
+        bind_vars["@edge_collection"] = self.edge_collection
 
         cursor = self.db.aql.execute(query, bind_vars=bind_vars)
         out: List[Tuple[str, str, float]] = []

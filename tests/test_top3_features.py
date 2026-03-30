@@ -199,7 +199,7 @@ class TestAdaptiveLLMVerifier:
 
     def test_verdict_saved_when_llm_called(self):
         verifier, store = self._make_adaptive()
-        verifier._verifier.verify = MagicMock(return_value={
+        verifier.verifier.verify = MagicMock(return_value={
             "decision": "match", "confidence": 0.88, "llm_called": True, "model": "gpt-4o"
         })
         verifier.verify({"_key": "a"}, {"_key": "b"}, score=0.70)
@@ -207,7 +207,7 @@ class TestAdaptiveLLMVerifier:
 
     def test_verdict_not_saved_on_fast_path(self):
         verifier, store = self._make_adaptive()
-        verifier._verifier.verify = MagicMock(return_value={
+        verifier.verifier.verify = MagicMock(return_value={
             "decision": "match", "confidence": 0.99, "llm_called": False
         })
         verifier.verify({"_key": "a"}, {"_key": "b"}, score=0.95)
@@ -215,7 +215,7 @@ class TestAdaptiveLLMVerifier:
 
     def test_thresholds_refresh_after_n_calls(self):
         verifier, store = self._make_adaptive()
-        verifier._verifier.verify = MagicMock(return_value={
+        verifier.verifier.verify = MagicMock(return_value={
             "decision": "match", "confidence": 0.88, "llm_called": False
         })
         verifier._optimizer.optimize = MagicMock(return_value={

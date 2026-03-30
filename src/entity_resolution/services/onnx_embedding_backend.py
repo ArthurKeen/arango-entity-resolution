@@ -1,19 +1,24 @@
 """
-ONNX Runtime embedding backend scaffold.
+ONNX Runtime embedding backend.
 
 Provides a runtime/provider abstraction for ONNX-based embedding inference with
-platform-aware provider resolution and deterministic CPU fallback.
+platform-aware provider resolution, tokenizer handling, batch encoding with OOM
+protection, and deterministic CPU fallback.
 """
 
 from __future__ import annotations
 
+import logging
 import platform
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 import math
 import time
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 PROVIDER_CPU = "cpu"
@@ -79,6 +84,7 @@ class OnnxRuntimeEmbeddingBackend:
         self.coreml_warmup_batch_size = coreml_warmup_batch_size
         self.coreml_warmup_seq_len = coreml_warmup_seq_len
         self.session = None
+        self._tokenizer = None
         self.resolved_provider = PROVIDER_CPU
         self.available_ort_providers: List[str] = []
         self.fallback_count = 0
@@ -276,6 +282,27 @@ class OnnxRuntimeEmbeddingBackend:
                     ),
                 )
 
+    def load_tokenizer(self, tokenizer_dir: Optional[str] = None) -> None:
+        """Load a HuggingFace tokenizer for text-to-tensor conversion.
+
+        Parameters
+        ----------
+        tokenizer_dir:
+            Directory containing tokenizer files. Defaults to the same
+            directory as ``model_path``.
+        """
+        try:
+            from transformers import AutoTokenizer
+        except ImportError as exc:
+            raise ImportError(
+                "transformers is required for tokenizer support. "
+                "Install with: pip install transformers"
+            ) from exc
+
+        tok_dir = tokenizer_dir or str(Path(self.model_path).parent)
+        self._tokenizer = AutoTokenizer.from_pretrained(tok_dir)
+        logger.info("Loaded tokenizer from %s", tok_dir)
+
     def infer(self, inputs: Dict[str, np.ndarray]) -> List[np.ndarray]:
         """Run ONNX inference using pre-tokenized tensor inputs."""
         if self.session is None:
@@ -283,6 +310,103 @@ class OnnxRuntimeEmbeddingBackend:
         if self.session is None:
             raise RuntimeError("ONNX session failed to initialize")
         return self.session.run(None, inputs)
+
+    def encode(
+        self,
+        texts: List[str],
+        batch_size: int = 64,
+        max_batch_size: int = 512,
+        normalize: bool = True,
+    ) -> np.ndarray:
+        """Encode texts to embeddings using the ONNX model + tokenizer.
+
+        This is the high-level API equivalent to
+        ``sentence_transformers.SentenceTransformer.encode()``.
+
+        Parameters
+        ----------
+        texts:
+            List of text strings to encode.
+        batch_size:
+            Number of texts per inference batch.
+        max_batch_size:
+            Hard cap on batch size to prevent OOM.
+        normalize:
+            L2-normalize output embeddings.
+
+        Returns
+        -------
+        np.ndarray
+            2-D array of shape ``(len(texts), embedding_dim)``.
+        """
+        if not texts:
+            return np.empty((0, 0), dtype=np.float32)
+
+        if self.session is None:
+            self.load_model()
+        if self._tokenizer is None:
+            self.load_tokenizer()
+
+        batch_size = min(batch_size, max_batch_size)
+        all_embeddings: List[np.ndarray] = []
+
+        for start in range(0, len(texts), batch_size):
+            batch_texts = texts[start : start + batch_size]
+            try:
+                embeddings = self._encode_batch(batch_texts)
+            except Exception as exc:
+                if batch_size > 1:
+                    logger.warning(
+                        "Batch inference failed (size=%d), retrying with smaller batches: %s",
+                        len(batch_texts),
+                        exc,
+                    )
+                    smaller = max(1, len(batch_texts) // 2)
+                    for sub_start in range(0, len(batch_texts), smaller):
+                        sub = batch_texts[sub_start : sub_start + smaller]
+                        embeddings = self._encode_batch(sub)
+                        all_embeddings.append(embeddings)
+                    continue
+                raise
+
+            all_embeddings.append(embeddings)
+
+        result = np.vstack(all_embeddings)
+
+        if normalize:
+            norms = np.linalg.norm(result, axis=1, keepdims=True)
+            norms = np.maximum(norms, 1e-12)
+            result = result / norms
+
+        return result
+
+    def _encode_batch(self, texts: List[str]) -> np.ndarray:
+        """Tokenize and run inference on a single batch."""
+        encoded = self._tokenizer(
+            texts,
+            padding=True,
+            truncation=True,
+            max_length=512,
+            return_tensors="np",
+        )
+
+        input_names = {inp.name for inp in self.session.get_inputs()}
+        feed: Dict[str, np.ndarray] = {}
+        for key in ("input_ids", "attention_mask", "token_type_ids"):
+            if key in encoded and key in input_names:
+                feed[key] = encoded[key].astype(np.int64)
+
+        outputs = self.session.run(None, feed)
+
+        # Mean pooling over the token dimension (output[0] is last_hidden_state)
+        token_embeddings = outputs[0]
+        if "attention_mask" in feed:
+            mask = feed["attention_mask"].astype(np.float32)
+            mask_expanded = np.expand_dims(mask, axis=-1)
+            summed = np.sum(token_embeddings * mask_expanded, axis=1)
+            counts = np.maximum(np.sum(mask, axis=1, keepdims=True), 1e-9)
+            return summed / counts
+        return np.mean(token_embeddings, axis=1)
 
     def health(self) -> Dict[str, Any]:
         """Return health and provider-state information."""

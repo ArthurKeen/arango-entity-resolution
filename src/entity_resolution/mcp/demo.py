@@ -19,11 +19,16 @@ What it does:
 from __future__ import annotations
 
 import json
+import logging
 import os
 import subprocess
 import sys
 import time
 from typing import Any, Dict, Optional
+
+from ..utils.constants import DEFAULT_HOST, DEFAULT_PORT
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Sample data — realistic company duplicates for demo purposes
@@ -66,26 +71,27 @@ SAMPLE_COMPANIES = [
 def _find_running_arango() -> Optional[Dict[str, Any]]:
     """Try localhost, then labeled Docker container."""
     # Try localhost first
+    default_url = f"http://{DEFAULT_HOST}:{DEFAULT_PORT}"
     try:
         from arango import ArangoClient
-        client = ArangoClient(hosts="http://localhost:8529")
+        client = ArangoClient(hosts=default_url)
         db = client.db("_system", username="root", password="")
         db.collections()
-        return {"host": "localhost", "port": 8529, "password": ""}
-    except Exception:
-        pass
+        return {"host": DEFAULT_HOST, "port": DEFAULT_PORT, "password": ""}
+    except Exception as e:
+        logger.debug("No ArangoDB on %s:%s with empty password: %s", DEFAULT_HOST, DEFAULT_PORT, e)
 
     # Try env password
     pw = os.getenv("ARANGO_ROOT_PASSWORD", "")
     if pw:
         try:
             from arango import ArangoClient
-            client = ArangoClient(hosts="http://localhost:8529")
+            client = ArangoClient(hosts=default_url)
             db = client.db("_system", username="root", password=pw)
             db.collections()
-            return {"host": "localhost", "port": 8529, "password": pw}
-        except Exception:
-            pass
+            return {"host": DEFAULT_HOST, "port": DEFAULT_PORT, "password": pw}
+        except Exception as e:
+            logger.debug("No ArangoDB on %s:%s with env password: %s", DEFAULT_HOST, DEFAULT_PORT, e)
 
     return None
 
@@ -167,7 +173,7 @@ def run_demo() -> None:
         except Exception as exc:
             print(f"\n  ERROR: Could not start Docker container: {exc}")
             print("  Make sure Docker is running, or set ARANGO_ROOT_PASSWORD to connect")
-            print("  to an existing ArangoDB instance on localhost:8529.")
+            print(f"  to an existing ArangoDB instance on {DEFAULT_HOST}:{DEFAULT_PORT}.")
             sys.exit(1)
 
     from arango import ArangoClient

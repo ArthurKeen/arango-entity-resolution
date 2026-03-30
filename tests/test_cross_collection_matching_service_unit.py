@@ -91,8 +91,8 @@ def test_build_count_query_includes_edge_exclusion_and_filters() -> None:
     db = _FakeDB()
     svc = _configured_service(db)
     q = svc._build_count_query()
-    assert "FOR s IN source" in q
-    assert "FOR e IN edges" in q
+    assert "FOR s IN @@source_collection" in q
+    assert "FOR e IN @@edge_collection" in q
     assert "FILTER s.state != null" in q
     assert 'FILTER s.state == "CA"' in q
 
@@ -101,8 +101,8 @@ def test_build_matching_query_levenshtein_path_includes_target_filters_and_block
     db = _FakeDB()
     svc = _configured_service(db, search_view=None)
     q = svc._build_matching_query(batch_size=10, offset=0, threshold=0.85, use_bm25=False, bm25_weight=0.2)
-    assert "FOR s IN source" in q
-    assert "FOR t IN target" in q
+    assert "FOR s IN @@source_collection" in q
+    assert "FOR t IN @@target_collection" in q
     assert "FILTER LENGTH(t.city) >= 2" in q
     assert "FILTER t.legal_name == s.company_name" in q
     assert "LEVENSHTEIN_DISTANCE" in q
@@ -112,7 +112,7 @@ def test_build_matching_query_bm25_path_uses_search_view() -> None:
     db = _FakeDB()
     svc = _configured_service(db, search_view="myview")
     q = svc._build_matching_query(batch_size=10, offset=0, threshold=0.85, use_bm25=True, bm25_weight=0.2)
-    assert "FOR t IN myview" in q
+    assert "FOR t IN @@search_view" in q
     assert "LET bm25_score = BM25(t)" in q
 
 

@@ -217,16 +217,3 @@ class TestModuleFunctions:
         from entity_resolution.utils.database import get_connection_args
         args = get_connection_args()
         assert set(args.keys()) == {"host", "port", "username", "password", "database"}
-
-    def test_get_default_connection_args_emits_deprecation_warning(self):
-        from entity_resolution.utils.database import get_default_connection_args
-        with pytest.warns(DeprecationWarning):
-            args = get_default_connection_args()
-        assert "host" in args
-
-    def test_arango_base_connection_emits_deprecation_warning(self):
-        from entity_resolution.utils.database import ArangoBaseConnection
-        with pytest.warns(DeprecationWarning):
-            conn = ArangoBaseConnection()
-        # Check the mixin's private attribute exists (accessing .database would trigger a real connection)
-        assert hasattr(conn, "_database")

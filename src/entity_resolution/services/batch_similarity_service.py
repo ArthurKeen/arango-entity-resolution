@@ -10,10 +10,13 @@ This service efficiently computes similarity scores for candidate pairs by:
 Performance: ~100K+ pairs/second for Jaro-Winkler
 """
 
+import logging
 from typing import List, Dict, Any, Optional, Tuple, Callable, Union
 from arango.database import StandardDatabase
 import time
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from ..similarity.weighted_field_similarity import WeightedFieldSimilarity
 from ..utils.validation import validate_collection_name, validate_field_name
@@ -177,7 +180,7 @@ class BatchSimilarityService:
             all_keys.add(doc2_key)
         
         # Step 2: Batch fetch ALL documents
-        doc_cache = self._batch_fetch_documents(list(all_keys))
+        doc_cache = self.batch_fetch_documents(list(all_keys))
         
         # Step 3: Compute similarities in-memory
         matches = []
@@ -258,7 +261,7 @@ class BatchSimilarityService:
             all_keys.add(doc1_key)
             all_keys.add(doc2_key)
         
-        doc_cache = self._batch_fetch_documents(list(all_keys))
+        doc_cache = self.batch_fetch_documents(list(all_keys))
         
         # Compute detailed similarities
         detailed_matches = []
@@ -311,7 +314,7 @@ class BatchSimilarityService:
         """
         return self._stats.copy()
     
-    def _batch_fetch_documents(self, keys: List[str]) -> Dict[str, Dict[str, Any]]:
+    def batch_fetch_documents(self, keys: List[str]) -> Dict[str, Dict[str, Any]]:
         """
         Fetch documents in batches for efficient retrieval.
         
@@ -334,7 +337,7 @@ class BatchSimilarityService:
             fields_str = ', '.join([f'"{f}": doc.{f} || ""' for f in fields])
             
             query = f"""
-            FOR doc IN {self.collection}
+            FOR doc IN @@collection
                 FILTER doc._key IN @keys
                 RETURN {{
                     _key: doc._key,
@@ -343,7 +346,10 @@ class BatchSimilarityService:
             """
             
             try:
-                cursor = self.db.aql.execute(query, bind_vars={'keys': batch})
+                cursor = self.db.aql.execute(query, bind_vars={
+                    '@collection': self.collection,
+                    'keys': batch,
+                })
                 for doc in cursor:
                     doc_cache[doc['_key']] = doc
             except Exception as e:
@@ -353,8 +359,8 @@ class BatchSimilarityService:
                         doc = self.db.collection(self.collection).get(key)
                         if doc:
                             doc_cache[key] = doc
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.warning("Failed to fetch document %s from %s: %s", key, self.collection, e)
         
         self._stats['batch_count'] = batch_count
         

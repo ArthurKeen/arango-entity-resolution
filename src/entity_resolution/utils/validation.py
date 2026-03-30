@@ -230,11 +230,6 @@ def validate_database_name(name: str) -> str:
             f"Database name too long: {len(name)} characters (max 64)"
         )
     
-    # Reject system database (optional - remove if you need to work with _system)
-    if name == '_system':
-        # Actually, _system is valid - remove this check if needed
-        pass
-    
     return name
 
 

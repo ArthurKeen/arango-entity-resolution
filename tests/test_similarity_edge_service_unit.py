@@ -318,9 +318,9 @@ def test_clear_edges_builds_query_with_method_filter_and_returns_removed_count()
 
     assert removed == 2
     assert db.aql.last_query is not None
-    assert 'FOR e IN similarTo' in db.aql.last_query
+    assert "FOR e IN @@edge_collection" in db.aql.last_query
     assert 'FILTER e.method == "phone_blocking"' in db.aql.last_query
-    assert "REMOVE e IN similarTo" in db.aql.last_query
+    assert "REMOVE e IN @@edge_collection" in db.aql.last_query
 
 
 def test_clear_edges_builds_query_with_older_than_filter() -> None:

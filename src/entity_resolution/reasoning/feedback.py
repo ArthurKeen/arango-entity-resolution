@@ -328,7 +328,7 @@ class AdaptiveLLMVerifier:
             target_precision=optimizer_target_precision,
             min_samples=optimizer_min_samples,
         )
-        self._verifier = LLMMatchVerifier(**kwargs)
+        self.verifier = LLMMatchVerifier(**kwargs)
 
     # ------------------------------------------------------------------
     # Public API (mirrors LLMMatchVerifier)
@@ -343,7 +343,7 @@ class AdaptiveLLMVerifier:
     ) -> Dict[str, Any]:
         """Verify, save verdict, auto-refresh thresholds."""
         self._maybe_refresh_thresholds()
-        result = self._verifier.verify(record_a, record_b, score, field_scores)
+        result = self.verifier.verify(record_a, record_b, score, field_scores)
 
         if result.get("llm_called"):
             self.store.save(
@@ -375,16 +375,16 @@ class AdaptiveLLMVerifier:
 
     def current_thresholds(self) -> Dict[str, float]:
         return {
-            "low_threshold": self._verifier.low_threshold,
-            "high_threshold": self._verifier.high_threshold,
+            "low_threshold": self.verifier.low_threshold,
+            "high_threshold": self.verifier.high_threshold,
         }
 
     def optimize_thresholds(self) -> Dict[str, Any]:
         """Force a threshold optimization run and apply results."""
         result = self._optimizer.optimize()
         if result.get("optimized"):
-            self._verifier.low_threshold = result["low_threshold"]
-            self._verifier.high_threshold = result["high_threshold"]
+            self.verifier.low_threshold = result["low_threshold"]
+            self.verifier.high_threshold = result["high_threshold"]
             logger.info(
                 "AdaptiveLLMVerifier: updated thresholds low=%.3f high=%.3f (%d samples)",
                 result["low_threshold"],

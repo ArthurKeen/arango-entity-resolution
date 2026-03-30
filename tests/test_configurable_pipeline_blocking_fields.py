@@ -48,7 +48,7 @@ def test_configurable_pipeline_uses_blocking_fields_from_config(monkeypatch):
     )
 
     p = ConfigurableERPipeline(db=object(), config=cfg)
-    pairs = p._run_blocking()
+    pairs = p.run_blocking()
     assert pairs == []
 
     assert captured["collection"] == "Person"
@@ -100,7 +100,7 @@ def test_configurable_pipeline_supports_computed_fields_in_blocking_config(monke
     )
 
     p = ConfigurableERPipeline(db=object(), config=cfg)
-    p._run_blocking()
+    p.run_blocking()
 
     assert captured["blocking_fields"] == ["zip5"]
     assert captured["computed_fields"] == {"zip5": "LEFT(d.pincode, 5)"}

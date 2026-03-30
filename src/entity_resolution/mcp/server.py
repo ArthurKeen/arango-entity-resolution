@@ -604,7 +604,7 @@ def main() -> None:
         help="Transport mode (default: stdio)",
     )
     parser.add_argument("--port", type=int, default=8080, help="Port for SSE transport")
-    parser.add_argument("--host", default="0.0.0.0", help="Host for SSE transport")
+    parser.add_argument("--host", default="127.0.0.1", help="Host for SSE transport")
     parser.add_argument(
         "--demo",
         action="store_true",

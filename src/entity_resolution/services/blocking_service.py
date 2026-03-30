@@ -380,15 +380,18 @@ class BlockingService(BaseEntityResolutionService):
         try:
             candidates = set()
             
+            col_bind = {"@collection": collection}
+            
             # Exact match on email
             if 'email' in target_record and target_record['email']:
                 aql = f"""
-                FOR doc IN {collection}
+                FOR doc IN @@collection
                 FILTER doc.email == @email AND doc._id != @target_id
                 LIMIT {limit}
                 RETURN doc._id
                 """
                 cursor = db.aql.execute(aql, bind_vars={
+                    **col_bind,
                     "email": target_record['email'],
                     "target_id": target_record['_id']
                 })
@@ -397,12 +400,13 @@ class BlockingService(BaseEntityResolutionService):
             # Exact match on phone
             if 'phone' in target_record and target_record['phone']:
                 aql = f"""
-                FOR doc IN {collection}
+                FOR doc IN @@collection
                 FILTER doc.phone == @phone AND doc._id != @target_id
                 LIMIT {limit}
                 RETURN doc._id
                 """
                 cursor = db.aql.execute(aql, bind_vars={
+                    **col_bind,
                     "phone": target_record['phone'],
                     "target_id": target_record['_id']
                 })
@@ -413,7 +417,7 @@ class BlockingService(BaseEntityResolutionService):
                 if target_record['last_name'] and target_record['first_name']:
                     first_initial = target_record['first_name'][0].upper()
                     aql = f"""
-                    FOR doc IN {collection}
+                    FOR doc IN @@collection
                     FILTER doc.last_name == @last_name 
                            AND UPPER(LEFT(doc.first_name, 1)) == @first_initial 
                            AND doc._id != @target_id
@@ -421,6 +425,7 @@ class BlockingService(BaseEntityResolutionService):
                     RETURN doc._id
                     """
                     cursor = db.aql.execute(aql, bind_vars={
+                        **col_bind,
                         "last_name": target_record['last_name'],
                         "first_initial": first_initial,
                         "target_id": target_record['_id']
@@ -439,6 +444,7 @@ class BlockingService(BaseEntityResolutionService):
         try:
             # Simple approach: match on partial names
             candidates = set()
+            col_bind = {"@collection": collection}
             
             if 'last_name' in target_record and target_record['last_name']:
                 last_name = target_record['last_name']
@@ -446,12 +452,13 @@ class BlockingService(BaseEntityResolutionService):
                 if len(last_name) >= 3:
                     prefix = last_name[:3].upper()
                     aql = f"""
-                    FOR doc IN {collection}
+                    FOR doc IN @@collection
                     FILTER UPPER(LEFT(doc.last_name, 3)) == @prefix AND doc._id != @target_id
                     LIMIT {limit}
                     RETURN doc._id
                     """
                     cursor = db.aql.execute(aql, bind_vars={
+                        **col_bind,
                         "prefix": prefix,
                         "target_id": target_record['_id']
                     })
@@ -463,12 +470,13 @@ class BlockingService(BaseEntityResolutionService):
                 if len(first_name) >= 3:
                     prefix = first_name[:3].upper()
                     aql = f"""
-                    FOR doc IN {collection}
+                    FOR doc IN @@collection
                     FILTER UPPER(LEFT(doc.first_name, 3)) == @prefix AND doc._id != @target_id
                     LIMIT {limit}
                     RETURN doc._id
                     """
                     cursor = db.aql.execute(aql, bind_vars={
+                        **col_bind,
                         "prefix": prefix,
                         "target_id": target_record['_id']
                     })
@@ -485,18 +493,20 @@ class BlockingService(BaseEntityResolutionService):
         """Phonetic blocking using Soundex codes"""
         try:
             candidates = set()
+            col_bind = {"@collection": collection}
             
             # Generate Soundex codes for names
             if 'first_name' in target_record and target_record['first_name']:
                 first_soundex = soundex(target_record['first_name'])
                 if first_soundex:
                     aql = f"""
-                    FOR doc IN {collection}
+                    FOR doc IN @@collection
                     FILTER SOUNDEX(doc.first_name) == @soundex AND doc._id != @target_id
                     LIMIT {limit}
                     RETURN doc._id
                     """
                     cursor = db.aql.execute(aql, bind_vars={
+                        **col_bind,
                         "soundex": first_soundex,
                         "target_id": target_record['_id']
                     })
@@ -506,12 +516,13 @@ class BlockingService(BaseEntityResolutionService):
                 last_soundex = soundex(target_record['last_name'])
                 if last_soundex:
                     aql = f"""
-                    FOR doc IN {collection}
+                    FOR doc IN @@collection
                     FILTER SOUNDEX(doc.last_name) == @soundex AND doc._id != @target_id
                     LIMIT {limit}
                     RETURN doc._id
                     """
                     cursor = db.aql.execute(aql, bind_vars={
+                        **col_bind,
                         "soundex": last_soundex,
                         "target_id": target_record['_id']
                     })
@@ -544,7 +555,7 @@ class BlockingService(BaseEntityResolutionService):
             
             aql = f"""
             LET target_key = @sort_key
-            FOR doc IN {collection}
+            FOR doc IN @@collection
             LET doc_key = UPPER(CONCAT(doc.last_name || "", doc.first_name || ""))
             FILTER doc._id != @target_id AND doc_key != ""
             SORT doc_key
@@ -557,6 +568,7 @@ class BlockingService(BaseEntityResolutionService):
             """
             
             cursor = db.aql.execute(aql, bind_vars={
+                "@collection": collection,
                 "sort_key": sort_key,
                 "target_id": target_record['_id']
             })

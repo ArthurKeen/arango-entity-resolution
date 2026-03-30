@@ -1208,5 +1208,131 @@ def canonicalize(input_path, config_path, output_dir, header, delimiter, hub_thr
         sys.exit(1)
 
 
+@main.command("address-resolve")
+@connection_options
+@click.option("--collection", "-c", required=True, help="Address collection name.")
+@click.option("--edge-collection", default="address_sameAs", help="Edge collection for matches.")
+@click.option("--config", "config_path", type=click.Path(exists=True), help="YAML config file for field mapping.")
+@click.option("--max-block-size", type=int, default=100, help="Max block size for blocking.")
+@click.option("--cluster/--no-cluster", default=True, help="Run WCC clustering after edge creation.")
+def address_resolve(collection, edge_collection, config_path, max_block_size, cluster, **conn_kwargs):
+    """Run address entity resolution pipeline."""
+    try:
+        conn_args = _resolve_connection_args(**conn_kwargs)
+        db = get_database(**conn_args)
+
+        if config_path:
+            from .core.address_pipeline import AddressERPipeline
+            pipeline = AddressERPipeline.from_yaml(db, config_path)
+        else:
+            from .core.address_pipeline import AddressERPipeline
+            config = {
+                "collection": collection,
+                "field_mapping": {
+                    "street": "street",
+                    "city": "city",
+                    "state": "state",
+                    "postal_code": "postal_code",
+                },
+                "edge_collection": edge_collection,
+                "max_block_size": max_block_size,
+                "cluster": cluster,
+                "create_edges": True,
+            }
+            pipeline = AddressERPipeline(db, config)
+
+        results = pipeline.run()
+        click.echo(click.style("Address resolution complete!", fg="green", bold=True))
+        _emit_json(results)
+
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
+
+@main.command("onnx-export")
+@click.argument("model_name")
+@click.option("--output-dir", "-o", required=True, help="Directory to write the ONNX model and tokenizer.")
+@click.option("--quantize/--no-quantize", default=False, help="Apply INT8 dynamic quantization.")
+def onnx_export(model_name, output_dir, quantize):
+    """Export a sentence-transformers model to ONNX format."""
+    try:
+        from .services.onnx_model_exporter import export_model
+
+        click.echo(f"Exporting {model_name} to {output_dir} ...")
+        result = export_model(model_name, output_dir, quantize=quantize)
+        click.echo(click.style("Export complete!", fg="green", bold=True))
+        _emit_json(result)
+    except ImportError as e:
+        click.echo(click.style(f"Missing dependency: {e}", fg="red"), err=True)
+        click.echo("Install with: pip install optimum[onnxruntime] onnx", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
+
+@main.command("embedding-benchmark")
+@connection_options
+@click.option("--collection", "-c", required=True, help="Collection to embed.")
+@click.option("--fields", required=True, help="Comma-separated fields to concatenate for embedding.")
+@click.option("--model", default="all-MiniLM-L6-v2", help="Sentence-transformer model name.")
+@click.option("--limit", type=int, default=100, help="Number of records to benchmark.")
+@click.option("--batch-size", type=int, default=64, help="Batch size for embedding.")
+def embedding_benchmark(collection, fields, model, limit, batch_size, **conn_kwargs):
+    """Benchmark embedding generation speed."""
+    import time as _time
+
+    try:
+        conn_args = _resolve_connection_args(**conn_kwargs)
+        db = get_database(**conn_args)
+
+        field_list = [f.strip() for f in fields.split(",")]
+        cursor = db.aql.execute(
+            "FOR doc IN @@col LIMIT @lim RETURN doc",
+            bind_vars={"@col": collection, "lim": limit},
+        )
+        docs = list(cursor)
+        if not docs:
+            click.echo(click.style("No documents found.", fg="yellow"))
+            return
+
+        texts = [
+            " ".join(str(doc.get(f, "")) for f in field_list).strip()
+            for doc in docs
+        ]
+        texts = [t for t in texts if t]
+
+        click.echo(f"Benchmarking {len(texts)} texts with {model} ...")
+
+        svc = EmbeddingService(
+            db=db,
+            collection=collection,
+            model_name=model,
+            batch_size=batch_size,
+            device="auto",
+        )
+
+        start = _time.time()
+        embeddings = svc.model.encode(texts, batch_size=batch_size, show_progress_bar=False)
+        elapsed = _time.time() - start
+
+        result = {
+            "model": model,
+            "device": svc.resolved_device,
+            "records": len(texts),
+            "batch_size": batch_size,
+            "embedding_dim": embeddings.shape[1] if hasattr(embeddings, "shape") else "?",
+            "elapsed_seconds": round(elapsed, 3),
+            "records_per_second": round(len(texts) / elapsed, 1),
+        }
+        click.echo(click.style("Benchmark complete!", fg="green", bold=True))
+        _emit_json(result)
+
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
+
 if __name__ == '__main__':
     main()

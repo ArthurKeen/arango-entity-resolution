@@ -177,7 +177,7 @@ class ConfigurableERPipeline:
         # Phase 1: Blocking
         self.logger.info("Phase 1: Blocking...")
         blocking_start = time.time()
-        candidate_pairs = self._run_blocking()
+        candidate_pairs = self.run_blocking()
         blocking_time = time.time() - blocking_start
         
         results['blocking'] = {
@@ -193,7 +193,7 @@ class ConfigurableERPipeline:
         if candidate_pairs and self.config.similarity:
             self.logger.info("Phase 2: Similarity computation...")
             similarity_start = time.time()
-            matches = self._run_similarity(candidate_pairs)
+            matches = self.run_similarity(candidate_pairs)
             similarity_time = time.time() - similarity_start
             
             results['similarity'] = {
@@ -216,7 +216,7 @@ class ConfigurableERPipeline:
         if matches:
             self.logger.info("Phase 3: Edge creation...")
             edge_start = time.time()
-            edges_created = self._run_edge_creation(matches)
+            edges_created = self.run_edge_creation(matches)
             edge_time = time.time() - edge_start
             
             results['edges'] = {
@@ -235,7 +235,7 @@ class ConfigurableERPipeline:
         if self.config.clustering.store_results and edges_created > 0:
             self.logger.info("Phase 4: Clustering...")
             cluster_start = time.time()
-            clusters = self._run_clustering()
+            clusters = self.run_clustering()
             cluster_time = time.time() - cluster_start
 
             results['clustering'] = {
@@ -486,7 +486,7 @@ class ConfigurableERPipeline:
         
         return results
     
-    def _run_blocking(self) -> list:
+    def run_blocking(self) -> list:
         """Run blocking phase based on configuration."""
         strategy = self.config.blocking.strategy
         self._embedding_preflight_stats = None
@@ -551,7 +551,7 @@ class ConfigurableERPipeline:
                 limit_per_entity=self.config.blocking.limit_per_entity,
                 blocking_field=self.config.blocking.blocking_field,
             )
-            self._embedding_preflight_stats = blocking_strategy._check_embeddings_exist()  # noqa: SLF001
+            self._embedding_preflight_stats = blocking_strategy.check_embeddings_exist()
             return list(blocking_strategy.generate_candidates())
 
         elif strategy == 'lsh':
@@ -568,7 +568,7 @@ class ConfigurableERPipeline:
                 random_seed=self.config.blocking.random_seed,
                 blocking_field=self.config.blocking.blocking_field,
             )
-            self._embedding_preflight_stats = blocking_strategy._check_embeddings_exist()  # noqa: SLF001
+            self._embedding_preflight_stats = blocking_strategy.check_embeddings_exist()
             return list(blocking_strategy.generate_candidates())
         
         else:
@@ -589,7 +589,7 @@ class ConfigurableERPipeline:
         return self.config.blocking.parse_fields()
 
     
-    def _run_similarity(self, candidate_pairs: list) -> list:
+    def run_similarity(self, candidate_pairs: list) -> list:
         """Run similarity phase based on configuration."""
         if not candidate_pairs:
             return []
@@ -645,7 +645,7 @@ class ConfigurableERPipeline:
             threshold=threshold,
         )
 
-        doc_cache = similarity_service._batch_fetch_documents(  # noqa: SLF001 - intentional reuse
+        doc_cache = similarity_service.batch_fetch_documents(
             list({key for pair in pair_tuples for key in pair})
         )
 
@@ -663,7 +663,7 @@ class ConfigurableERPipeline:
             final_score = score
             self._active_learning_stats['pairs_reviewed'] += 1
 
-            if verifier._verifier.needs_verification(score):  # noqa: SLF001 - narrow pipeline integration
+            if verifier.verifier.needs_verification(score):
                 field_scores = self._format_field_scores_for_llm(item['field_scores'])
                 result = verifier.verify(
                     doc_cache.get(item['doc1_key'], {'_key': item['doc1_key']}),
@@ -712,7 +712,7 @@ class ConfigurableERPipeline:
         }
 
 
-    def _run_edge_creation(self, matches: list) -> int:
+    def run_edge_creation(self, matches: list) -> int:
         """Run edge creation phase."""
         if not matches:
             return 0
@@ -733,7 +733,7 @@ class ConfigurableERPipeline:
         
         return edges_created
     
-    def _run_clustering(self) -> list:
+    def run_clustering(self) -> list:
         """Run clustering phase based on configuration."""
         clustering_service = WCCClusteringService(
             db=self.db,

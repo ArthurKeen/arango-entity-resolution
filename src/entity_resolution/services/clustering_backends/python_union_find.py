@@ -34,7 +34,8 @@ class PythonUnionFindBackend:
 
     def _fetch_edges(self) -> List[list]:
         cursor = self.db.aql.execute(
-            f"FOR e IN {self.edge_collection_name} RETURN [e._from, e._to]"
+            "FOR e IN @@collection RETURN [e._from, e._to]",
+            bind_vars={"@collection": self.edge_collection_name},
         )
         return list(cursor)
 

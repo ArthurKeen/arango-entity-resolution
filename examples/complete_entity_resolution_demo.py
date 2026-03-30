@@ -2,26 +2,32 @@
 """
 Complete Entity Resolution Pipeline Demo
 
+DEPRECATION WARNING
+-------------------
+This example uses legacy API patterns (Config.from_env(),
+BlockingService.generate_candidates(), SimilarityService.compute_batch_similarity())
+that predate the v3.0 service layer.  It still runs but may not reflect current
+best practices.  See examples/enhanced_er_examples.py for the recommended API.
+
 Demonstrates the full end-to-end entity resolution system with:
 1. Data loading and validation
-2. Blocking and candidate generation  
+2. Blocking and candidate generation
 3. Similarity computation with Fellegi-Sunter
 4. Graph-based clustering with WCC
 5. Golden record generation
 6. Comprehensive reporting and analysis
 
 This showcases all implemented components working together.
+
+Prerequisites:
+    pip install arango-entity-resolution
 """
 
-import sys
 import json
 import time
-from pathlib import Path
 from typing import Dict, List, Any
 
-# Add src to Python path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
+# Requires: pip install arango-entity-resolution
 from entity_resolution import (
     DataManager,
     BlockingService, 
@@ -792,5 +798,6 @@ def save_pipeline_report(result: Dict[str, Any]):
 
 
 if __name__ == "__main__":
+    import sys
     success = main()
     sys.exit(0 if success else 1)

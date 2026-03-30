@@ -152,10 +152,10 @@ def test_run_standard_pipeline_happy_path(monkeypatch) -> None:
     cfg = _FakeConfig(entity_type="company", store_clusters=True)
     pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
 
-    monkeypatch.setattr(pipe, "_run_blocking", lambda: [{"a": 1}, {"a": 2}])
-    monkeypatch.setattr(pipe, "_run_similarity", lambda pairs: [{"m": 1}])
-    monkeypatch.setattr(pipe, "_run_edge_creation", lambda matches: 7)
-    monkeypatch.setattr(pipe, "_run_clustering", lambda: [["1", "2"]])
+    monkeypatch.setattr(pipe, "run_blocking", lambda: [{"a": 1}, {"a": 2}])
+    monkeypatch.setattr(pipe, "run_similarity", lambda pairs: [{"m": 1}])
+    monkeypatch.setattr(pipe, "run_edge_creation", lambda matches: 7)
+    monkeypatch.setattr(pipe, "run_clustering", lambda: [["1", "2"]])
 
     out = pipe.run()
     assert out["blocking"]["candidate_pairs"] == 2
@@ -170,7 +170,7 @@ def test_run_standard_pipeline_handles_no_candidates(monkeypatch) -> None:
     cfg = _FakeConfig(entity_type="company", store_clusters=False)
     pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
 
-    monkeypatch.setattr(pipe, "_run_blocking", lambda: [])
+    monkeypatch.setattr(pipe, "run_blocking", lambda: [])
     out = pipe.run()
     assert out["blocking"]["candidate_pairs"] == 0
     assert out["similarity"]["matches_found"] == 0
@@ -260,7 +260,7 @@ def test_run_includes_embedding_phase_when_configured(monkeypatch) -> None:
             "health": {"ok": True},
         },
     )
-    monkeypatch.setattr(pipe, "_run_blocking", lambda: [])
+    monkeypatch.setattr(pipe, "run_blocking", lambda: [])
 
     out = pipe.run()
     assert out["embedding"]["enabled"] is True
@@ -400,7 +400,7 @@ def test_run_similarity_with_active_learning_overrides_uncertain_scores(monkeypa
                 },
             ]
 
-        def _batch_fetch_documents(self, keys):
+        def batch_fetch_documents(self, keys):
             return {
                 "a": {"_key": "a", "name": "Acme"},
                 "b": {"_key": "b", "name": "Acme Corp"},
@@ -411,7 +411,7 @@ def test_run_similarity_with_active_learning_overrides_uncertain_scores(monkeypa
     class _FakeVerifier:
         def __init__(self):
             self.store = type("Store", (), {"collection": "customers_llm_feedback"})()
-            self._verifier = type("Inner", (), {"needs_verification": lambda self, score: 0.55 <= score < 0.80})()
+            self.verifier = type("Inner", (), {"needs_verification": lambda self, score: 0.55 <= score < 0.80})()
 
         def verify(self, record_a, record_b, score, field_scores=None):
             assert record_a["_key"] == "a"
@@ -451,7 +451,7 @@ def test_run_similarity_passes_transformers_to_batch_service(monkeypatch) -> Non
     import entity_resolution.core.configurable_pipeline as mod
 
     monkeypatch.setattr(mod, "BatchSimilarityService", _FakeSimilarityService)
-    matches = pipe._run_similarity([{"doc1_key": "a", "doc2_key": "b"}])
+    matches = pipe.run_similarity([{"doc1_key": "a", "doc2_key": "b"}])
 
     assert matches == [("a", "b", 1.0)]
     assert captured["field_transformers"] == {"phone": ["digits_only"]}
@@ -488,7 +488,7 @@ def test_bm25_reads_search_field_from_blocking_config(monkeypatch) -> None:
     cfg = _FakeConfig(blocking=blocking)
     pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
 
-    result = pipe._run_blocking()
+    result = pipe.run_blocking()
     assert _FakeBM25Strategy.captured["search_field"] == "company_name"
     assert _FakeBM25Strategy.captured["blocking_field"] == "state"
     assert len(result) == 1
@@ -507,7 +507,7 @@ def test_bm25_falls_back_to_fields_list(monkeypatch) -> None:
     cfg = _FakeConfig(blocking=blocking)
     pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
 
-    pipe._run_blocking()
+    pipe.run_blocking()
     assert _FakeBM25Strategy.captured["search_field"] == "full_name"
     assert _FakeBM25Strategy.captured["blocking_field"] == "city"
 
@@ -522,7 +522,7 @@ def test_bm25_raises_if_no_search_field(monkeypatch) -> None:
     pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
 
     with pytest.raises(ValueError, match="search_field"):
-        pipe._run_blocking()
+        pipe.run_blocking()
 
 
 def test_vector_blocking_uses_config_and_records_preflight(monkeypatch) -> None:
@@ -534,7 +534,7 @@ def test_vector_blocking_uses_config_and_records_preflight(monkeypatch) -> None:
         def __init__(self, **kwargs):
             captured.update(kwargs)
 
-        def _check_embeddings_exist(self):
+        def check_embeddings_exist(self):
             return {"total": 10, "with_embeddings": 8, "coverage_percent": 80.0}
 
         def generate_candidates(self):
@@ -552,7 +552,7 @@ def test_vector_blocking_uses_config_and_records_preflight(monkeypatch) -> None:
         ),
     )
     pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
-    pairs = pipe._run_blocking()
+    pairs = pipe.run_blocking()
 
     assert len(pairs) == 1
     assert captured["embedding_field"] == "emb_field"
@@ -571,7 +571,7 @@ def test_lsh_blocking_uses_config_and_records_preflight(monkeypatch) -> None:
         def __init__(self, **kwargs):
             captured.update(kwargs)
 
-        def _check_embeddings_exist(self):
+        def check_embeddings_exist(self):
             return {"total": 20, "with_embeddings": 20, "coverage_percent": 100.0, "embedding_dim": 384}
 
         def generate_candidates(self):
@@ -589,7 +589,7 @@ def test_lsh_blocking_uses_config_and_records_preflight(monkeypatch) -> None:
         embedding=_EmbeddingCfg(embedding_field="from_embedding_cfg"),
     )
     pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
-    pairs = pipe._run_blocking()
+    pairs = pipe.run_blocking()
 
     assert len(pairs) == 1
     assert captured["embedding_field"] == "from_embedding_cfg"
@@ -613,7 +613,7 @@ def test_run_surfaces_embedding_preflight_in_results(monkeypatch) -> None:
     )
     monkeypatch.setattr(
         pipe,
-        "_run_blocking",
+        "run_blocking",
         lambda: (
             setattr(pipe, "_embedding_preflight_stats", {"coverage_percent": 95.0})
             or []

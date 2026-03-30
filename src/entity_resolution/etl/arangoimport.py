@@ -15,6 +15,8 @@ import shutil
 import subprocess
 from typing import Any, Optional
 
+from ..utils.constants import DEFAULT_HOST, DEFAULT_PORT, DEFAULT_USERNAME, DEFAULT_DATABASE
+
 logger = logging.getLogger(__name__)
 
 _CREATED_RE = re.compile(r"created:\s*(\d+)")
@@ -38,17 +40,17 @@ def get_arangoimport_connection_args(
     dict
         Keys: ``endpoint``, ``username``, ``password``, ``database``.
     """
-    host = "localhost"
-    port = 8529
-    username = "root"
+    host = DEFAULT_HOST
+    port = DEFAULT_PORT
+    username = DEFAULT_USERNAME
     password = ""
-    database = "_system"
+    database = DEFAULT_DATABASE
 
     if db is not None:
         try:
             database = db.name
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Could not read db.name: %s", e)
         try:
             conn = getattr(db, "connection", None) or getattr(db, "_conn", None)
             if conn is not None:
@@ -68,8 +70,8 @@ def get_arangoimport_connection_args(
                     if hasattr(conn, attr):
                         password = getattr(conn, attr)
                         break
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Could not extract connection attributes from db object: %s", e)
 
     host = os.getenv("ARANGO_HOST", os.getenv("ARANGO_DB_HOST", host))
     port = int(os.getenv("ARANGO_PORT", os.getenv("ARANGO_DB_PORT", str(port))))

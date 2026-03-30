@@ -3,10 +3,13 @@ Pipeline-level MCP tools: find_duplicates and pipeline_status.
 """
 from __future__ import annotations
 
+import logging
 import re
 import time
 from collections import defaultdict
 from typing import Any, Dict, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 from arango import ArangoClient
 from entity_resolution.mcp.contracts import FindDuplicatesRequest
@@ -259,13 +262,13 @@ def _run_find_duplicates_multistage(*, db: Any, request: FindDuplicatesRequest, 
         pipeline = ConfigurableERPipeline(db=db, config=cfg)
 
         unresolved_ids = _get_unresolved_doc_ids(db, request.collection, edge_collection)
-        candidate_pairs = pipeline._run_blocking()  # noqa: SLF001 - intentional staged orchestration
+        candidate_pairs = pipeline.run_blocking()
         filtered_pairs = _filter_candidate_pairs_by_doc_ids(
             candidate_pairs=candidate_pairs,
             unresolved_ids=unresolved_ids,
             collection=request.collection,
         )
-        matches = pipeline._run_similarity(filtered_pairs) if filtered_pairs else []
+        matches = pipeline.run_similarity(filtered_pairs) if filtered_pairs else []
         accepted_matches, gate_stats = _apply_precision_gates(
             db=db,
             collection=request.collection,
@@ -273,7 +276,7 @@ def _run_find_duplicates_multistage(*, db: Any, request: FindDuplicatesRequest, 
             fields=fields or request.fields or [],
             request=request,
         )
-        edges_created = pipeline._run_edge_creation(accepted_matches) if accepted_matches else 0
+        edges_created = pipeline.run_edge_creation(accepted_matches) if accepted_matches else 0
 
         total_candidates += len(filtered_pairs)
         total_matches += len(accepted_matches)
@@ -309,7 +312,7 @@ def _run_find_duplicates_multistage(*, db: Any, request: FindDuplicatesRequest, 
             store_clusters=True,
         )
         pipeline = ConfigurableERPipeline(db=db, config=cfg)
-        clusters = pipeline._run_clustering()  # noqa: SLF001 - intentional staged orchestration
+        clusters = pipeline.run_clustering()
         clustering_runtime = round(time.time() - cluster_start, 3)
         clusters_found = len(clusters)
 
@@ -390,8 +393,8 @@ def _run_single_stage_with_optional_gating(
         store_clusters=False,
     )
     pipeline = ConfigurableERPipeline(db=db, config=cfg)
-    candidate_pairs = pipeline._run_blocking()  # noqa: SLF001
-    matches = pipeline._run_similarity(candidate_pairs) if candidate_pairs else []  # noqa: SLF001
+    candidate_pairs = pipeline.run_blocking()
+    matches = pipeline.run_similarity(candidate_pairs) if candidate_pairs else []
     accepted_matches, gate_stats = _apply_precision_gates(
         db=db,
         collection=request.collection,
@@ -399,7 +402,7 @@ def _run_single_stage_with_optional_gating(
         fields=fields,
         request=request,
     )
-    edges_created = pipeline._run_edge_creation(accepted_matches) if accepted_matches else 0  # noqa: SLF001
+    edges_created = pipeline.run_edge_creation(accepted_matches) if accepted_matches else 0
 
     clusters_found = 0
     clustering_runtime = 0.0
@@ -414,7 +417,7 @@ def _run_single_stage_with_optional_gating(
             store_clusters=True,
         )
         cluster_pipeline = ConfigurableERPipeline(db=db, config=cfg_cluster)
-        clusters = cluster_pipeline._run_clustering()  # noqa: SLF001
+        clusters = cluster_pipeline.run_clustering()
         clusters_found = len(clusters)
         clustering_runtime = round(time.time() - cluster_start, 3)
 
@@ -1033,8 +1036,8 @@ def run_pipeline_status(
     if db.has_collection(cluster_coll):
         try:
             cluster_count = db.collection(cluster_coll).count()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Could not count clusters in %s: %s", cluster_coll, e)
 
     return _with_schema_version({
         "collection": collection,

@@ -33,13 +33,16 @@ class PythonDFSBackend:
         self.vertex_collection = vertex_collection
 
     def cluster(self) -> List[List[str]]:
-        edges_query = f"""
-        FOR e IN {self.edge_collection_name}
-        RETURN {{from: e._from, to: e._to}}
+        edges_query = """
+        FOR e IN @@collection
+        RETURN {from: e._from, to: e._to}
         """
 
         logger.info("Fetching all edges from %s in bulk...", self.edge_collection_name)
-        cursor = self.db.aql.execute(edges_query)
+        cursor = self.db.aql.execute(
+            edges_query,
+            bind_vars={"@collection": self.edge_collection_name},
+        )
         edges = list(cursor)
 
         if not edges:

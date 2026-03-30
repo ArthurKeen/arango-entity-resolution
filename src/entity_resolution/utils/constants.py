@@ -7,13 +7,18 @@ All magic numbers, default values, and configuration constants are defined here.
 
 from typing import Dict, Any, List
 
-# Database Configuration Defaults
+# Database Connection Defaults — single source of truth for the whole package.
+DEFAULT_HOST = "localhost"
+DEFAULT_PORT = 8529
+DEFAULT_USERNAME = "root"
+DEFAULT_DATABASE = "_system"
+
 DEFAULT_DATABASE_CONFIG = {
-    'host': 'localhost',
-    'port': 8529,
-    'username': 'root',
+    'host': DEFAULT_HOST,
+    'port': DEFAULT_PORT,
+    'username': DEFAULT_USERNAME,
     'password': '',  # Must be provided via environment variable
-    'database': '_system'
+    'database': DEFAULT_DATABASE,
 }
 
 # Entity Resolution Algorithm Constants

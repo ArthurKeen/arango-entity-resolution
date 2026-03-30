@@ -157,7 +157,12 @@ def test_fetch_edges_happy_path_applies_filters_and_weights() -> None:
     assert "FILTER e.method == @method" in db.aql.last_query
     assert "e.confidence != null AND e.confidence >= @min_confidence" in db.aql.last_query
     assert "LIMIT @limit" in db.aql.last_query
-    assert db.aql.last_bind_vars == {"method": "cosine", "min_confidence": 0.9, "limit": 3}
+    assert db.aql.last_bind_vars == {
+        "method": "cosine",
+        "min_confidence": 0.9,
+        "limit": 3,
+        "@edge_collection": "e",
+    }
 
 
 def test_train_embeddings_rejects_invalid_params() -> None:

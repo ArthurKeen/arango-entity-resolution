@@ -741,8 +741,6 @@ To launch the interactive demo:
 arango-er-demo
 ```
 
-### Quick Setup for Testing (Legacy/Manual)
-
 ## Performance & Scalability
 
 ### Bulk Processing for Large Datasets
@@ -788,7 +786,7 @@ print(f"Found {result['statistics']['total_pairs']:,} pairs")
 # Output: Found 45,000 pairs in 120 seconds (3.3x faster!)
 ```
 
-For complete details, see [Batch vs Bulk Processing Guide](docs/BATCH_VS_BULK_PROCESSING.md).
+For complete details, see [Batch vs Bulk Processing Guide](docs/development/BATCH_VS_BULK_PROCESSING.md).
 
 ## API Documentation
 
@@ -796,14 +794,9 @@ The system provides comprehensive APIs for integration into your applications:
 
 ### REST API (Foxx Services)
 High-performance ArangoDB-native REST endpoints for production use:
-- **[API Quick Start](docs/API_QUICKSTART.md)** - Get started in 5 minutes
-- **[API Reference](docs/API_REFERENCE.md)** - Complete endpoint documentation
+- **[API Quick Start](docs/guides/QUICK_START.md)** - Get started in 5 minutes
+- **[API Reference](docs/api/API_REFERENCE.md)** - Complete endpoint documentation
 - **[OpenAPI Specification](docs/openapi.yaml)** - REST API schema for code generation
-
-### Python API
-Complete SDK for Python applications:
-- **[Python API Guide](docs/API_PYTHON.md)** - Detailed SDK reference with examples
-- **[API Examples](docs/API_EXAMPLES.md)** - Practical usage examples and integration patterns
 
 ### Key Features
 - **Dual Interface**: REST API for web integration, Python SDK for application development
@@ -834,7 +827,7 @@ http://localhost:8529/_db/entity_resolution/entity-resolution/blocking/candidate
 
 This project includes a comprehensive demonstration system designed for both technical evaluation and business presentations.
 
-> **Available Datasets**: See [docs/AVAILABLE_DATASETS.md](docs/AVAILABLE_DATASETS.md) for complete information about implemented datasets, test scenarios, and demo execution instructions.
+> **Available Datasets**: See [docs/development/AVAILABLE_DATASETS.md](docs/development/AVAILABLE_DATASETS.md) for complete information about implemented datasets, test scenarios, and demo execution instructions.
 
 ### **Interactive Presentation Demo**
 

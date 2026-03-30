@@ -6,6 +6,7 @@ and provide consistent connection handling across the codebase.
 """
 
 import os
+import threading
 from typing import Optional, Dict, Any, Tuple
 from arango import ArangoClient
 from arango.exceptions import ArangoError
@@ -25,10 +26,13 @@ class DatabaseManager:
     _instance = None
     _client = None
     _databases = {}
+    _lock = threading.Lock()
     
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
         return cls._instance
     
     def __init__(self):
@@ -43,8 +47,10 @@ class DatabaseManager:
     def client(self) -> ArangoClient:
         """Get ArangoDB client, creating if needed"""
         if self._client is None:
-            hosts = f"http://{self.config.db.host}:{self.config.db.port}"
-            self._client = ArangoClient(hosts=hosts)
+            with self._lock:
+                if self._client is None:
+                    hosts = f"http://{self.config.db.host}:{self.config.db.port}"
+                    self._client = ArangoClient(hosts=hosts)
         return self._client
     
     def get_database(self, database_name: Optional[str] = None):
@@ -62,22 +68,27 @@ class DatabaseManager:
         """
         db_name = database_name or self.config.db.database
         
-        if db_name not in self._databases:
-            try:
-                db = self.client.db(
-                    db_name,
-                    username=self.config.db.username,
-                    password=self.config.db.password
-                )
-                # Test connection
-                db.properties()
-                self._databases[db_name] = db
-                self.logger.debug(f"Connected to database: {db_name}")
-            except Exception as e:
-                self.logger.error(f"Failed to connect to database {db_name}: {e}")
-                raise ArangoError(f"Database connection failed: {e}")
+        with self._lock:
+            if db_name in self._databases:
+                return self._databases[db_name]
         
-        return self._databases[db_name]
+        try:
+            db = self.client.db(
+                db_name,
+                username=self.config.db.username,
+                password=self.config.db.password
+            )
+            # Test connection
+            db.properties()
+            
+            with self._lock:
+                if db_name not in self._databases:
+                    self._databases[db_name] = db
+                    self.logger.debug(f"Connected to database: {db_name}")
+                return self._databases[db_name]
+        except Exception as e:
+            self.logger.error(f"Failed to connect to database {db_name}: {e}")
+            raise ArangoError(f"Database connection failed: {e}")
     
     def test_connection(self, database_name: Optional[str] = None) -> bool:
         """
@@ -130,10 +141,11 @@ class DatabaseManager:
     
     def close_connections(self):
         """Close all cached database connections"""
-        self._databases.clear()
-        if self._client:
-            self._client.close()
-            self._client = None
+        with self._lock:
+            self._databases.clear()
+            if self._client:
+                self._client.close()
+                self._client = None
 
 
 # Convenience functions for backward compatibility
@@ -197,63 +209,3 @@ class DatabaseMixin:
     def get_connection_info(self) -> Dict[str, Any]:
         """Get connection information"""
         return self.db_manager.get_connection_info()
-
-
-# Legacy compatibility - will be deprecated
-class ArangoBaseConnection(DatabaseMixin):
-    """
-    Legacy base connection class
-    
-    DEPRECATED: Use DatabaseManager or DatabaseMixin instead
-    """
-    
-    def __init__(self, host: Optional[str] = None, port: Optional[int] = None,
-                 username: Optional[str] = None, password: Optional[str] = None):
-        # Issue deprecation warning
-        import warnings
-        warnings.warn(
-            "ArangoBaseConnection is deprecated. Use DatabaseManager instead.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-        
-        super().__init__()
-        
-        # Override config if parameters provided
-        if any(param is not None for param in [host, port, username, password]):
-            config = get_config()
-            if host: config.db.host = host
-            if port: config.db.port = port
-            if username: config.db.username = username
-            if password: config.db.password = password
-    
-    def print_success(self, message: str) -> None:
-        """Print success message with checkmark"""
-        print(f"[OK] {message}")
-    
-    def print_warning(self, message: str) -> None:
-        """Print warning message with warning symbol"""
-        print(f"[WARN] {message}")
-    
-    def print_error(self, message: str) -> None:
-        """Print error message with X symbol"""
-        print(f"[X] {message}")
-    
-    def print_info(self, message: str) -> None:
-        """Print info message with icon"""
-        print(f"? {message}")
-
-
-def get_default_connection_args() -> Dict[str, Any]:
-    """
-    Get default connection arguments
-    
-    DEPRECATED: Use get_connection_args() instead
-    """
-    import warnings
-    warnings.warn(
-        "get_default_connection_args is deprecated. Use get_connection_args instead.",
-        DeprecationWarning,
-        stacklevel=2
-    )
-    return get_connection_args()

@@ -10,6 +10,8 @@ from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
+from .constants import DEFAULT_HOST, DEFAULT_PORT, DEFAULT_USERNAME
+
 
 class SecurityWarning(UserWarning):
     """Warning category for security-related issues"""
@@ -19,9 +21,9 @@ class SecurityWarning(UserWarning):
 @dataclass
 class DatabaseConfig:
     """Database connection configuration"""
-    host: str = "localhost"
-    port: int = 8529
-    username: str = "root"
+    host: str = DEFAULT_HOST
+    port: int = DEFAULT_PORT
+    username: str = DEFAULT_USERNAME
     password: str = ""  # SECURITY: Must be provided via env (ARANGO_PASSWORD recommended)
     database: str = "entity_resolution"
 

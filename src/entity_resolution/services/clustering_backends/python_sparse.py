@@ -49,7 +49,8 @@ class PythonSparseBackend:
 
         logger.info("Fetching edges from %s for sparse WCC...", self.edge_collection_name)
         cursor = self.db.aql.execute(
-            f"FOR e IN {self.edge_collection_name} RETURN [e._from, e._to]"
+            "FOR e IN @@collection RETURN [e._from, e._to]",
+            bind_vars={"@collection": self.edge_collection_name},
         )
         edges = list(cursor)
 

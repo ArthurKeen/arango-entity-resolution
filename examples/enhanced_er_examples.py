@@ -1,10 +1,10 @@
 """
 Enhanced Entity Resolution Examples
 
-This file demonstrates how to use the new v2.0 features:
+Demonstrates core entity resolution features:
 - CollectBlockingStrategy
 - BM25BlockingStrategy
-- BatchSimilarityService  
+- BatchSimilarityService
 - SimilarityEdgeService
 - WCCClusteringService
 
@@ -513,19 +513,18 @@ def example_8_complete_pipeline():
 
 def main():
     """
-    Run all examples (or comment out ones you don't want to run)
+    Run all examples (or comment out ones you don't want to run).
     """
     print("\n")
     print("=" * 80)
-    print("Enhanced Entity Resolution Examples (v2.0)")
+    print("Enhanced Entity Resolution Examples")
     print("=" * 80)
     print("\nThese examples demonstrate generic patterns that work with any schema.")
     print("Adjust collection names, field names, and filters for your data.\n")
-    
-    # Run examples
-    # Uncomment the ones you want to try:
-    
-    # example_1_collect_blocking()
+
+    example_1_collect_blocking()
+
+    # Uncomment additional examples as needed:
     # example_2_bm25_blocking()
     # example_3_batch_similarity()
     # example_4_detailed_similarity()
@@ -533,10 +532,6 @@ def main():
     # example_6_wcc_clustering()
     # example_7_validate_clusters()
     # example_8_complete_pipeline()
-    
-    print("\n" + "=" * 80)
-    print("Uncomment examples in main() to run them")
-    print("=" * 80 + "\n")
 
 
 if __name__ == "__main__":

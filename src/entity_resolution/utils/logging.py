@@ -75,15 +75,3 @@ def get_logger(name: str = 'entity_resolution') -> logging.Logger:
         Logger instance
     """
     return logging.getLogger(name)
-
-
-# Lazy-load default logger (don't trigger config at import time)
-# Usage: call get_default_logger() instead of using default_logger directly
-# _default_logger = None
-#
-# def get_default_logger():
-#     """Get or create the default logger instance"""
-#     global _default_logger
-#     if _default_logger is None:
-#         _default_logger = setup_logging()
-#     return _default_logger

@@ -209,13 +209,16 @@ class WCCClusteringService:
         # Format member key properly
         member_id = self._format_vertex_id(member_key)
         
-        query = f"""
-        FOR cluster IN {self.cluster_collection_name}
+        query = """
+        FOR cluster IN @@cluster_collection
             FILTER @member_id IN cluster.members
             RETURN cluster
         """
         
-        cursor = self.db.aql.execute(query, bind_vars={'member_id': member_id})
+        cursor = self.db.aql.execute(query, bind_vars={
+            '@cluster_collection': self.cluster_collection_name,
+            'member_id': member_id,
+        })
         results = list(cursor)
         
         return results[0] if results else None
@@ -431,19 +434,20 @@ class WCCClusteringService:
         with_clause = f"WITH {', '.join(vertex_collections)}" if vertex_collections else ""
         
         # Step 1: Get all unique vertices from edges
-        vertices_query = f"""
+        vertices_query = """
         LET from_vertices = (
-            FOR e IN {self.edge_collection_name}
+            FOR e IN @@edge_collection
                 RETURN DISTINCT e._from
         )
         LET to_vertices = (
-            FOR e IN {self.edge_collection_name}
+            FOR e IN @@edge_collection
                 RETURN DISTINCT e._to
         )
         RETURN UNION_DISTINCT(from_vertices, to_vertices)
         """
+        edge_bind = {"@edge_collection": self.edge_collection_name}
         
-        cursor = self.db.aql.execute(vertices_query)
+        cursor = self.db.aql.execute(vertices_query, bind_vars=edge_bind)
         cursor_list = list(cursor)
         all_vertices = cursor_list[0] if cursor_list else []
         
@@ -462,14 +466,17 @@ class WCCClusteringService:
             # WITH clause is required for graph traversal to declare collections
             component_query = f"""
             {with_clause}
-            FOR v IN 0..999999 ANY @start_vertex {self.edge_collection_name}
+            FOR v IN 0..999999 ANY @start_vertex @@edge_collection
                 RETURN DISTINCT v._id
             """
             
             try:
                 cursor = self.db.aql.execute(
                     component_query,
-                    bind_vars={'start_vertex': start_vertex}
+                    bind_vars={
+                        'start_vertex': start_vertex,
+                        '@edge_collection': self.edge_collection_name,
+                    }
                 )
                 component_vertices = list(cursor)
                 
@@ -523,13 +530,14 @@ class WCCClusteringService:
             >>> # Completes in seconds instead of minutes!
         """
         # Step 1: Fetch ALL edges in one bulk query
-        edges_query = f"""
-        FOR e IN {self.edge_collection_name}
-        RETURN {{from: e._from, to: e._to}}
+        edges_query = """
+        FOR e IN @@edge_collection
+        RETURN {from: e._from, to: e._to}
         """
+        edge_bind = {"@edge_collection": self.edge_collection_name}
         
         self.logger.info(f"Fetching all edges from {self.edge_collection_name} in bulk...")
-        cursor = self.db.aql.execute(edges_query)
+        cursor = self.db.aql.execute(edges_query, bind_vars=edge_bind)
         edges = list(cursor)
         
         if not edges:
@@ -683,17 +691,20 @@ class WCCClusteringService:
             for member in cluster_members:
                 membership[member] = cluster_key
 
-        edges_query = f"""
-        FOR e IN {self.edge_collection_name}
-            RETURN {{
+        edges_query = """
+        FOR e IN @@edge_collection
+            RETURN {
                 from: e._from,
                 to: e._to,
                 similarity: e.similarity
-            }}
+            }
         """
 
         try:
-            cursor = self.db.aql.execute(edges_query)
+            cursor = self.db.aql.execute(
+                edges_query,
+                bind_vars={"@edge_collection": self.edge_collection_name},
+            )
             edges = list(cursor)
         except Exception as exc:
             self.logger.warning("Failed to compute cluster quality metadata: %s", exc)

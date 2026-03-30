@@ -149,7 +149,7 @@ class VectorBlockingStrategy(BlockingStrategy):
         if self.ann_adapter:
             self._stats['ann_method'] = self.ann_adapter.method
     
-    def _check_embeddings_exist(self) -> Dict[str, Any]:
+    def check_embeddings_exist(self) -> Dict[str, Any]:
         """
         Check if embeddings exist in the collection
         
@@ -202,7 +202,7 @@ class VectorBlockingStrategy(BlockingStrategy):
         start_time = time.time()
         
         # Check embedding coverage
-        embedding_stats = self._check_embeddings_exist()
+        embedding_stats = self.check_embeddings_exist()
         
         if embedding_stats['with_embeddings'] == 0:
             raise RuntimeError(

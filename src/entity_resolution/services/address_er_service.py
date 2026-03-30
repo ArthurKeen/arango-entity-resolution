@@ -14,7 +14,7 @@ import logging
 
 from .wcc_clustering_service import WCCClusteringService
 from ..utils.validation import validate_collection_name, validate_field_name, sanitize_string_for_display
-from ..utils.constants import DEFAULT_BATCH_SIZE, DEFAULT_EDGE_BATCH_SIZE
+from ..utils.constants import DEFAULT_BATCH_SIZE, DEFAULT_EDGE_BATCH_SIZE, DEFAULT_HOST, DEFAULT_PORT, DEFAULT_USERNAME
 
 
 class AddressERService:
@@ -710,9 +710,9 @@ class AddressERService:
             db_name = self.db.name
             
             # Get connection details - try multiple approaches
-            host = 'localhost'
-            port = 8529
-            username = 'root'
+            host = DEFAULT_HOST
+            port = DEFAULT_PORT
+            username = DEFAULT_USERNAME
             password = ''
             
             # Try to extract from connection if available
@@ -727,8 +727,8 @@ class AddressERService:
                         username = conn.username
                     if hasattr(conn, 'password'):
                         password = conn.password
-            except Exception:
-                pass
+            except Exception as e:
+                self.logger.debug("Could not extract connection info from db object: %s", e)
             
             # Try to get from environment variables
             import os

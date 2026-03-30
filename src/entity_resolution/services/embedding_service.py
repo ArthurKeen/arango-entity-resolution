@@ -829,15 +829,16 @@ class EmbeddingService:
         collection_name = validate_collection_name(collection_name)
         
         # Find documents without embeddings based on mode
+        bind_vars: dict = {"@collection": collection_name}
         if force_regenerate:
-            query = f"FOR doc IN {collection_name} RETURN doc"
+            query = "FOR doc IN @@collection RETURN doc"
         elif self.multi_resolution_mode:
             if self.embedding_field_coarse is None or self.embedding_field_fine is None:
                 raise ValueError("Multi-resolution mode requires embedding_field_coarse and embedding_field_fine")
             embedding_field_coarse = validate_field_name(self.embedding_field_coarse)
             embedding_field_fine = validate_field_name(self.embedding_field_fine)
             query = f"""
-                FOR doc IN {collection_name}
+                FOR doc IN @@collection
                 FILTER doc.{embedding_field_coarse} == null 
                     OR doc.{embedding_field_fine} == null
                 RETURN doc
@@ -845,7 +846,7 @@ class EmbeddingService:
         else:
             embedding_field = validate_field_name(self.embedding_field)
             query = f"""
-                FOR doc IN {collection_name}
+                FOR doc IN @@collection
                 FILTER doc.{embedding_field} == null
                 RETURN doc
             """
@@ -853,7 +854,7 @@ class EmbeddingService:
         db = self.db_manager.get_database(database_name)
         collection = db.collection(collection_name)
         
-        cursor = db.aql.execute(query)
+        cursor = db.aql.execute(query, bind_vars=bind_vars)
         documents = list(cursor)
         
         if not documents:
@@ -938,27 +939,28 @@ class EmbeddingService:
         db = self.db_manager.get_database(database_name)
         
         # Count total documents
-        total_query = f"RETURN COUNT(FOR doc IN {collection_name} RETURN 1)"
-        total = db.aql.execute(total_query).next()
+        col_bind = {"@collection": collection_name}
+        total_query = "RETURN COUNT(FOR doc IN @@collection RETURN 1)"
+        total = db.aql.execute(total_query, bind_vars=col_bind).next()
         
         # Count documents with embeddings
         with_embeddings_query = f"""
             RETURN COUNT(
-                FOR doc IN {collection_name}
+                FOR doc IN @@collection
                 FILTER doc.{embedding_field} != null
                 RETURN 1
             )
         """
-        with_embeddings = db.aql.execute(with_embeddings_query).next()
+        with_embeddings = db.aql.execute(with_embeddings_query, bind_vars=col_bind).next()
         
         # Get embedding metadata from a sample document
         sample_query = f"""
-            FOR doc IN {collection_name}
+            FOR doc IN @@collection
             FILTER doc.{embedding_field} != null
             LIMIT 1
             RETURN doc.embedding_metadata
         """
-        cursor = db.aql.execute(sample_query)
+        cursor = db.aql.execute(sample_query, bind_vars=col_bind)
         sample_metadata = next(cursor, None)
         
         return {

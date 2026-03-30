@@ -295,13 +295,14 @@ class SelfManagedGAEConnection(GAEConnectionBase):
                     if status != "DEPLOYED":
                         continue
                     if svc_type == "gral" or sid.startswith("arangodb-gral-"):
-                        try:
-                            self.engine_id = sid
-                            self.get_engine_version()
-                            logger.info("Reusing existing DEPLOYED service: %s", sid)
-                            return sid
-                        except Exception:
-                            continue
+                    try:
+                        self.engine_id = sid
+                        self.get_engine_version()
+                        logger.info("Reusing existing DEPLOYED service: %s", sid)
+                        return sid
+                    except Exception as e:
+                        logger.debug("Service %s is DEPLOYED but engine API check failed: %s", sid, e)
+                        continue
             except Exception as exc:
                 logger.debug("Could not list services: %s", exc)
 
@@ -459,8 +460,8 @@ class SelfManagedGAEConnection(GAEConnectionBase):
     def get_job(self, job_id) -> Dict[str, Any]:
         try:
             return self._make_engine_request("GET", f"{API_VERSION_PREFIX}jobs/{job_id}")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Direct job fetch failed for %s, trying fallback: %s", job_id, e)
         # Fallback: list all jobs and filter
         try:
             resp = self._make_engine_request("GET", f"{API_VERSION_PREFIX}jobs")
@@ -470,8 +471,8 @@ class SelfManagedGAEConnection(GAEConnectionBase):
                 jid = j.get("job_id", j.get("id"))
                 if str(jid) == job_id_str or jid == job_id:
                     return j
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Fallback job list fetch also failed for %s: %s", job_id, e)
         return {}
 
     @staticmethod
@@ -675,15 +676,15 @@ class AMPGAEConnection(GAEConnectionBase):
     def get_job(self, job_id: str) -> Dict[str, Any]:
         try:
             return self._engine_api_call("GET", f"{API_VERSION_PREFIX}jobs/{job_id}")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Direct job fetch failed for %s, trying fallback: %s", job_id, e)
         try:
             resp = self._engine_api_call("GET", f"{API_VERSION_PREFIX}jobs")
             for j in resp.get("jobs", []):
                 if str(j.get("job_id", j.get("id"))) == str(job_id):
                     return j
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Fallback job list fetch also failed for %s: %s", job_id, e)
         return {}
 
     @staticmethod

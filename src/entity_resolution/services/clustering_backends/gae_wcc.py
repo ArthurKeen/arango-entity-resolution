@@ -200,29 +200,30 @@ class GAEWCCBackend:
         """
         deadline = time.time() + 30
         poll_interval = 1.0
+        vtx_bind = {"@collection": vertex_collection}
 
         while time.time() < deadline:
-            check_query = f"""
-            FOR doc IN `{vertex_collection}`
+            check_query = """
+            FOR doc IN @@collection
                 FILTER doc.wcc_component != null AND doc.id != null
                 LIMIT 1
                 RETURN 1
             """
-            cursor = self.db.aql.execute(check_query)
+            cursor = self.db.aql.execute(check_query, bind_vars=vtx_bind)
             if list(cursor):
                 break
             logger.debug("GAE result docs not yet in %s, waiting...", vertex_collection)
             time.sleep(poll_interval)
             poll_interval = min(poll_interval * 1.5, 5.0)
 
-        query = f"""
-        FOR doc IN `{vertex_collection}`
+        query = """
+        FOR doc IN @@collection
             FILTER doc.wcc_component != null AND doc.id != null
             LET vertex_key = LAST(SPLIT(doc.id, '/'))
             COLLECT component = doc.wcc_component INTO members
             RETURN members[*].vertex_key
         """
-        cursor = self.db.aql.execute(query)
+        cursor = self.db.aql.execute(query, bind_vars=vtx_bind)
         clusters: List[List[str]] = []
         for members in cursor:
             keys = [k for k in members if k]

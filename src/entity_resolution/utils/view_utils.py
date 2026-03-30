@@ -48,8 +48,8 @@ def resolve_analyzer_name(db: StandardDatabase, analyzer_name: str) -> str:
         try:
             # Try direct attribute access
             db_name = db.name
-        except (AttributeError, Exception):
-            pass
+        except (AttributeError, Exception) as e:
+            logger.debug("Could not determine database name for analyzer resolution: %s", e)
     
     # Check if analyzer exists with database prefix
     if db_name:

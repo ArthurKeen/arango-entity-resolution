@@ -205,7 +205,7 @@ class LSHBlockingStrategy(BlockingStrategy):
         hash_obj = hashlib.md5(binary_str.encode())
         return hash_obj.hexdigest()
     
-    def _check_embeddings_exist(self) -> Dict[str, Any]:
+    def check_embeddings_exist(self) -> Dict[str, Any]:
         """
         Check if embeddings exist in the collection and get embedding dimension
         
@@ -268,7 +268,7 @@ class LSHBlockingStrategy(BlockingStrategy):
         start_time = time.time()
         
         # Check embedding coverage and get dimension
-        embedding_stats = self._check_embeddings_exist()
+        embedding_stats = self.check_embeddings_exist()
         
         if embedding_stats['with_embeddings'] == 0:
             raise RuntimeError(

@@ -128,7 +128,7 @@ def test_blocking_strategies():
         # Get a sample record
         if not db.has_collection("customers"):
             logger.warning("No customers collection found - creating sample data")
-            return test_with_sample_data(blocking_service, test_cases)
+            return _run_with_sample_data(blocking_service, test_cases)
         
         customers_collection = db.collection("customers")
         
@@ -136,7 +136,7 @@ def test_blocking_strategies():
         sample_records = list(customers_collection.all(limit=5))
         if not sample_records:
             logger.warning("No records in customers collection - creating sample data")
-            return test_with_sample_data(blocking_service, test_cases)
+            return _run_with_sample_data(blocking_service, test_cases)
         
         target_record = sample_records[0]
         target_id = target_record['_id']
@@ -193,7 +193,7 @@ def test_blocking_strategies():
         return False
 
 
-def test_with_sample_data(blocking_service, test_cases):
+def _run_with_sample_data(blocking_service, test_cases):
     """Test with hardcoded sample data when database is empty"""
     
     logger = get_logger(__name__)

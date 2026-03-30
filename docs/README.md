@@ -16,6 +16,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 ### User Guides
 - [Migration Guide v3.0](guides/MIGRATION_GUIDE_V3.md) - Upgrade from v1.x or v2.x
 - [Custom Collections Guide](guides/CUSTOM_COLLECTIONS_GUIDE.md) - Work with your own data
+- [Advanced Modules Guide](guides/ADVANCED_MODULES_GUIDE.md) - Orchestration, GraphRAG, geospatial, ETL normalizers, and more
 - [Testing Guide](TESTING.md) - Current testing and release-validation guidance
 
 ### Architecture & Design
@@ -84,6 +85,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 - CLI / MCP examples in the README
 
 **Advanced Topics:**
+- Advanced Modules Guide
 - Historical enhancement plan
 - GAE Enhancement Path
 - Batch vs Bulk Processing

@@ -97,13 +97,16 @@ class ClusterExportService:
         if not self.db.has_collection(self.cluster_collection):
             return []
 
+        limit_clause = "LIMIT @limit" if limit is not None else ""
         query = f"""
-        FOR c IN {self.cluster_collection}
+        FOR c IN @@cluster_collection
             SORT (c.size != null ? c.size : LENGTH(c.members)) DESC, c._key
-            { 'LIMIT @limit' if limit is not None else '' }
+            {limit_clause}
             RETURN c
         """
-        bind_vars = {"limit": int(limit)} if limit is not None else {}
+        bind_vars: dict = {"@cluster_collection": self.cluster_collection}
+        if limit is not None:
+            bind_vars["limit"] = int(limit)
         cursor = self.db.aql.execute(query, bind_vars=bind_vars)
 
         clusters: List[Dict[str, Any]] = []

@@ -60,17 +60,18 @@ class AQLGraphBackend:
         vertex_collections = self._get_vertex_collections()
         with_clause = f"WITH {', '.join(vertex_collections)}" if vertex_collections else ""
 
-        vertices_query = f"""
+        vertices_query = """
         LET from_vertices = (
-            FOR e IN {self.edge_collection_name} RETURN DISTINCT e._from
+            FOR e IN @@edge_collection RETURN DISTINCT e._from
         )
         LET to_vertices = (
-            FOR e IN {self.edge_collection_name} RETURN DISTINCT e._to
+            FOR e IN @@edge_collection RETURN DISTINCT e._to
         )
         RETURN UNION_DISTINCT(from_vertices, to_vertices)
         """
+        edge_bind = {"@edge_collection": self.edge_collection_name}
 
-        cursor = self.db.aql.execute(vertices_query)
+        cursor = self.db.aql.execute(vertices_query, bind_vars=edge_bind)
         cursor_list = list(cursor)
         all_vertices = cursor_list[0] if cursor_list else []
 
@@ -86,14 +87,17 @@ class AQLGraphBackend:
 
             component_query = f"""
             {with_clause}
-            FOR v IN 0..999999 ANY @start_vertex {self.edge_collection_name}
+            FOR v IN 0..999999 ANY @start_vertex @@edge_collection
                 RETURN DISTINCT v._id
             """
 
             try:
                 cursor = self.db.aql.execute(
                     component_query,
-                    bind_vars={"start_vertex": start_vertex},
+                    bind_vars={
+                        "start_vertex": start_vertex,
+                        "@edge_collection": self.edge_collection_name,
+                    },
                 )
                 component_vertices = list(cursor)
 
