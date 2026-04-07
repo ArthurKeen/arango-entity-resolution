@@ -33,6 +33,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 - [Batch vs Bulk Processing](development/BATCH_VS_BULK_PROCESSING.md) - Performance patterns
 - [Blocking Benchmarks](development/BLOCKING_BENCHMARKS.md) - Supported evaluator workflow
 - [Runtime Health CI Runbook](development/RUNTIME_HEALTH_CI_RUNBOOK.md) - Runtime baseline, compare, and gate workflows
+- [Provider Rollout Runbook](development/PROVIDER_ROLLOUT_RUNBOOK.md) - Rollout, monitoring, and rollback for ONNX Runtime providers
 - [Release Checklist](development/RELEASE_CHECKLIST.md) - Steps for GitHub Release and PyPI publish
 - [Project Evolution](development/PROJECT_EVOLUTION.md) - Historical project evolution notes
 - [Git Hooks](development/GIT_HOOKS.md) - Development workflow
@@ -88,6 +89,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 
 **Advanced Topics:**
 - Advanced Modules Guide
+- [Provider Compatibility Matrix](guides/PROVIDER_COMPATIBILITY_MATRIX.md)
 - Historical enhancement plan
 - GAE Enhancement Path
 - Batch vs Bulk Processing

@@ -8,6 +8,7 @@ ArangoSearch views. Handles address normalization, blocking, and edge creation.
 from typing import Dict, List, Any, Optional, Tuple
 from arango.database import StandardDatabase
 from arango.collection import EdgeCollection, StandardCollection
+import shutil
 import time
 from datetime import datetime
 import logging
@@ -103,10 +104,14 @@ class AddressERService:
                 {
                     'max_block_size': 100,
                     'min_bm25_score': 2.0,
-                    'batch_size': DEFAULT_BATCH_SIZE,  # Default 5000
-                    'edge_loading_method': 'api',  # 'api' or 'csv' (default: 'api')
-                    'edge_batch_size': DEFAULT_EDGE_BATCH_SIZE,  # Default 1000 for API method
-                    'csv_path': None  # Optional CSV path for CSV method (auto-generated if None)
+                    'batch_size': DEFAULT_BATCH_SIZE,
+                    'edge_loading_method': 'auto',  # 'auto', 'api', or 'csv'
+                    'edge_count_threshold_for_csv': 100_000,
+                    'edge_batch_size': DEFAULT_EDGE_BATCH_SIZE,
+                    'csv_path': None,
+                    'blocking_mode': 'single_query',  # 'single_query' or 'shard_parallel'
+                    'shard_key_field': None,  # defaults to postal_code field
+                    'shard_key_prefix_length': 3,
                 }
         """
         self.db = db
@@ -132,12 +137,18 @@ class AddressERService:
         self.max_block_size = self.config.get('max_block_size', 100)
         self.min_bm25_score = self.config.get('min_bm25_score', 2.0)
         self.batch_size = self.config.get('batch_size', DEFAULT_BATCH_SIZE)
-        self.edge_loading_method = self.config.get('edge_loading_method', 'api')  # 'api' or 'csv'
+        self.edge_loading_method = self.config.get('edge_loading_method', 'auto')
+        self.edge_count_threshold_for_csv = self.config.get('edge_count_threshold_for_csv', 100_000)
         self.edge_batch_size = self.config.get('edge_batch_size', DEFAULT_EDGE_BATCH_SIZE)
         self.csv_path = self.config.get('csv_path', None)
+        self.blocking_mode = self.config.get('blocking_mode', 'single_query')
+        self.shard_key_field = self.config.get('shard_key_field')
+        self.shard_key_prefix_length = self.config.get('shard_key_prefix_length', 3)
         
         # Initialize logger
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        
+        self._arangoimport_available = shutil.which('arangoimport') is not None
         
         # Get actual field names from mapping
         self.street_field = self.field_mapping['street']
@@ -235,17 +246,49 @@ class AddressERService:
         
         # Phase 1: Blocking
         self.logger.info("Phase 1: Finding duplicate addresses...")
-        blocks, total_addresses = self._find_duplicate_addresses(effective_max_block_size)
+        blocks, total_addresses, skip_stats = self._find_duplicate_addresses(effective_max_block_size)
         results['blocks_found'] = len(blocks)
         results['addresses_matched'] = total_addresses
+        results['blocks_skipped_max_size'] = skip_stats['blocks_skipped_max_size']
+        results['largest_skipped_block_size'] = skip_stats['largest_skipped_block_size']
+        results['skipped_block_samples'] = skip_stats['skipped_block_samples']
         
         # Phase 2: Edge Creation
         edges_created = 0
+        estimated_edges = sum(
+            (len(addrs) * (len(addrs) - 1)) // 2
+            for addrs in blocks.values()
+        )
+        
         if create_edges:
             self.logger.info("Phase 2: Creating sameAs edges...")
-            self.logger.info(f"  Using edge loading method: {self.edge_loading_method}")
-            
-            if self.edge_loading_method == 'csv':
+
+            loading_method = self.edge_loading_method
+            if loading_method == 'auto':
+                if estimated_edges > self.edge_count_threshold_for_csv and self._arangoimport_available:
+                    loading_method = 'csv'
+                    self.logger.info(
+                        f"  Auto-selected CSV loading: {estimated_edges:,} estimated edges "
+                        f"> threshold {self.edge_count_threshold_for_csv:,} and arangoimport is available"
+                    )
+                else:
+                    loading_method = 'api'
+                    reason = (
+                        f"{estimated_edges:,} estimated edges <= threshold {self.edge_count_threshold_for_csv:,}"
+                        if estimated_edges <= self.edge_count_threshold_for_csv
+                        else "arangoimport not found on PATH"
+                    )
+                    self.logger.info(f"  Auto-selected API loading: {reason}")
+
+            if loading_method == 'api' and estimated_edges > self.edge_count_threshold_for_csv:
+                self.logger.warning(
+                    f"API edge loading with {estimated_edges:,} estimated edges may be slow. "
+                    "Consider edge_loading_method='csv' or 'auto' for large datasets."
+                )
+
+            self.logger.info(f"  Using edge loading method: {loading_method}")
+
+            if loading_method == 'csv':
                 edges_created = self._create_edges_via_csv(blocks, csv_path=self.csv_path)
             else:
                 edges_created = self._create_edges(blocks)
@@ -273,6 +316,9 @@ class AddressERService:
         self.logger.info("=" * 80)
         self.logger.info(f"Blocks found: {results['blocks_found']:,}")
         self.logger.info(f"Addresses matched: {results['addresses_matched']:,}")
+        if results['blocks_skipped_max_size']:
+            self.logger.info(f"Blocks skipped (exceeded max size): {results['blocks_skipped_max_size']:,}")
+            self.logger.info(f"Largest skipped block: {results['largest_skipped_block_size']:,}")
         self.logger.info(f"Edges created: {results['edges_created']:,}")
         if clusters_found is not None:
             self.logger.info(f"Clusters found: {clusters_found:,}")
@@ -468,76 +514,226 @@ class AddressERService:
     def _find_duplicate_addresses(
         self,
         max_block_size: int
-    ) -> Tuple[Dict[str, List[str]], int]:
+    ) -> Tuple[Dict[str, List[str]], int, Dict[str, Any]]:
         """
         Find duplicate addresses using normalized blocking.
         
-        Strategy:
-        - Normalize street, city, state, zip5
-        - Group by normalized address
-        - Skip blocks > max_block_size (registered agents)
-        - Create address groups
+        Dispatches to single-query or shard-parallel blocking based on
+        ``self.blocking_mode``.
         
         Args:
             max_block_size: Maximum addresses per block
         
         Returns:
-            Tuple of (blocks dict, total addresses matched)
+            Tuple of (blocks dict, total addresses matched, skip_stats dict)
         """
-        self.logger.info("Finding duplicate addresses using normalized blocking...")
-        
+        if self.blocking_mode == 'shard_parallel':
+            return self._find_duplicate_addresses_shard_parallel(max_block_size)
+        return self._find_duplicate_addresses_single_query(max_block_size)
+
+    def _partition_blocks(
+        self,
+        cursor,
+        max_block_size: int,
+    ) -> Tuple[Dict[str, List[str]], int, Dict[str, Any]]:
+        """Consume a blocking-query cursor and split results into kept / skipped."""
+        blocks: Dict[str, List[str]] = {}
+        total_addresses = 0
+        blocks_skipped_max_size = 0
+        largest_skipped_block_size = 0
+        skipped_block_samples: List[Dict[str, Any]] = []
+
+        for result in cursor:
+            block_key = result['block_key']
+            addresses = result['addresses']
+            size = result['size']
+
+            if size > max_block_size:
+                blocks_skipped_max_size += 1
+                if size > largest_skipped_block_size:
+                    largest_skipped_block_size = size
+                if len(skipped_block_samples) < 5:
+                    skipped_block_samples.append({'block_key': block_key, 'size': size})
+                else:
+                    smallest_sample = min(skipped_block_samples, key=lambda s: s['size'])
+                    if size > smallest_sample['size']:
+                        skipped_block_samples.remove(smallest_sample)
+                        skipped_block_samples.append({'block_key': block_key, 'size': size})
+            else:
+                blocks[block_key] = addresses
+                total_addresses += size
+
+        skipped_block_samples.sort(key=lambda s: s['size'], reverse=True)
+
+        skip_stats: Dict[str, Any] = {
+            'blocks_skipped_max_size': blocks_skipped_max_size,
+            'largest_skipped_block_size': largest_skipped_block_size,
+            'skipped_block_samples': skipped_block_samples,
+        }
+
+        self.logger.info(f"[OK] Found {len(blocks):,} duplicate address groups")
+        self.logger.info(f"[OK] Total addresses in groups: {total_addresses:,}")
+        if blocks_skipped_max_size:
+            self.logger.info(
+                f"Skipped {blocks_skipped_max_size:,} blocks exceeding max size {max_block_size} "
+                f"(largest: {largest_skipped_block_size:,})"
+            )
+            for sample in skipped_block_samples[:5]:
+                self.logger.info(f"  skipped block: {sample['block_key']!r} (size={sample['size']:,})")
+
+        return blocks, total_addresses, skip_stats
+
+    def _find_duplicate_addresses_single_query(
+        self,
+        max_block_size: int,
+    ) -> Tuple[Dict[str, List[str]], int, Dict[str, Any]]:
+        """Single-query blocking across the entire collection."""
+        self.logger.info("Finding duplicate addresses using normalized blocking (single_query)...")
+
         query = f"""
         FOR addr IN {self.collection}
             FILTER addr.{self.street_field} != null AND addr.{self.street_field} != 'NULL'
             FILTER addr.{self.city_field} != null
             FILTER addr.{self.state_field} != null
-            
-            // Normalize address components
+
             LET norm_street = UPPER(REGEX_REPLACE(TRIM(addr.{self.street_field}), '[^A-Z0-9\\s]', ''))
             LET norm_city = UPPER(TRIM(addr.{self.city_field}))
             LET state = UPPER(TRIM(addr.{self.state_field}))
             LET zip5 = SUBSTRING(REGEX_REPLACE(addr.{self.postal_code_field}, '[^0-9]', ''), 0, 5)
-            
+
             FILTER LENGTH(norm_street) > 0 AND LENGTH(norm_city) > 0 AND LENGTH(state) > 0
-            
+
             LET block_key = CONCAT_SEPARATOR('|', norm_street, norm_city, state, zip5)
-            
+
             COLLECT block = block_key INTO group = addr._id
-            
+
             LET block_size = LENGTH(group)
-            
-            // Only blocks with 2-max_block_size addresses (skip registered agents)
-            FILTER block_size >= 2 AND block_size <= @max_block_size
-            
+
+            FILTER block_size >= 2
+
             RETURN {{
                 block_key: block,
                 addresses: group,
                 size: block_size
             }}
         """
-        
+
         cursor = self.db.aql.execute(
             query,
-            bind_vars={'max_block_size': max_block_size},
             batch_size=self.batch_size,
-            stream=True
+            stream=True,
         )
-        
-        blocks = {}
+
+        return self._partition_blocks(cursor, max_block_size)
+
+    def _find_duplicate_addresses_shard_parallel(
+        self,
+        max_block_size: int,
+    ) -> Tuple[Dict[str, List[str]], int, Dict[str, Any]]:
+        """Shard-parallel blocking: one query per shard-key prefix value.
+
+        Enumerates distinct prefix values (e.g. ZIP3) then runs one blocking
+        query per prefix so the ArangoDB optimizer routes each sub-query to a
+        single shard instead of doing scatter-gather.
+        """
+        shard_field = self.shard_key_field or self.postal_code_field
+        prefix_len = self.shard_key_prefix_length
+
+        self.logger.info(
+            "Finding duplicate addresses using shard-parallel blocking "
+            f"(field={shard_field}, prefix_len={prefix_len})..."
+        )
+
+        prefix_query = """
+        FOR d IN @@collection
+            COLLECT prefix = SUBSTRING(d.@field, 0, @len)
+            RETURN prefix
+        """
+        prefix_cursor = self.db.aql.execute(
+            prefix_query,
+            bind_vars={
+                '@collection': self.collection,
+                'field': shard_field,
+                'len': prefix_len,
+            },
+        )
+        prefixes = [p for p in prefix_cursor if p is not None]
+        self.logger.info(f"Found {len(prefixes):,} distinct shard-key prefix values")
+
+        all_blocks: Dict[str, List[str]] = {}
         total_addresses = 0
-        
-        for result in cursor:
-            block_key = result['block_key']
-            addresses = result['addresses']
-            size = result['size']
-            
-            blocks[block_key] = addresses
-            total_addresses += size
-        
-        self.logger.info(f"[OK] Found {len(blocks):,} duplicate address groups")
-        self.logger.info(f"[OK] Total addresses in groups: {total_addresses:,}")
-        
-        return blocks, total_addresses
+        total_skipped = 0
+        largest_skipped = 0
+        all_skipped_samples: List[Dict[str, Any]] = []
+
+        for idx, prefix in enumerate(prefixes, 1):
+            query = f"""
+            FOR addr IN {self.collection}
+                FILTER SUBSTRING(addr.{self.postal_code_field}, 0, @prefix_len) == @prefix
+                FILTER addr.{self.street_field} != null AND addr.{self.street_field} != 'NULL'
+                FILTER addr.{self.city_field} != null
+                FILTER addr.{self.state_field} != null
+
+                LET norm_street = UPPER(REGEX_REPLACE(TRIM(addr.{self.street_field}), '[^A-Z0-9\\s]', ''))
+                LET norm_city = UPPER(TRIM(addr.{self.city_field}))
+                LET state = UPPER(TRIM(addr.{self.state_field}))
+                LET zip5 = SUBSTRING(REGEX_REPLACE(addr.{self.postal_code_field}, '[^0-9]', ''), 0, 5)
+
+                FILTER LENGTH(norm_street) > 0 AND LENGTH(norm_city) > 0 AND LENGTH(state) > 0
+
+                LET block_key = CONCAT_SEPARATOR('|', norm_street, norm_city, state, zip5)
+
+                COLLECT block = block_key INTO group = addr._id
+
+                LET block_size = LENGTH(group)
+
+                FILTER block_size >= 2
+
+                RETURN {{
+                    block_key: block,
+                    addresses: group,
+                    size: block_size
+                }}
+            """
+
+            cursor = self.db.aql.execute(
+                query,
+                bind_vars={'prefix': prefix, 'prefix_len': prefix_len},
+                batch_size=self.batch_size,
+                stream=True,
+            )
+
+            blocks, addrs, skip_stats = self._partition_blocks(cursor, max_block_size)
+            all_blocks.update(blocks)
+            total_addresses += addrs
+            total_skipped += skip_stats['blocks_skipped_max_size']
+            if skip_stats['largest_skipped_block_size'] > largest_skipped:
+                largest_skipped = skip_stats['largest_skipped_block_size']
+            all_skipped_samples.extend(skip_stats['skipped_block_samples'])
+
+            if idx % 25 == 0 or idx == len(prefixes):
+                self.logger.info(
+                    f"  Shard-parallel progress: {idx}/{len(prefixes)} prefixes, "
+                    f"{len(all_blocks):,} blocks so far"
+                )
+
+        all_skipped_samples.sort(key=lambda s: s['size'], reverse=True)
+        combined_skip_stats: Dict[str, Any] = {
+            'blocks_skipped_max_size': total_skipped,
+            'largest_skipped_block_size': largest_skipped,
+            'skipped_block_samples': all_skipped_samples[:5],
+        }
+
+        self.logger.info(f"[OK] Shard-parallel complete: {len(all_blocks):,} blocks, {total_addresses:,} addresses")
+        if total_skipped:
+            self.logger.info(
+                f"Skipped {total_skipped:,} blocks exceeding max size {max_block_size} "
+                f"(largest: {largest_skipped:,})"
+            )
+            for sample in combined_skip_stats['skipped_block_samples']:
+                self.logger.info(f"  skipped block: {sample['block_key']!r} (size={sample['size']:,})")
+
+        return all_blocks, total_addresses, combined_skip_stats
     
     def _create_edges(self, blocks: Dict[str, List[str]]) -> int:
         """

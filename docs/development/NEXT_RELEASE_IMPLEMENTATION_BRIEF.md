@@ -1915,14 +1915,16 @@ with no semantic changes needed.
 
 ### Suggested Release Assignment
 
-| Item | Target release | Effort |
+All address pipeline tasks have been implemented in v3.5.1:
+
+| Item | Target release | Status |
 |------|---------------|--------|
-| `blocks_skipped_max_size` in results dict | `3.3.0` | Small — add counter to existing loop |
-| `arangoimport` availability check at init | `3.3.0` | Small — subprocess check |
-| Startup warning for large datasets on API mode | `3.3.0` | Small |
-| Shard-parallel blocking mode | `3.4.0` | Medium — new query path + config key |
-| `edge_loading_method='auto'` selection logic | `3.4.0` | Medium |
-| `AddressERPipeline` class extraction | `3.5.0` | Large — new pipeline abstraction |
+| `blocks_skipped_max_size` in results dict | `3.5.1` | **Done** |
+| `arangoimport` availability check at init | `3.5.1` | **Done** |
+| Startup warning for large datasets on API mode | `3.5.1` | **Done** |
+| Shard-parallel blocking mode | `3.5.1` | **Done** |
+| `edge_loading_method='auto'` selection logic | `3.5.1` | **Done** |
+| `AddressERPipeline` class extraction | `3.5.0` | **Done** (shipped in 3.5.0) |
 
 ---
 

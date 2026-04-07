@@ -69,11 +69,23 @@ class AddressERPipeline:
             if key not in config:
                 raise ValueError(f"Missing required config key: '{key}'")
 
+        service_config = {
+            "max_block_size": config.get("max_block_size", 100),
+            "blocking_mode": config.get("blocking_mode", "single_query"),
+            "shard_key_field": config.get("shard_key_field"),
+            "shard_key_prefix_length": config.get("shard_key_prefix_length", 3),
+            "edge_loading_method": config.get("edge_loading_method", "auto"),
+            "edge_count_threshold_for_csv": config.get("edge_count_threshold_for_csv", 100_000),
+            "min_bm25_score": config.get("min_bm25_score", 2.0),
+            "batch_size": config.get("batch_size", 5000),
+        }
+
         self.service = AddressERService(
             db=db,
             collection=config["collection"],
             field_mapping=config["field_mapping"],
             edge_collection=config.get("edge_collection", "address_sameAs"),
+            config=service_config,
         )
 
     @classmethod

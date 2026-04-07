@@ -110,10 +110,10 @@ def test_find_duplicate_addresses_returns_blocks_and_total_addresses() -> None:
         ]
     )
     svc = AddressERService(db=db, collection="addresses")
-    blocks, total = svc._find_duplicate_addresses(max_block_size=10)
+    blocks, total, skip_stats = svc._find_duplicate_addresses(max_block_size=10)
     assert set(blocks.keys()) == {"k1", "k2"}
     assert total == 5
-    assert db.aql.calls[0]["bind_vars"]["max_block_size"] == 10
+    assert skip_stats["blocks_skipped_max_size"] == 0
 
 
 def test_create_edges_creates_collection_if_missing_and_batches_inserts() -> None:
@@ -149,7 +149,8 @@ def test_run_uses_csv_or_api_edge_loading_and_optional_clustering(monkeypatch) -
     db = _FakeDB()
     svc = AddressERService(db=db, collection="addresses", config={"edge_loading_method": "csv"})
 
-    monkeypatch.setattr(svc, "_find_duplicate_addresses", lambda max_block_size: ({"k": ["a/1", "a/2"]}, 2))
+    _empty_skip = {"blocks_skipped_max_size": 0, "largest_skipped_block_size": 0, "skipped_block_samples": []}
+    monkeypatch.setattr(svc, "_find_duplicate_addresses", lambda max_block_size: ({"k": ["a/1", "a/2"]}, 2, _empty_skip))
     monkeypatch.setattr(svc, "_create_edges_via_csv", lambda blocks, csv_path=None: 123)
     monkeypatch.setattr(svc, "_create_edges", lambda blocks: 999)
     monkeypatch.setattr(svc, "_cluster_addresses", lambda min_cluster_size: [["a/1", "a/2"]])
@@ -162,7 +163,7 @@ def test_run_uses_csv_or_api_edge_loading_and_optional_clustering(monkeypatch) -
 
     # Switch to API method
     svc2 = AddressERService(db=db, collection="addresses", config={"edge_loading_method": "api"})
-    monkeypatch.setattr(svc2, "_find_duplicate_addresses", lambda max_block_size: ({"k": ["a/1", "a/2"]}, 2))
+    monkeypatch.setattr(svc2, "_find_duplicate_addresses", lambda max_block_size: ({"k": ["a/1", "a/2"]}, 2, _empty_skip))
     monkeypatch.setattr(svc2, "_create_edges", lambda blocks: 7)
     out2 = svc2.run(create_edges=True, cluster=False)
     assert out2["edges_created"] == 7

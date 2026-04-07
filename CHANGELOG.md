@@ -41,6 +41,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   previously undocumented modules (orchestrator, address pipeline, GraphRAG, geospatial,
   shard-parallel, incremental resolver, feedback, ETL normalizers).
 - 3 new guides: `PERFORMANCE_GUIDE.md`, `PLATFORM_SETUP.md`, `PROVIDER_MATRIX.md`.
+- **`PROVIDER_COMPATIBILITY_MATRIX.md`** — detailed ONNX Runtime provider compatibility
+  matrix covering CPU, CoreML, CUDA, and TensorRT with fallback chains, model compatibility,
+  and quick-reference tables.
+- **`PROVIDER_ROLLOUT_RUNBOOK.md`** — operational runbook for rolling out, monitoring,
+  and rolling back ONNX Runtime provider changes with pre-rollout checklists, CI gate
+  commands, alert conditions, and incident response procedures.
+- **Address pipeline shard-parallel blocking** — `blocking_mode='shard_parallel'` enumerates
+  distinct shard-key prefix values and runs one blocking query per prefix for single-shard
+  query routing on sharded ArangoDB clusters.
+- **Address pipeline `edge_loading_method='auto'`** — automatically selects CSV/arangoimport
+  for large edge sets (>100K) when `arangoimport` is on PATH, with fallback to API batching.
+  Warns when explicit `api` mode is used with large datasets.
+- **Block skip tracking** — `blocks_skipped_max_size`, `largest_skipped_block_size`, and
+  `skipped_block_samples` now appear in address pipeline results for registered-agent auditing.
+- **`arangoimport` availability check** at `AddressERService` init via `shutil.which`.
 - 3 new examples: `onnx_runtime_embedding.py`, `yaml_config_pipeline.py`,
   `incremental_resolution.py`.
 
