@@ -59,6 +59,7 @@ def test_validate_policy_file_rejects_missing_referenced_file(tmp_path: Path) ->
             "linux-cpu": profile_cfg,
             "apple-silicon": profile_cfg,
             "linux-gpu": profile_cfg,
+            "windows-cpu": profile_cfg,
         },
     }
     policy_path = tmp_path / "policy.json"
@@ -87,6 +88,7 @@ def test_validate_policy_file_rejects_invalid_threshold_range(tmp_path: Path) ->
             "linux-cpu": profile_cfg,
             "apple-silicon": profile_cfg,
             "linux-gpu": profile_cfg,
+            "windows-cpu": profile_cfg,
         },
     }
     policy_path = tmp_path / "policy.json"
@@ -115,6 +117,7 @@ def test_validate_policy_file_rejects_non_positive_batch_size(tmp_path: Path) ->
             "linux-cpu": profile_cfg,
             "apple-silicon": profile_cfg,
             "linux-gpu": profile_cfg,
+            "windows-cpu": profile_cfg,
         },
     }
     policy_path = tmp_path / "policy.json"
