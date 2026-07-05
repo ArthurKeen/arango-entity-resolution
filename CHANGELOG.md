@@ -7,21 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.8.0] - 2026-07-04
+
+The **Steward Workbench** release: a human-in-the-loop curation UI on top of the
+resolution engine, native ArangoDB 3.12+ vector search, and API hardening.
+
 ### Added
-- **Web UI** (`[ui]` optional extra) — optional browser-based interface for entity resolution
-  workflows, launched with `arango-er ui`. Includes Review Queue (human-in-the-loop match
-  review with keyboard shortcuts), Cluster Browser (paginated list with interactive React Flow
-  graph visualization), Pipeline Runner (WebSocket-driven live progress), Config Builder
-  (visual pipeline configuration with advisor tool integration), Entity Resolver (interactive
-  single-record resolution), Golden Record Manager (field-level provenance and conflict
-  resolution), and Export Center. Backend is FastAPI wrapping existing services — no new
-  resolution logic. Install with `pip install "arango-entity-resolution[ui]"`.
-- **`FeedbackStore.query_verdicts()`** — paginated, filterable AQL queries over the feedback
-  collection with bind-variable safety.
-- **`FeedbackStore.count_by_status()`** — grouped verdict counts by decision.
-- **`FeedbackStore.pending_review_count()`** — count of LLM verdicts awaiting human review.
-- **`ConfigurableERPipeline.run(on_progress=...)`** — optional callback parameter for
-  stage-by-stage progress reporting during pipeline execution.
+- **Web UI** (`[ui]` optional extra) — browser-based interface launched with
+  `arango-er ui` (FastAPI wrapping existing services; no new resolution logic).
+  Install with `pip install "arango-entity-resolution[ui]"`.
+- **Threshold Tuner** (2.1) — `GET /api/metrics/{c}/score-distribution`,
+  `/boundary-pairs`, and `POST /apply-threshold`; a live histogram with dual
+  low/high bands, client-side delta counts, boundary-pair inspection, and
+  audited apply.
+- **Cluster editing with audit trail** (2.2) — `POST /api/curation/{c}/cluster/{key}/remove-member`,
+  `/merge`, `/cluster/{key}/split`, and `GET /suspect-clusters`. All route
+  through `FeedbackApplicationService` (suppress/confirm edges + scoped
+  re-cluster under a lock) and write to `er_audit_log`.
+- **Review workflow depth** (2.3) — `POST /api/review/{c}/batch-verdict`
+  (bulk verdicts) and `GET /export.csv`; confidence capture, bulk selection,
+  keyboard-shortcuts modal, reviewer/timestamp attribution.
+- **Editable golden records** (2.3) — `POST /api/golden/{c}/survivorship-preview`
+  and `/apply` using the `GoldenRecordPersistenceService` survivorship engine
+  (`field_voting`/`most_complete`/`most_recent`/`source_priority`) with
+  field-level provenance, conflict overrides, and audited persistence.
+- **Data profiling screen** (2.4) — `GET /api/profile/{c}?emit_config=` over
+  `FieldProfiler` (semantic types, completeness, cardinality, sample values);
+  "Generate config" pre-fills the Config Builder. New MCP tool `profile_fields`.
+- **Curation audit + reviewer attribution** (2.0) — `er_audit_log`,
+  `CurationService`, and `X-Reviewer` attribution across verdicts and edits.
+- **Native vector search** — `APPROX_NEAR_COSINE` over ArangoDB 3.12+ native
+  vector indexes (hard-gated; no brute-force fallback in the public API).
+- **UI/MCP token authentication** — optional `ER_UI_AUTH_TOKEN` / MCP SSE bearer
+  auth, plus API rate limiting (`create_app(rate_limit=N)` / `arango-er ui --rate-limit`).
+- **`FeedbackStore.query_verdicts()` / `count_by_status()` / `pending_review_count()`**.
+- **`ConfigurableERPipeline.run(on_progress=...)`** — stage-by-stage progress callback.
+
+### Changed
+- OpenAPI-generated TypeScript client with a CI contract-drift gate; Vitest +
+  Testing Library frontend test stack.
+- De-duplicated blocking-strategy filter builders; removed dead
+  `WCCClusteringService` AQL paths.
+
+### Security
+- Additional AQL bind-variable hardening (computed fields, edge-clear paths,
+  data sampling) and credential-hygiene fixes (no default passwords in
+  `docker-compose.yml` / `env.example`).
 
 ## [3.5.1] - 2026-03-30
 
