@@ -138,7 +138,19 @@ Ordered so each screen consumes backend capability that exists by the time it's 
 
 **Acceptance:** profile renders detected types matching `FieldProfiler`; "Generate config" round-trips into the config builder.
 
-### 2.5 UI foundation hardening (M, parallel with 2.1–2.4)
+### 2.5 UI foundation hardening (M, parallel with 2.1–2.4) — **PARTIALLY SHIPPED (2026-07-04)**
+
+> **Delivered:**
+> - **API hardening:** `create_app(rate_limit=N)` in-memory fixed-60s-window limiter per client IP over `/api/*` (health exempt) → 429 + `Retry-After`; CLI `--rate-limit`. CORS already configurable via `allowed_origins` / `--dev`.
+> - **Test isolation:** conftest clears ambient `ARANGO_ENDPOINT` so config/CLI unit tests are deterministic even with the repo's real `.env` sourced.
+> - **Frontend test stack:** Vitest + Testing Library + jsdom wired (`npm run test`), setup file, first tests (`reviewCsvUrl`, `ShortcutsModal`); added to the `ui-contract` CI workflow. Test files excluded from the production `tsc` build.
+> - **Review attribution + a11y:** reviewer/timestamp "✓ reviewed by" badge surfaced on reviewed pairs; `role="dialog"`/`aria-modal` on the shortcuts modal; `aria-label`s on icon-only controls (shortcuts, reviewer chip).
+>
+> **Deferred (tracked for v3.9 polish):** dark mode (needs a coherent cross-component sweep), Playwright e2e (needs a live server + browsers in CI), review auto-advance, cluster drag-partition split UI, and `most_recent`/`source_priority` survivorship config UI.
+
+_Original scope below._
+
+
 
 - **Tests:** Vitest + RTL for components/hooks; Playwright smoke (dashboard → run pipeline vs docker ArangoDB → review a pair → verdict applied). Wire into CI (`.github/workflows/ui-contract.yml` already exists — extend it).
 - **Contract:** regenerate client from `openapi.json`; delete hand-written duplicate types; remove `pairs|verdicts|items` / `record_a|doc_a` defensive shims by fixing backend response models.

@@ -17,6 +17,9 @@ export interface ReviewPairSummary {
   status: string;
   llm_verdict?: string;
   llm_confidence?: number;
+  source?: string;
+  reviewer?: string;
+  ts?: number;
 }
 
 export interface ReviewFilters {

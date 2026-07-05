@@ -60,3 +60,7 @@ jobs:
       - name: Typecheck UI
         working-directory: ui
         run: npm run typecheck
+
+      - name: Unit test UI (Vitest)
+        working-directory: ui
+        run: npm run test

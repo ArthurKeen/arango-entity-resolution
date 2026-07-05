@@ -19,6 +19,9 @@ export function ShortcutsModal({ open, onClose }: ShortcutsModalProps) {
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Keyboard shortcuts"
         className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >

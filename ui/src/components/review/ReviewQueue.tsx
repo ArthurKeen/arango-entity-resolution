@@ -32,6 +32,8 @@ interface RawVerdict {
   decision?: string;
   status?: string;
   source?: string;
+  reviewer?: string;
+  ts?: number;
   llm_verdict?: string;
   llm_confidence?: number;
   confidence?: number;
@@ -84,6 +86,9 @@ export function ReviewQueue({ collection }: ReviewQueueProps) {
     status: v.status ?? v.decision ?? "pending",
     llm_verdict: v.llm_verdict,
     llm_confidence: v.llm_confidence ?? v.confidence,
+    source: v.source,
+    reviewer: v.reviewer,
+    ts: v.ts,
   }));
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -165,6 +170,7 @@ export function ReviewQueue({ collection }: ReviewQueueProps) {
           <button
             onClick={() => setShowShortcuts(true)}
             title="Keyboard shortcuts"
+            aria-label="Show keyboard shortcuts"
             className="inline-flex items-center rounded-md border border-gray-300 bg-white p-1.5 text-gray-600 shadow-sm hover:bg-gray-50"
           >
             <HelpCircle className="h-4 w-4" />

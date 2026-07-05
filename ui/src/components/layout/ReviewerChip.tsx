@@ -21,6 +21,7 @@ export function ReviewerChip() {
       type="button"
       onClick={edit}
       title="Set the reviewer name attributed to your curation actions"
+      aria-label="Set reviewer name for attribution"
       className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100"
     >
       <User className="h-3.5 w-3.5" />

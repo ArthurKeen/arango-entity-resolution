@@ -129,6 +129,22 @@ export function PairComparison({
             </span>
           </>
         )}
+        {pair.source === "human" && pair.reviewer && (
+          <>
+            <span className="text-xs text-gray-400">|</span>
+            <span
+              className="inline-flex items-center gap-1 rounded bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700"
+              title={pair.ts ? new Date(pair.ts * 1000).toLocaleString() : undefined}
+            >
+              ✓ {pair.reviewer}
+              {pair.ts && (
+                <span className="font-normal text-green-600/70">
+                  · {new Date(pair.ts * 1000).toLocaleDateString()}
+                </span>
+              )}
+            </span>
+          </>
+        )}
         <div className="ml-auto flex gap-2 text-xs text-gray-400">
           <code>{pair.key_a}</code>
           <span>↔</span>
