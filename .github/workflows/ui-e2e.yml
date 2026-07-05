@@ -1,0 +1,43 @@
+name: UI E2E
+
+# Builds the SPA and runs Playwright smoke tests against `vite preview`.
+# No backend is required — the smoke suite tolerates failing API calls and
+# exercises routing, navigation, and the theme toggle.
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: 'npm'
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Install UI dependencies
+        working-directory: ui
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: ui
+        run: npx playwright install --with-deps chromium
+
+      - name: Build UI
+        working-directory: ui
+        run: npm run build
+
+      - name: Run Playwright smoke tests
+        working-directory: ui
+        run: npm run test:e2e
