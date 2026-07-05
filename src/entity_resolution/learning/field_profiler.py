@@ -114,6 +114,23 @@ def classify_values(values: Sequence[Any]) -> Dict[str, Any]:
     return {"type": ftype, "stats": stats}
 
 
+def _sample_values(values: Sequence[Any], limit: int = 3) -> List[str]:
+    """Up to ``limit`` distinct non-empty example values (stringified)."""
+    out: List[str] = []
+    seen: set = set()
+    for v in values:
+        if v is None:
+            continue
+        s = str(v).strip()
+        if not s or s in seen:
+            continue
+        seen.add(s)
+        out.append(s[:120])
+        if len(out) >= limit:
+            break
+    return out
+
+
 def field_config(field: str, ftype: str) -> Dict[str, Any]:
     """Comparator + seed-prior config for a field of the given type."""
     d = TYPE_DEFAULTS.get(ftype, TYPE_DEFAULTS["short_string"])
@@ -169,6 +186,7 @@ class FieldProfiler:
                 "completeness": completeness,
                 "stats": classified["stats"],
                 "config": cfg,
+                "samples": _sample_values(values),
             }
         return {
             "collection": self.collection,

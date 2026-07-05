@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ChevronDown,
   ChevronRight,
@@ -105,9 +105,27 @@ function AccordionItem({
 
 export function ConfigBuilder() {
   const navigate = useNavigate();
-  const [config, setConfig] = useState<PipelineConfig>(DEFAULT_CONFIG);
+  const location = useLocation();
+  const generated = (
+    location.state as { generatedConfig?: Partial<PipelineConfig> } | null
+  )?.generatedConfig;
+  const [config, setConfig] = useState<PipelineConfig>(() =>
+    generated
+      ? {
+          ...DEFAULT_CONFIG,
+          ...generated,
+          blocking: { ...DEFAULT_CONFIG.blocking, ...(generated.blocking ?? {}) },
+          similarity: { ...DEFAULT_CONFIG.similarity, ...(generated.similarity ?? {}) },
+          clustering: { ...DEFAULT_CONFIG.clustering, ...(generated.clustering ?? {}) },
+          active_learning: {
+            ...DEFAULT_CONFIG.active_learning,
+            ...(generated.active_learning ?? {}),
+          },
+        }
+      : DEFAULT_CONFIG,
+  );
   const [openSections, setOpenSections] = useState<Set<number>>(
-    new Set([1]),
+    new Set(generated ? [1, 2, 3] : [1]),
   );
 
   const [validationResult, setValidationResult] = useState<{

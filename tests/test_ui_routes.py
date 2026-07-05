@@ -387,6 +387,34 @@ class TestReview:
 
 
 # ===================================================================
+# Data profiling (plan 2.4)
+# ===================================================================
+
+class TestProfile:
+
+    def test_profile_returns_fields(self, client, mock_db):
+        resp = client.get("/api/profile/customers")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["collection"] == "customers"
+        assert "fields" in data
+
+    def test_profile_emit_config(self, client, mock_db):
+        resp = client.get("/api/profile/customers?emit_config=true")
+        assert resp.status_code == 200
+        assert "config" in resp.json()
+
+    def test_profile_collection_not_found_404(self, client, mock_db):
+        mock_db.has_collection.return_value = False
+        resp = client.get("/api/profile/customers")
+        assert resp.status_code == 404
+
+    def test_profile_bad_collection(self, client):
+        resp = client.get("/api/profile/bad@name")
+        assert resp.status_code in (400, 422)
+
+
+# ===================================================================
 # Pipeline
 # ===================================================================
 

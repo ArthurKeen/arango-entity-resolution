@@ -2589,6 +2589,73 @@
         ]
       }
     },
+    "/api/profile/{collection}": {
+      "get": {
+        "description": "Profile a collection's fields; with ``emit_config`` also return a\nrecommended similarity config (weights/transformers/priors).",
+        "operationId": "profile_collection_api_profile__collection__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collection",
+            "required": true,
+            "schema": {
+              "title": "Collection",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sample_size",
+            "required": false,
+            "schema": {
+              "default": 1000,
+              "maximum": 100000,
+              "minimum": 1,
+              "title": "Sample Size",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "emit_config",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Emit Config",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Profile Collection Api Profile  Collection  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Profile Collection",
+        "tags": [
+          "profile"
+        ]
+      }
+    },
     "/api/resolve/cross": {
       "post": {
         "description": "Cross-collection entity resolution.",

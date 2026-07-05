@@ -6,6 +6,7 @@ import pytest
 
 from entity_resolution.learning.field_profiler import (
     FieldProfiler,
+    _sample_values,
     classify_values,
     field_config,
 )
@@ -13,6 +14,17 @@ from entity_resolution.learning.field_profiler import (
 
 def _type(values):
     return classify_values(values)["type"]
+
+
+def test_sample_values_distinct_and_capped():
+    vals = ["Acme", "Acme", "Beta", None, "  ", "Gamma", "Delta"]
+    out = _sample_values(vals, limit=3)
+    assert out == ["Acme", "Beta", "Gamma"]  # distinct, non-empty, capped, order-preserving
+
+
+def test_sample_values_truncates_long_strings():
+    out = _sample_values(["x" * 500], limit=3)
+    assert len(out[0]) == 120
 
 
 def test_classifies_email():

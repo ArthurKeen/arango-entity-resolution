@@ -123,7 +123,14 @@ Ordered so each screen consumes backend capability that exists by the time it's 
 
 **Acceptance:** bulk-accept applies N verdicts + N audit rows in one call; golden record conflict resolution persists via survivorship strategy; verdicts carry reviewer/timestamp.
 
-### 2.4 Data profiling screen (S–M)
+### 2.4 Data profiling screen (S–M) — **SHIPPED (2026-07-04)**
+
+> **Status:**
+> - Backend: `GET /api/profile/{collection}?sample_size=&emit_config=` wraps `FieldProfiler.profile()` (+ `emit_similarity_config()` when `emit_config`). `FieldProfiler.profile()` now also returns up to 3 distinct `samples` per field for the UI. New MCP tool `profile_fields` exposes the same (advisor `profile_dataset` left intact to avoid breaking its contract).
+> - Frontend: `ProfilePage` (`/profile`, in sidebar as "Data Profile") — per-field type badges, completeness bars, distinct/cardinality, sample values; **"Generate config"** maps the emitted similarity block into `ConfigBuilder` via router state (ConfigBuilder now prefills from `location.state.generatedConfig`).
+> - Tests: profile route unit (fields/emit_config/404/400) + `_sample_values` unit + profile-route integration on live DB (types, samples, normalized weights). Full unit sweep green (1480); UI typecheck/build green.
+
+
 
 **Backend:** `GET /api/profile/{collection}` wrapping `FieldProfiler.profile()` and `?emit_config=true` → `emit_similarity_config()` (already built in 1.4; just expose over HTTP). MCP `profile_dataset` tool upgrade to same.
 

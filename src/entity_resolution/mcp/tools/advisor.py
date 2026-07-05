@@ -79,6 +79,33 @@ def run_profile_dataset(
     return _ok(result=result, request_id=request_id)
 
 
+def run_profile_fields(
+    *,
+    host: str,
+    port: int,
+    username: str,
+    password: str,
+    database: str,
+    collection: str,
+    sample_size: int = 1000,
+    emit_config: bool = False,
+    request_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Profile a collection's fields with FieldProfiler (semantic types +
+    completeness + samples); optionally emit a similarity config."""
+    from entity_resolution.learning.field_profiler import FieldProfiler
+
+    db = _get_db(host, port, username, password, database)
+    if not db.has_collection(collection):
+        raise ValueError(f"Collection not found: {collection}")
+
+    profiler = FieldProfiler(db=db, collection=collection, sample_size=sample_size)
+    prof = profiler.profile()
+    if emit_config:
+        prof["config"] = profiler.emit_similarity_config(prof)
+    return _ok(result=prof, request_id=request_id)
+
+
 def run_recommend_blocking_candidates(
     *,
     profile: Dict[str, Any],

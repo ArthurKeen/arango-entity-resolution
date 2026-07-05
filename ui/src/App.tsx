@@ -11,6 +11,7 @@ import { ResolvePage } from "./pages/ResolvePage";
 import { ConfigPage } from "./pages/ConfigPage";
 import { ExportPage } from "./pages/ExportPage";
 import { ThresholdTunerPage } from "./pages/ThresholdTunerPage";
+import { ProfilePage } from "./pages/ProfilePage";
 
 export function App() {
   return (
@@ -30,6 +31,7 @@ export function App() {
           element={<GoldenRecordDetailPage />}
         />
         <Route path="/resolve" element={<ResolvePage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/tuner" element={<ThresholdTunerPage />} />
         <Route path="/config" element={<ConfigPage />} />
         <Route path="/export" element={<ExportPage />} />

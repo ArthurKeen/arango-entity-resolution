@@ -7,6 +7,7 @@ import {
   Trophy,
   Search,
   SlidersHorizontal,
+  Table2,
   Settings,
   Download,
 } from "lucide-react";
@@ -24,6 +25,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/profile", label: "Data Profile", icon: Table2 },
   { to: "/review", label: "Review", icon: ClipboardCheck, showBadge: true },
   { to: "/clusters", label: "Clusters", icon: Network },
   { to: "/pipeline", label: "Pipeline", icon: Play },

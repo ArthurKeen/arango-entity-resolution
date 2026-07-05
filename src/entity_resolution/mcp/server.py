@@ -472,6 +472,29 @@ def profile_dataset(
 
 
 @mcp.tool()
+def profile_fields(
+    collection: str,
+    sample_size: int = 1000,
+    emit_config: bool = False,
+    request_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Profile a collection's fields (semantic type, completeness, cardinality,
+    sample values) via FieldProfiler. With emit_config=True, also returns a
+    recommended similarity config (field weights, transformers, EM priors).
+    """
+    from entity_resolution.mcp.tools.advisor import run_profile_fields
+    result = run_profile_fields(
+        **_conn(),
+        collection=collection,
+        sample_size=sample_size,
+        emit_config=emit_config,
+        request_id=request_id,
+    )
+    return _attach_schema_version(result)
+
+
+@mcp.tool()
 def recommend_resolution_strategy(
     profile: Dict[str, Any],
     objective_profile: Dict[str, Any],
