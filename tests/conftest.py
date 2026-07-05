@@ -16,6 +16,13 @@ from typing import Dict, Any
 # before any import that may transitively import litellm.
 os.environ.setdefault("LITELLM_MODE", "PRODUCTION")
 
+# Clear the full-URL connection override so env-reading config/CLI unit tests are
+# deterministic regardless of a developer's sourced .env (this repo ships a real
+# .env with ARANGO_ENDPOINT=prod...). The temp-ArangoDB test runner drives
+# integration via ARANGO_HOST/PORT/ROOT_PASSWORD (not ARANGO_ENDPOINT), and the
+# db_connection fixture uses ARANGO_TEST_*/Docker, so clearing this is safe.
+os.environ.pop("ARANGO_ENDPOINT", None)
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from entity_resolution.utils.config import Config, get_config

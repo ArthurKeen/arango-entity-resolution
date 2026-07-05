@@ -40,6 +40,7 @@ def create_app(
     collection_aliases: Optional[dict[str, str]] = None,
     auth_token: Optional[str] = None,
     reviewers: Optional[dict[str, str]] = None,
+    rate_limit: Optional[int] = None,
 ) -> FastAPI:
     """Create and configure the FastAPI application.
 
@@ -83,6 +84,7 @@ def create_app(
     app.state.collection_aliases = collection_aliases or {}
     app.state.auth_token = auth_token or None
     app.state.reviewers = reviewers or {}
+    app.state.rate_limit = rate_limit if (rate_limit and rate_limit > 0) else None
     app.state.pipeline_runs: dict[str, dict[str, Any]] = {}
 
     origins = allowed_origins or []
@@ -123,6 +125,33 @@ def create_app(
                     return JSONResponse({"detail": "Unauthorized"}, status_code=401)
         # Resolve the acting reviewer for attribution (audit log / verdicts).
         request.state.reviewer = resolve_reviewer(request.headers, app.state.reviewers)
+        return await call_next(request)
+
+    # Registered last => outermost => runs first, so floods are rejected before
+    # any auth/DB work. Simple in-memory fixed 60s window, keyed by client IP.
+    _rl_hits: dict[str, list] = {}
+
+    @app.middleware("http")
+    async def rate_limiter(request: Request, call_next):
+        limit = app.state.rate_limit
+        path = request.url.path
+        if limit and request.method != "OPTIONS" and path.startswith("/api/") and path != "/api/health":
+            import time
+
+            now = time.time()
+            cutoff = now - 60.0
+            ip = request.client.host if request.client else "?"
+            bucket = _rl_hits.setdefault(ip, [])
+            while bucket and bucket[0] < cutoff:
+                bucket.pop(0)
+            if len(bucket) >= limit:
+                retry = max(1, int(bucket[0] + 60.0 - now))
+                return JSONResponse(
+                    {"detail": "Rate limit exceeded"},
+                    status_code=429,
+                    headers={"Retry-After": str(retry)},
+                )
+            bucket.append(now)
         return await call_next(request)
 
     @app.get("/api/health")

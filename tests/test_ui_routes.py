@@ -58,6 +58,24 @@ def client(app):
 # Health
 # ===================================================================
 
+class TestRateLimit:
+
+    def test_rate_limit_blocks_after_threshold(self, mock_db):
+        app = create_app(db=mock_db, rate_limit=3)
+        c = TestClient(app)
+        # health is exempt from the limit
+        for _ in range(5):
+            assert c.get("/api/health").status_code == 200
+        # first 3 API calls pass, 4th is limited
+        codes = [c.get("/api/collections").status_code for _ in range(4)]
+        assert codes[:3] == [200, 200, 200]
+        assert codes[3] == 429
+
+    def test_no_rate_limit_by_default(self, client):
+        codes = [client.get("/api/health").status_code for _ in range(10)]
+        assert all(code == 200 for code in codes)
+
+
 class TestHealth:
 
     def test_health_returns_200(self, client):

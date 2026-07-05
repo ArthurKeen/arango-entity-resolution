@@ -1471,7 +1471,13 @@ def embedding_benchmark(collection, fields, model, limit, batch_size, **conn_kwa
     is_flag=True,
     help="Allow binding to a non-loopback host without an auth token (NOT recommended).",
 )
-def ui(database, host, port, username, password, serve_port, serve_host, auto_open, dev, readonly, auth_token, insecure):
+@click.option(
+    "--rate-limit",
+    type=int,
+    default=None,
+    help="Max API requests per client IP per 60s window (default: unlimited).",
+)
+def ui(database, host, port, username, password, serve_port, serve_host, auto_open, dev, readonly, auth_token, insecure, rate_limit):
     """Launch the Entity Resolution web UI."""
     import os as _os_auth
     auth_token = (auth_token or _os_auth.getenv("ER_UI_AUTH_TOKEN") or "").strip() or None
@@ -1550,6 +1556,7 @@ def ui(database, host, port, username, password, serve_port, serve_host, auto_op
         collection_aliases=collection_aliases,
         auth_token=auth_token,
         reviewers=reviewers,
+        rate_limit=rate_limit,
     )
 
     if auto_open:
