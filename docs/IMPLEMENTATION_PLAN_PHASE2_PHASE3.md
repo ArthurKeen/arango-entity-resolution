@@ -166,7 +166,17 @@ _Original scope below._
 
 Sequenced after Phase 2 because each needs the closed loop, calibrated FS scores, and the eval harness to *prove* its lift.
 
-### 3.1 Relationship features in similarity scoring (L)
+### 3.1 Relationship features in similarity scoring (L) — **FOUNDATION SHIPPED (2026-07-04)**
+
+> **Delivered:**
+> - `similarity/graph_context.py` (`GraphContextSimilarity`): batched 1-hop neighbour-set fetch (one AQL traversal per configured edge collection over the whole key set, cached) + in-memory pair features `graph_shared_neighbor_count`, `graph_neighbor_jaccard`, `graph_path_within_k` (all in [0,1], namespaced).
+> - `GraphContextConfig` under `SimilarityConfig` (`edge_collections`, `max_hops`, `features`, `count_saturation`) with `from_dict`/`to_dict`/`validate`, wired into `ERPipelineConfig.validate()`.
+> - `BatchSimilarityService(graph_context=...)`: graph features merged into the **detailed** comparison vector (`compute_similarities_detailed`), so EM can learn their m/u and explainability can surface them.
+> - Tests: pair-feature + config unit tests; live-DB integration (shared-employer neighbour join + features flowing into `field_scores`). Full unit sweep green (1491).
+>
+> **Remaining 3.1 (next):** add graph feature names to `field_names` in `ModelParameterEstimator` + `_load_fs_scorer` so FS learns/uses their m/u in the main scoring loop; add path/shared-neighbour evidence to `run_explain_match` + a mini-graph in `ExplainMatchModal`; record the throughput benchmark before the v4.0 headline.
+
+
 
 **New `similarity/graph_context.py` (`GraphContextSimilarity`):**
 - Per candidate pair, graph evidence: shared-neighbor count/Jaccard over configured edge collections (shared employer/address/device/phone), shortest-path existence ≤ k through non-similarity edges.

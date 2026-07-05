@@ -72,6 +72,7 @@ class BatchSimilarityService:
         progress_callback: Optional[Callable[[int, int], None]] = None,
         scoring_method: str = "weighted_heuristic",
         fs_scorer: Optional[Any] = None,
+        graph_context: Optional[Any] = None,
     ):
         """
         Initialize batch similarity service.
@@ -148,6 +149,9 @@ class BatchSimilarityService:
             raise ValueError("scoring_method='fellegi_sunter' requires an fs_scorer")
         self.scoring_method = scoring_method
         self.fs_scorer = fs_scorer
+        # Optional GraphContextSimilarity (plan 3.1): augments the detailed
+        # comparison vector with batched relationship features.
+        self.graph_context = graph_context
 
         # Statistics tracking
         self._stats = {
@@ -275,7 +279,16 @@ class BatchSimilarityService:
             all_keys.add(doc2_key)
         
         doc_cache = self.batch_fetch_documents(list(all_keys))
-        
+
+        # Batched relationship-feature prefetch (plan 3.1): one neighbour-set
+        # fetch per record for the whole candidate set, joined per pair below.
+        neighbor_cache = None
+        if self.graph_context is not None:
+            try:
+                neighbor_cache = self.graph_context.batch_fetch_neighbor_sets(all_keys)
+            except Exception:
+                neighbor_cache = None
+
         # Compute detailed similarities
         detailed_matches = []
         processed = 0
@@ -295,6 +308,10 @@ class BatchSimilarityService:
             
             # Compute detailed scores
             field_scores, weighted_score = self._compute_detailed_similarity(doc1, doc2)
+            if neighbor_cache is not None:
+                field_scores.update(
+                    self.graph_context.pair_features(doc1_key, doc2_key, neighbor_cache)
+                )
             
             if weighted_score >= threshold:
                 detailed_matches.append({

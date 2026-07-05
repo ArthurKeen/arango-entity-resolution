@@ -174,6 +174,70 @@ class BlockingConfig:
 
 
 
+#: Graph-context feature names (Phase 3.1). Values are continuous scores in
+#: [0, 1] so they enter the Fellegi-Sunter comparison vector like any other field.
+GRAPH_CONTEXT_FEATURES = ("shared_neighbor_count", "neighbor_jaccard", "path_within_k")
+
+
+class GraphContextConfig:
+    """Relationship (graph) features for similarity scoring (plan 3.1).
+
+    Adds graph evidence — shared neighbours and short-path connectivity over
+    configured *non-similarity* edge collections (shared employer / address /
+    device / phone, etc.) — as extra comparison fields.
+    """
+
+    def __init__(
+        self,
+        edge_collections: Optional[List[str]] = None,
+        max_hops: int = 2,
+        features: Optional[List[str]] = None,
+        count_saturation: int = 5,
+    ):
+        self.edge_collections = list(edge_collections or [])
+        self.max_hops = int(max_hops)
+        self.features = list(features or GRAPH_CONTEXT_FEATURES)
+        # shared_neighbor_count is normalised to [0,1] by dividing by this cap.
+        self.count_saturation = int(count_saturation)
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self.edge_collections) and bool(self.features)
+
+    @classmethod
+    def from_dict(cls, config_dict: Optional[Dict[str, Any]]) -> Optional["GraphContextConfig"]:
+        if not config_dict:
+            return None
+        return cls(
+            edge_collections=config_dict.get("edge_collections", []),
+            max_hops=config_dict.get("max_hops", 2),
+            features=config_dict.get("features"),
+            count_saturation=config_dict.get("count_saturation", 5),
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "edge_collections": self.edge_collections,
+            "max_hops": self.max_hops,
+            "features": self.features,
+            "count_saturation": self.count_saturation,
+        }
+
+    def validate(self) -> List[str]:
+        errors: List[str] = []
+        if self.max_hops < 1 or self.max_hops > 3:
+            errors.append("similarity.graph_context.max_hops must be between 1 and 3")
+        unknown = set(self.features) - set(GRAPH_CONTEXT_FEATURES)
+        if unknown:
+            errors.append(
+                f"similarity.graph_context.features has unknown entries {sorted(unknown)}; "
+                f"valid: {', '.join(GRAPH_CONTEXT_FEATURES)}"
+            )
+        if self.count_saturation < 1:
+            errors.append("similarity.graph_context.count_saturation must be >= 1")
+        return errors
+
+
 class SimilarityConfig:
     """Similarity configuration."""
     
@@ -187,6 +251,7 @@ class SimilarityConfig:
         scoring_method: str = "weighted_heuristic",
         match_prior: Optional[float] = None,
         agreement_thresholds: Optional[Dict[str, float]] = None,
+        graph_context: Optional["GraphContextConfig"] = None,
     ):
         """
         Initialize similarity configuration.
@@ -219,6 +284,7 @@ class SimilarityConfig:
         self.scoring_method = scoring_method
         self.match_prior = match_prior
         self.agreement_thresholds = agreement_thresholds or {}
+        self.graph_context = graph_context
 
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> 'SimilarityConfig':
@@ -232,11 +298,12 @@ class SimilarityConfig:
             scoring_method=config_dict.get('scoring_method', 'weighted_heuristic'),
             match_prior=config_dict.get('match_prior'),
             agreement_thresholds=config_dict.get('agreement_thresholds', {}),
+            graph_context=GraphContextConfig.from_dict(config_dict.get('graph_context')),
         )
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
-        return {
+        out = {
             'algorithm': self.algorithm,
             'threshold': self.threshold,
             'batch_size': self.batch_size,
@@ -246,6 +313,9 @@ class SimilarityConfig:
             'match_prior': self.match_prior,
             'agreement_thresholds': self.agreement_thresholds,
         }
+        if self.graph_context is not None:
+            out['graph_context'] = self.graph_context.to_dict()
+        return out
 
 
 class GAEClusteringConfig:
@@ -1162,6 +1232,8 @@ class ERPipelineConfig:
         if self.similarity.field_weights:
             if not all(w >= 0 for w in self.similarity.field_weights.values()):
                 errors.append("similarity.field_weights must be non-negative")
+        if getattr(self.similarity, "graph_context", None) is not None:
+            errors.extend(self.similarity.graph_context.validate())
         if not isinstance(self.similarity.transformers, dict):
             errors.append("similarity.transformers must be a dictionary")
         else:
