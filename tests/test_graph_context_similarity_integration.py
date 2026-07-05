@@ -76,3 +76,29 @@ def test_graph_features_flow_into_detailed_field_scores(graph_fixture):
     assert "name" in fs
     assert fs["graph_neighbor_jaccard"] == pytest.approx(1.0)
     assert fs["graph_path_within_k"] == 1.0
+
+
+def test_graph_features_reach_fs_scoring(graph_fixture):
+    db, person, works = graph_fixture
+    gc = GraphContextSimilarity(db, person, [works], max_hops=2)
+
+    seen: dict = {}
+
+    class _FakeFS:
+        def score(self, field_scores):
+            seen.update(field_scores)
+            return 0.9
+
+    svc = BatchSimilarityService(
+        db=db,
+        collection=person,
+        field_weights={"name": 1.0},
+        scoring_method="fellegi_sunter",
+        fs_scorer=_FakeFS(),
+        graph_context=gc,
+    )
+    out = svc.compute_similarities([("a", "b")], threshold=0.0, return_all=True)
+    assert out and out[0][2] == pytest.approx(0.9)
+    # The FS scorer received the graph features in its comparison vector.
+    assert seen.get("graph_neighbor_jaccard") == pytest.approx(1.0)
+    assert seen.get("graph_path_within_k") == 1.0

@@ -182,6 +182,28 @@ def run_explain_match(
             overall_score=overall,
             options=options,
         )
+
+    # Relationship (graph) evidence (plan 3.1): shared neighbours + connectivity
+    # over configured non-similarity edge collections. Opt-in via options.
+    graph_edges = (options or {}).get("graph_edge_collections") if isinstance(options, dict) else None
+    if graph_edges:
+        from ...similarity.graph_context import GraphContextSimilarity
+
+        gcs = GraphContextSimilarity(
+            db, collection, graph_edges,
+            max_hops=int((options or {}).get("graph_max_hops", 2)),
+        )
+        cache = gcs.batch_fetch_neighbor_sets([key_a, key_b])
+        na = cache.get(key_a, set())
+        nb = cache.get(key_b, set())
+        shared = sorted(na & nb)
+        feats = gcs.pair_features(key_a, key_b, cache)
+        payload["graph_evidence"] = {
+            "shared_neighbors": shared[:25],
+            "shared_neighbor_count": len(shared),
+            "connected_within_k": bool(feats.get("graph_path_within_k", 0.0) >= 1.0),
+            "features": feats,
+        }
     return payload
 
 

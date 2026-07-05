@@ -1223,9 +1223,13 @@ def estimate(config, sample_size, max_iterations, no_term_frequencies, database,
         db = _get_db_from_options(database, host, port, username, password)
         pipeline = ConfigurableERPipeline(db=db, config_path=config)
         sim_service = pipeline.build_similarity_service()
-        field_names = list(pipeline._effective_field_weights().keys())
-        if not field_names:
+        attribute_fields = list(pipeline._effective_field_weights().keys())
+        if not attribute_fields:
             raise click.ClickException("No similarity fields configured; cannot estimate parameters.")
+        # Graph-context features (plan 3.1) join the EM comparison vector so FS
+        # learns their m/u, but they are NOT document attributes, so term
+        # frequencies are computed over the attribute fields only.
+        field_names = pipeline._effective_scoring_field_names()
 
         estimator = ModelParameterEstimator(
             db=db,
@@ -1237,6 +1241,7 @@ def estimate(config, sample_size, max_iterations, no_term_frequencies, database,
             source_collection=pipeline.config.collection_name,
             sample_size=sample_size,
             with_term_frequencies=not no_term_frequencies,
+            tf_fields=attribute_fields,
         )
         click.echo(click.style("\nParameter estimation complete!", fg="green", bold=True))
         _emit_json(result)

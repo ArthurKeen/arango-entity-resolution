@@ -174,7 +174,13 @@ Sequenced after Phase 2 because each needs the closed loop, calibrated FS scores
 > - `BatchSimilarityService(graph_context=...)`: graph features merged into the **detailed** comparison vector (`compute_similarities_detailed`), so EM can learn their m/u and explainability can surface them.
 > - Tests: pair-feature + config unit tests; live-DB integration (shared-employer neighbour join + features flowing into `field_scores`). Full unit sweep green (1491).
 >
-> **Remaining 3.1 (next):** add graph feature names to `field_names` in `ModelParameterEstimator` + `_load_fs_scorer` so FS learns/uses their m/u in the main scoring loop; add path/shared-neighbour evidence to `run_explain_match` + a mini-graph in `ExplainMatchModal`; record the throughput benchmark before the v4.0 headline.
+> **3.1 completed (2026-07-05):**
+> - FS/EM wiring: `build_similarity_service` constructs `GraphContextSimilarity` from config; graph features now flow into the **main** FS scoring loop (`_score_pair`), not just the detailed path. CLI `estimate` adds graph feature names to the EM comparison vector (`_effective_scoring_field_names`) while keeping term-frequency computation to attribute fields only — so FS learns and applies per-field m/u for graph evidence.
+> - Explainability (data layer): `run_explain_match` returns a `graph_evidence` block (shared neighbours + connectivity) when `options.graph_edge_collections` is supplied.
+> - `scripts/benchmark_graph_context.py` — neighbour-fetch + pair-join throughput on a synthetic person→hub graph.
+> - Tests: unit (`_score_pair` merge + config) + live integration ("graph features reach FS scoring" + shared-employer join). Full unit sweep green (1491); 3 graph integration tests green.
+>
+> **Deferred to a UI follow-up:** the `ExplainMatchModal` mini-graph rendering of `graph_evidence` (needs the run's graph_context config surfaced to the explain endpoint and the review-pair response-shape cleanup) and the v4.0 headline throughput numbers on a real relationship-rich dataset.
 
 
 

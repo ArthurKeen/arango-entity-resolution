@@ -198,6 +198,14 @@ class BatchSimilarityService:
         
         # Step 2: Batch fetch ALL documents
         doc_cache = self.batch_fetch_documents(list(all_keys))
+
+        # Step 2b: batched relationship-feature prefetch (plan 3.1).
+        neighbor_cache = None
+        if self.graph_context is not None:
+            try:
+                neighbor_cache = self.graph_context.batch_fetch_neighbor_sets(all_keys)
+            except Exception:
+                neighbor_cache = None
         
         # Step 3: Compute similarities in-memory
         matches = []
@@ -218,7 +226,7 @@ class BatchSimilarityService:
                 continue
 
             # Compute the pair score under the configured method.
-            score = self._score_pair(doc1, doc2)
+            score = self._score_pair(doc1, doc2, doc1_key, doc2_key, neighbor_cache)
 
             if return_all or score >= threshold:
                 matches.append((doc1_key, doc2_key, score))
@@ -396,14 +404,27 @@ class BatchSimilarityService:
         
         return doc_cache
     
-    def _score_pair(self, doc1: Dict[str, Any], doc2: Dict[str, Any]) -> float:
+    def _score_pair(
+        self,
+        doc1: Dict[str, Any],
+        doc2: Dict[str, Any],
+        key1: Optional[str] = None,
+        key2: Optional[str] = None,
+        neighbor_cache: Optional[Dict[str, Any]] = None,
+    ) -> float:
         """Score a pair under the configured method.
 
         ``weighted_heuristic`` returns the weighted 0-1 average; ``fellegi_sunter``
         returns the calibrated posterior from learned m/u over per-field scores.
+        When a graph-context + neighbour cache are supplied, relationship features
+        are merged into the FS comparison vector (plan 3.1).
         """
         if self.scoring_method == "fellegi_sunter":
             field_scores, _ = self._compute_detailed_similarity(doc1, doc2)
+            if neighbor_cache is not None and self.graph_context is not None and key1 and key2:
+                field_scores.update(
+                    self.graph_context.pair_features(key1, key2, neighbor_cache)
+                )
             return self.fs_scorer.score(field_scores)
         return self._compute_weighted_similarity(doc1, doc2)
 

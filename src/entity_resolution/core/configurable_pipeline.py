@@ -699,7 +699,37 @@ class ConfigurableERPipeline:
             field_transformers=getattr(self.config.similarity, "transformers", {}),
             scoring_method=scoring_method,
             fs_scorer=fs_scorer,
+            graph_context=self._build_graph_context(),
         )
+
+    def _build_graph_context(self):
+        """Construct a GraphContextSimilarity when similarity.graph_context is enabled (plan 3.1)."""
+        gc = getattr(self.config.similarity, "graph_context", None)
+        if gc is None or not gc.enabled:
+            return None
+        from ..similarity.graph_context import GraphContextSimilarity
+
+        return GraphContextSimilarity(
+            db=self.db,
+            vertex_collection=self.config.collection_name,
+            edge_collections=gc.edge_collections,
+            max_hops=gc.max_hops,
+            features=gc.features,
+            count_saturation=gc.count_saturation,
+        )
+
+    def _graph_feature_names(self) -> list:
+        """Namespaced graph feature field names when graph context is enabled."""
+        gc = getattr(self.config.similarity, "graph_context", None)
+        if gc is None or not gc.enabled:
+            return []
+        from ..similarity.graph_context import FEATURE_PREFIX
+
+        return [FEATURE_PREFIX + f for f in gc.features]
+
+    def _effective_scoring_field_names(self) -> list:
+        """Attribute fields + graph feature fields — the FS/EM comparison vector."""
+        return list(self._effective_field_weights().keys()) + self._graph_feature_names()
 
     def _load_fs_scorer(self):
         """Build a FellegiSunterScorer from the latest persisted model params."""
