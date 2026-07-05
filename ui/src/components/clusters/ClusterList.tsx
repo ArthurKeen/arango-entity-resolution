@@ -105,7 +105,7 @@ export function ClusterList({ collection }: ClusterListProps) {
             </button>
             <button
               onClick={exitMergeMode}
-              className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+              className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50"
             >
               <X className="h-3.5 w-3.5" />
               Cancel
@@ -114,7 +114,7 @@ export function ClusterList({ collection }: ClusterListProps) {
         ) : (
           <button
             onClick={() => setMergeMode(true)}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50"
           >
             <GitMerge className="h-3.5 w-3.5" />
             Merge clusters

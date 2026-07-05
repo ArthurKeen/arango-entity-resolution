@@ -10,10 +10,10 @@ interface ReviewFiltersProps {
 }
 
 const selectClass =
-  "rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500";
+  "rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2.5 py-1.5 text-sm text-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500";
 
 const inputClass =
-  "w-20 rounded-md border border-gray-300 px-2 py-1.5 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500";
+  "w-20 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm text-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500";
 
 export function ReviewFilters({
   status,
@@ -28,7 +28,7 @@ export function ReviewFilters({
   return (
     <div className="flex flex-wrap items-end gap-4">
       <label className="space-y-1">
-        <span className="block text-xs font-medium text-gray-500">Status</span>
+        <span className="block text-xs font-medium text-gray-500 dark:text-gray-400">Status</span>
         <select
           value={status}
           onChange={(e) => onStatusChange(e.target.value)}
@@ -41,7 +41,7 @@ export function ReviewFilters({
       </label>
 
       <label className="space-y-1">
-        <span className="block text-xs font-medium text-gray-500">Min Score</span>
+        <span className="block text-xs font-medium text-gray-500 dark:text-gray-400">Min Score</span>
         <input
           type="number"
           step="0.05"
@@ -55,7 +55,7 @@ export function ReviewFilters({
       </label>
 
       <label className="space-y-1">
-        <span className="block text-xs font-medium text-gray-500">Max Score</span>
+        <span className="block text-xs font-medium text-gray-500 dark:text-gray-400">Max Score</span>
         <input
           type="number"
           step="0.05"
@@ -69,7 +69,7 @@ export function ReviewFilters({
       </label>
 
       <label className="space-y-1">
-        <span className="block text-xs font-medium text-gray-500">Source</span>
+        <span className="block text-xs font-medium text-gray-500 dark:text-gray-400">Source</span>
         <select
           value={source}
           onChange={(e) => onSourceChange(e.target.value)}

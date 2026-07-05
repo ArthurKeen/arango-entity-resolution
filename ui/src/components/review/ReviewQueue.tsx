@@ -144,7 +144,7 @@ export function ReviewQueue({ collection }: ReviewQueueProps) {
   return (
     <div className="space-y-4">
       {/* Filter bar */}
-      <div className="flex flex-wrap items-end justify-between gap-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-end justify-between gap-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm">
         <ReviewFilters
           status={status}
           onStatusChange={setStatus}
@@ -156,13 +156,13 @@ export function ReviewQueue({ collection }: ReviewQueueProps) {
           onSourceChange={setSource}
         />
         <div className="flex items-center gap-3">
-          <div className="text-sm text-gray-500 whitespace-nowrap">
+          <div className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
             <span className="font-medium text-indigo-600">{pendingCount}</span> pending |{" "}
             <span className="font-medium text-green-600">{resolvedCount}</span> resolved
           </div>
           <a
             href={reviewCsvUrl(collection, filters)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50"
           >
             <Download className="h-3.5 w-3.5" />
             CSV
@@ -171,7 +171,7 @@ export function ReviewQueue({ collection }: ReviewQueueProps) {
             onClick={() => setShowShortcuts(true)}
             title="Keyboard shortcuts"
             aria-label="Show keyboard shortcuts"
-            className="inline-flex items-center rounded-md border border-gray-300 bg-white p-1.5 text-gray-600 shadow-sm hover:bg-gray-50"
+            className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 p-1.5 text-gray-600 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50"
           >
             <HelpCircle className="h-4 w-4" />
           </button>
@@ -180,13 +180,13 @@ export function ReviewQueue({ collection }: ReviewQueueProps) {
 
       {/* Bulk action bar */}
       {pairs.length > 0 && (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-2 text-sm">
           <button onClick={selectAllVisible} className="font-medium text-indigo-600 hover:underline">
             {pairs.every((p) => selected.has(pairId(p.key_a, p.key_b)))
               ? "Deselect page"
               : "Select page"}
           </button>
-          <span className="text-gray-500">{selected.size} selected</span>
+          <span className="text-gray-500 dark:text-gray-400">{selected.size} selected</span>
           <div className="ml-auto flex items-center gap-2">
             <button
               onClick={() => applyBulk("match")}
@@ -236,7 +236,7 @@ export function ReviewQueue({ collection }: ReviewQueueProps) {
                     type="checkbox"
                     checked={selected.has(id)}
                     onChange={() => toggleSelect(p.key_a, p.key_b)}
-                    className="mt-4 h-4 w-4 shrink-0 rounded border-gray-300 accent-indigo-600"
+                    className="mt-4 h-4 w-4 shrink-0 rounded border-gray-300 dark:border-gray-600 accent-indigo-600"
                   />
                   <div className="min-w-0 flex-1">
                     <PairComparison
@@ -252,8 +252,8 @@ export function ReviewQueue({ collection }: ReviewQueueProps) {
 
           {/* Pagination */}
           {total > PAGE_SIZE && (
-            <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm">
-              <span className="text-sm text-gray-500">
+            <div className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 shadow-sm">
+              <span className="text-sm text-gray-500 dark:text-gray-400">
                 Showing {page * PAGE_SIZE + 1}–
                 {Math.min((page + 1) * PAGE_SIZE, total)} of {total}
               </span>
@@ -261,7 +261,7 @@ export function ReviewQueue({ collection }: ReviewQueueProps) {
                 <button
                   disabled={page === 0}
                   onClick={() => setPage((p) => p - 1)}
-                  className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                  className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Prev
@@ -269,7 +269,7 @@ export function ReviewQueue({ collection }: ReviewQueueProps) {
                 <button
                   disabled={page >= totalPages - 1}
                   onClick={() => setPage((p) => p + 1)}
-                  className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                  className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40"
                 >
                   Next
                   <ChevronRight className="h-4 w-4" />

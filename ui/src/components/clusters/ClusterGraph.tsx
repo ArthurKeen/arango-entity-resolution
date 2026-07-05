@@ -76,11 +76,11 @@ function getNodeLabel(node: GraphNodeData): React.ReactNode {
 
   return (
     <div className="min-w-0">
-      <div className="truncate font-semibold text-[11px] text-gray-800">
+      <div className="truncate font-semibold text-[11px] text-gray-800 dark:text-gray-100">
         {node.key}
       </div>
       {entries.map(([k, v]) => (
-        <div key={k} className="truncate text-[10px] text-gray-600">
+        <div key={k} className="truncate text-[10px] text-gray-600 dark:text-gray-300">
           {k}: {v == null ? "—" : String(v)}
         </div>
       ))}
@@ -175,7 +175,7 @@ export function ClusterGraph({
   }
 
   return (
-    <div className="h-full w-full rounded-lg border border-gray-200 bg-white">
+    <div className="h-full w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
       <ReactFlow
         nodes={flowNodes}
         edges={flowEdges}

@@ -63,13 +63,13 @@ export function ExplainMatchModal({
         if (e.target === backdropRef.current) onClose();
       }}
     >
-      <div className="relative mx-4 max-h-[85vh] w-full max-w-3xl overflow-hidden rounded-xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+      <div className="relative mx-4 max-h-[85vh] w-full max-w-3xl overflow-hidden rounded-xl bg-white dark:bg-gray-800 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               Edge Explanation
             </h2>
-            <p className="mt-0.5 text-sm text-gray-500">
+            <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
               <span className="font-mono">{keyA}</span>
               {" ↔ "}
               <span className="font-mono">{keyB}</span>
@@ -79,7 +79,7 @@ export function ExplainMatchModal({
             {data && <ScoreBadge score={data.overall_score} />}
             <button
               onClick={onClose}
-              className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              className="rounded-md p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600"
             >
               <X className="h-5 w-5" />
             </button>
@@ -98,25 +98,25 @@ export function ExplainMatchModal({
           )}
 
           {data && (
-            <div className="overflow-x-auto rounded-lg border border-gray-200">
-              <table className="min-w-full divide-y divide-gray-200 text-sm">
-                <thead className="bg-gray-50">
+            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-900">
                   <tr>
-                    <th className="px-4 py-2.5 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                    <th className="px-4 py-2.5 text-left text-xs font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase">
                       Field
                     </th>
-                    <th className="px-4 py-2.5 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                    <th className="px-4 py-2.5 text-left text-xs font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase">
                       Record A
                     </th>
-                    <th className="px-4 py-2.5 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                    <th className="px-4 py-2.5 text-left text-xs font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase">
                       Record B
                     </th>
-                    <th className="px-4 py-2.5 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+                    <th className="px-4 py-2.5 text-left text-xs font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase">
                       Score
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
                   {allFields.map((field) => {
                     const valA = data.record_a[field];
                     const valB = data.record_b[field];
@@ -128,17 +128,17 @@ export function ExplainMatchModal({
 
                     return (
                       <tr key={field}>
-                        <td className="whitespace-nowrap px-4 py-2 font-medium text-gray-700">
+                        <td className="whitespace-nowrap px-4 py-2 font-medium text-gray-700 dark:text-gray-200">
                           {field}
                         </td>
                         <td
                           className={cn(
                             "max-w-[200px] truncate px-4 py-2",
                             valA == null
-                              ? "italic text-gray-400"
+                              ? "italic text-gray-400 dark:text-gray-500"
                               : differs
                                 ? "bg-amber-50 text-amber-900"
-                                : "text-gray-700",
+                                : "text-gray-700 dark:text-gray-200",
                           )}
                           title={valA != null ? String(valA) : undefined}
                         >
@@ -148,10 +148,10 @@ export function ExplainMatchModal({
                           className={cn(
                             "max-w-[200px] truncate px-4 py-2",
                             valB == null
-                              ? "italic text-gray-400"
+                              ? "italic text-gray-400 dark:text-gray-500"
                               : differs
                                 ? "bg-amber-50 text-amber-900"
-                                : "text-gray-700",
+                                : "text-gray-700 dark:text-gray-200",
                           )}
                           title={valB != null ? String(valB) : undefined}
                         >
@@ -169,12 +169,12 @@ export function ExplainMatchModal({
                                   style={{ width: `${score * 100}%` }}
                                 />
                               </div>
-                              <span className="text-xs font-medium text-gray-600">
+                              <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
                                 {score.toFixed(2)}
                               </span>
                             </div>
                           ) : (
-                            <span className="text-xs text-gray-400">N/A</span>
+                            <span className="text-xs text-gray-400 dark:text-gray-500">N/A</span>
                           )}
                         </td>
                       </tr>

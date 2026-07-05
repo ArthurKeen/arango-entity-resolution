@@ -16,7 +16,7 @@ export function ExportOptions({ value, onChange }: ExportOptionsProps) {
   return (
     <div className="space-y-5">
       <fieldset>
-        <legend className="mb-2 text-sm font-medium text-gray-700">
+        <legend className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-200">
           Format
         </legend>
         <div className="flex gap-4">
@@ -33,14 +33,14 @@ export function ExportOptions({ value, onChange }: ExportOptionsProps) {
                 onChange={() => onChange({ ...value, format: fmt })}
                 className="text-indigo-600 focus:ring-indigo-500"
               />
-              <span className="uppercase text-gray-700">{fmt}</span>
+              <span className="uppercase text-gray-700 dark:text-gray-200">{fmt}</span>
             </label>
           ))}
         </div>
       </fieldset>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
+        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">
           Limit (clusters)
         </label>
         <input
@@ -54,36 +54,36 @@ export function ExportOptions({ value, onChange }: ExportOptionsProps) {
               limit: e.target.value ? Number(e.target.value) : null,
             })
           }
-          className="block w-40 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="block w-40 rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
           Leave empty to export all clusters
         </p>
       </div>
 
       <fieldset className="space-y-2">
-        <legend className="mb-1 text-sm font-medium text-gray-700">
+        <legend className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-200">
           Include
         </legend>
-        <label className="flex items-center gap-2 text-sm text-gray-700">
+        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
           <input
             type="checkbox"
             checked={value.includeGoldenRecords}
             onChange={(e) =>
               onChange({ ...value, includeGoldenRecords: e.target.checked })
             }
-            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            className="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500"
           />
           Golden records
         </label>
-        <label className="flex items-center gap-2 text-sm text-gray-700">
+        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
           <input
             type="checkbox"
             checked={value.includeProvenance}
             onChange={(e) =>
               onChange({ ...value, includeProvenance: e.target.checked })
             }
-            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            className="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500"
           />
           Provenance data
         </label>

@@ -82,10 +82,10 @@ export function ConfigUploader({ onConfigLoaded }: ConfigUploaderProps) {
       : null;
 
   return (
-    <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-5">
+    <div className="space-y-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
       <div className="flex items-center gap-2">
-        <FileText className="h-4 w-4 text-gray-500" />
-        <h3 className="text-sm font-medium text-gray-900">Pipeline Config</h3>
+        <FileText className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+        <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Pipeline Config</h3>
       </div>
 
       <div className="flex gap-2">
@@ -94,7 +94,7 @@ export function ConfigUploader({ onConfigLoaded }: ConfigUploaderProps) {
           className={`rounded-md px-3 py-1.5 text-xs font-medium ${
             mode === "file"
               ? "bg-indigo-100 text-indigo-700"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
           }`}
         >
           Upload File
@@ -104,7 +104,7 @@ export function ConfigUploader({ onConfigLoaded }: ConfigUploaderProps) {
           className={`rounded-md px-3 py-1.5 text-xs font-medium ${
             mode === "paste"
               ? "bg-indigo-100 text-indigo-700"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
           }`}
         >
           Paste Config
@@ -122,7 +122,7 @@ export function ConfigUploader({ onConfigLoaded }: ConfigUploaderProps) {
           />
           <button
             onClick={() => fileRef.current?.click()}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 px-4 py-6 text-sm text-gray-500 transition hover:border-indigo-400 hover:text-indigo-600"
+            className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 px-4 py-6 text-sm text-gray-500 dark:text-gray-400 transition hover:border-indigo-400 hover:text-indigo-600"
           >
             <Upload className="h-5 w-5" />
             {fileName ? fileName : "Choose .json or .yaml file"}
@@ -135,7 +135,7 @@ export function ConfigUploader({ onConfigLoaded }: ConfigUploaderProps) {
             onChange={(e) => setPasteValue(e.target.value)}
             placeholder='Paste JSON config here...\n{\n  "entity_type": "company",\n  "collection": "companies",\n  ...\n}'
             rows={6}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-xs text-gray-800 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 font-mono text-xs text-gray-800 dark:text-gray-100 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
           <button
             onClick={handlePasteApply}
@@ -156,7 +156,7 @@ export function ConfigUploader({ onConfigLoaded }: ConfigUploaderProps) {
 
       {configSummary && (
         <div className="space-y-3">
-          <div className="rounded-md bg-gray-50 p-3 text-xs text-gray-700">
+          <div className="rounded-md bg-gray-50 dark:bg-gray-900 p-3 text-xs text-gray-700 dark:text-gray-200">
             <div className="grid grid-cols-2 gap-2">
               {entityType && (
                 <>
@@ -182,7 +182,7 @@ export function ConfigUploader({ onConfigLoaded }: ConfigUploaderProps) {
           <button
             onClick={handleValidate}
             disabled={isValidating}
-            className="rounded-md bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
+            className="rounded-md bg-gray-100 dark:bg-gray-800 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 disabled:opacity-50"
           >
             {isValidating ? "Validating..." : "Validate Config"}
           </button>

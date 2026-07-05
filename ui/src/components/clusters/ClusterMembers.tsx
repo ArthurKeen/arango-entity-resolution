@@ -46,7 +46,7 @@ export function ClusterMembers({
 }: ClusterMembersProps) {
   if (members.length === 0) {
     return (
-      <p className="py-4 text-center text-sm text-gray-400">
+      <p className="py-4 text-center text-sm text-gray-400 dark:text-gray-500">
         No member records found
       </p>
     );
@@ -64,16 +64,16 @@ export function ClusterMembers({
           <div
             key={key}
             className={cn(
-              "rounded-lg border bg-white p-3 transition-all",
+              "rounded-lg border bg-white dark:bg-gray-800 p-3 transition-all",
               isHighlighted
                 ? "border-indigo-400 ring-2 ring-indigo-200"
-                : "border-gray-200",
+                : "border-gray-200 dark:border-gray-700",
               onMemberClick && "cursor-pointer hover:border-gray-300 hover:shadow-sm",
             )}
             onClick={onMemberClick ? () => onMemberClick(key) : undefined}
           >
             <div className="mb-2 flex items-center justify-between">
-              <span className="font-mono text-xs font-semibold text-gray-800">
+              <span className="font-mono text-xs font-semibold text-gray-800 dark:text-gray-100">
                 {key}
               </span>
               {source && (
@@ -83,10 +83,10 @@ export function ClusterMembers({
             <dl className="space-y-0.5 text-xs">
               {fields.map(([label, value]) => (
                 <div key={label} className="flex gap-2">
-                  <dt className="w-24 shrink-0 truncate font-medium text-gray-500">
+                  <dt className="w-24 shrink-0 truncate font-medium text-gray-500 dark:text-gray-400">
                     {label}:
                   </dt>
-                  <dd className="truncate text-gray-700">{value}</dd>
+                  <dd className="truncate text-gray-700 dark:text-gray-200">{value}</dd>
                 </div>
               ))}
             </dl>

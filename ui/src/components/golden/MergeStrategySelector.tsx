@@ -24,13 +24,13 @@ export function MergeStrategySelector({
 
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-gray-700">
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
         Merge Strategy
       </label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        className="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
       >
         {strategies.map((s) => (
           <option key={s.value} value={s.value}>
@@ -39,7 +39,7 @@ export function MergeStrategySelector({
         ))}
       </select>
       {selected && (
-        <p className="text-xs text-gray-500">{selected.description}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{selected.description}</p>
       )}
     </div>
   );

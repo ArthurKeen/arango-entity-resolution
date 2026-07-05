@@ -59,27 +59,27 @@ export function PipelineResults({ summary, collection: _collection }: PipelineRe
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {candidates != null && (
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <p className="text-xs font-medium text-gray-500">Candidates</p>
-            <p className="mt-1 text-2xl font-semibold text-gray-900">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Candidates</p>
+            <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
               {candidates.toLocaleString()}
             </p>
           </div>
         )}
         {edges != null && (
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <p className="text-xs font-medium text-gray-500">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
               Similarity Edges
             </p>
-            <p className="mt-1 text-2xl font-semibold text-gray-900">
+            <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
               {edges.toLocaleString()}
             </p>
           </div>
         )}
         {clusters != null && (
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <p className="text-xs font-medium text-gray-500">Clusters Found</p>
-            <p className="mt-1 text-2xl font-semibold text-gray-900">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Clusters Found</p>
+            <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
               {clusters.toLocaleString()}
             </p>
           </div>
@@ -90,7 +90,7 @@ export function PipelineResults({ summary, collection: _collection }: PipelineRe
         {clusters != null && (
           <Link
             to="/clusters"
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm transition hover:bg-gray-50 dark:hover:bg-gray-700/50"
           >
             <Network className="h-4 w-4" />
             View {clusters.toLocaleString()} clusters
@@ -99,7 +99,7 @@ export function PipelineResults({ summary, collection: _collection }: PipelineRe
         )}
         <Link
           to="/review"
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm transition hover:bg-gray-50 dark:hover:bg-gray-700/50"
         >
           <ClipboardCheck className="h-4 w-4" />
           Review pairs
@@ -107,7 +107,7 @@ export function PipelineResults({ summary, collection: _collection }: PipelineRe
         </Link>
         <Link
           to="/export"
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm transition hover:bg-gray-50 dark:hover:bg-gray-700/50"
         >
           <Download className="h-4 w-4" />
           Export results
@@ -115,11 +115,11 @@ export function PipelineResults({ summary, collection: _collection }: PipelineRe
       </div>
 
       {Object.keys(result).length > 0 && (
-        <details className="rounded-lg border border-gray-200 bg-white">
-          <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-gray-700">
+        <details className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-200">
             Raw results
           </summary>
-          <pre className="overflow-x-auto border-t border-gray-200 px-4 py-3 text-xs text-gray-600">
+          <pre className="overflow-x-auto border-t border-gray-200 dark:border-gray-700 px-4 py-3 text-xs text-gray-600 dark:text-gray-300">
             {JSON.stringify(result, null, 2)}
           </pre>
         </details>

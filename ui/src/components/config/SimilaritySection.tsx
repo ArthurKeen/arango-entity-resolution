@@ -53,13 +53,13 @@ export function SimilaritySection({
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
           Algorithm
         </label>
         <select
           value={algorithm}
           onChange={(e) => onAlgorithmChange(e.target.value)}
-          className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+          className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
         >
           {ALGORITHMS.map((a) => (
             <option key={a} value={a}>
@@ -70,7 +70,7 @@ export function SimilaritySection({
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
+        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">
           Threshold
         </label>
         <WeightSlider
@@ -84,7 +84,7 @@ export function SimilaritySection({
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700">
+        <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">
           Field Weights
         </label>
         <div className="space-y-2">
@@ -95,7 +95,7 @@ export function SimilaritySection({
                 value={fw.field}
                 onChange={(e) => updateFieldName(idx, e.target.value)}
                 placeholder="Field name"
-                className="w-28 shrink-0 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                className="w-28 shrink-0 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
               />
               <WeightSlider
                 label=""
@@ -121,12 +121,12 @@ export function SimilaritySection({
         <button
           type="button"
           disabled
-          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm opacity-50"
+          className="inline-flex items-center gap-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm opacity-50"
           title="Requires labeled data"
         >
           Estimate Weights
         </button>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
           Requires labeled training data to estimate optimal weights.
         </p>
       </div>

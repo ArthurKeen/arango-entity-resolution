@@ -13,7 +13,7 @@ export function RecordInputForm({
 }: RecordInputFormProps) {
   if (fields.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50/50 px-4 py-8 text-center text-sm text-gray-500">
+      <div className="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50/50 px-4 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
         Select a collection first to load its fields.
       </div>
     );
@@ -33,7 +33,7 @@ export function RecordInputForm({
     <div className="space-y-3">
       {fields.map((field) => (
         <div key={field}>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
             {field}
           </label>
           <input
@@ -41,7 +41,7 @@ export function RecordInputForm({
             value={values[field] ?? ""}
             onChange={(e) => updateField(field, e.target.value)}
             placeholder={`Enter ${field}...`}
-            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+            className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
           />
         </div>
       ))}
@@ -49,7 +49,7 @@ export function RecordInputForm({
         <button
           type="button"
           onClick={clearAll}
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700"
         >
           <Eraser className="h-3.5 w-3.5" />
           Clear All

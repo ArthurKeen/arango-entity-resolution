@@ -24,7 +24,7 @@ export function WeightSlider({
 }: WeightSliderProps) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <span className="w-28 shrink-0 truncate text-sm font-medium text-gray-700">
+      <span className="w-28 shrink-0 truncate text-sm font-medium text-gray-700 dark:text-gray-200">
         {label}
       </span>
       <input
@@ -36,14 +36,14 @@ export function WeightSlider({
         onChange={(e) => onChange(parseFloat(e.target.value))}
         className="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-gray-200 accent-indigo-600"
       />
-      <span className="w-12 shrink-0 text-right font-mono text-sm tabular-nums text-gray-600">
+      <span className="w-12 shrink-0 text-right font-mono text-sm tabular-nums text-gray-600 dark:text-gray-300">
         {value.toFixed(2)}
       </span>
       {onRemove && (
         <button
           type="button"
           onClick={onRemove}
-          className="rounded p-0.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+          className="rounded p-0.5 text-gray-400 dark:text-gray-500 hover:bg-red-50 hover:text-red-500"
           title="Remove"
         >
           <X className="h-4 w-4" />

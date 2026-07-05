@@ -65,8 +65,8 @@ export function ThresholdTunerPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-lg font-semibold text-gray-900">Threshold Tuner</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Threshold Tuner</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Set the low/high decision bands against the live score distribution.
           Pairs at or above <span className="font-medium text-green-600">high</span> auto-match,
           below <span className="font-medium text-red-600">low</span> auto-reject, and the
@@ -74,7 +74,7 @@ export function ThresholdTunerPage() {
         </p>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-5">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
         {dist.isLoading ? (
           <div className="py-16">
             <LoadingSpinner size="lg" />
@@ -142,17 +142,17 @@ export function ThresholdTunerPage() {
       </div>
 
       {buckets.length > 0 && (
-        <div className="rounded-lg border border-gray-200 bg-white p-5">
-          <h2 className="text-sm font-semibold text-gray-900">
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Boundary pairs near the high handle ({high.toFixed(2)})
           </h2>
-          <p className="mt-1 mb-4 text-xs text-gray-500">
+          <p className="mt-1 mb-4 text-xs text-gray-500 dark:text-gray-400">
             What the match cutoff currently captures — review these to sanity-check the threshold.
           </p>
           {boundary.isLoading ? (
             <LoadingSpinner />
           ) : (boundary.data?.pairs.length ?? 0) === 0 ? (
-            <p className="py-4 text-sm text-gray-400">No pairs within ±0.05 of {high.toFixed(2)}.</p>
+            <p className="py-4 text-sm text-gray-400 dark:text-gray-500">No pairs within ±0.05 of {high.toFixed(2)}.</p>
           ) : (
             <div className="space-y-4">
               {boundary.data!.pairs.map((p, i) => (

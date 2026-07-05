@@ -141,7 +141,7 @@ export function ClusterDetail() {
       {/* Back button */}
       <button
         onClick={() => navigate("/clusters")}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to clusters
@@ -150,10 +150,10 @@ export function ClusterDetail() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
             Cluster {detail.representative ?? detail.cluster_id}
           </h2>
-          <div className="mt-1 flex items-center gap-3 text-sm text-gray-500">
+          <div className="mt-1 flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
             <span>{detail.size} members</span>
             <span className="text-gray-300">|</span>
             {detail.quality_score != null && (
@@ -183,14 +183,14 @@ export function ClusterDetail() {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             to={`/golden/${collection}/${key}`}
-            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50"
           >
             <ExternalLink className="h-3.5 w-3.5" />
             View Golden Record
           </Link>
           <button
             onClick={() => setShowHistory((s) => !s)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50"
           >
             <History className="h-3.5 w-3.5" />
             {showHistory ? "Hide history" : "History"}
@@ -236,21 +236,21 @@ export function ClusterDetail() {
       )}
 
       {showHistory && (
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <h3 className="mb-3 text-sm font-semibold text-gray-700">Audit history</h3>
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+          <h3 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-200">Audit history</h3>
           {history.isLoading ? (
             <LoadingSpinner />
           ) : (history.data?.entries.length ?? 0) === 0 ? (
-            <p className="text-sm text-gray-400">No recorded edits for this cluster.</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">No recorded edits for this cluster.</p>
           ) : (
-            <ul className="divide-y divide-gray-100 text-sm">
+            <ul className="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
               {history.data!.entries.map((e) => (
                 <li key={e._key} className="flex items-center gap-3 py-2">
-                  <span className="inline-block rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+                  <span className="inline-block rounded bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-700 dark:text-gray-200">
                     {e.action}
                   </span>
-                  <span className="text-gray-600">{e.actor}</span>
-                  <span className="ml-auto text-xs text-gray-400">
+                  <span className="text-gray-600 dark:text-gray-300">{e.actor}</span>
+                  <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">
                     {new Date(e.ts * 1000).toLocaleString()}
                   </span>
                 </li>
@@ -264,8 +264,8 @@ export function ClusterDetail() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         {/* Members list — ~40% */}
         <div className="lg:col-span-2">
-          <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4">
-            <h3 className="mb-3 text-sm font-semibold text-gray-700">
+          <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/50 p-4">
+            <h3 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-200">
               Members ({detail.members.length})
             </h3>
             <div className="max-h-[600px] overflow-y-auto">
@@ -280,7 +280,7 @@ export function ClusterDetail() {
 
         {/* Graph — ~60% */}
         <div className="lg:col-span-3">
-          <div className="h-[600px] rounded-lg border border-gray-200 bg-gray-50/50 p-1">
+          <div className="h-[600px] rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/50 p-1">
             {graphLoading ? (
               <LoadingSpinner className="h-full" />
             ) : (

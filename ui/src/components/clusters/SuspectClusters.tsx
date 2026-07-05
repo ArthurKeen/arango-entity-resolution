@@ -35,31 +35,31 @@ export function SuspectClusters({ collection }: { collection: string }) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200">
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
-        <thead className="bg-gray-50">
+    <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+        <thead className="bg-gray-50 dark:bg-gray-900">
           <tr>
             {["Cluster", "Reason", "Mean edge score", "Members", ""].map((h) => (
-              <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+              <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                 {h}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200 bg-white">
+        <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
           {clusters.map((c) => (
-            <tr key={c.cluster_key} className="hover:bg-gray-50">
-              <td className="px-4 py-3 font-mono text-gray-700">{c.cluster_key}</td>
+            <tr key={c.cluster_key} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+              <td className="px-4 py-3 font-mono text-gray-700 dark:text-gray-200">{c.cluster_key}</td>
               <td className="px-4 py-3">
                 <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
                   <AlertTriangle className="h-3 w-3" />
                   {REASON_LABELS[c.reason] ?? c.reason}
                 </span>
               </td>
-              <td className="px-4 py-3 text-gray-700">
+              <td className="px-4 py-3 text-gray-700 dark:text-gray-200">
                 {c.mean_edge_score != null ? c.mean_edge_score.toFixed(2) : "—"}
               </td>
-              <td className="px-4 py-3 text-gray-500">{c.members?.length ?? 0}</td>
+              <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{c.members?.length ?? 0}</td>
               <td className="px-4 py-3">
                 <Link
                   to={`/clusters/${collection}/${c.cluster_key}`}

@@ -95,15 +95,15 @@ export function GoldenRecordDetailPage() {
       <div className="flex items-center gap-3">
         <Link
           to="/golden"
-          className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          className="rounded-md p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600"
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Golden Record — {key}
           </h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Collection: {collection}
             {_strategy && <> · Strategy: {_strategy}</>}
           </p>
@@ -111,7 +111,7 @@ export function GoldenRecordDetailPage() {
       </div>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-gray-900">
+        <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
           Merged Fields
         </h2>
         <GoldenRecordView
@@ -123,7 +123,7 @@ export function GoldenRecordDetailPage() {
 
       {sourceRecords.length > 0 && (
         <section>
-          <h2 className="mb-3 text-sm font-semibold text-gray-900">
+          <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
             Source Records ({sourceRecords.length})
           </h2>
           <SourceRecords
@@ -144,7 +144,7 @@ export function GoldenRecordDetailPage() {
 
       {Object.keys(provenance).length > 0 && (
         <section>
-          <h2 className="mb-3 text-sm font-semibold text-gray-900">
+          <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
             Field Provenance
           </h2>
           <ProvenanceTable provenance={provenance} />

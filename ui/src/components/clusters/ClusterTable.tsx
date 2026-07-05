@@ -90,16 +90,16 @@ export function ClusterTable({
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+          <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
               {selectable && <th className="w-10 px-4 py-3" />}
               {COLUMNS.map((col) => (
                 <th
                   key={col.key}
                   className={cn(
-                    "px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase",
+                    "px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase",
                     col.sortable &&
                       "cursor-pointer select-none hover:text-gray-700",
                   )}
@@ -123,17 +123,17 @@ export function ClusterTable({
                   </div>
                 </th>
               ))}
-              <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+              <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 bg-white">
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
             {sorted.length === 0 ? (
               <tr>
                 <td
                   colSpan={COLUMNS.length + 1 + (selectable ? 1 : 0)}
-                  className="px-4 py-8 text-center text-gray-400"
+                  className="px-4 py-8 text-center text-gray-400 dark:text-gray-500"
                 >
                   No clusters found
                 </td>
@@ -145,7 +145,7 @@ export function ClusterTable({
                 return (
                   <tr
                     key={row.cluster_id}
-                    className="cursor-pointer transition-colors hover:bg-gray-50"
+                    className="cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50"
                     onClick={() =>
                       navigate(`/clusters/${collection}/${row.cluster_id}`)
                     }
@@ -156,11 +156,11 @@ export function ClusterTable({
                           type="checkbox"
                           checked={selectedKeys?.has(row.cluster_id) ?? false}
                           onChange={() => onToggleSelect!(row.cluster_id)}
-                          className="h-4 w-4 rounded border-gray-300 accent-indigo-600"
+                          className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 accent-indigo-600"
                         />
                       </td>
                     )}
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-sm text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 font-mono text-sm text-gray-700 dark:text-gray-200">
                       <div className="flex items-center gap-1.5">
                         {lowQuality && (
                           <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
@@ -168,22 +168,22 @@ export function ClusterTable({
                         {row.representative ?? row.cluster_id}
                       </div>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-gray-700 dark:text-gray-200">
                       {row.size}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
                       {row.quality_score != null ? (
                         <ScoreBadge score={row.quality_score} />
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <span className="text-gray-400 dark:text-gray-500">—</span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-gray-700 dark:text-gray-200">
                       {row.average_similarity != null
                         ? row.average_similarity.toFixed(2)
                         : "—"}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-3 text-gray-700 dark:text-gray-200">
                       {row.density != null ? row.density.toFixed(2) : "—"}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
@@ -208,7 +208,7 @@ export function ClusterTable({
         </table>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-gray-500">
+      <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
         <div className="flex items-center gap-2">
           <span>Rows per page:</span>
           <select
@@ -217,7 +217,7 @@ export function ClusterTable({
               onLimitChange(Number(e.target.value));
               onPageChange(0);
             }}
-            className="rounded border border-gray-300 px-1 py-0.5 text-sm"
+            className="rounded border border-gray-300 dark:border-gray-600 px-1 py-0.5 text-sm"
           >
             {[10, 20, 50].map((n) => (
               <option key={n} value={n}>
@@ -236,14 +236,14 @@ export function ClusterTable({
             <button
               disabled={!canPrev}
               onClick={() => onPageChange(Math.max(0, offset - limit))}
-              className="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-40"
+              className="rounded px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40"
             >
               Prev
             </button>
             <button
               disabled={!canNext}
               onClick={() => onPageChange(offset + limit)}
-              className="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-40"
+              className="rounded px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40"
             >
               Next
             </button>

@@ -32,17 +32,17 @@ export function ConflictResolver({
             {alternatives.map((alt, idx) => (
               <div
                 key={idx}
-                className="flex items-center justify-between rounded-md border border-amber-200 bg-white px-4 py-2.5 text-sm"
+                className="flex items-center justify-between rounded-md border border-amber-200 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm"
               >
                 <div className="flex flex-1 items-center gap-4">
-                  <span className="font-medium text-gray-700">
+                  <span className="font-medium text-gray-700 dark:text-gray-200">
                     {alt.source}
                   </span>
-                  <span className="text-gray-600">
+                  <span className="text-gray-600 dark:text-gray-300">
                     {String(alt.value ?? "—")}
                   </span>
                   {alt.updatedAt && (
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-400 dark:text-gray-500">
                       {alt.updatedAt}
                     </span>
                   )}
@@ -58,7 +58,7 @@ export function ConflictResolver({
           </div>
 
           <div className="mt-3 flex items-center gap-2">
-            <span className="text-xs font-medium text-gray-600">
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
               Manual Override:
             </span>
             <input
@@ -66,7 +66,7 @@ export function ConflictResolver({
               value={manualValue}
               onChange={(e) => setManualValue(e.target.value)}
               placeholder="Enter custom value…"
-              className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
             <button
               onClick={() => {

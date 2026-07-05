@@ -47,10 +47,10 @@ export function Sidebar() {
   const pendingCount = reviewStats?.total ?? 0;
 
   return (
-    <aside className="flex h-screen w-60 flex-col border-r border-gray-200 bg-gray-50">
-      <div className="flex h-14 items-center gap-2 border-b border-gray-200 px-4">
+    <aside className="flex h-screen w-60 flex-col border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+      <div className="flex h-14 items-center gap-2 border-b border-gray-200 dark:border-gray-700 px-4">
         <Network className="h-6 w-6 text-indigo-600" />
-        <span className="text-sm font-semibold text-gray-900">
+        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
           Entity Resolution
         </span>
       </div>
@@ -66,7 +66,7 @@ export function Sidebar() {
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                 isActive
                   ? "bg-indigo-50 text-indigo-700"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900",
               )
             }
           >
@@ -81,8 +81,8 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t border-gray-200 p-4">
-        <label className="mb-1 block text-xs font-medium text-gray-500">
+      <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+        <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
           Collection
         </label>
         <select
@@ -90,7 +90,7 @@ export function Sidebar() {
           onChange={(e) =>
             setSelectedCollection(e.target.value || null)
           }
-          className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-700 dark:text-gray-200 shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
         >
           <option value="">Select collection...</option>
           {collections?.map((c: { name: string }) => (

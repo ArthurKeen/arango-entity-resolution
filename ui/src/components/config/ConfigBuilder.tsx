@@ -80,24 +80,24 @@ function AccordionItem({
   children,
 }: AccordionItemProps) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white">
+    <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50"
       >
         {isOpen ? (
-          <ChevronDown className="h-4 w-4 shrink-0 text-gray-500" />
+          <ChevronDown className="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" />
         ) : (
-          <ChevronRight className="h-4 w-4 shrink-0 text-gray-500" />
+          <ChevronRight className="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" />
         )}
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700">
           {step}
         </span>
-        <span className="text-sm font-semibold text-gray-900">{title}</span>
+        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</span>
       </button>
       {isOpen && (
-        <div className="border-t border-gray-200 px-4 py-4">{children}</div>
+        <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-4">{children}</div>
       )}
     </div>
   );
@@ -455,19 +455,19 @@ export function ConfigBuilder() {
           <p className="mb-2 text-sm font-medium text-blue-800">
             Simulation Results
           </p>
-          <pre className="max-h-60 overflow-auto rounded bg-white p-3 text-xs text-gray-700">
+          <pre className="max-h-60 overflow-auto rounded bg-white dark:bg-gray-800 p-3 text-xs text-gray-700 dark:text-gray-200">
             {JSON.stringify(simResult, null, 2)}
           </pre>
         </div>
       )}
 
       {/* Action bar */}
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-4 py-3">
         <button
           type="button"
           onClick={handleValidate}
           disabled={validating}
-          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 disabled:opacity-50"
         >
           <ShieldCheck className="h-4 w-4" />
           Validate
@@ -478,7 +478,7 @@ export function ConfigBuilder() {
           type="button"
           onClick={handleSimulate}
           disabled={simulating}
-          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 disabled:opacity-50"
         >
           <FlaskConical className="h-4 w-4" />
           Simulate
@@ -489,7 +489,7 @@ export function ConfigBuilder() {
           type="button"
           onClick={handleExport}
           disabled={exporting}
-          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 disabled:opacity-50"
         >
           <Download className="h-4 w-4" />
           Export YAML

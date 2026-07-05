@@ -35,7 +35,7 @@ export function CollectionSection({
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
           Entity Type
         </label>
         <input
@@ -43,17 +43,17 @@ export function CollectionSection({
           value={entityType}
           onChange={(e) => onEntityTypeChange(e.target.value)}
           placeholder="e.g. company, person, product"
-          className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+          className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
           Collection
         </label>
         <div className="mt-1 flex items-center gap-3">
           <div className="relative flex-1">
-            <Database className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Database className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <select
               value={collectionName}
               onChange={(e) => {
@@ -61,7 +61,7 @@ export function CollectionSection({
                 setShowProfile(false);
               }}
               disabled={collectionsLoading}
-              className="block w-full appearance-none rounded-md border border-gray-300 bg-white py-2 pl-9 pr-8 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none disabled:opacity-50"
+              className="block w-full appearance-none rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 py-2 pl-9 pr-8 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none disabled:opacity-50"
             >
               <option value="">Select a collection...</option>
               {collections?.map((c) => (
@@ -72,7 +72,7 @@ export function CollectionSection({
             </select>
           </div>
           {selectedCol && (
-            <span className="shrink-0 text-sm text-gray-500">
+            <span className="shrink-0 text-sm text-gray-500 dark:text-gray-400">
               {selectedCol.count.toLocaleString()} docs
             </span>
           )}
@@ -84,7 +84,7 @@ export function CollectionSection({
           type="button"
           onClick={handleProfile}
           disabled={!collectionName || profileLoading}
-          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 disabled:opacity-50"
         >
           <BarChart3 className="h-4 w-4" />
           Profile Dataset
@@ -93,22 +93,22 @@ export function CollectionSection({
       </div>
 
       {showProfile && profile && (
-        <div className="overflow-x-auto rounded-lg border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50">
+        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-900">
               <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   Field
                 </th>
-                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   Null Rate
                 </th>
-                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   Distinct Count
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
               {Object.entries(profile.null_rates).map(([field, rate]) => {
                 const stats = profile.field_stats[field] as
                   | Record<string, unknown>
@@ -119,13 +119,13 @@ export function CollectionSection({
                     : "—";
                 return (
                   <tr key={field}>
-                    <td className="whitespace-nowrap px-4 py-2 font-medium text-gray-700">
+                    <td className="whitespace-nowrap px-4 py-2 font-medium text-gray-700 dark:text-gray-200">
                       {field}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-2 text-gray-600">
+                    <td className="whitespace-nowrap px-4 py-2 text-gray-600 dark:text-gray-300">
                       {(rate * 100).toFixed(1)}%
                     </td>
-                    <td className="whitespace-nowrap px-4 py-2 text-gray-600">
+                    <td className="whitespace-nowrap px-4 py-2 text-gray-600 dark:text-gray-300">
                       {typeof distinct === "number"
                         ? distinct.toLocaleString()
                         : distinct}

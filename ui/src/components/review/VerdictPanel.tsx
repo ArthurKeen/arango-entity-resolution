@@ -86,14 +86,14 @@ export function VerdictPanel({
 
   return (
     <div className="flex flex-col items-center gap-2 pt-3">
-    <div className="flex items-center gap-2 text-xs text-gray-500">
+    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
       <span>Confidence</span>
       <input
         type="range" min={0} max={1} step={0.05} value={confidence}
         onChange={(e) => setConfidence(parseFloat(e.target.value))}
         className="w-32 accent-indigo-600"
       />
-      <span className="w-8 font-mono text-gray-700">{confidence.toFixed(2)}</span>
+      <span className="w-8 font-mono text-gray-700 dark:text-gray-200">{confidence.toFixed(2)}</span>
     </div>
     <div className="flex items-center justify-center gap-3">
       <button
@@ -146,7 +146,7 @@ export function VerdictPanel({
         disabled={busy || submitted !== null}
         onClick={() => submit("skip")}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50",
+          "inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50 disabled:opacity-50",
           submitted === "skip" && "bg-gray-200",
         )}
       >
@@ -158,7 +158,7 @@ export function VerdictPanel({
             Skip
           </>
         )}
-        <kbd className="ml-1 rounded bg-gray-200 px-1 py-0.5 text-[10px] font-mono text-gray-500">
+        <kbd className="ml-1 rounded bg-gray-200 px-1 py-0.5 text-[10px] font-mono text-gray-500 dark:text-gray-400">
           S
         </kbd>
       </button>

@@ -16,16 +16,16 @@ export function FieldScoreBar({ fieldName, score }: FieldScoreBarProps) {
 
   return (
     <div className="flex items-center gap-3">
-      <span className="w-24 shrink-0 text-xs font-medium text-gray-600 truncate">
+      <span className="w-24 shrink-0 text-xs font-medium text-gray-600 dark:text-gray-300 truncate">
         {fieldName}
       </span>
-      <div className="relative h-5 flex-1 rounded-full bg-gray-100">
+      <div className="relative h-5 flex-1 rounded-full bg-gray-100 dark:bg-gray-800">
         <div
           className={cn("h-full rounded-full transition-all", scoreColor(score))}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="w-10 shrink-0 text-right text-xs font-mono tabular-nums text-gray-700">
+      <span className="w-10 shrink-0 text-right text-xs font-mono tabular-nums text-gray-700 dark:text-gray-200">
         {score.toFixed(2)}
       </span>
     </div>

@@ -34,17 +34,17 @@ export function DistributionChart({ collection }: DistributionChartProps) {
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <div className="rounded-lg border border-gray-200 bg-white p-5">
-        <h3 className="mb-4 text-sm font-medium text-gray-700">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+        <h3 className="mb-4 text-sm font-medium text-gray-700 dark:text-gray-200">
           Cluster Size Distribution
         </h3>
         <div className="h-48">
           {isLoading ? (
-            <div className="flex h-full items-center justify-center text-xs text-gray-400">
+            <div className="flex h-full items-center justify-center text-xs text-gray-400 dark:text-gray-500">
               Loading…
             </div>
           ) : sizeData.length === 0 ? (
-            <div className="flex h-full items-center justify-center text-xs text-gray-400">
+            <div className="flex h-full items-center justify-center text-xs text-gray-400 dark:text-gray-500">
               No clusters yet — run a pipeline to populate this chart.
             </div>
           ) : (
@@ -82,15 +82,15 @@ export function DistributionChart({ collection }: DistributionChartProps) {
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-5">
-        <h3 className="mb-4 text-sm font-medium text-gray-700">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+        <h3 className="mb-4 text-sm font-medium text-gray-700 dark:text-gray-200">
           Cluster Summary
         </h3>
         <dl className="grid grid-cols-2 gap-4">
           {summary.map((s) => (
-            <div key={s.label} className="rounded-md bg-gray-50 p-3">
-              <dt className="text-xs text-gray-500">{s.label}</dt>
-              <dd className="mt-1 text-lg font-semibold text-gray-900">
+            <div key={s.label} className="rounded-md bg-gray-50 dark:bg-gray-900 p-3">
+              <dt className="text-xs text-gray-500 dark:text-gray-400">{s.label}</dt>
+              <dd className="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {s.value}
               </dd>
             </div>

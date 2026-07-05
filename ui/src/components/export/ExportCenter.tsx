@@ -76,8 +76,8 @@ export function ExportCenter() {
 
   return (
     <div className="space-y-8">
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
-        <h3 className="mb-4 text-sm font-semibold text-gray-900">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+        <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
           Export Configuration
         </h3>
 
@@ -105,29 +105,29 @@ export function ExportCenter() {
         )}
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
-        <h3 className="mb-4 text-sm font-semibold text-gray-900">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6">
+        <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
           Export History
         </h3>
 
         {history.length === 0 ? (
-          <p className="py-4 text-center text-sm text-gray-400">
+          <p className="py-4 text-center text-sm text-gray-400 dark:text-gray-500">
             No exports yet. Configure options above and click Export.
           </p>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {history.map((entry, idx) => (
               <div
                 key={idx}
                 className="flex items-center justify-between py-3 text-sm"
               >
                 <div className="flex items-center gap-3">
-                  <FileDown className="h-4 w-4 text-gray-400" />
+                  <FileDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   <div>
-                    <p className="font-medium text-gray-800">
+                    <p className="font-medium text-gray-800 dark:text-gray-100">
                       {entry.filename}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {entry.format} · {entry.recordCount} clusters ·{" "}
                       {entry.exportedAt}
                     </p>
@@ -136,7 +136,7 @@ export function ExportCenter() {
                 <a
                   href={downloadExport(entry.collection, entry.filename)}
                   download
-                  className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                  className="rounded-md border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"
                 >
                   Download
                 </a>

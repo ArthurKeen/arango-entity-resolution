@@ -15,7 +15,7 @@ export function ClusterFilters({
 }: ClusterFiltersProps) {
   return (
     <div className="flex flex-wrap items-center gap-4">
-      <label className="flex items-center gap-2 text-sm text-gray-700">
+      <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
         <span className="whitespace-nowrap font-medium">Min size:</span>
         <input
           type="number"
@@ -25,7 +25,7 @@ export function ClusterFilters({
             const v = parseInt(e.target.value, 10);
             if (!isNaN(v) && v >= 1) onMinSizeChange(v);
           }}
-          className="w-20 rounded-md border border-gray-300 px-2 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+          className="w-20 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
         />
       </label>
       <SearchBar

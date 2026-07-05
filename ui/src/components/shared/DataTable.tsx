@@ -69,15 +69,15 @@ export function DataTable<T>({
 
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto rounded-lg border border-gray-200">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
+      <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+          <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
               {columns.map((col, idx) => (
                 <th
                   key={idx}
                   className={cn(
-                    "px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase",
+                    "px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase",
                     col.sortable && "cursor-pointer select-none hover:text-gray-700",
                   )}
                   onClick={col.sortable ? () => handleSort(idx) : undefined}
@@ -102,12 +102,12 @@ export function DataTable<T>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 bg-white">
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
             {pageData.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length}
-                  className="px-4 py-8 text-center text-gray-400"
+                  className="px-4 py-8 text-center text-gray-400 dark:text-gray-500"
                 >
                   No data available
                 </td>
@@ -118,7 +118,7 @@ export function DataTable<T>({
                   key={rowIdx}
                   className={cn(
                     "transition-colors",
-                    onRowClick && "cursor-pointer hover:bg-gray-50",
+                    onRowClick && "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50",
                   )}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                 >
@@ -127,7 +127,7 @@ export function DataTable<T>({
                     return (
                       <td
                         key={colIdx}
-                        className="whitespace-nowrap px-4 py-3 text-gray-700"
+                        className="whitespace-nowrap px-4 py-3 text-gray-700 dark:text-gray-200"
                       >
                         {col.render ? col.render(value, row) : String(value ?? "")}
                       </td>
@@ -140,7 +140,7 @@ export function DataTable<T>({
         </table>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-gray-500">
+      <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
         <div className="flex items-center gap-2">
           <span>Rows per page:</span>
           <select
@@ -149,7 +149,7 @@ export function DataTable<T>({
               setPageSize(Number(e.target.value));
               setPage(0);
             }}
-            className="rounded border border-gray-300 px-1 py-0.5 text-sm"
+            className="rounded border border-gray-300 dark:border-gray-600 px-1 py-0.5 text-sm"
           >
             {pageSizeOptions.map((s) => (
               <option key={s} value={s}>
@@ -168,14 +168,14 @@ export function DataTable<T>({
             <button
               disabled={page === 0}
               onClick={() => setPage((p) => p - 1)}
-              className="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-40"
+              className="rounded px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40"
             >
               Prev
             </button>
             <button
               disabled={page >= totalPages - 1}
               onClick={() => setPage((p) => p + 1)}
-              className="rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-40"
+              className="rounded px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40"
             >
               Next
             </button>

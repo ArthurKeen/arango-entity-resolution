@@ -95,20 +95,20 @@ export function PairComparison({
   const diffFields = extractDisplayFields(docA, docB);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
       {/* Header */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-gray-100 bg-gray-50 px-5 py-3">
-        <span className="text-sm font-semibold text-gray-700">
+      <div className="flex flex-wrap items-center gap-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-5 py-3">
+        <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
           Pair #{index + 1}
         </span>
-        <span className="text-xs text-gray-400">|</span>
-        <span className="text-sm text-gray-600">
+        <span className="text-xs text-gray-400 dark:text-gray-500">|</span>
+        <span className="text-sm text-gray-600 dark:text-gray-300">
           Score: <ScoreBadge score={overallScore} />
         </span>
         {llmVerdict && (
           <>
-            <span className="text-xs text-gray-400">|</span>
-            <span className="text-sm text-gray-600">
+            <span className="text-xs text-gray-400 dark:text-gray-500">|</span>
+            <span className="text-sm text-gray-600 dark:text-gray-300">
               LLM:{" "}
               <Badge
                 variant={
@@ -122,7 +122,7 @@ export function PairComparison({
                 {llmVerdict}
               </Badge>
               {llmConfidence != null && (
-                <span className="ml-1 text-xs text-gray-400">
+                <span className="ml-1 text-xs text-gray-400 dark:text-gray-500">
                   ({llmConfidence.toFixed(2)})
                 </span>
               )}
@@ -131,7 +131,7 @@ export function PairComparison({
         )}
         {pair.source === "human" && pair.reviewer && (
           <>
-            <span className="text-xs text-gray-400">|</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">|</span>
             <span
               className="inline-flex items-center gap-1 rounded bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700"
               title={pair.ts ? new Date(pair.ts * 1000).toLocaleString() : undefined}
@@ -145,7 +145,7 @@ export function PairComparison({
             </span>
           </>
         )}
-        <div className="ml-auto flex gap-2 text-xs text-gray-400">
+        <div className="ml-auto flex gap-2 text-xs text-gray-400 dark:text-gray-500">
           <code>{pair.key_a}</code>
           <span>↔</span>
           <code>{pair.key_b}</code>
@@ -170,7 +170,7 @@ export function PairComparison({
             {/* Field-level scores */}
             {Object.keys(fieldScores).length > 0 && (
               <div className="space-y-1.5">
-                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Field Scores
                 </h4>
                 <div className="space-y-1">
@@ -202,7 +202,7 @@ export function PairComparison({
         )}
 
         {/* Verdict panel */}
-        <div className="border-t border-gray-100 pt-1">
+        <div className="border-t border-gray-100 dark:border-gray-700 pt-1">
           <VerdictPanel
             collection={collection}
             keyA={pair.key_a}

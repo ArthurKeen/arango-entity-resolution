@@ -103,39 +103,39 @@ export function GoldenRecordView({
 
   if (entries.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-gray-400">
+      <p className="py-8 text-center text-sm text-gray-400 dark:text-gray-500">
         No fields in golden record
       </p>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200">
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
-        <thead className="bg-gray-50">
+    <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+        <thead className="bg-gray-50 dark:bg-gray-900">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase">
               Field
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase">
               Value
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase">
               Source
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase">
               Confidence
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200 bg-white">
+        <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
           {entries.map((entry) => (
             <Fragment key={entry.field}>
               <tr
                 className={
                   entry.hasConflict
                     ? "cursor-pointer bg-amber-50/50 hover:bg-amber-50"
-                    : "hover:bg-gray-50"
+                    : "hover:bg-gray-50 dark:hover:bg-gray-700/50"
                 }
                 onClick={
                   entry.hasConflict
@@ -148,7 +148,7 @@ export function GoldenRecordView({
                     : undefined
                 }
               >
-                <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-700">
+                <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-700 dark:text-gray-200">
                   <div className="flex items-center gap-1.5">
                     {entry.field}
                     {entry.hasConflict && (
@@ -156,17 +156,17 @@ export function GoldenRecordView({
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-gray-700">
+                <td className="px-4 py-3 text-gray-700 dark:text-gray-200">
                   {formatValue(entry.value)}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-gray-600">
+                <td className="whitespace-nowrap px-4 py-3 text-gray-600 dark:text-gray-300">
                   {entry.source}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3">
                   {entry.confidence > 0 ? (
                     <ScoreBadge score={entry.confidence} />
                   ) : (
-                    <span className="text-gray-400">—</span>
+                    <span className="text-gray-400 dark:text-gray-500">—</span>
                   )}
                 </td>
               </tr>

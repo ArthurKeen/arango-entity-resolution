@@ -10,7 +10,7 @@ const TYPE_COLORS: Record<string, string> = {
   phone: "bg-purple-50 text-purple-700",
   date: "bg-teal-50 text-teal-700",
   numeric: "bg-amber-50 text-amber-700",
-  id: "bg-gray-100 text-gray-700",
+  id: "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200",
   person_name: "bg-green-50 text-green-700",
   org_name: "bg-emerald-50 text-emerald-700",
   address: "bg-orange-50 text-orange-700",
@@ -69,10 +69,10 @@ export function ProfilePage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">Data Profile</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Data Profile</h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Detected field types, completeness, cardinality, and sample values for{" "}
-            <span className="font-medium text-gray-700">{selectedCollection}</span>
+            <span className="font-medium text-gray-700 dark:text-gray-200">{selectedCollection}</span>
             {data ? ` (sampled ${data.sampled_docs} docs)` : ""}.
           </p>
         </div>
@@ -93,30 +93,30 @@ export function ProfilePage() {
           description="The sampled documents had no non-system fields to profile."
         />
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50">
+        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-900">
               <tr>
                 {["Field", "Type", "Completeness", "Distinct", "Samples"].map((h) => (
                   <th
                     key={h}
-                    className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                    className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
                   >
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
               {fields.map(([name, f]) => (
-                <tr key={name} className="hover:bg-gray-50">
-                  <td className="whitespace-nowrap px-4 py-3 font-mono font-medium text-gray-800">
+                <tr key={name} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <td className="whitespace-nowrap px-4 py-3 font-mono font-medium text-gray-800 dark:text-gray-100">
                     {name}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3">
                     <span
                       className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
-                        TYPE_COLORS[f.type] ?? "bg-gray-100 text-gray-700"
+                        TYPE_COLORS[f.type] ?? "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200"
                       }`}
                     >
                       {f.type}
@@ -124,24 +124,24 @@ export function ProfilePage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-gray-100">
+                      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
                         <div
                           className="h-full rounded-full bg-indigo-500"
                           style={{ width: `${Math.round(f.completeness * 100)}%` }}
                         />
                       </div>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
                         {Math.round(f.completeness * 100)}%
                       </span>
                     </div>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-gray-600">
+                  <td className="whitespace-nowrap px-4 py-3 text-gray-600 dark:text-gray-300">
                     {f.stats.distinct}
-                    <span className="ml-1 text-xs text-gray-400">
+                    <span className="ml-1 text-xs text-gray-400 dark:text-gray-500">
                       ({Math.round(f.stats.cardinality * 100)}%)
                     </span>
                   </td>
-                  <td className="max-w-xs px-4 py-3 text-gray-500">
+                  <td className="max-w-xs px-4 py-3 text-gray-500 dark:text-gray-400">
                     <span className="line-clamp-1 font-mono text-xs">
                       {f.samples.join(" · ") || "—"}
                     </span>

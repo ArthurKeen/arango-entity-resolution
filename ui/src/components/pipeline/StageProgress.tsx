@@ -47,7 +47,7 @@ const statusIcons = {
 } as const;
 
 const statusColors = {
-  waiting: "text-gray-400",
+  waiting: "text-gray-400 dark:text-gray-500",
   running: "text-blue-500",
   complete: "text-green-500",
   error: "text-red-500",
@@ -66,7 +66,7 @@ export function StageProgress({
   const resultSummary = formatResultSummary(name, result);
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3">
+    <div className="flex flex-col gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
       <div className="flex items-center gap-3">
         <Icon
           className={cn(
@@ -76,14 +76,14 @@ export function StageProgress({
           )}
         />
 
-        <span className="min-w-[120px] text-sm font-medium text-gray-900">
+        <span className="min-w-[120px] text-sm font-medium text-gray-900 dark:text-gray-100">
           {formatStageName(name)}
         </span>
 
         <div className="flex-1">
           {(status === "running" || status === "complete") &&
             progress != null && (
-              <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
                 <div
                   className={cn(
                     "h-full rounded-full transition-all duration-300",
@@ -95,7 +95,7 @@ export function StageProgress({
             )}
         </div>
 
-        <div className="flex items-center gap-3 text-xs text-gray-500">
+        <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
           {progress != null && status === "running" && (
             <span>{Math.round(progress * 100)}%</span>
           )}
@@ -105,7 +105,7 @@ export function StageProgress({
       </div>
 
       {resultSummary && status === "complete" && (
-        <p className="ml-8 text-xs text-gray-500">{resultSummary}</p>
+        <p className="ml-8 text-xs text-gray-500 dark:text-gray-400">{resultSummary}</p>
       )}
     </div>
   );

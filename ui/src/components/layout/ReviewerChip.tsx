@@ -22,10 +22,10 @@ export function ReviewerChip() {
       onClick={edit}
       title="Set the reviewer name attributed to your curation actions"
       aria-label="Set reviewer name for attribution"
-      className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100"
+      className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
     >
       <User className="h-3.5 w-3.5" />
-      {reviewer ? reviewer : <span className="text-gray-400">Set reviewer</span>}
+      {reviewer ? reviewer : <span className="text-gray-400 dark:text-gray-500">Set reviewer</span>}
     </button>
   );
 }

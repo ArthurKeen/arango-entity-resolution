@@ -22,26 +22,26 @@ export function ShortcutsModal({ open, onClose }: ShortcutsModalProps) {
         role="dialog"
         aria-modal="true"
         aria-label="Keyboard shortcuts"
-        className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl"
+        className="w-full max-w-sm rounded-lg bg-white dark:bg-gray-800 p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-900">Keyboard shortcuts</h3>
-          <button onClick={onClose} className="rounded p-1 text-gray-400 hover:bg-gray-100">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Keyboard shortcuts</h3>
+          <button onClick={onClose} className="rounded p-1 text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
             <X className="h-4 w-4" />
           </button>
         </div>
         <ul className="space-y-2">
           {SHORTCUTS.map((s) => (
             <li key={s.keys} className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">{s.label}</span>
-              <kbd className="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-700">
+              <span className="text-gray-600 dark:text-gray-300">{s.label}</span>
+              <kbd className="rounded bg-gray-100 dark:bg-gray-800 px-2 py-0.5 font-mono text-xs text-gray-700 dark:text-gray-200">
                 {s.keys}
               </kbd>
             </li>
           ))}
         </ul>
-        <p className="mt-4 text-xs text-gray-400">
+        <p className="mt-4 text-xs text-gray-400 dark:text-gray-500">
           Use the checkboxes to select multiple pairs, then apply a bulk verdict from the
           action bar. Export the current queue with the CSV button.
         </p>

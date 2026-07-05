@@ -109,24 +109,24 @@ export function PipelineHistory({ limit = 5 }: PipelineHistoryProps) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
-        <thead className="bg-gray-50">
+      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+        <thead className="bg-gray-50 dark:bg-gray-900">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase">
               Time
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase">
               Status
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase">
               Clusters
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
+            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-500 dark:text-gray-400 uppercase">
               Duration
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200 bg-white">
+        <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
           {display.map((run, i) => {
             const r = run as Record<string, unknown>;
             const key = (r["_key"] as string | undefined) ?? (r["run_id"] as string | undefined) ?? String(i);
@@ -141,19 +141,19 @@ export function PipelineHistory({ limit = 5 }: PipelineHistoryProps) {
                 : undefined);
 
             return (
-              <tr key={key} className="hover:bg-gray-50">
-                <td className="whitespace-nowrap px-4 py-3 text-gray-600">
+              <tr key={key} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                <td className="whitespace-nowrap px-4 py-3 text-gray-600 dark:text-gray-300">
                   {formatRelativeTime(r["started_at"] as string | number | undefined)}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3">
                   <Badge variant={statusVariant(status)}>{status}</Badge>
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-gray-600">
+                <td className="whitespace-nowrap px-4 py-3 text-gray-600 dark:text-gray-300">
                   {typeof clustersFromResult === "number"
                     ? clustersFromResult.toLocaleString()
                     : "—"}
                 </td>
-                <td className="whitespace-nowrap px-4 py-3 text-gray-600">
+                <td className="whitespace-nowrap px-4 py-3 text-gray-600 dark:text-gray-300">
                   {formatDuration(
                     r["started_at"] as string | number | undefined,
                     r["completed_at"] as string | number | undefined,

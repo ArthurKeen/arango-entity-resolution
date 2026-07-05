@@ -24,16 +24,16 @@ export function StatCard({
   accent = "indigo",
 }: StatCardProps) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-5">
+    <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-gray-500">{label}</p>
+        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</p>
         {Icon && (
           <div className={cn("rounded-md p-2", accentColors[accent])}>
             <Icon className="h-4 w-4" />
           </div>
         )}
       </div>
-      <p className="mt-2 text-3xl font-semibold tracking-tight text-gray-900">
+      <p className="mt-2 text-3xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
         {typeof value === "number" ? value.toLocaleString() : value}
       </p>
       {trend && (
@@ -49,7 +49,7 @@ export function StatCard({
             {trend.value > 0 ? "+" : ""}
             {trend.value}%
           </span>
-          <span className="text-gray-400">{trend.label}</span>
+          <span className="text-gray-400 dark:text-gray-500">{trend.label}</span>
         </div>
       )}
     </div>

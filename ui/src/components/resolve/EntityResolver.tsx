@@ -98,17 +98,17 @@ export function EntityResolver() {
     <div className="space-y-6">
       {/* Collection selector */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
           Collection
         </label>
         <div className="relative mt-1">
-          <Database className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Database className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
           <select
             value={selectedCollection ?? ""}
             onChange={(e) =>
               setSelectedCollection(e.target.value || null)
             }
-            className="block w-full appearance-none rounded-md border border-gray-300 bg-white py-2 pl-9 pr-8 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+            className="block w-full appearance-none rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 py-2 pl-9 pr-8 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
           >
             <option value="">Select a collection...</option>
             {collections?.map((c) => (
@@ -122,8 +122,8 @@ export function EntityResolver() {
 
       {/* Input form */}
       {selectedCollection && (
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <h3 className="mb-3 text-sm font-semibold text-gray-900">
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+          <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
             Input Record
           </h3>
           <RecordInputForm
@@ -146,7 +146,7 @@ export function EntityResolver() {
               <button
                 type="button"
                 onClick={handleClear}
-                className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
+                className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700"
               >
                 <X className="h-4 w-4" />
                 Clear Results
@@ -169,7 +169,7 @@ export function EntityResolver() {
       {/* Results */}
       {!loading && hasResolved && (
         <div>
-          <h3 className="mb-3 text-sm font-semibold text-gray-900">
+          <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
             Matches ({matches.length} found)
           </h3>
           {matches.length === 0 ? (

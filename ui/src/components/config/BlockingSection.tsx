@@ -67,13 +67,13 @@ export function BlockingSection({
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
           Strategy
         </label>
         <select
           value={strategy}
           onChange={(e) => onStrategyChange(e.target.value)}
-          className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+          className="mt-1 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
         >
           {STRATEGIES.map((s) => (
             <option key={s} value={s}>
@@ -84,7 +84,7 @@ export function BlockingSection({
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700">
+        <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">
           Fields
         </label>
         <div className="space-y-2">
@@ -95,12 +95,12 @@ export function BlockingSection({
                 value={field}
                 onChange={(e) => updateField(idx, e.target.value)}
                 placeholder="Field name"
-                className="block flex-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                className="block flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
               />
               <button
                 type="button"
                 onClick={() => removeField(idx)}
-                className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                className="rounded p-1 text-gray-400 dark:text-gray-500 hover:bg-red-50 hover:text-red-500"
                 title="Remove field"
               >
                 <X className="h-4 w-4" />
@@ -119,7 +119,7 @@ export function BlockingSection({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
           Max Block Size
         </label>
         <input
@@ -127,7 +127,7 @@ export function BlockingSection({
           value={maxBlockSize}
           onChange={(e) => onMaxBlockSizeChange(parseInt(e.target.value) || 0)}
           min={1}
-          className="mt-1 block w-32 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+          className="mt-1 block w-32 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
         />
       </div>
 
@@ -136,7 +136,7 @@ export function BlockingSection({
           type="button"
           onClick={handleRecommend}
           disabled={!collectionName || recLoading}
-          className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 disabled:opacity-50"
         >
           <Lightbulb className="h-4 w-4" />
           Get Recommendations
@@ -162,7 +162,7 @@ export function BlockingSection({
                 type="button"
                 onClick={() => addRecommendedField(f)}
                 disabled={fields.includes(f)}
-                className="rounded-full border border-indigo-300 bg-white px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-40"
+                className="rounded-full border border-indigo-300 bg-white dark:bg-gray-800 px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-40"
               >
                 + {f}
               </button>

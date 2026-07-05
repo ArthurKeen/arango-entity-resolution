@@ -67,7 +67,7 @@ export function PipelineRunner() {
             Run Pipeline
           </button>
           {!config && (
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               Upload or paste a config to get started
             </p>
           )}
@@ -77,13 +77,13 @@ export function PipelineRunner() {
       {runId && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-900">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
               Pipeline Progress
             </h3>
             {isRunning && (
               <button
                 onClick={handleCancel}
-                className="inline-flex items-center gap-1.5 rounded-md bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200"
+                className="inline-flex items-center gap-1.5 rounded-md bg-gray-100 dark:bg-gray-800 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200"
               >
                 <Square className="h-3 w-3" />
                 Cancel
@@ -121,8 +121,8 @@ export function PipelineRunner() {
         <PipelineResults summary={summary} collection={selectedCollection} />
       )}
 
-      <div className="rounded-lg border border-gray-200 bg-white p-5">
-        <h3 className="mb-4 text-sm font-medium text-gray-700">
+      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5">
+        <h3 className="mb-4 text-sm font-medium text-gray-700 dark:text-gray-200">
           Pipeline History
         </h3>
         <PipelineHistory limit={5} />
