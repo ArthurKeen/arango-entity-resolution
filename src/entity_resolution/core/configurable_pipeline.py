@@ -702,6 +702,56 @@ class ConfigurableERPipeline:
             graph_context=self._build_graph_context(),
         )
 
+    def run_collective(self, candidate_pairs: list):
+        """Iterative collective resolution (plan 3.2).
+
+        Requires ``collective.enabled`` and a ``similarity.graph_context`` (the
+        lift comes from merges transferring relationships). Returns the resolver
+        result (``clusters``, ``rounds``, ``converged``, ...), or ``None`` when
+        not applicable.
+        """
+        cfg = getattr(self.config, "collective", None)
+        if not (cfg and cfg.enabled):
+            return None
+        graph_context = self._build_graph_context()
+        if graph_context is None:
+            self.logger.warning(
+                "collective.enabled but no similarity.graph_context configured; skipping"
+            )
+            return None
+
+        from .collective_resolver import CollectiveResolver, connected_components
+
+        sim = self.build_similarity_service()
+        pair_tuples = [
+            (p["doc1_key"], p["doc2_key"]) if isinstance(p, dict) else tuple(p)
+            for p in candidate_pairs
+        ]
+        keys = set()
+        for a, b in pair_tuples:
+            keys.add(a)
+            keys.add(b)
+        base_cache = graph_context.batch_fetch_neighbor_sets(keys)
+
+        def score_fn(pairs, cache):
+            return sim.compute_similarities(
+                list(pairs), threshold=0.0, return_all=True, neighbor_cache=cache
+            )
+
+        resolver = CollectiveResolver(
+            score_pairs=score_fn,
+            cluster=connected_components,
+            base_neighbor_cache=base_cache,
+            threshold=self.config.similarity.threshold,
+            max_rounds=cfg.max_rounds,
+        )
+        result = resolver.resolve(pair_tuples)
+        self.logger.info(
+            "collective resolution: %d rounds, converged=%s, %d clusters",
+            result["rounds"], result["converged"], result["num_clusters"],
+        )
+        return result
+
     def _build_graph_context(self):
         """Construct a GraphContextSimilarity when similarity.graph_context is enabled (plan 3.1)."""
         gc = getattr(self.config.similarity, "graph_context", None)

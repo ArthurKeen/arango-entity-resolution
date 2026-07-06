@@ -168,7 +168,8 @@ class BatchSimilarityService:
         self,
         candidate_pairs: List[Tuple[str, str]],
         threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
-        return_all: bool = False
+        return_all: bool = False,
+        neighbor_cache: Optional[Dict[str, Any]] = None,
     ) -> List[Tuple[str, str, float]]:
         """
         Compute similarities for candidate pairs.
@@ -199,9 +200,10 @@ class BatchSimilarityService:
         # Step 2: Batch fetch ALL documents
         doc_cache = self.batch_fetch_documents(list(all_keys))
 
-        # Step 2b: batched relationship-feature prefetch (plan 3.1).
-        neighbor_cache = None
-        if self.graph_context is not None:
+        # Step 2b: batched relationship-feature prefetch (plan 3.1). An override
+        # (plan 3.2 collective resolution) lets callers supply a cluster-augmented
+        # neighbour cache instead of refetching the base graph.
+        if neighbor_cache is None and self.graph_context is not None:
             try:
                 neighbor_cache = self.graph_context.batch_fetch_neighbor_sets(all_keys)
             except Exception:

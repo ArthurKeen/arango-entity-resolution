@@ -1003,6 +1003,34 @@ class CanonicalETLConfig:
         return errors
 
 
+class CollectiveConfig:
+    """Collective / iterative resolution stage (plan 3.2).
+
+    When enabled, after an initial clustering pass the pipeline treats merged
+    entities as sharing each other's relationships, re-scores candidate pairs
+    whose graph-context features changed, re-clusters, and repeats to a fixpoint
+    (or ``max_rounds``). Only meaningful when ``similarity.graph_context`` is set.
+    """
+
+    def __init__(self, enabled: bool = False, max_rounds: int = 5):
+        self.enabled = bool(enabled)
+        self.max_rounds = int(max_rounds)
+
+    @classmethod
+    def from_dict(cls, config_dict: Optional[Dict[str, Any]]) -> "CollectiveConfig":
+        d = config_dict or {}
+        return cls(enabled=d.get("enabled", False), max_rounds=d.get("max_rounds", 5))
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {"enabled": self.enabled, "max_rounds": self.max_rounds}
+
+    def validate(self) -> List[str]:
+        errors: List[str] = []
+        if self.max_rounds < 1 or self.max_rounds > 20:
+            errors.append("collective.max_rounds must be between 1 and 20")
+        return errors
+
+
 class ERPipelineConfig:
     """
     Complete ER pipeline configuration.
@@ -1050,6 +1078,7 @@ class ERPipelineConfig:
         embedding: Optional[EmbeddingConfig] = None,
         active_learning: Optional[ActiveLearningConfig] = None,
         canonical_etl: Optional[CanonicalETLConfig] = None,
+        collective: Optional[CollectiveConfig] = None,
     ):
         """
         Initialize ER pipeline configuration.
@@ -1077,6 +1106,7 @@ class ERPipelineConfig:
         self.embedding = embedding
         self.active_learning = active_learning or ActiveLearningConfig()
         self.canonical_etl = canonical_etl
+        self.collective = collective or CollectiveConfig()
     
     @classmethod
     def from_yaml(cls, config_path: Union[str, Path]) -> 'ERPipelineConfig':
@@ -1159,6 +1189,10 @@ class ERPipelineConfig:
         active_learning_config = None
         if 'active_learning' in config_dict:
             active_learning_config = ActiveLearningConfig.from_dict(config_dict.get('active_learning', {}))
+
+        collective_config = None
+        if 'collective' in config_dict:
+            collective_config = CollectiveConfig.from_dict(config_dict.get('collective', {}))
         canonical_etl_config = None
         etl_section = config_dict.get('etl', {})
         if 'canonical' in etl_section:
@@ -1174,6 +1208,7 @@ class ERPipelineConfig:
             clustering=clustering_config,
             embedding=embedding_config,
             active_learning=active_learning_config,
+            collective=collective_config,
             canonical_etl=canonical_etl_config,
         )
 
@@ -1271,6 +1306,9 @@ class ERPipelineConfig:
         if self.active_learning:
             active_learning_errors = self.active_learning.validate()
             errors.extend([f"active_learning.{e}" for e in active_learning_errors])
+
+        if getattr(self, "collective", None):
+            errors.extend(self.collective.validate())
         if self.canonical_etl:
             etl_errors = self.canonical_etl.validate()
             errors.extend([f"etl.canonical.{e}" for e in etl_errors])
@@ -1295,6 +1333,8 @@ class ERPipelineConfig:
             result['entity_resolution']['embedding'] = self.embedding.to_dict()
         if self.active_learning:
             result['entity_resolution']['active_learning'] = self.active_learning.to_dict()
+        if getattr(self, "collective", None) and self.collective.enabled:
+            result['entity_resolution']['collective'] = self.collective.to_dict()
         if self.canonical_etl:
             result['entity_resolution'].setdefault('etl', {})['canonical'] = self.canonical_etl.to_dict()
         

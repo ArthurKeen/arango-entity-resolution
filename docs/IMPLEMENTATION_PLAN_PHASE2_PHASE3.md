@@ -193,7 +193,17 @@ Sequenced after Phase 2 because each needs the closed loop, calibrated FS scores
 
 **Acceptance:** on a relationship-rich dataset, F1 with graph features ≥ F1 without (measured via 1.2); throughput benchmark recorded *before* committing to the v4.0 headline (per the main plan's risk).
 
-### 3.2 Collective / iterative resolution (L)
+### 3.2 Collective / iterative resolution (L) — **SHIPPED (2026-07-05)**
+
+> **Delivered:**
+> - `CollectiveConfig {enabled, max_rounds}` wired into `ERPipelineConfig` (parse/validate/to_dict).
+> - `core/collective_resolver.py` (`CollectiveResolver`): pure orchestrator — score → edges(≥threshold) → cluster → **augment each record's neighbour set with its cluster-mates' neighbours** → re-score, iterating to a **fixpoint** or `max_rounds`, with **oscillation detection** (repeated non-adjacent state ⇒ stop). `connected_components` union-find as the default clusterer.
+> - `BatchSimilarityService.compute_similarities(neighbor_cache=...)` override so the resolver injects the cluster-augmented graph cache each round (reuses 3.1 graph features).
+> - `ConfigurablePipeline.run_collective()` builds the resolver from the real similarity service + graph context.
+> - `scripts/benchmark_collective.py` (single-pass vs collective recovery).
+> - Tests: fixpoint, max-rounds cap, oscillation guard, and **collective lift** (a merge transfers an employer relationship that pulls in same-employer records a single pass misses) — unit + live-DB integration. Full unit sweep green (1498).
+
+
 
 - Optional pipeline stage `collective: {enabled, max_rounds}`: after each clustering pass, merged entities change the graph → re-score candidate pairs whose graph features changed → new edges → incremental re-cluster (reuse 0.1's scoped re-clusterer) → repeat to fixpoint or max-rounds.
 - Benchmark vs single-pass on relationship-rich data; publish the delta.
