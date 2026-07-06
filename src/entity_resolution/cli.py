@@ -1250,6 +1250,65 @@ def estimate(config, sample_size, max_iterations, no_term_frequencies, database,
         sys.exit(1)
 
 
+@main.command("watch")
+@click.option("--config", required=True, help="Path to the ER pipeline config (YAML/JSON).")
+@click.option("--interval", type=float, default=5.0, show_default=True,
+              help="Seconds between polls when looping.")
+@click.option("--once", is_flag=True, help="Process the current backlog once and exit.")
+@click.option("--batch", type=int, default=100, show_default=True,
+              help="Max records to process per poll.")
+@connection_options
+def watch(config, interval, once, batch, database, host, port, username, password):
+    """Incrementally resolve new/updated records into clusters (plan 3.3).
+
+    Polls the source collection for records lacking an ``_er_resolved_at`` stamp
+    and resolves each one — blocking, scoring, linking, and re-clustering only
+    the affected component — honouring confirmed/suppressed edges.
+    """
+    import time as _time
+
+    try:
+        from entity_resolution.core.incremental_maintainer import IncrementalMaintainer
+
+        db = _get_db_from_options(database, host, port, username, password)
+        pipeline = ConfigurableERPipeline(db=db, config_path=config)
+        cfg = pipeline.config
+        fields = list(pipeline._effective_field_weights().keys())
+        if not fields:
+            raise click.ClickException("No similarity fields configured; cannot resolve records.")
+
+        maintainer = IncrementalMaintainer(
+            db=db,
+            collection=cfg.collection_name,
+            fields=fields,
+            edge_collection=cfg.edge_collection,
+            cluster_collection=cfg.cluster_collection,
+            confidence_threshold=cfg.similarity.threshold,
+        )
+
+        total = 0
+        while True:
+            keys = maintainer.pending_keys(limit=batch)
+            for k in keys:
+                try:
+                    maintainer.resolve_and_commit(k)
+                    total += 1
+                except Exception as exc:  # keep the watcher alive on per-record errors
+                    click.echo(click.style(f"  [warn] {k}: {exc}", fg="yellow"), err=True)
+            if keys:
+                click.echo(f"Resolved {len(keys)} record(s) (total {total}).")
+            if once:
+                break
+            if not keys:
+                _time.sleep(interval)
+        click.echo(click.style(f"Done. Resolved {total} record(s).", fg="green"))
+    except click.ClickException:
+        raise
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
+
 @main.command("profile")
 @click.option("--collection", required=True, help="Collection to profile.")
 @click.option("--sample-size", type=int, default=1000, show_default=True, help="Documents to sample.")

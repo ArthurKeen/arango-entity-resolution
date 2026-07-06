@@ -210,7 +210,14 @@ Sequenced after Phase 2 because each needs the closed loop, calibrated FS scores
 
 **Acceptance:** convergence within max-rounds; measured F1 delta vs single-pass; no oscillation (fixpoint detection test).
 
-### 3.3 Incremental cluster maintenance (M–L)
+### 3.3 Incremental cluster maintenance (M–L) — **SHIPPED (2026-07-05)**
+
+> **Delivered:**
+> - `core/incremental_maintainer.py` (`IncrementalMaintainer.resolve_and_commit`): block → score → upsert a **canonical** similarity edge per match (same sorted-endpoint key as `FeedbackApplicationService`, `UPDATE {}` no-op) → scoped `recluster_component` under a TTL lock. **Honours human verdicts** (a suppressed/confirmed edge is never overwritten or resurrected) and is **sequence-neutral** (content-addressed edges + full-active-edge re-cluster). Stamps `_er_resolved_at`; `pending_keys()` finds unresolved records.
+> - `arango-er watch` CLI (poll backlog by `_er_resolved_at`, `--once`/`--interval`) and a `resolve_and_commit` MCP tool.
+> - Tests: canonical-key parity (unit) + live integration — commit merges matches, **sequence-neutral** (same clusters for `[a,b,c]` vs `[c,b,a]`), and **suppressed edge not resurrected**. Full unit sweep green (1499).
+
+
 
 - Extend `core/incremental_resolver.py` from "resolve one record" to "maintain clusters": new/updated record → block → score (with graph context) → join/create/merge clusters via 0.1 machinery, honoring confirmed/suppressed edges as hard constraints (Zingg "living clusters" / Senzing sequence-neutrality).
 - Ship `arango-er watch` (poll or changes-API driven) + a `resolve_and_commit` MCP tool.

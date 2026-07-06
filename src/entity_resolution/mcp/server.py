@@ -472,6 +472,35 @@ def profile_dataset(
 
 
 @mcp.tool()
+def resolve_and_commit(
+    collection: str,
+    key: str,
+    fields: List[str],
+    edge_collection: Optional[str] = None,
+    cluster_collection: Optional[str] = None,
+    threshold: float = 0.8,
+    top_k: int = 25,
+) -> Dict[str, Any]:
+    """
+    Incrementally resolve one record into the graph (plan 3.3): block, score,
+    link to matches, and re-cluster only the affected component — honouring
+    confirmed/suppressed edges. Persists edges + cluster updates.
+    """
+    from entity_resolution.mcp.tools.entity import run_resolve_and_commit
+    result = run_resolve_and_commit(
+        **_conn(),
+        collection=collection,
+        key=key,
+        fields=fields,
+        edge_collection=edge_collection,
+        cluster_collection=cluster_collection,
+        threshold=threshold,
+        top_k=top_k,
+    )
+    return _attach_schema_version(result)
+
+
+@mcp.tool()
 def profile_fields(
     collection: str,
     sample_size: int = 1000,

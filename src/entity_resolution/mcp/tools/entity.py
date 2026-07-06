@@ -207,6 +207,46 @@ def run_explain_match(
     return payload
 
 
+def run_resolve_and_commit(
+    *,
+    host: str,
+    port: int,
+    username: str,
+    password: str,
+    database: str,
+    collection: str,
+    key: str,
+    fields: List[str],
+    edge_collection: Optional[str] = None,
+    cluster_collection: Optional[str] = None,
+    threshold: float = 0.8,
+    top_k: int = 25,
+) -> Dict[str, Any]:
+    """Incrementally resolve one record and update its cluster (plan 3.3)."""
+    from ...core.incremental_maintainer import IncrementalMaintainer
+
+    client = ArangoClient(hosts=get_arango_hosts(host, port))
+    db = client.db(database, username=username, password=password)
+    edge_collection = edge_collection or f"{collection}_similarity_edges"
+    cluster_collection = cluster_collection or f"{collection}_clusters"
+
+    maintainer = IncrementalMaintainer(
+        db=db, collection=collection, fields=fields,
+        edge_collection=edge_collection, cluster_collection=cluster_collection,
+        confidence_threshold=threshold,
+    )
+    try:
+        result = maintainer.resolve_and_commit(key, top_k=top_k)
+    except KeyError as exc:
+        return {"error": str(exc)}
+    return {
+        "key": key,
+        "matches": [{"key": m["_key"], "score": m["score"]} for m in result["matches"]],
+        "clusters_changed": result["recluster"]["cluster_keys"],
+        "recluster": result["recluster"],
+    }
+
+
 def _build_explain_gates(
     *,
     doc_a: Dict[str, Any],
