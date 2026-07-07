@@ -23,6 +23,7 @@ from ..strategies import (
     BM25BlockingStrategy,
     VectorBlockingStrategy,
     LSHBlockingStrategy,
+    GraphEmbeddingBlockingStrategy,
 )
 
 
@@ -642,7 +643,22 @@ class ConfigurableERPipeline:
             )
             self._embedding_preflight_stats = blocking_strategy.check_embeddings_exist()
             return list(blocking_strategy.generate_candidates())
-        
+
+        elif strategy == 'graph_embedding':
+            embedding_field = self.config.blocking.embedding_field or 'node_embedding'
+            blocking_strategy = GraphEmbeddingBlockingStrategy(
+                db=self.db,
+                collection=self.config.collection_name,
+                edge_collection=self.config.blocking.edge_collection,
+                embedding_field=embedding_field,
+                similarity_threshold=self.config.blocking.similarity_threshold,
+                limit_per_entity=self.config.blocking.limit_per_entity,
+                blocking_field=self.config.blocking.blocking_field,
+                node2vec_params=self.config.blocking.node2vec_params,
+                create_vector_index=self.config.blocking.create_vector_index,
+            )
+            return list(blocking_strategy.generate_candidates())
+
         else:
             self.logger.warning(f"Unknown blocking strategy: {strategy}")
             return []

@@ -224,7 +224,18 @@ Sequenced after Phase 2 because each needs the closed loop, calibrated FS scores
 
 **Acceptance:** adding a record updates only the affected cluster; sequence-neutral (same final clusters regardless of insert order) — property test.
 
-### 3.4 Graph-embedding blocking (M)
+### 3.4 Graph-embedding blocking (M) — **SHIPPED (2026-07-06)**
+
+> **Delivered:**
+> - `strategies/graph_embedding_blocking.py` (`GraphEmbeddingBlockingStrategy`): learns node2vec embeddings over a relationship graph (`Node2VecEmbeddingService`), writes `node_embedding` to records, then pairs via the **same native ANN path** as `VectorBlockingStrategy` (`APPROX_NEAR_COSINE`). Index creation is deferred until after embeddings are written.
+> - Registered: `blocking.strategy: "graph_embedding"` in `BlockingConfig` (+ `edge_collection`, `create_vector_index`, `node2vec_params`), validated (edge_collection required), dispatched in `ConfigurableERPipeline.run_blocking`, exported from `strategies`.
+> - `scripts/benchmark_graph_embedding_blocking.py`: A/B recall (pairs-completeness) + reduction ratio vs known communities.
+> - **Scale envelope documented**: node2vec here is co-occurrence + SVD (O(n²) memory, ~10k-node cap) — demo/small-graph scale; the scale path is GraphSAGE / ArangoGraphML feeding the identical ANN blocking path.
+> - Tests: unit (ANN path uses `node_embedding`, edge_collection required, config roundtrip/validation) + live integration (end-to-end, skips cleanly without the experimental vector index). Full unit sweep green (1503).
+
+**Phase 3 complete** — all four graph-native workstreams shipped (3.1 relationship features · 3.2 collective · 3.3 incremental · 3.4 graph-embedding blocking).
+
+
 
 - Productize `Node2VecEmbeddingService` (exists) as a real `BlockingStrategy`: embeddings written to records, ANN via the existing vector index, evaluated through the A/B harness against attribute-embedding blocking.
 - Document the scale envelope honestly (current node2vec is O(n²)-memory; fine ≤100K nodes, GraphSAGE/ArangoGraphML as the scale path).

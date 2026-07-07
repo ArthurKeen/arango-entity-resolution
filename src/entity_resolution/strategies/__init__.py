@@ -14,6 +14,7 @@ from .geographic_blocking import GeographicBlockingStrategy
 from .graph_traversal_blocking import GraphTraversalBlockingStrategy
 from .vector_blocking import VectorBlockingStrategy
 from .lsh_blocking import LSHBlockingStrategy
+from .graph_embedding_blocking import GraphEmbeddingBlockingStrategy
 
 __all__ = [
     'BlockingStrategy',
@@ -24,5 +25,6 @@ __all__ = [
     'GraphTraversalBlockingStrategy',
     'VectorBlockingStrategy',
     'LSHBlockingStrategy',
+    'GraphEmbeddingBlockingStrategy',
 ]
 

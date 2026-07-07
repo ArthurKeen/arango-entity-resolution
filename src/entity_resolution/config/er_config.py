@@ -31,6 +31,9 @@ class BlockingConfig:
         num_hyperplanes: int = 8,
         random_seed: Optional[int] = 42,
         allow_unsafe_expressions: bool = False,
+        edge_collection: Optional[str] = None,
+        create_vector_index: bool = False,
+        node2vec_params: Optional[Dict[str, Any]] = None,
     ):
         """
         Initialize blocking configuration.
@@ -74,6 +77,11 @@ class BlockingConfig:
         self.num_hyperplanes = num_hyperplanes
         self.random_seed = random_seed
         self.allow_unsafe_expressions = allow_unsafe_expressions
+        # graph_embedding (plan 3.4): the relationship graph node2vec learns over,
+        # whether to build the vector index, and node2vec walk params.
+        self.edge_collection = edge_collection
+        self.create_vector_index = create_vector_index
+        self.node2vec_params = node2vec_params or {}
     
     def parse_fields(self) -> tuple[list[str], dict[str, str]]:
         """
@@ -148,6 +156,9 @@ class BlockingConfig:
             num_hyperplanes=config_dict.get('num_hyperplanes', 8),
             random_seed=config_dict.get('random_seed', 42),
             allow_unsafe_expressions=config_dict.get('allow_unsafe_expressions', False),
+            edge_collection=config_dict.get('edge_collection'),
+            create_vector_index=config_dict.get('create_vector_index', False),
+            node2vec_params=config_dict.get('node2vec_params'),
         )
     
     def to_dict(self) -> Dict[str, Any]:
@@ -170,6 +181,12 @@ class BlockingConfig:
         result['num_hyperplanes'] = self.num_hyperplanes
         if self.random_seed is not None:
             result['random_seed'] = self.random_seed
+        if self.edge_collection is not None:
+            result['edge_collection'] = self.edge_collection
+        if self.create_vector_index:
+            result['create_vector_index'] = self.create_vector_index
+        if self.node2vec_params:
+            result['node2vec_params'] = self.node2vec_params
         return result
 
 
@@ -1238,11 +1255,13 @@ class ERPipelineConfig:
                 f"blocking.min_block_size ({self.blocking.min_block_size})"
             )
         
-        if self.blocking.strategy not in ('exact', 'arangosearch', 'bm25', 'vector', 'lsh'):
+        if self.blocking.strategy not in ('exact', 'arangosearch', 'bm25', 'vector', 'lsh', 'graph_embedding'):
             errors.append(
-                "blocking.strategy must be 'exact', 'arangosearch', 'bm25', 'vector', or 'lsh', "
-                f"got: {self.blocking.strategy}"
+                "blocking.strategy must be 'exact', 'arangosearch', 'bm25', 'vector', 'lsh', "
+                f"or 'graph_embedding', got: {self.blocking.strategy}"
             )
+        if self.blocking.strategy == 'graph_embedding' and not getattr(self.blocking, 'edge_collection', None):
+            errors.append("blocking.edge_collection is required for the 'graph_embedding' strategy")
 
         # For exact blocking, fields must be provided so a composite key can be built.
         # Address ER is handled by AddressERService and may ignore the generic blocking config.
