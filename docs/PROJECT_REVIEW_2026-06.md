@@ -2,6 +2,11 @@
 
 **Scope:** Full review of the arango-entity-resolution project (v3.5.1): core ER pipeline, AI/ML capabilities, UI, engineering quality, and a gap analysis against the 2025–2026 state of the art (Splink, Zingg, Senzing, Quantexa, Tamr, AWS Entity Resolution, recent LLM-ER research).
 
+> **Historical baseline:** This review records the June 2026 state. For the
+> current assessment, see the [Project Health Scorecard](PROJECT_HEALTH_SCORECARD.md)
+> and [SOTA and Competitive Scorecard](SOTA_COMPETITIVE_SCORECARD.md), evaluated
+> August 6, 2026.
+
 **Verdict in one paragraph:** This is a genuinely strong, well-engineered system — the blocking architecture, ArangoDB-native integration, MCP server, and configurability are competitive with or better than open-source peers. Its three biggest liabilities are: (1) the matching core is **rule-based with hardcoded weights** — there is no parameter learning (EM), no calibration, and no learned models, which is the defining capability gap vs Splink/Zingg; (2) the **feedback/review loop doesn't close where it matters** — human verdicts can re-tune LLM routing thresholds, but never change edges or clusters; (3) the **UI is functional but utilitarian** — it lacks the threshold-tuning-with-live-metrics, cluster editing (merge/split), and steward-workflow features that define best-in-class ER tools. The project's largest untapped advantage is the one thing competitors can't copy: it lives inside a graph database, yet it does not use graph context (relationships, collective resolution, same-engine analytics) as match evidence.
 
 ---

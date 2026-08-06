@@ -10,6 +10,11 @@ Welcome to the ArangoDB Entity Resolution documentation!
 - [Quick Start Guide](guides/QUICK_START.md) - Get up and running in 5 minutes
 - [Main README](../README.md) - Project overview and installation
 
+### Current Project Assessment
+- [Project Health Scorecard](PROJECT_HEALTH_SCORECARD.md) - Engineering, quality, security, release, and operational health
+- [SOTA and Competitive Scorecard](SOTA_COMPETITIVE_SCORECARD.md) - Current position against OSS and commercial ER systems
+- [Public Benchmark Results](BENCHMARKS.md) - Reproducible quality and scalability evidence
+
 ### API Documentation
 - [API Reference](api/API_REFERENCE.md) - Current CLI, MCP, and Python API surface for v3.5.1
 
@@ -125,9 +130,9 @@ Historical documentation is preserved in [`archive/`](archive/):
 
 ## Version Information
 
-- **Current Version:** 3.5.1
+- **Current Version:** 3.8.0
 - **API Version:** v3
-- **Last Updated:** March 30, 2026
+- **Last Updated:** August 6, 2026
 
 For version history, see [CHANGELOG.md](../CHANGELOG.md)
 
