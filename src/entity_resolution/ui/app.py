@@ -161,6 +161,9 @@ def create_app(
             "status": "ok" if connected else "no_database",
             "version": __version__,
             "database_connected": connected,
+            # Safe capability flag: lets the SPA present a token input without
+            # exposing the configured secret or probing protected endpoints.
+            "auth_required": bool(app.state.auth_token),
         }
 
     app.include_router(collections.router)
@@ -178,11 +181,18 @@ def create_app(
 
     if _STATIC_DIR.is_dir():
         app.mount("/assets", StaticFiles(directory=_STATIC_DIR / "assets"), name="assets")
+        static_root = _STATIC_DIR.resolve()
 
         @app.get("/{full_path:path}")
         async def spa_fallback(request: Request, full_path: str) -> FileResponse:
             """Serve the SPA index for any non-API path."""
-            file_path = _STATIC_DIR / full_path
+            file_path = (_STATIC_DIR / full_path).resolve()
+            try:
+                file_path.relative_to(static_root)
+            except ValueError:
+                # Reject ``..`` and symlink escapes instead of serving arbitrary
+                # files outside the packaged SPA directory.
+                return JSONResponse({"detail": "Not found"}, status_code=404)
             if file_path.is_file():
                 return FileResponse(file_path)
             index = _STATIC_DIR / "index.html"

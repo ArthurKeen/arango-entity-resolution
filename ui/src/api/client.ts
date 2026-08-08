@@ -10,6 +10,29 @@ export class ApiError extends Error {
 
 /** localStorage key holding the current reviewer's display name (attribution). */
 export const REVIEWER_STORAGE_KEY = "er-ui-reviewer";
+/** sessionStorage key for the API bearer token; cleared when the tab closes. */
+export const AUTH_TOKEN_STORAGE_KEY = "er-ui-auth-token";
+
+export function getAuthToken(): string | null {
+  try {
+    return sessionStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setAuthToken(token: string): void {
+  try {
+    const trimmed = token.trim();
+    if (trimmed) {
+      sessionStorage.setItem(AUTH_TOKEN_STORAGE_KEY, trimmed);
+    } else {
+      sessionStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    }
+  } catch {
+    // Storage can be unavailable in hardened/private browser contexts.
+  }
+}
 
 function reviewerHeader(): Record<string, string> {
   try {
@@ -18,6 +41,11 @@ function reviewerHeader(): Record<string, string> {
   } catch {
     return {};
   }
+}
+
+function authHeader(): Record<string, string> {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export async function fetchApi<T>(
@@ -30,6 +58,7 @@ export async function fetchApi<T>(
     ...options,
     headers: {
       "Content-Type": "application/json",
+      ...authHeader(),
       ...reviewerHeader(),
       ...options?.headers,
     },

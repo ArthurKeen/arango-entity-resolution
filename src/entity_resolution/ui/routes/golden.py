@@ -170,10 +170,41 @@ async def apply_golden_record(
     before = coll.get(key)
 
     from datetime import datetime, timezone
+    from entity_resolution.services.golden_record_persistence_service import (
+        GOLDEN_METADATA_FIELDS,
+        SYSTEM_FIELDS,
+    )
 
-    # Reserved keys are stripped from user-supplied fields to protect metadata.
-    clean_fields = {k: v for k, v in body.fields.items() if not k.startswith("_")}
+    # The API accepts arbitrary domain fields, but never lets them replace the
+    # golden record's own control metadata. Use the same denylist as persistence
+    # so UI edits and pipeline rebuilds enforce one invariant.
+    reserved_fields = SYSTEM_FIELDS | GOLDEN_METADATA_FIELDS
+    clean_fields = {
+        k: v
+        for k, v in body.fields.items()
+        if k not in reserved_fields and not k.startswith("_")
+    }
+
+    # Record the edit as an OVERRIDE as well as a flat value. The flat value is
+    # what readers consume; the override is what survives the next pipeline run.
+    # GoldenRecordPersistenceService recomputes every consolidated field and
+    # merges it over the stored record, so a value written only in flat form is
+    # silently reverted — while `editedBy` persists, leaving the record claiming
+    # a human authored machine-generated values. Carrying prior overrides
+    # forward keeps earlier corrections intact when a later edit touches only
+    # some fields.
+    prior_overrides = (before or {}).get("fieldOverrides") or {}
+    if not isinstance(prior_overrides, dict):
+        prior_overrides = {}
+    prior_overrides = {
+        k: v
+        for k, v in prior_overrides.items()
+        if k not in reserved_fields and not k.startswith("_")
+    }
+    field_overrides = {**prior_overrides, **clean_fields}
+
     doc = {
+        **clean_fields,
         "_key": key,
         "memberKeys": body.member_keys,
         "_merged_keys": body.member_keys,
@@ -181,8 +212,8 @@ async def apply_golden_record(
         "editedBy": getattr(request.state, "reviewer", None) or "human",
         "updatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "method": "manual_edit",
+        "fieldOverrides": field_overrides,
         **({"mergeStrategy": body.merge_strategy} if body.merge_strategy else {}),
-        **clean_fields,
     }
     coll.insert(doc, overwrite=True)
 

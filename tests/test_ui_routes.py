@@ -589,6 +589,40 @@ class TestGolden:
         # reserved keys stripped from user fields
         assert data["golden_record"]["_key"] != "nope"
 
+    def test_apply_golden_cannot_override_control_metadata(self, client, mock_db):
+        mock_db.collection.return_value.get.return_value = {
+            "_key": "g1",
+            "fieldOverrides": {"city": "Boston", "stale": True},
+        }
+        resp = client.post(
+            "/api/golden/customers/apply",
+            json={
+                "golden_key": "g1",
+                "member_keys": ["a", "b"],
+                "fields": {
+                    "name": "Acme Inc",
+                    "method": "attacker",
+                    "stale": True,
+                    "clusterSize": 999,
+                    "memberKeys": ["attacker"],
+                    "fieldOverrides": {"method": "attacker"},
+                    "editedBy": "attacker",
+                },
+            },
+        )
+
+        assert resp.status_code == 200, resp.text
+        record = resp.json()["golden_record"]
+        assert record["method"] == "manual_edit"
+        assert record["stale"] is False
+        assert record["memberKeys"] == ["a", "b"]
+        assert "clusterSize" not in record
+        assert record["fieldOverrides"] == {
+            "city": "Boston",
+            "name": "Acme Inc",
+        }
+        assert record["editedBy"] != "attacker"
+
 
 # ===================================================================
 # Config

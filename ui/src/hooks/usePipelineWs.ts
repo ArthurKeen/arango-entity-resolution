@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { getAuthToken } from "../api/client";
 
 export interface StageState {
   name: string;
@@ -81,7 +82,9 @@ export function usePipelineWs(runId: string | null): UsePipelineWsReturn {
     setSummary(null);
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws/pipeline/${runId}`;
+    const token = getAuthToken();
+    const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : "";
+    const wsUrl = `${protocol}//${window.location.host}/ws/pipeline/${runId}${tokenQuery}`;
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;

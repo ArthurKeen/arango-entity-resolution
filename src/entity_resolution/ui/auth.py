@@ -62,15 +62,18 @@ def resolve_reviewer(
     """Resolve the acting reviewer for attribution (not access control).
 
     Priority:
-    1. ``X-Reviewer`` header (free-text session name from the UI).
-    2. ``token -> display name`` from ``reviewers_map`` (the request's bearer/API token).
+    1. ``token -> display name`` from ``reviewers_map`` (authenticated identity).
+    2. ``X-Reviewer`` header (free-text session name from the UI).
     3. ``"anonymous"``.
+
+    A mapped bearer token must outrank the freely editable header; otherwise an
+    authenticated reviewer can spoof another actor in the audit trail.
     """
-    explicit = headers.get("x-reviewer") or headers.get("X-Reviewer")
-    if explicit and explicit.strip():
-        return explicit.strip()
     if reviewers_map:
         token = extract_request_token(headers)
         if token and token in reviewers_map:
             return reviewers_map[token]
+    explicit = headers.get("x-reviewer") or headers.get("X-Reviewer")
+    if explicit and explicit.strip():
+        return explicit.strip()
     return ANONYMOUS_REVIEWER

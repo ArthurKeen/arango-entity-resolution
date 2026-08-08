@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Sun, Moon } from "lucide-react";
 import { fetchApi } from "../../api/client";
 import { useTheme } from "../../hooks/useTheme";
+import { AuthTokenControl } from "./AuthTokenControl";
 import { Sidebar } from "./Sidebar";
 import { ReviewerChip } from "./ReviewerChip";
 
@@ -23,6 +24,7 @@ interface HealthResponse {
   status: string;
   version: string;
   database_connected: boolean;
+  auth_required: boolean;
 }
 
 export function AppShell() {
@@ -64,6 +66,7 @@ export function AppShell() {
         <header className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6">
           <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h1>
           <div className="flex items-center gap-2">
+            <AuthTokenControl required={health.data?.auth_required ?? false} />
             <button
               type="button"
               onClick={toggle}

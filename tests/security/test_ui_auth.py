@@ -67,6 +67,14 @@ def test_resolve_reviewer_from_token_map():
     assert resolve_reviewer({"authorization": "Bearer tok"}, {"tok": "Bob"}) == "Bob"
 
 
+def test_mapped_token_identity_cannot_be_spoofed_by_header():
+    headers = {
+        "authorization": "Bearer tok",
+        "x-reviewer": "Mallory",
+    }
+    assert resolve_reviewer(headers, {"tok": "Bob"}) == "Bob"
+
+
 def test_resolve_reviewer_anonymous_default():
     assert resolve_reviewer({}, {}) == ANONYMOUS_REVIEWER
     assert resolve_reviewer({"authorization": "Bearer unknown"}, {"tok": "Bob"}) == ANONYMOUS_REVIEWER
@@ -84,6 +92,7 @@ def test_health_is_exempt_from_auth():
     client = _client(TOKEN)
     resp = client.get("/api/health")
     assert resp.status_code == 200
+    assert resp.json()["auth_required"] is True
 
 
 def test_api_requires_token_when_enabled():
@@ -115,6 +124,29 @@ def test_no_auth_mode_allows_api_without_token():
     client = _client(None)
     resp = client.get("/api/collections")
     assert resp.status_code != 401
+
+
+# ---------------------------------------------------------------------------
+# Static SPA containment
+# ---------------------------------------------------------------------------
+
+def test_spa_fallback_rejects_symlink_escape(monkeypatch, tmp_path):
+    from entity_resolution.ui import app as app_module
+
+    static_dir = tmp_path / "static"
+    static_dir.mkdir()
+    (static_dir / "assets").mkdir()
+    (static_dir / "index.html").write_text("safe index")
+    outside = tmp_path / "secret.txt"
+    outside.write_text("must not be served")
+    (static_dir / "leak.txt").symlink_to(outside)
+    monkeypatch.setattr(app_module, "_STATIC_DIR", static_dir)
+
+    client = TestClient(app_module.create_app(db=None))
+    response = client.get("/leak.txt")
+
+    assert response.status_code == 404
+    assert "must not be served" not in response.text
 
 
 # ---------------------------------------------------------------------------

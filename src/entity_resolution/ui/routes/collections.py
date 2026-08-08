@@ -34,7 +34,7 @@ async def list_collections(request: Request) -> List[Dict[str, Any]]:
             count = -1
         result.append({
             "name": coll["name"],
-            "type": "edge" if coll["type"] == 3 else "document",
+            "type": "edge" if coll["type"] in (3, "edge") else "document",
             "count": count,
         })
     return sorted(result, key=lambda c: c["name"])
