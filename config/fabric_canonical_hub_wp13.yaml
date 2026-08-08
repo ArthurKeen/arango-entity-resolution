@@ -1,0 +1,40 @@
+profile:
+  name: fabric_canonical_hub
+  mode: precision_first
+  read_only: true
+  observable_fields:
+    - name
+    - email_domain
+    - phone_country
+    - postal_code
+    - country
+  field_weights:
+    name: 0.30
+    email_domain: 0.30
+    phone_country: 0.10
+    postal_code: 0.20
+    country: 0.10
+  vector_weight: 0.70
+  resolve_threshold: 0.88
+  minimum_margin: 0.08
+  top_k: 10
+  uncertainty_band:
+    low: 0.88
+    high: 0.93
+  guards:
+    account_scope_required: true
+    query_scope_required: true
+    result_scope_postcheck: true
+    canonical_id_required: true
+    reject_oracle_identifiers: true
+    vector_unavailable: abstain
+    no_candidate: abstain
+    ambiguous_margin: abstain
+    deadline: abstain
+  vector:
+    collection: canonical_entities
+    field: fabric_embedding
+    index: fabric_canonical_hub_vector_idx
+    canonical_id_field: canonical_id
+    account_scope_field: account_scope
+    maximum_top_k: 50
