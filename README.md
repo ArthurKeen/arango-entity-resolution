@@ -2,7 +2,7 @@
 
 A production-ready entity resolution system for ArangoDB that identifies and links records referring to the same real-world entity across multiple data sources. Uses record blocking, graph algorithms, and AI to scale from thousands to millions of records.
 
-**Version 3.5.1** | [Changelog](CHANGELOG.md) | [Version History](VERSION_HISTORY.md) | [PyPI](https://pypi.org/project/arango-entity-resolution/)
+**Version 3.8.0** | [Changelog](CHANGELOG.md) | [Version History](VERSION_HISTORY.md) | [PyPI](https://pypi.org/project/arango-entity-resolution/)
 
 ## Installation
 
@@ -55,7 +55,7 @@ arango-er-mcp
 arango-er-mcp --transport sse --port 8080
 ```
 
-Exposes 15 tools and 2 resources for any MCP-compatible AI agent. See [MCP Tools](#mcp-tools) below for the full inventory.
+Exposes 17 tools and 2 resources for any MCP-compatible AI agent. See [MCP Tools](#mcp-tools) below for the full inventory.
 
 ## How It Works
 
@@ -179,7 +179,7 @@ The LLM receives both records, the overall similarity score, and field-level sco
 
 ### MCP Tools
 
-The MCP server exposes 15 tools organized into two groups — core ER operations and an advisory layer that helps an AI agent decide *how* to resolve before running the pipeline.
+The MCP server exposes 17 tools organized into two groups — core ER operations and an advisory layer that helps an AI agent decide *how* to resolve before running the pipeline.
 
 #### Core ER Tools
 
@@ -295,6 +295,22 @@ Entity resolution requires document storage, graph traversal, full-text search, 
 
 This eliminates the integration overhead of Elasticsearch + Neo4j + PostgreSQL stacks and keeps blocking, similarity, clustering, and golden records in a single transactional system.
 
+## Benchmark Results
+
+Measured on the standard public record-linkage benchmarks (Leipzig DBS group),
+unsupervised — no labelled training pairs:
+
+| Dataset | Records | Pair completeness | Pairwise F1 | B-cubed F1 | Magellan (supervised) |
+|---------|---------|------------------|-------------|------------|----------------------|
+| DBLP-ACM | 4.9K | 1.000 | 0.937 | 0.977 | ~0.98 |
+| DBLP-Scholar | 66.9K | 0.996 | 0.840 | 0.987 | ~0.89 |
+| Abt-Buy | 2.2K | 0.957 | 0.541 | 0.779 | ~0.43 |
+| Amazon-Google | 4.6K | 0.890 | 0.488 | 0.852 | ~0.49 |
+
+Reproduce with `python scripts/run_er_benchmarks.py --dataset all`. Full method,
+per-dataset detail, scale limits, and comparison caveats are in
+[docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+
 ## Performance
 
 Record blocking reduces quadratic comparisons to linear:
@@ -315,7 +331,7 @@ src/entity_resolution/
 ├── services/       Blocking, similarity, clustering, embedding, export services
 │   └── clustering_backends/   Union-Find, DFS, Sparse, AQL, GAE
 ├── strategies/     Exact, BM25, vector, geographic, LSH, shard-parallel blocking
-├── mcp/            MCP server (15 tools, 2 resources)
+├── mcp/            MCP server (17 tools, 2 resources)
 ├── reasoning/      LLM verifier, GraphRAG, feedback/active learning
 ├── enrichments/    Type constraints, context resolver, acronym handler, provenance sweeper
 ├── etl/            Canonical resolver, normalizers, arangoimport integration
@@ -336,6 +352,7 @@ src/entity_resolution/
 | [Platform Setup](docs/guides/PLATFORM_SETUP.md) | ArangoDB, Docker, and provider setup |
 | [Provider Matrix](docs/guides/PROVIDER_MATRIX.md) | LLM and embedding provider comparison |
 | [Migration Guide](docs/guides/MIGRATION_GUIDE_V3.md) | Upgrading from v1.x or v2.x |
+| [Benchmarks](docs/BENCHMARKS.md) | Measured results on public ER benchmarks |
 | [PRD](docs/PRD.md) | Product requirements and roadmap |
 
 ## Examples

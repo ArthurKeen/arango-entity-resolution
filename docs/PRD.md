@@ -1,13 +1,13 @@
 # Product Requirements and Roadmap
 
-This document captures the shipped baseline through `v3.5.1` and the forward-looking product roadmap.
+This document captures the shipped baseline through `v3.8.0` and the forward-looking product roadmap.
 
 ---
 
 ## Product Overview
 
-**Product**: ArangoDB Entity Resolution System  
-**Current Release**: `3.5.1`  
+**Product**: ArangoDB Entity Resolution System
+**Current Release**: `3.8.0`
 **Status**: Published, tested, and production-ready for the currently shipped scope
 
 ### Goal
@@ -31,11 +31,12 @@ Provide a practical, ArangoDB-native entity-resolution toolkit that supports:
 
 ---
 
-## Shipped Scope Through 3.5.0
+## Shipped Scope Through 3.8.0
 
 ### Core Resolution Workflow
 
 - Candidate generation through exact/COLLECT, BM25, vector, LSH, geographic, and graph-traversal blocking paths
+- **BM25 text blocking** defaults to disjunctive token match (`match_mode: tokens`), ranked by BM25 score. Legacy phrase match (`match_mode: phrase`) remains for backward compatibility but is near-exact and unsuitable for noisy product text.
 - Weighted similarity scoring with configurable field weights
 - Config-driven pipelines via `ERPipelineConfig` and `ConfigurableERPipeline`
 - Similarity edge creation and WCC clustering with pluggable backends
@@ -76,7 +77,7 @@ Provide a practical, ArangoDB-native entity-resolution toolkit that supports:
 - `arango-er` CLI:
   - `run`, `status`, `clusters`, `export`, `benchmark`
   - `runtime-health`, `runtime-health-export`, `runtime-health-baseline`, `runtime-health-compare`, `runtime-health-gate`
-- `arango-er-mcp` MCP server: 15 tools, 2 resources
+- `arango-er-mcp` MCP server: 17 tools, 2 resources
 - `arango-er-demo`
 
 ### Reporting and Evaluation
@@ -88,7 +89,38 @@ Provide a practical, ArangoDB-native entity-resolution toolkit that supports:
 
 ### Matching Quality Improvements
 
-- Config-driven similarity field transformers for phone, state, street suffix, and company suffix normalization
+- Config-driven similarity field transformers for phone, state, street suffix, and company suffix normalization, plus `missing_sentinels` to map placeholders such as `NULL`, `UNKNOWN`, and `N/A` to absent values so they follow null-comparison semantics
+- Fellegi-Sunter probabilistic scoring with unsupervised EM parameter estimation (m/u probabilities, log-likelihood weights, versioned model persistence keyed by config hash), selectable alongside weighted-heuristic scoring; field profiling for semantic type/completeness/cardinality analysis
+- **Null comparison level**: unobserved fields contribute zero evidence, distinct from an observed mismatch which takes the full disagreement weight. Training and scoring share this definition, so per-field m/u are estimated only over the pairs where that field was actually compared
+- **Two-population parameter estimation**: `m` from blocked candidate pairs (where true matches concentrate) and `u` from a random sample of record pairs (which are effectively all non-matches). `u` is measured directly rather than inferred jointly, because candidate pairs have already passed a similarity gate and cannot furnish a representative non-match sample. Each persisted model records which estimation regime produced it
+- **Term-frequency-adjusted agreement weight**: when two records share an identical value, the match weight is computed from that value's observed frequency rather than the field's average chance-agreement rate, so agreeing on a rare value counts as stronger evidence than agreeing on a common one. Values absent from the maintained per-field table fall back to the field average rather than being guessed
+- **Data-driven threshold selection** (`similarity.auto_threshold`, off by default): unsupervised inference from the score distribution via Otsu's method, plus supervised selection from labelled pairs. Inference is refused when the scores are not meaningfully bimodal, so the configured threshold is never replaced by an unsupported guess
+- **Runtime multi-level comparisons (partial)**: `FellegiSunterScorer` accepts optional ordered exact / fuzzy / fallback levels with per-level m/u, preserves the null level, explains which level was selected, and remains compatible with existing binary model documents. Levels must currently be supplied by the caller or loaded from a model document; EM does not yet learn per-level probabilities and the pipeline does not derive them automatically
+
+### Graph-Aware and Incremental Resolution (Phase 3.1–3.4)
+
+- Graph-context relationship features contributed to Fellegi-Sunter scoring as ordinary learned fields
+- Collective / iterative resolution with fixpoint and cycle detection, reachable from `ConfigurableERPipeline.run()` via `collective.enabled`
+- Incremental cluster maintenance: single-record resolve-and-commit with verdict-preserving, idempotent re-clustering. Handles merges and human-verdict splits; data-driven splits from record *updates* are not yet retracted
+- Graph-embedding blocking over node2vec-style embeddings (prototype; unweighted random walks with count-SVD, hard-capped node count)
+- Shard-parallel blocking for sharded clusters (note: pairs whose members live on different shards are only found when the blocking fields match the collection's shard keys)
+- Hybrid blocking combining BM25 and Levenshtein candidate generation
+- `AddressERPipeline` for street/city/state/postal resolution
+- Cross-collection matching for linking entities across two collections
+- MCP canonical `options`-based request shape with legacy reconciliation and deprecation warnings
+
+### Evaluation and Verifiability
+
+- Cluster-level metrics: B-cubed precision/recall/F1 and pairwise metrics over the transitive closure of produced clusters
+- Published, reproducible results on the public Leipzig record-linkage benchmarks (`scripts/run_er_benchmarks.py`, `docs/BENCHMARKS.md`)
+- Per-decision match-weight decomposition (additive log-odds waterfall) exposed through `explain_match`
+- Mechanical quality gates in CI: blocking lint, secret scanning, version consistency, wiring/contract conformance, matching-quality F1 floors, coverage floor
+
+### Steward Workbench UI (3.8.0)
+
+- Optional browser-based curation UI (`pip install "arango-entity-resolution[ui]"`, `arango-er ui`): dashboard, review queue with verdict capture, cluster browse/edit with audit trail, threshold tuning, golden-record survivorship editing, data profiling, and pipeline execution with progress streaming
+- All UI operations route through existing services (`FeedbackApplicationService`, `GoldenRecordPersistenceService`); no parallel resolution logic
+- Manual golden-record field edits are stored as `fieldOverrides` and survive subsequent pipeline rebuilds: recomputed machine-derived values may change, but a steward override takes precedence until explicitly removed. Golden-record control metadata (`clusterId`, `clusterSize`, `memberIds`, `sourceClusterHash`, `stale`, `method`, `fieldOverrides`, and related fields) is protected from both source-document columns and steward edits
 
 ---
 
@@ -106,6 +138,15 @@ The product must expose cluster summaries, cluster quality signals, and collecti
 
 The product must support optional active-learning and LLM-assisted review for ambiguous pairs without forcing those dependencies into the default runtime path.
 
+**Adjudication decisions are binding on every execution path.** A pair recorded as
+`no_match` must not appear in the same cluster under ANY clustering backend, and a
+confirmed pair must survive a full rebuild. Backends that cannot express this
+filter natively must achieve it by other means rather than ignoring it.
+Parametrized conformance tests verify suppressed-edge exclusion across every WCC
+backend, including GAE's active-edge projection. Confirmed-pair survival is
+integration-tested, but per-backend parametrized confirmation coverage remains
+to be added.
+
 ### 4. Portability
 
 The product must allow users to export results in JSON and CSV for analyst and downstream-system consumption.
@@ -113,6 +154,27 @@ The product must allow users to export results in JSON and CSV for analyst and d
 ### 5. Evaluation
 
 The product must provide one supported benchmark workflow that compares blocking strategies using a simple ground-truth input format.
+
+**Cluster-level quality.** The product must measure final cluster quality with
+entity-centric metrics (B-cubed precision/recall/F1) alongside pairwise metrics
+computed over the transitive closure of the produced clusters, so that
+over-merging and under-merging are penalised symmetrically and the precision cost
+of chain merges is measurable against ground truth.
+
+**Public benchmarks.** The product must be measurable against public, third-party
+entity-resolution benchmarks, reporting blocking pair completeness and reduction
+ratio, pairwise precision/recall/F1, and entity-level B-cubed
+precision/recall/F1, together with the configuration that produced them. Results
+must be reproducible by a single documented command and published with the
+release, so matching-quality claims are falsifiable rather than asserted.
+
+**Threshold selection.** The product must be able to choose a decision threshold
+from data rather than requiring a hand-set constant. Benchmarking established
+that a single fixed default is unsafe: the best-F1 threshold varies by more than
+2x across datasets, and running the shipped 0.8 default on noisy product data
+yielded roughly a tenth of the achievable F1. Threshold selection must therefore
+be derivable from a labelled sample or from the score distribution, and the
+chosen operating point must be reported with the score.
 
 ### 6. Integration
 
@@ -122,23 +184,59 @@ The product must support both human-operated CLI workflows and AI-agent workflow
 
 The product must support optional GAE clustering for enterprise-scale graphs, with graceful fallback to local backends when GAE is unavailable.
 
+**Measured status (2026-08-03):** clustering scales, candidate generation does
+not. BM25 blocking completes 66,879 records in ~19 minutes versus ~7 seconds for
+4,910 — it issues one monolithic AQL query with a per-document subquery, with no
+batching or streaming, and materialises all candidate pairs in client memory.
+Throughput claims above roughly 50k records are unsubstantiated for this path.
+Chunked blocking with server-side pair emission is required before any
+higher-volume claim is made. Tracked as open drift; see
+`docs/BENCHMARKS.md#scale-limits`.
+
+### 8. Steward Workbench UI
+
+The product must provide an optional browser-based curation UI (pip extra `[ui]`,
+`arango-er ui`) exposing dashboard, review queue with verdict capture, cluster
+browse/edit with audit trail, threshold tuning, golden-record survivorship
+editing, data profiling, and pipeline execution with progress streaming. All UI
+operations route through existing services; no parallel resolution logic.
+
+**Override survival.** Manual golden-record field edits made through the
+Workbench (stored as `fieldOverrides`) must survive subsequent pipeline rebuilds.
+Consolidation may recompute machine-derived values, but steward overrides take
+precedence and must not be silently reverted.
+
+**Metadata integrity.** Consolidation writes domain fields first and control
+metadata last, so a source column or steward edit named like `method`,
+`clusterSize`, `stale`, or `fieldOverrides` cannot corrupt golden-record state.
+
+**Authentication UX.** When `ER_UI_AUTH_TOKEN` is configured, the health
+endpoint reports that authentication is required without exposing the secret.
+The SPA keeps the supplied token in tab-scoped `sessionStorage`, sends it as a
+bearer credential on API calls, and authenticates pipeline WebSocket
+connections. When `ER_UI_REVIEWERS` maps tokens to display names, the mapped
+authenticated identity outranks the freely editable `X-Reviewer` attribution
+header.
+
 ---
 
 ## Non-Functional Requirements
 
 - **Scalability**: Handle large datasets through blocking, set-based ArangoDB operations, and optional GAE for enterprise-scale graphs
-- **Security**: Prevent AQL injection through validated identifiers and bind-variable usage
+- **Security**: Prevent AQL injection through validated identifiers, numeric coercion, and bind-variable usage across config-driven query paths. Static SPA routes must not serve files outside the packaged UI root, authenticated Workbench API and WebSocket traffic must be supported end to end, and user-controlled fields must not replace system-owned golden-record metadata
 - **Maintainability**: Keep new capabilities configuration-driven and layered on existing services
-- **Explainability**: Surface quality signals, backend selection rationale, and structured benchmark outputs
+- **Explainability**: Surface quality signals, backend selection rationale, structured benchmark outputs, and a per-decision evidence decomposition. For any candidate pair the system must be able to state which fields contributed to the decision and by how much, as additive log-odds summing to the final score, including the effect of value rarity. This decomposition is derived from the model itself rather than narrated after the fact
+- **Verifiability**: quality intentions must be mechanically enforced, not documented only. CI blocks on syntax/undefined-name lint, committed-secret scanning, version consistency across all declared sources, wiring/contract conformance for every public entry point, matching-quality F1 floors, and a unit-test coverage floor. Current ratchet floors are **72% coverage**, **0.80 pairwise F1**, and **0.85 B-cubed F1** on the labeled regression fixture; floors rise with measured performance. Known defects are pinned with strict `xfail` markers so a fix cannot land without updating the ledger. Tests refuse to run against a non-local database
 - **Extensibility**: Preserve room for future GraphRAG, geospatial, and graph-learning additions
 - **Performance Portability**: Support cross-platform GPU acceleration for embedding-heavy workloads on Apple Silicon and Linux with deterministic CPU fallback behavior
+- **Python Runtime**: Supported and CI-tested on Python **3.10–3.12** (`requires-python >= 3.10`)
 - **Platform Baseline**: ArangoDB **3.12+** is the supported baseline. Vector / ANN blocking **requires** the native 3.12 vector index (`APPROX_NEAR_COSINE`); brute-force vector search is intentionally not supported, so vector features are unavailable on ArangoDB 3.11 and earlier. Non-vector capabilities (exact/BM25/LSH/graph blocking, similarity, clustering, golden records) do not require 3.12.
 
 ---
 
-## Roadmap Beyond 3.5.1
+## Roadmap Beyond 3.8.0
 
-These items remain forward-looking and are not part of the currently shipped `3.5.1` baseline.
+These items remain forward-looking and are not part of the currently shipped `3.8.0` baseline.
 
 ### Centralized Enterprise ER Service (v4.x)
 
@@ -195,15 +293,24 @@ See [Centralized ER Service Design](architecture/CENTRALIZED_ER_SERVICE.md) for 
 
 ### Other Future Investigation Areas
 
+Shipped since this list was written and therefore removed from it: shard-parallel
+blocking, `AddressERPipeline` as a first-class class, graph-context / collective
+matching, richer evaluator reports and public benchmark datasets, and the MCP
+canonical `options` migration. See Shipped Scope above.
+
+Still open:
+
 - ONNX Runtime GPU provider promotion (CoreML on Apple Silicon, CUDA/TensorRT on Linux) after parity and quality gates pass
 - Richer GraphRAG and document-entity extraction flows
-- Geospatial-temporal validation
-- Graph-neural or context-aware matching
-- Shard-parallel address blocking for ArangoDB clusters
-- `AddressERPipeline` first-class library class
-- Stricter anti-merge constraints and policy controls
-- Richer evaluator reports and benchmark datasets
-- MCP API maintainability migration to a canonical `options`-based request shape (see [MCP API Migration Plan](development/MAINTAINABILITY_API_MIGRATION_PLAN.md))
+- Geospatial-temporal validation as Fellegi-Sunter evidence rather than a binary pre-filter
+- Graph-neural matching (the current graph-embedding blocker is an unweighted-DeepWalk prototype; GraphSAGE / ArangoGraphML is the scale path)
+- Stricter anti-merge constraints and policy controls (minimum-evidence floor, conflicting-hard-identifier veto)
+- **Chunked, streaming candidate generation** — required before any throughput claim above ~50k records (see Functional Requirement 7)
+- **Active learning**: uncertainty-sampled pair selection for labelling, so a useful model needs tens rather than thousands of labels
+- **Multi-level comparisons (learning path)**: unsupervised categorical EM estimation, configuration, and persistence of per-level m/u. The runtime scorer accepts configured levels, but levels are not yet learned or written by `ModelParameterEstimator`; weighted similarity therefore remains the default for text-heavy data until this path is wired and benchmarked
+- **Embeddings as a scoring feature**, not blocking-only
+- **LLM cascade for the clerical-review band** with explicit accuracy/cost/latency accounting
+- Retraction in incremental maintenance, so a record *update* can split a cluster rather than only a human verdict
 
 > The original library enhancement plan (Phases 0–4) is complete and archived at
 > [docs/archive/completed-work/LIBRARY_ENHANCEMENT_PLAN.md](archive/completed-work/LIBRARY_ENHANCEMENT_PLAN.md);
@@ -241,4 +348,4 @@ The current product is successful when users can:
 
 ---
 
-**Last Updated:** March 30, 2026
+**Last Updated:** August 5, 2026

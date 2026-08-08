@@ -73,6 +73,10 @@ arango-er-mcp --transport sse --host 0.0.0.0 # requires the token above
 Clients must send `Authorization: Bearer <token>` (the UI also accepts
 `X-API-Key`, and WebSocket clients may pass `?token=<token>`). Binding to a
 public interface without a token requires an explicit `--insecure` override.
+When UI authentication is enabled, enter the shared token in the API token
+control in the application header. The SPA keeps it in tab-scoped
+`sessionStorage`, sends it as a bearer credential for API requests, and adds it
+to pipeline WebSocket connections.
 
 ---
 
