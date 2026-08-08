@@ -1,0 +1,242 @@
+[
+  {
+    "dataset": "dblp-acm",
+    "records_a": 2616,
+    "records_b": 2294,
+    "true_pairs": 2224,
+    "blocking": {
+      "candidate_pairs": 32278,
+      "true_pairs": 2224,
+      "true_pairs_retained": 2224,
+      "pair_completeness": 1.0,
+      "reduction_ratio": 0.9946213230098995,
+      "runtime_seconds": 7.08
+    },
+    "matching": {
+      "best_f1": {
+        "precision": 0.9308,
+        "recall": 0.9433,
+        "f1": 0.937,
+        "predicted_pairs": 2254,
+        "true_positives": 2098,
+        "threshold": 0.77
+      },
+      "at_configured_threshold": {
+        "precision": 0.9425,
+        "recall": 0.9281,
+        "f1": 0.9352,
+        "predicted_pairs": 2190,
+        "true_positives": 2064,
+        "threshold": 0.8
+      },
+      "runtime_seconds": 0.33
+    },
+    "clustering": {
+      "threshold": 0.77,
+      "b_cubed": {
+        "precision": 0.9797,
+        "recall": 0.9743,
+        "f1": 0.977,
+        "records_evaluated": 4910
+      },
+      "pairwise_closure": {
+        "precision": 0.8627,
+        "recall": 0.9433,
+        "f1": 0.9012,
+        "true_positives": 2098,
+        "predicted_pairs": 2432,
+        "truth_pairs": 2224
+      },
+      "predicted_clusters": 2065,
+      "truth_clusters": 2224
+    },
+    "config": {
+      "blocking": "bm25",
+      "bm25_threshold": 1.0,
+      "limit_per_entity": 20,
+      "similarity_algorithm": "jaccard",
+      "analyzer": "text_en"
+    },
+    "total_runtime_seconds": 7.76
+  },
+  {
+    "dataset": "dblp-scholar",
+    "records_a": 2616,
+    "records_b": 64263,
+    "true_pairs": 5347,
+    "blocking": {
+      "candidate_pairs": 68057,
+      "true_pairs": 5347,
+      "true_pairs_retained": 5324,
+      "pair_completeness": 0.9956985225360016,
+      "reduction_ratio": 0.9995951687163239,
+      "runtime_seconds": 1159.77
+    },
+    "matching": {
+      "best_f1": {
+        "precision": 0.7851,
+        "recall": 0.9027,
+        "f1": 0.8398,
+        "predicted_pairs": 6148,
+        "true_positives": 4827,
+        "threshold": 0.5
+      },
+      "at_configured_threshold": {
+        "precision": 0.9925,
+        "recall": 0.4954,
+        "f1": 0.6609,
+        "predicted_pairs": 2669,
+        "true_positives": 2649,
+        "threshold": 0.8
+      },
+      "runtime_seconds": 0.82
+    },
+    "clustering": {
+      "threshold": 0.5,
+      "b_cubed": {
+        "precision": 0.9853,
+        "recall": 0.9888,
+        "f1": 0.987,
+        "records_evaluated": 66879
+      },
+      "pairwise_closure": {
+        "precision": 0.6624,
+        "recall": 0.8048,
+        "f1": 0.7267,
+        "true_positives": 11077,
+        "predicted_pairs": 16722,
+        "truth_pairs": 13763
+      },
+      "predicted_clusters": 2273,
+      "truth_clusters": 2351
+    },
+    "config": {
+      "blocking": "bm25",
+      "bm25_threshold": 1.0,
+      "limit_per_entity": 20,
+      "similarity_algorithm": "jaccard",
+      "analyzer": "text_en"
+    },
+    "total_runtime_seconds": 1419.31
+  },
+  {
+    "dataset": "abt-buy",
+    "records_a": 1081,
+    "records_b": 1092,
+    "true_pairs": 1097,
+    "blocking": {
+      "candidate_pairs": 10895,
+      "true_pairs": 1097,
+      "true_pairs_retained": 1050,
+      "pair_completeness": 0.9571558796718322,
+      "reduction_ratio": 0.9907704845262663,
+      "runtime_seconds": 1.73
+    },
+    "matching": {
+      "best_f1": {
+        "precision": 0.5144,
+        "recall": 0.5706,
+        "f1": 0.5411,
+        "predicted_pairs": 1217,
+        "true_positives": 626,
+        "threshold": 0.35
+      },
+      "at_configured_threshold": {
+        "precision": 1.0,
+        "recall": 0.0346,
+        "f1": 0.067,
+        "predicted_pairs": 38,
+        "true_positives": 38,
+        "threshold": 0.8
+      },
+      "runtime_seconds": 0.15
+    },
+    "clustering": {
+      "threshold": 0.35,
+      "b_cubed": {
+        "precision": 0.7732,
+        "recall": 0.7842,
+        "f1": 0.7786,
+        "records_evaluated": 2173
+      },
+      "pairwise_closure": {
+        "precision": 0.1975,
+        "recall": 0.5707,
+        "f1": 0.2934,
+        "true_positives": 638,
+        "predicted_pairs": 3231,
+        "truth_pairs": 1118
+      },
+      "predicted_clusters": 440,
+      "truth_clusters": 1076
+    },
+    "config": {
+      "blocking": "bm25",
+      "bm25_threshold": 1.0,
+      "limit_per_entity": 20,
+      "similarity_algorithm": "jaccard",
+      "analyzer": "text_en"
+    },
+    "total_runtime_seconds": 2.02
+  },
+  {
+    "dataset": "amazon-google",
+    "records_a": 1363,
+    "records_b": 3226,
+    "true_pairs": 1300,
+    "blocking": {
+      "candidate_pairs": 25808,
+      "true_pairs": 1300,
+      "true_pairs_retained": 1157,
+      "pair_completeness": 0.89,
+      "reduction_ratio": 0.9941305942773294,
+      "runtime_seconds": 16.23
+    },
+    "matching": {
+      "best_f1": {
+        "precision": 0.4618,
+        "recall": 0.5162,
+        "f1": 0.4875,
+        "predicted_pairs": 1453,
+        "true_positives": 671,
+        "threshold": 0.34
+      },
+      "at_configured_threshold": {
+        "precision": 0.4717,
+        "recall": 0.0192,
+        "f1": 0.037,
+        "predicted_pairs": 53,
+        "true_positives": 25,
+        "threshold": 0.8
+      },
+      "runtime_seconds": 1.0
+    },
+    "clustering": {
+      "threshold": 0.34,
+      "b_cubed": {
+        "precision": 0.8431,
+        "recall": 0.861,
+        "f1": 0.8519,
+        "records_evaluated": 4589
+      },
+      "pairwise_closure": {
+        "precision": 0.1641,
+        "recall": 0.4997,
+        "f1": 0.2471,
+        "true_positives": 776,
+        "predicted_pairs": 4728,
+        "truth_pairs": 1553
+      },
+      "predicted_clusters": 609,
+      "truth_clusters": 1105
+    },
+    "config": {
+      "blocking": "bm25",
+      "bm25_threshold": 1.0,
+      "limit_per_entity": 20,
+      "similarity_algorithm": "jaccard",
+      "analyzer": "text_en"
+    },
+    "total_runtime_seconds": 17.81
+  }
+]
