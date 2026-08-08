@@ -126,17 +126,18 @@ def test_sparse_fields_remain_unobserved_through_training_samples(estimation_fix
 
 
 def test_production_pipeline_loads_and_applies_term_frequencies(estimation_fixture):
-    """The configured FS service must use TF tables persisted during training."""
+    """The configured FS service must use TF tables persisted during training.
+
+    Trains through ``pipeline.build_model_parameter_estimator`` because that is
+    exactly what ``arango-er estimate`` does. Models are looked up by
+    configuration hash (fields, agreement thresholds, algorithm), so training
+    through the pipeline is what makes a train-then-run cycle match by
+    construction. Constructing the estimator by hand with different thresholds
+    produces a different hash, no match, and a silent fallback to
+    weighted_heuristic — which is the real trap this test now exercises the
+    happy path of.
+    """
     db, vcol, ecol = estimation_fixture
-    sim = BatchSimilarityService(
-        db=db, collection=vcol,
-        field_weights={"name": 0.6, "city": 0.4},
-        similarity_algorithm="jaro_winkler",
-    )
-    ModelParameterEstimator(
-        db=db, similarity_service=sim, edge_collection=ecol,
-        field_names=["name", "city"], default_threshold=0.7,
-    ).run(source_collection=vcol, sample_size=100)
 
     config = ERPipelineConfig(
         entity_type="person",
@@ -150,7 +151,18 @@ def test_production_pipeline_loads_and_applies_term_frequencies(estimation_fixtu
             match_prior=0.5,
         ),
     )
-    service = ConfigurableERPipeline(db=db, config=config).build_similarity_service()
+    pipeline = ConfigurableERPipeline(db=db, config=config)
+
+    sim = BatchSimilarityService(
+        db=db, collection=vcol,
+        field_weights={"name": 0.6, "city": 0.4},
+        similarity_algorithm="jaro_winkler",
+    )
+    pipeline.build_model_parameter_estimator(sim).run(
+        source_collection=vcol, sample_size=100
+    )
+
+    service = pipeline.build_similarity_service()
 
     assert service.scoring_method == "fellegi_sunter"
     assert service.fs_scorer.term_frequencies["city"]["Boston"] == pytest.approx(0.5)
@@ -379,3 +391,113 @@ class _StubClient:
 
     def db(self, *_args, **_kwargs):
         return self._db
+
+
+def test_config_mismatch_reports_the_mismatch_not_missing_model(
+    estimation_fixture, caplog
+):
+    """A model trained under other settings must not look like "never trained".
+
+    Parameters are only valid for the comparison settings they were estimated
+    under, so a config-hash miss correctly refuses to reuse them. But the two
+    causes need different fixes, and telling a user who just ran
+    `arango-er estimate` to run it again sends them in a circle.
+    """
+    import logging
+
+    db, vcol, ecol = estimation_fixture
+
+    trained_config = ERPipelineConfig(
+        entity_type="person", collection_name=vcol, edge_collection=ecol,
+        blocking=BlockingConfig(strategy="exact", fields=["name"]),
+        similarity=SimilarityConfig(
+            algorithm="jaro_winkler",
+            field_weights={"name": 0.6, "city": 0.4},
+            scoring_method="fellegi_sunter",
+        ),
+    )
+    sim = BatchSimilarityService(
+        db=db, collection=vcol,
+        field_weights={"name": 0.6, "city": 0.4},
+        similarity_algorithm="jaro_winkler",
+    )
+    ConfigurableERPipeline(
+        db=db, config=trained_config
+    ).build_model_parameter_estimator(sim).run(
+        source_collection=vcol, sample_size=100
+    )
+
+    # Same data, different agreement thresholds => different configuration.
+    changed_config = ERPipelineConfig(
+        entity_type="person", collection_name=vcol, edge_collection=ecol,
+        blocking=BlockingConfig(strategy="exact", fields=["name"]),
+        similarity=SimilarityConfig(
+            algorithm="jaro_winkler",
+            field_weights={"name": 0.6, "city": 0.4},
+            scoring_method="fellegi_sunter",
+            agreement_thresholds={"name": 0.5, "city": 0.5},
+        ),
+    )
+
+    with caplog.at_level(logging.WARNING):
+        service = ConfigurableERPipeline(
+            db=db, config=changed_config
+        ).build_similarity_service()
+
+    # Refusing to reuse mismatched parameters is the correct behaviour.
+    assert service.scoring_method == "weighted_heuristic"
+
+    message = " ".join(r.getMessage() for r in caplog.records)
+    assert "no model matches this configuration" in message
+    assert "different configurations" in message, (
+        "the warning must say a model EXISTS under other settings, not imply "
+        "nothing was ever trained"
+    )
+
+
+def test_list_model_configurations_reports_each_trained_config(estimation_fixture):
+    """Diagnostics need one row per configuration, not per model version."""
+    db, vcol, ecol = estimation_fixture
+    sim = BatchSimilarityService(
+        db=db, collection=vcol,
+        field_weights={"name": 0.6, "city": 0.4},
+        similarity_algorithm="jaro_winkler",
+    )
+    estimator = ModelParameterEstimator(
+        db=db, similarity_service=sim, edge_collection=ecol,
+        field_names=["name", "city"], default_threshold=0.7,
+    )
+    estimator.run(source_collection=vcol, sample_size=100)
+    estimator.run(source_collection=vcol, sample_size=100)  # v2, same config
+
+    configs = estimator.list_model_configurations()
+    assert len(configs) == 1, "two versions of one config must collapse to one row"
+    assert configs[0]["config_hash"] == estimator.configuration_hash()
+    assert configs[0]["version"] == 2
+
+
+def test_no_models_at_all_says_so(estimation_fixture, caplog):
+    """The genuinely-untrained case keeps its own, actionable message."""
+    import logging
+
+    db, vcol, ecol = estimation_fixture
+    for name in ("er_model_params", "er_term_frequencies"):
+        if db.has_collection(name):
+            db.delete_collection(name)
+
+    config = ERPipelineConfig(
+        entity_type="person", collection_name=vcol, edge_collection=ecol,
+        blocking=BlockingConfig(strategy="exact", fields=["name"]),
+        similarity=SimilarityConfig(
+            algorithm="jaro_winkler",
+            field_weights={"name": 0.6, "city": 0.4},
+            scoring_method="fellegi_sunter",
+        ),
+    )
+    with caplog.at_level(logging.WARNING):
+        service = ConfigurableERPipeline(db=db, config=config).build_similarity_service()
+
+    assert service.scoring_method == "weighted_heuristic"
+    message = " ".join(r.getMessage() for r in caplog.records)
+    assert "no model parameters exist" in message
+    assert "no model matches this configuration" not in message

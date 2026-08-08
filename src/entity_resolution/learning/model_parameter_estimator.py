@@ -374,6 +374,26 @@ class ModelParameterEstimator:
             self.algorithm,
         )
 
+    def list_model_configurations(self) -> List[Dict[str, Any]]:
+        """Summarise the configurations models have been trained under.
+
+        Used to explain a lookup miss: a model existing under a *different*
+        configuration is a different situation from no model at all, and the
+        two need different fixes.
+        """
+        if not self.db.has_collection(self.model_collection):
+            return []
+        cursor = self.db.aql.execute(
+            """
+            FOR d IN @@col
+                COLLECT h = d.config_hash
+                AGGREGATE latest = MAX(d.version), trained = MAX(d.created_at)
+                RETURN { config_hash: h, version: latest, created_at: trained }
+            """,
+            bind_vars={"@col": self.model_collection},
+        )
+        return list(cursor)
+
     def load_term_frequencies(self) -> Dict[str, Dict[Any, float]]:
         """Load persisted TF tables as ``{field: {value: relative_frequency}}``.
 

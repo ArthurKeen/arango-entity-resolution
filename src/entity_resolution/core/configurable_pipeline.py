@@ -859,18 +859,66 @@ class ConfigurableERPipeline:
         )
 
     def _load_fs_scorer(self):
-        """Build a FellegiSunterScorer from the latest persisted model params."""
+        """Build a FellegiSunterScorer from the latest persisted model params.
+
+        Models are looked up by configuration hash (field set, agreement
+        thresholds, algorithm). That strictness is deliberate: m/u are estimated
+        under a specific binarisation, so applying them to comparisons made a
+        different way is statistically invalid. ``arango-er estimate`` builds its
+        estimator through the same :meth:`build_model_parameter_estimator`, so a
+        train-then-run cycle matches by construction — a mismatch means the
+        config changed after training.
+        """
         from ..learning.fellegi_sunter_scorer import FellegiSunterScorer
 
         estimator = self.build_model_parameter_estimator()
-        doc = estimator.load_latest(estimator.configuration_hash())
+        chash = estimator.configuration_hash()
+        doc = estimator.load_latest(chash)
         if not doc:
+            self._log_missing_fs_model(estimator, chash)
             return None
         cfg = self.config.similarity
         return FellegiSunterScorer.from_model_doc(
             doc,
             match_prior=getattr(cfg, "match_prior", None),
             term_frequencies=estimator.load_term_frequencies(),
+        )
+
+    def _log_missing_fs_model(self, estimator, chash: str) -> None:
+        """Explain WHY no model matched, distinguishing the two causes.
+
+        "Never trained" and "trained under a different configuration" need
+        different fixes, and conflating them sends a user who already ran
+        ``arango-er estimate`` off to run it again. When models exist, the
+        stored configurations are listed so the difference is visible.
+        """
+        try:
+            others = estimator.list_model_configurations()
+        except Exception:  # pragma: no cover - diagnostics must never break a run
+            others = []
+
+        if not others:
+            self.logger.warning(
+                "scoring_method='fellegi_sunter' but no model parameters exist in "
+                "'%s'. Run `arango-er estimate --config <your config>` to train "
+                "one. Falling back to weighted_heuristic for this run.",
+                estimator.model_collection,
+            )
+            return
+
+        self.logger.warning(
+            "scoring_method='fellegi_sunter' but no model matches this "
+            "configuration (hash %s: fields=%s, thresholds=%s, algorithm=%s). "
+            "%d model(s) are stored under different configurations: %s. "
+            "Parameters are only valid for the comparison settings they were "
+            "trained under, so they are not reused. Re-run `arango-er estimate` "
+            "with the current config. Falling back to weighted_heuristic.",
+            chash,
+            estimator.field_names,
+            estimator._effective_thresholds(),
+            estimator.algorithm,
+            len(others),
+            others,
         )
 
     def run_similarity(self, candidate_pairs: list) -> list:
