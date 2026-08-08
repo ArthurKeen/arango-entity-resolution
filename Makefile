@@ -1,4 +1,4 @@
-.PHONY: help install install-dev install-all test test-unit test-integration lint format typecheck build clean docs docker-up docker-down docker-test ui-types
+.PHONY: help install install-dev install-all test test-unit test-integration test-conformance test-quality lint lint-critical format typecheck scan-secrets check-version verify build clean docs docker-up docker-down docker-test ui-types
 
 .DEFAULT_GOAL := help
 
@@ -23,8 +23,26 @@ test-unit: ## Run unit tests only
 test-integration: ## Run integration tests only
 	pytest -v -m integration
 
-lint: ## Run flake8 linter
-	flake8 src/ tests/
+test-conformance: ## Run wiring/contract conformance tests (fast, no DB)
+	pytest -v tests/test_wiring_conformance.py
+
+test-quality: ## Run the matching-quality regression gate (F1 floors)
+	pytest -v tests/test_matching_quality_gate.py
+
+lint: ## Run flake8 linter (full, advisory)
+	flake8 --max-line-length=120 src/ tests/
+
+lint-critical: ## Blocking lint: syntax errors and undefined names only
+	flake8 --select=E9,F63,F7,F82 --show-source src/ tests/
+
+scan-secrets: ## Scan for secrets (blocks on committed, advisory on worktree)
+	python scripts/scan_secrets.py
+
+check-version: ## Verify __version__, CHANGELOG, PRD and README agree
+	python scripts/check_version_consistency.py
+
+verify: lint-critical check-version scan-secrets ## Run all blocking gates, then unit tests with coverage floor
+	pytest -m unit --cov=src/entity_resolution --cov-report=term-missing:skip-covered --cov-fail-under=72
 
 format: ## Run black formatter
 	black src/ tests/

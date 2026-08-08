@@ -153,3 +153,16 @@ ui/test-results/
 ui/playwright-report/
 ui/blob-report/
 ui/.playwright/
+.no-drift-gate
+
+# /prd-sync fallback records (replayed to memory DB, then deleted)
+.prd-sync-pending/
+
+# Cached public benchmark datasets (downloaded by scripts/run_er_benchmarks.py)
+.benchmark_data/
+.cursor/.shared-memory-sessions/
+.cursor/hooks.json.pre-update.*
+.cursor/hooks/*.pre-update.*
+
+# Session-mined candidate memories awaiting /pattern-save triage
+.pattern-capture-queue/

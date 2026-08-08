@@ -165,6 +165,48 @@ def _start_arango_container() -> tuple[str, str, str, str]:
     return container_id, "localhost", host_port, password
 
 
+#: Hosts a test run is permitted to talk to. Tests create, truncate and delete
+#: collections; pointing them at a shared or production server risks data loss.
+_ALLOWED_TEST_HOSTS = {"localhost", "127.0.0.1", "::1", "0.0.0.0", "arangodb", "db"}
+
+
+def assert_safe_test_host(host: str) -> None:
+    """Refuse to run destructive tests against a non-local database.
+
+    This repo's developer ``.env`` has historically pointed at a shared
+    prod-named server with root credentials. Integration tests create and drop
+    collections, so a stray environment variable could destroy real data. Fail
+    loudly instead of trusting the environment.
+
+    Override deliberately (e.g. a disposable remote CI database) by setting
+    ``ER_ALLOW_REMOTE_TEST_DB=1``.
+    """
+    if os.getenv("ER_ALLOW_REMOTE_TEST_DB") == "1":
+        return
+
+    normalized = (host or "").strip().lower()
+    # Strip scheme and path if a full endpoint was supplied.
+    for scheme in ("http://", "https://", "tcp://", "ssl://"):
+        if normalized.startswith(scheme):
+            normalized = normalized[len(scheme):]
+    normalized = normalized.split("/")[0]
+
+    # Strip the port carefully: a bare IPv6 literal (::1) is all colons, so
+    # splitting on the last colon would mangle it into ":".
+    if normalized.startswith("["):  # bracketed IPv6, optionally [::1]:8529
+        normalized = normalized[1:].split("]")[0]
+    elif normalized.count(":") == 1:  # host:port
+        normalized = normalized.split(":")[0]
+
+    if normalized not in _ALLOWED_TEST_HOSTS:
+        raise RuntimeError(
+            f"Refusing to run tests against non-local database host '{host}'. "
+            "Integration tests create and delete collections. Use a local or "
+            "containerised ArangoDB, or set ER_ALLOW_REMOTE_TEST_DB=1 if this "
+            "target is genuinely disposable."
+        )
+
+
 @pytest.fixture(scope="session")
 def db_connection(test_config):
     """
@@ -174,6 +216,9 @@ def db_connection(test_config):
     1. Explicit env vars: ARANGO_TEST_HOST, ARANGO_TEST_PORT, ARANGO_TEST_PASSWORD
     2. A running Docker container labelled 'entity-resolution-test=true'
     3. Spin up a fresh arangodb:3.12 Docker container on demand (torn down at end)
+
+    The resolved host is checked by :func:`assert_safe_test_host` before any
+    connection is made.
     """
     from arango import ArangoClient
 
@@ -196,6 +241,9 @@ def db_connection(test_config):
         except Exception as e:
             pytest.skip(f"Could not start ArangoDB Docker container: {e}")
             return
+
+    # Guard before connecting: these tests create and drop collections.
+    assert_safe_test_host(host)
 
     client = ArangoClient(hosts=f"http://{host}:{port}")
     try:

@@ -10,28 +10,99 @@ permissions:
   contents: read
 
 jobs:
-  build-and-test:
+  # Fast-failing quality gates. Kept separate from the test matrix so a lint or
+  # secret failure is obvious without reading matrix logs.
+  quality:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
+
+    - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.11"
         cache: 'pip'
-        
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -e ".[test,ml,llm,mcp,ui]"
+        python -m pip install flake8
+
+    # Syntax errors and undefined names only. This is a correctness gate, not a
+    # style gate: E9/F63/F7/F82 catch code that cannot possibly run. When this
+    # was first switched on it found an IndentationError in a lazily-imported
+    # module plus three undefined names, none of which any test exercised.
+    - name: Lint (blocking — syntax errors and undefined names)
+      run: flake8 --select=E9,F63,F7,F82 --show-source src/ tests/
+
+    # Style findings are advisory so they never block a correctness fix.
+    - name: Lint (advisory — full flake8)
+      continue-on-error: true
+      run: flake8 --max-line-length=120 --statistics src/ || true
+
+    - name: Secret scan (blocking on committed files)
+      run: python scripts/scan_secrets.py --committed-only
+
+    - name: Version consistency
+      run: python scripts/check_version_consistency.py
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # pyproject.toml claims 3.10-3.12 support, so all three are tested.
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         python -m pip install build
         python -m pip install -e ".[test,ml,llm,mcp,ui]"
-        
+
     - name: Build wheel and source distribution
       run: python -m build
-      
-    - name: Run tests
+
+    # --cov-fail-under enforces the floor. Measured at 75% when introduced;
+    # floor set to 72% so ordinary churn does not block work while a real
+    # regression does. Raise it when coverage genuinely improves.
+    - name: Run unit tests with coverage floor
       env:
         USE_DEFAULT_PASSWORD: "true"
       run: |
-        pytest -v -m unit
+        pytest -m unit \
+          --cov=src/entity_resolution \
+          --cov-report=term-missing:skip-covered \
+          --cov-fail-under=72
+
+  typecheck:
+    # Advisory: the codebase is not yet mypy-clean, so this reports without
+    # blocking. Flip continue-on-error to false once it passes.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -e ".[test,ml,llm,mcp,ui]"
+        python -m pip install mypy
+
+    - name: Type check
+      run: mypy --ignore-missing-imports --no-strict-optional src/entity_resolution || true
