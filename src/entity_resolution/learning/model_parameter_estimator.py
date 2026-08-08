@@ -51,6 +51,7 @@ class ModelParameterEstimator:
         *,
         agreement_thresholds: Optional[Dict[str, float]] = None,
         default_threshold: float = 0.85,
+        algorithm: Optional[str] = None,
         model_collection: str = _MODEL_COLLECTION,
         tf_collection: str = _TF_COLLECTION,
     ) -> None:
@@ -63,14 +64,107 @@ class ModelParameterEstimator:
         self.default_threshold = default_threshold
         self.model_collection = model_collection
         self.tf_collection = tf_collection
-        self.algorithm = getattr(similarity_service, "algorithm_name", "unknown")
+        self.algorithm = algorithm or getattr(
+            similarity_service, "algorithm_name", "unknown"
+        )
+        #: How u was obtained on the most recent estimate() call — persisted as
+        #: provenance, since it materially changes what the weights mean.
+        self._last_u_estimation: str = "unknown"
 
     # ------------------------------------------------------------------
     # Sampling + estimation
     # ------------------------------------------------------------------
 
+    def sample_random_pair_comparisons(
+        self, sample_size: int, source_collection: str
+    ) -> List[Dict[str, float]]:
+        """Compare RANDOM record pairs — the population ``u`` is defined over.
+
+        Draws ``2 * sample_size`` random records in a single pass and pairs them
+        off. Two records drawn at random from a real collection are
+        overwhelmingly likely to be different entities, so their agreement rate
+        estimates ``u`` (the probability a field agrees *by chance*) directly.
+
+        This is deliberately NOT the candidate-edge population: those pairs
+        already passed a similarity gate, so measuring ``u`` there conflates
+        "non-match" with "near-match".
+        """
+        from ..utils.validation import validate_collection_name
+
+        validate_collection_name(source_collection)
+        cursor = self.db.aql.execute(
+            """
+            FOR d IN @@col
+                SORT RAND()
+                LIMIT @n
+                RETURN d._key
+            """,
+            bind_vars={"@col": source_collection, "n": int(sample_size) * 2},
+        )
+        keys = [k for k in cursor if k]
+        if len(keys) < 2:
+            return []
+
+        half = len(keys) // 2
+        pairs: List[Tuple[str, str]] = [
+            (a, b) for a, b in zip(keys[:half], keys[half : half * 2]) if a != b
+        ]
+        if not pairs:
+            return []
+
+        detailed = self.similarity_service.compute_similarities_detailed(
+            pairs, threshold=0.0, preserve_missing=True
+        )
+        return [d.get("field_scores", {}) for d in detailed]
+
+    def estimate_u_from_random_pairs(
+        self, sample_size: int, source_collection: str
+    ) -> Dict[str, float]:
+        """Measure per-field ``u`` as the agreement rate among random pairs.
+
+        ``u_f = P(field f agrees | the pair is NOT a match)``. Because random
+        pairs are effectively all non-matches, this is a direct count rather
+        than something EM has to infer — and it is only counted over pairs where
+        the field was actually observed, matching the null-level convention used
+        by the scorer and by :meth:`EMEstimator.build_gamma`.
+
+        Returns an empty dict when no random pairs could be drawn, so callers
+        can fall back to joint EM estimation.
+        """
+        comparisons = self.sample_random_pair_comparisons(sample_size, source_collection)
+        if not comparisons:
+            return {}
+
+        agree_counts: Dict[str, int] = {f: 0 for f in self.field_names}
+        observed_counts: Dict[str, int] = {f: 0 for f in self.field_names}
+        for comp in comparisons:
+            for field in self.field_names:
+                value = comp.get(field)
+                if value is None:
+                    continue  # unobserved: carries no information about u
+                observed_counts[field] += 1
+                threshold = self.agreement_thresholds.get(field, self.default_threshold)
+                if value >= threshold:
+                    agree_counts[field] += 1
+
+        u_values: Dict[str, float] = {}
+        for field in self.field_names:
+            observed = observed_counts[field]
+            if observed == 0:
+                continue  # never observed — leave it to the EM default
+            # Clamp away from 0: a field that never agreed by chance in the
+            # sample would otherwise make log(m/u) infinite.
+            u_values[field] = max(agree_counts[field] / observed, 1.0 / (observed + 1))
+        return u_values
+
     def sample_comparisons(self, sample_size: int) -> List[Dict[str, float]]:
-        """Sample non-suppressed candidate pairs and compute per-field scores."""
+        """Sample non-suppressed candidate pairs and compute per-field scores.
+
+        This is the right population for estimating ``m`` (agreement given a
+        match): true matches are concentrated among the candidates that survived
+        blocking. It is the WRONG population for ``u`` — see
+        :meth:`estimate_u_from_random_pairs`.
+        """
         cursor = self.db.aql.execute(
             """
             FOR e IN @@edges
@@ -87,7 +181,7 @@ class ModelParameterEstimator:
         if not pairs:
             return []
         detailed = self.similarity_service.compute_similarities_detailed(
-            pairs, threshold=0.0
+            pairs, threshold=0.0, preserve_missing=True
         )
         return [d.get("field_scores", {}) for d in detailed]
 
@@ -97,13 +191,47 @@ class ModelParameterEstimator:
         *,
         max_iterations: int = 50,
         tol: float = 1e-5,
+        source_collection: Optional[str] = None,
+        u_sample_size: int = 10_000,
     ) -> EMResult:
+        """Estimate m/u/lambda.
+
+        When ``source_collection`` is given, ``u`` is first measured from random
+        record pairs drawn from it and then held fixed while EM estimates ``m``
+        and ``lambda`` over the candidate pairs. This two-population split is the
+        correct construction: candidate pairs are the right sample for ``m`` but
+        a biased one for ``u``, because they all cleared a similarity threshold.
+
+        Without ``source_collection`` the estimator falls back to joint EM over
+        candidates alone, which is left available for backward compatibility but
+        yields an inflated ``u`` and correspondingly compressed match weights.
+        The choice is recorded on the persisted model as ``u_estimation``.
+        """
         comparisons = self.sample_comparisons(sample_size)
         if not comparisons:
             raise ValueError(
                 f"no candidate pairs sampled from '{self.edge_collection}'; "
                 "run blocking/edge creation first"
             )
+
+        fixed_u: Dict[str, float] = {}
+        if source_collection:
+            fixed_u = self.estimate_u_from_random_pairs(
+                u_sample_size, source_collection
+            )
+            if fixed_u:
+                logger.info(
+                    "Estimated u from %d random pairs over '%s': %s",
+                    u_sample_size, source_collection,
+                    {k: round(v, 4) for k, v in fixed_u.items()},
+                )
+            else:
+                logger.warning(
+                    "Could not draw random pairs from '%s'; falling back to "
+                    "joint EM estimation of u (biased upward).",
+                    source_collection,
+                )
+
         estimator = EMEstimator(
             field_names=self.field_names,
             agreement_thresholds=self.agreement_thresholds,
@@ -111,7 +239,11 @@ class ModelParameterEstimator:
             max_iterations=max_iterations,
             tol=tol,
         )
-        return estimator.estimate(comparisons)
+        result = estimator.estimate(comparisons, fixed_u=fixed_u or None)
+        self._last_u_estimation = (
+            "random_pairs" if fixed_u else "joint_em_candidates_only"
+        )
+        return result
 
     # ------------------------------------------------------------------
     # Term frequencies (Splink's second pillar)
@@ -190,7 +322,7 @@ class ModelParameterEstimator:
 
     def persist(self, result: EMResult, *, sample_size: int) -> Dict[str, Any]:
         """Persist an EM result to ``er_model_params`` (versioned, config-hashed)."""
-        chash = config_hash(self.field_names, self._effective_thresholds(), self.algorithm)
+        chash = self.configuration_hash()
         version = self._next_version(chash)
         doc = {
             "_key": f"{chash}_v{version}",
@@ -207,6 +339,11 @@ class ModelParameterEstimator:
             "n_pairs": result.n_pairs,
             "log_likelihood": result.log_likelihood,
             "sample_size": sample_size,
+            # Provenance: "random_pairs" means u was measured on an unbiased
+            # non-match sample; "joint_em_candidates_only" means it was inferred
+            # from candidates alone and is inflated. Weights are not comparable
+            # across the two, so consumers must be able to tell them apart.
+            "u_estimation": self._last_u_estimation,
             "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         }
         self.db.collection(self.model_collection).insert(doc, overwrite=True)
@@ -229,18 +366,60 @@ class ModelParameterEstimator:
     def _effective_thresholds(self) -> Dict[str, float]:
         return {f: self.agreement_thresholds.get(f, self.default_threshold) for f in self.field_names}
 
+    def configuration_hash(self) -> str:
+        """Stable identity for the exact comparison model this estimator uses."""
+        return config_hash(
+            self.field_names,
+            self._effective_thresholds(),
+            self.algorithm,
+        )
+
+    def load_term_frequencies(self) -> Dict[str, Dict[Any, float]]:
+        """Load persisted TF tables as ``{field: {value: relative_frequency}}``.
+
+        Returns an empty dict when the collection does not exist yet, so a
+        scorer can be built before any TF run has happened.
+        """
+        from .fellegi_sunter_scorer import term_frequency_tables_from_docs
+
+        if not self.db.has_collection(self.tf_collection):
+            return {}
+        docs = list(self.db.collection(self.tf_collection).all())
+        return term_frequency_tables_from_docs(docs)
+
     def load_latest(self, chash: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        """Load the highest-version model parameters (optionally for one config)."""
+        """Load the most recent model parameters, optionally for one config.
+
+        With ``chash``, returns the highest version for that configuration.
+
+        Without it, returns the most recently **created** model. Sorting by
+        ``version`` alone is ambiguous across configurations: each config hash
+        starts its own version sequence at 1, so several models can share
+        ``version == 1`` and the winner is whichever the storage engine happens
+        to return. That silently hands back a model trained under a *different*
+        field set and agreement thresholds than the caller is scoring with —
+        which is not a hypothetical, since retraining after any config change
+        produces exactly this state.
+
+        Prefer passing ``chash`` (see :func:`config_hash`) whenever the
+        configuration is known; it is the only way to guarantee the parameters
+        match the comparisons being made.
+        """
         if not self.db.has_collection(self.model_collection):
             return None
-        filt = "FILTER d.config_hash == @h" if chash else ""
         bind: Dict[str, Any] = {"@col": self.model_collection}
         if chash:
             bind["h"] = chash
-        cursor = self.db.aql.execute(
-            f"FOR d IN @@col {filt} SORT d.version DESC LIMIT 1 RETURN d",
-            bind_vars=bind,
-        )
+            query = (
+                "FOR d IN @@col FILTER d.config_hash == @h "
+                "SORT d.version DESC LIMIT 1 RETURN d"
+            )
+        else:
+            query = (
+                "FOR d IN @@col SORT d.created_at DESC, d.version DESC "
+                "LIMIT 1 RETURN d"
+            )
+        cursor = self.db.aql.execute(query, bind_vars=bind)
         return next(iter(cursor), None)
 
     # ------------------------------------------------------------------
@@ -254,14 +433,25 @@ class ModelParameterEstimator:
         sample_size: int = 100_000,
         with_term_frequencies: bool = True,
         tf_fields: Optional[Sequence[str]] = None,
+        u_sample_size: int = 10_000,
     ) -> Dict[str, Any]:
-        """Estimate, persist, and (optionally) compute/persist term frequencies."""
-        result = self.estimate(sample_size)
+        """Estimate, persist, and (optionally) compute/persist term frequencies.
+
+        ``source_collection`` is passed through to :meth:`estimate` so ``u`` is
+        measured from random record pairs rather than inferred from the biased
+        candidate population.
+        """
+        result = self.estimate(
+            sample_size,
+            source_collection=source_collection,
+            u_sample_size=u_sample_size,
+        )
         model_doc = self.persist(result, sample_size=sample_size)
         out: Dict[str, Any] = {
             "model": result.to_dict(),
             "model_key": model_doc["_key"],
             "version": model_doc["version"],
+            "u_estimation": model_doc["u_estimation"],
         }
         if with_term_frequencies:
             fields = list(tf_fields) if tf_fields else self.field_names

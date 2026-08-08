@@ -22,6 +22,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
+from ..utils.validation import validate_collection_name, validate_field_name
+
 logger = logging.getLogger(__name__)
 
 ScoredPair = Tuple[str, str, float]
@@ -252,8 +254,9 @@ class EvaluationService:
 
     def __init__(self, db: Any, edge_collection: str, score_field: str = "similarity") -> None:
         self.db = db
-        self.edge_collection = edge_collection
-        self.score_field = score_field
+        self.edge_collection = validate_collection_name(edge_collection)
+        # Attribute access is interpolated into AQL and cannot use a value bind.
+        self.score_field = validate_field_name(score_field)
 
     def _load_scored_pairs(self) -> List[ScoredPair]:
         cursor = self.db.aql.execute(

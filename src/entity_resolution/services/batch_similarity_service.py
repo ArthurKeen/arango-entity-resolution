@@ -249,7 +249,8 @@ class BatchSimilarityService:
     def compute_similarities_detailed(
         self,
         candidate_pairs: List[Tuple[str, str]],
-        threshold: float = DEFAULT_SIMILARITY_THRESHOLD
+        threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
+        preserve_missing: bool = False,
     ) -> List[Dict[str, Any]]:
         """
         Compute similarities with detailed per-field scores.
@@ -258,6 +259,10 @@ class BatchSimilarityService:
             candidate_pairs: List of (doc1_key, doc2_key) tuples
             threshold: Minimum similarity to include in results (0.0-1.0). 
                 Default DEFAULT_SIMILARITY_THRESHOLD (0.75).
+            preserve_missing: Keep unobserved per-field similarities as ``None``.
+                Training code must enable this so EM can distinguish missing
+                evidence from an observed disagreement. Defaults to ``False``
+                for backward compatibility with float-only consumers.
         
         Returns:
             List of detailed similarity results:
@@ -317,7 +322,9 @@ class BatchSimilarityService:
                 continue
             
             # Compute detailed scores
-            field_scores, weighted_score = self._compute_detailed_similarity(doc1, doc2)
+            field_scores, weighted_score = self._compute_detailed_similarity(
+                doc1, doc2, preserve_missing=preserve_missing
+            )
             if neighbor_cache is not None:
                 field_scores.update(
                     self.graph_context.pair_features(doc1_key, doc2_key, neighbor_cache)
@@ -422,13 +429,42 @@ class BatchSimilarityService:
         are merged into the FS comparison vector (plan 3.1).
         """
         if self.scoring_method == "fellegi_sunter":
-            field_scores, _ = self._compute_detailed_similarity(doc1, doc2)
+            # preserve_missing=True: unobserved fields must reach the scorer as
+            # None so they take the null level instead of a disagreement penalty.
+            field_scores, _ = self._compute_detailed_similarity(
+                doc1, doc2, preserve_missing=True
+            )
             if neighbor_cache is not None and self.graph_context is not None and key1 and key2:
                 field_scores.update(
                     self.graph_context.pair_features(key1, key2, neighbor_cache)
                 )
-            return self.fs_scorer.score(field_scores)
+            return self.fs_scorer.score(
+                field_scores, self._exact_shared_values(doc1, doc2)
+            )
         return self._compute_weighted_similarity(doc1, doc2)
+
+    def _exact_shared_values(
+        self, doc1: Dict[str, Any], doc2: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Fields where both records hold the identical value.
+
+        Feeds term-frequency adjustment: knowing two records agree is less
+        informative than knowing *what* they agree on, since a shared rare value
+        is far stronger evidence than a shared common one.
+
+        Raw (un-normalised) values are compared deliberately — the persisted TF
+        tables are keyed on the raw values COLLECTed from the source collection,
+        so a normalised key would simply miss the lookup and silently fall back
+        to the unadjusted weight.
+        """
+        shared: Dict[str, Any] = {}
+        for field in self.field_weights:
+            v1 = doc1.get(field)
+            if v1 is None or v1 == "":
+                continue
+            if v1 == doc2.get(field):
+                shared[field] = v1
+        return shared
 
     def _compute_weighted_similarity(self, doc1: Dict[str, Any], doc2: Dict[str, Any]) -> float:
         """
@@ -448,26 +484,39 @@ class BatchSimilarityService:
     def _compute_detailed_similarity(
         self,
         doc1: Dict[str, Any],
-        doc2: Dict[str, Any]
+        doc2: Dict[str, Any],
+        preserve_missing: bool = False,
     ) -> Tuple[Dict[str, float], float]:
         """
         Compute detailed per-field similarities.
-        
+
         Uses WeightedFieldSimilarity internally for consistency.
-        
+
         Args:
             doc1: First document
             doc2: Second document
-        
+            preserve_missing: When True, fields that could not be compared stay
+                ``None`` instead of being coerced to ``0.0``. Required by the
+                Fellegi-Sunter path: ``0.0`` means "compared, completely
+                different" and draws the full disagreement weight, whereas
+                ``None`` is the null level that carries no evidence. Coercing
+                here previously made sparse records look maximally
+                contradictory, so they never merged. Defaults to False to keep
+                the long-standing float-only contract for persisted edge
+                metadata and other existing consumers.
+
         Returns:
             Tuple of (field_scores dict, weighted_score)
         """
         detailed = self.similarity_computer.compute_detailed(doc1, doc2)
-        # Convert None values to 0.0 for backward compatibility
-        field_scores = {
-            k: (v if v is not None else 0.0)
-            for k, v in detailed['field_scores'].items()
-        }
+        if preserve_missing:
+            field_scores = dict(detailed['field_scores'])
+        else:
+            # Convert None values to 0.0 for backward compatibility
+            field_scores = {
+                k: (v if v is not None else 0.0)
+                for k, v in detailed['field_scores'].items()
+            }
         return field_scores, detailed['weighted_score']
     
     

@@ -37,9 +37,25 @@ class _FakeAQL:
             versions = [d["version"] for d in coll.docs.values()
                         if d.get("config_hash") == bind_vars["h"]]
             return iter([max(versions)] if versions else [None])
-        if "SORT d.version DESC" in q:  # load_latest
+        # load_latest has two shapes: filtered to one config_hash (highest
+        # version within it) or unfiltered (most recently created, version as
+        # tie-break). Emulating both matters — sorting only by version across
+        # config hashes is the ambiguity the real query was changed to avoid.
+        if "SORT d.created_at DESC" in q:  # load_latest(), no config hash
             coll = self.db._coll(bind_vars["@col"])
-            docs = sorted(coll.docs.values(), key=lambda d: d["version"], reverse=True)
+            docs = sorted(
+                coll.docs.values(),
+                key=lambda d: (d.get("created_at", ""), d.get("version", 0)),
+                reverse=True,
+            )
+            return iter(docs[:1])
+        if "SORT d.version DESC" in q:  # load_latest(chash)
+            coll = self.db._coll(bind_vars["@col"])
+            candidates = [
+                d for d in coll.docs.values()
+                if "h" not in bind_vars or d.get("config_hash") == bind_vars["h"]
+            ]
+            docs = sorted(candidates, key=lambda d: d["version"], reverse=True)
             return iter(docs[:1])
         return iter([])
 
@@ -70,8 +86,12 @@ class _StubSimilarityService:
 
     def __init__(self, field_scores_by_pair):
         self._scores = field_scores_by_pair
+        self.preserve_missing_calls = []
 
-    def compute_similarities_detailed(self, pairs, threshold=0.0):
+    def compute_similarities_detailed(
+        self, pairs, threshold=0.0, preserve_missing=False
+    ):
+        self.preserve_missing_calls.append(preserve_missing)
         return [{"field_scores": self._scores[(a, b)]} for a, b in pairs]
 
 
@@ -103,6 +123,7 @@ def test_estimate_from_sampled_pairs():
     res = est.estimate(sample_size=8, max_iterations=100)
     assert res.m["name"] > res.u["name"]
     assert res.n_pairs == 8
+    assert est.similarity_service.preserve_missing_calls == [True]
 
 
 def test_persist_versions_and_loads_latest():

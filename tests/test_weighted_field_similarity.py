@@ -328,6 +328,81 @@ class TestWeightedFieldSimilarity:
 
         assert similarity.compute(doc1, doc2) == 1.0
 
+    def test_missing_sentinels_makes_matching_placeholders_unobserved(self):
+        """Two records both holding a placeholder must not agree.
+
+        Without the transformer 'NULL' vs 'NULL' scores 1.0 — evidence that was
+        never observed. Under handle_nulls='skip' it must become the null
+        comparison level instead.
+        """
+        similarity = WeightedFieldSimilarity(
+            field_weights={'ceo': 1.0},
+            algorithm='jaro_winkler',
+            handle_nulls='skip',
+            field_transformers={
+                'ceo': [{'name': 'missing_sentinels', 'values': ['NULL', 'UNKNOWN']}]
+            },
+        )
+
+        detailed = similarity.compute_detailed({'ceo': 'NULL'}, {'ceo': 'NULL'})
+        assert detailed['field_scores']['ceo'] is None
+
+    def test_missing_sentinels_does_not_penalize_real_value_against_placeholder(self):
+        """A real value vs a placeholder is unobserved, not disagreement."""
+        similarity = WeightedFieldSimilarity(
+            field_weights={'ceo': 1.0},
+            algorithm='jaro_winkler',
+            handle_nulls='skip',
+            field_transformers={
+                'ceo': [{'name': 'missing_sentinels', 'values': ['NULL']}]
+            },
+        )
+
+        detailed = similarity.compute_detailed(
+            {'ceo': 'ANNE M COMP, PRIN'}, {'ceo': 'NULL'}
+        )
+        assert detailed['field_scores']['ceo'] is None
+
+    def test_missing_sentinels_matches_case_insensitively_and_ignores_padding(self):
+        """Sentinel matching folds case and strips surrounding whitespace."""
+        similarity = WeightedFieldSimilarity(
+            field_weights={'ceo': 1.0},
+            algorithm='jaro_winkler',
+            handle_nulls='skip',
+            field_transformers={
+                'ceo': [{'name': 'missing_sentinels', 'values': ['null']}]
+            },
+        )
+
+        detailed = similarity.compute_detailed({'ceo': '  NuLL '}, {'ceo': 'NULL'})
+        assert detailed['field_scores']['ceo'] is None
+
+    def test_missing_sentinels_leaves_real_values_untouched(self):
+        """Non-sentinel values must still compare normally."""
+        similarity = WeightedFieldSimilarity(
+            field_weights={'name': 1.0},
+            algorithm='jaro_winkler',
+            handle_nulls='skip',
+            field_transformers={
+                'name': [{'name': 'missing_sentinels', 'values': ['NULL']}]
+            },
+        )
+
+        doc = {'name': 'Agri Partners, Inc.'}
+        assert similarity.compute(doc, dict(doc)) == 1.0
+
+    def test_missing_sentinels_without_values_is_a_no_op(self):
+        """An empty sentinel list must not blank anything."""
+        similarity = WeightedFieldSimilarity(
+            field_weights={'ceo': 1.0},
+            algorithm='jaro_winkler',
+            handle_nulls='skip',
+            field_transformers={'ceo': ['missing_sentinels']},
+        )
+
+        detailed = similarity.compute_detailed({'ceo': 'NULL'}, {'ceo': 'NULL'})
+        assert detailed['field_scores']['ceo'] == 1.0
+
     def test_field_transformer_chain_applies_in_order(self):
         """Test multiple transformers chained for one field."""
         similarity = WeightedFieldSimilarity(

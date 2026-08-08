@@ -76,6 +76,7 @@ class WeightedFieldSimilarity:
         'state_code',
         'street_suffix',
         'company_suffix',
+        'missing_sentinels',
     }
     
     def __init__(
@@ -117,8 +118,13 @@ class WeightedFieldSimilarity:
                 {
                     "phone": ["digits_only"],
                     "state": ["state_code"],
-                    "name": ["strip", "collapse_whitespace"]
+                    "name": ["strip", "collapse_whitespace"],
+                    "ceo": [{"name": "missing_sentinels",
+                             "values": ["NULL", "UNKNOWN"]}]
                 }
+                A transformer that blanks a value (e.g. missing_sentinels) makes
+                the field follow handle_nulls, so under "skip" it becomes the
+                null comparison level rather than a spurious agreement.
         
         Raises:
             ValueError: If configuration is invalid
@@ -424,7 +430,35 @@ class WeightedFieldSimilarity:
             return self._normalize_street_suffix(value)
         if name == "company_suffix":
             return self._normalize_company_suffix(value)
+        if name == "missing_sentinels":
+            return self._blank_missing_sentinels(value, params)
         raise ValueError(f"Unsupported transformer: {name}")
+
+    @staticmethod
+    def _blank_missing_sentinels(value: str, params: Dict[str, Any]) -> str:
+        """Blank out placeholder strings that stand for "no value".
+
+        Source systems routinely encode absence as literal text — "NULL",
+        "UNKNOWN", "N/A", "0" — rather than as a missing field. Compared as
+        ordinary strings these corrupt scoring in both directions: two records
+        that both say "NULL" register as perfect agreement (evidence that was
+        never observed), while a real value against "NULL" registers as
+        disagreement for a field that simply was not populated.
+
+        Mapping them to the empty string routes them into the caller's
+        ``handle_nulls`` policy, so under ``skip`` the field becomes the null
+        comparison level (no evidence either way) — which is what Fellegi-Sunter
+        scoring requires.
+
+        Params:
+            values: sentinel strings to treat as missing. Matched after
+                stripping and case-folding, so "null" matches "NULL".
+        """
+        sentinels = params.get("values") or []
+        if isinstance(sentinels, str):
+            sentinels = [sentinels]
+        folded = {str(s).strip().casefold() for s in sentinels}
+        return "" if value.strip().casefold() in folded else value
 
     @staticmethod
     def _remove_punctuation(value: str) -> str:

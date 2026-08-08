@@ -69,13 +69,21 @@ def estimate_mu(
     init_u: float = 0.1,
     init_lambda: float = 0.1,
     weights: Optional[np.ndarray] = None,
+    fixed_u: Optional[Sequence[float]] = None,
 ) -> EMResult:
     """Estimate m/u/lambda from a binary agreement matrix via Fellegi-Sunter EM.
 
     Parameters
     ----------
     gamma:
-        ``(n_pairs, n_fields)`` array of 0/1 agreement indicators.
+        ``(n_pairs, n_fields)`` array of agreement indicators: ``1`` agrees,
+        ``0`` observed-and-disagrees, ``NaN`` **not observed** on that pair.
+        NaN cells are masked out, so each field's m/u is estimated only over the
+        pairs where that field was actually compared, and an unobserved field
+        contributes nothing to the pair's likelihood. This matches the scorer's
+        null comparison level; without the mask, a frequently-empty field would
+        look like a frequently-disagreeing one and its ``m`` would be biased
+        downward.
     field_names:
         Names for the ``n_fields`` columns, in order.
     max_iterations, tol:
@@ -87,6 +95,18 @@ def estimate_mu(
     weights:
         Optional ``(n_pairs,)`` non-negative weights (e.g. counts when identical
         rows are collapsed). Defaults to all ones.
+    fixed_u:
+        Optional per-field ``u`` values held CONSTANT throughout (only ``m`` and
+        ``lambda`` are then estimated). Supply this when ``u`` has been measured
+        directly from random record pairs, which is the statistically sound way
+        to obtain it: ``u`` is defined as the agreement rate among *non-matches*,
+        and running EM over blocked candidate pairs cannot see a representative
+        non-match population — every pair already passed a similarity gate, so
+        the "non-match" class is drawn from near-matches and ``u`` comes out
+        inflated, compressing every ``log(m/u)`` weight. See
+        :meth:`~entity_resolution.learning.model_parameter_estimator.ModelParameterEstimator.estimate_u_from_random_pairs`.
+        When ``fixed_u`` is given, label switching is not resolved by comparing
+        mean(m) to mean(u) — the fixed ``u`` already anchors which class is which.
 
     Returns
     -------
@@ -111,8 +131,26 @@ def estimate_mu(
             raise ValueError("weights must have shape (n_pairs,)")
     total_w = weights.sum()
 
+    # Split gamma into an observation mask and a NaN-free agreement matrix.
+    # ``present`` zeroes every unobserved cell's contribution in the dot
+    # products below, which is what makes NaN mean "no evidence" rather than
+    # "disagrees". ``g`` must be NaN-free or the matrix products poison every
+    # row total with NaN.
+    present = np.isfinite(gamma).astype(np.float64)
+    g = np.nan_to_num(gamma, nan=0.0)
+    g_agree = g * present            # 1 where observed & agrees
+    g_disagree = (1.0 - g) * present  # 1 where observed & disagrees
+
     m = np.full(n_fields, float(init_m))
-    u = np.full(n_fields, float(init_u))
+    if fixed_u is None:
+        u = np.full(n_fields, float(init_u))
+    else:
+        u = np.asarray(fixed_u, dtype=np.float64)
+        if u.shape != (n_fields,):
+            raise ValueError(
+                f"fixed_u must have one value per field ({n_fields}), got {u.shape}"
+            )
+        u = np.clip(u, _EPS, 1 - _EPS)
     lam = float(init_lambda)
 
     converged = False
@@ -121,10 +159,10 @@ def estimate_mu(
         m_c = np.clip(m, _EPS, 1 - _EPS)
         u_c = np.clip(u, _EPS, 1 - _EPS)
 
-        # E-step in log space (avoids underflow with many fields).
-        # log P(gamma_i | M) = sum_f [ g*log m + (1-g)*log(1-m) ]
-        log_m = gamma @ np.log(m_c) + (1 - gamma) @ np.log(1 - m_c)
-        log_u = gamma @ np.log(u_c) + (1 - gamma) @ np.log(1 - u_c)
+        # E-step in log space (avoids underflow with many fields). Only observed
+        # cells contribute: sum_f present*[ g*log m + (1-g)*log(1-m) ].
+        log_m = g_agree @ np.log(m_c) + g_disagree @ np.log(1 - m_c)
+        log_u = g_agree @ np.log(u_c) + g_disagree @ np.log(1 - u_c)
         log_pm = np.log(max(lam, _EPS)) + log_m
         log_pu = np.log(max(1 - lam, _EPS)) + log_u
         # Responsibility g_i = P(M | gamma_i) via stable log-sum-exp.
@@ -132,14 +170,27 @@ def estimate_mu(
         denom = max_log + np.log(np.exp(log_pm - max_log) + np.exp(log_pu - max_log))
         resp = np.exp(log_pm - denom)  # (n_pairs,)
 
-        # M-step (weighted).
+        # M-step (weighted). Denominators are PER FIELD — the observed weight for
+        # that field — not the global class weight, so a field missing on half
+        # the pairs is estimated from the half where it was compared instead of
+        # being diluted toward 0.
         wr = weights * resp
         sum_match = wr.sum()
         new_lambda = sum_match / total_w
-        new_m = (wr @ gamma) / max(sum_match, _EPS)
-        w_non = weights * (1 - resp)
-        sum_non = w_non.sum()
-        new_u = (w_non @ gamma) / max(sum_non, _EPS)
+        obs_match = wr @ present          # (n_fields,)
+        new_m = np.divide(
+            wr @ g_agree, obs_match,
+            out=m.copy(), where=obs_match > _EPS,
+        )
+        if fixed_u is None:
+            w_non = weights * (1 - resp)
+            obs_non = w_non @ present
+            new_u = np.divide(
+                w_non @ g_agree, obs_non,
+                out=u.copy(), where=obs_non > _EPS,
+            )
+        else:
+            new_u = u  # measured externally from random pairs; never re-estimated
 
         delta = max(
             float(np.max(np.abs(new_m - m))),
@@ -154,15 +205,17 @@ def estimate_mu(
     # Final log-likelihood (weighted) for diagnostics.
     m_c = np.clip(m, _EPS, 1 - _EPS)
     u_c = np.clip(u, _EPS, 1 - _EPS)
-    log_m = gamma @ np.log(m_c) + (1 - gamma) @ np.log(1 - m_c)
-    log_u = gamma @ np.log(u_c) + (1 - gamma) @ np.log(1 - u_c)
+    log_m = g_agree @ np.log(m_c) + g_disagree @ np.log(1 - m_c)
+    log_u = g_agree @ np.log(u_c) + g_disagree @ np.log(1 - u_c)
     log_pm = np.log(max(lam, _EPS)) + log_m
     log_pu = np.log(max(1 - lam, _EPS)) + log_u
     max_log = np.maximum(log_pm, log_pu)
     ll = float((weights * (max_log + np.log(np.exp(log_pm - max_log) + np.exp(log_pu - max_log)))).sum())
 
     # Resolve label switching: the match class must be the higher-agreement one.
-    if float(np.mean(m)) < float(np.mean(u)):
+    # Skipped when u was supplied — swapping would discard the measured values
+    # and hand back an m that was never estimated as one.
+    if fixed_u is None and float(np.mean(m)) < float(np.mean(u)):
         m, u = u, m
         lam = 1 - lam
 
@@ -194,24 +247,54 @@ class EMEstimator:
     tol: float = 1e-5
 
     def build_gamma(self, comparisons: Sequence[Dict[str, float]]) -> np.ndarray:
-        """Binarize similarity comparisons into a 0/1 agreement matrix.
+        """Binarize similarity comparisons into an agreement matrix.
 
-        Missing field values are treated as disagreement (0).
+        Cell values are ``1.0`` (agrees), ``0.0`` (observed and disagrees), or
+        ``NaN`` (**not observed** on this pair — the field was absent or
+        ``None``).
+
+        NaN is not the same as 0.0. Treating unobserved fields as disagreement
+        biases each field's ``m`` downward in proportion to how often that field
+        is empty, and it contradicts the scorer, which gives unobserved fields
+        zero weight (see
+        :class:`~entity_resolution.learning.fellegi_sunter_scorer.FellegiSunterScorer`).
+        :func:`estimate_mu` masks these cells so each field's m/u is estimated
+        only over the pairs where it was actually compared.
         """
         rows = []
         for comp in comparisons:
             row = []
             for f in self.field_names:
-                thr = self.agreement_thresholds.get(f, self.default_threshold)
                 val = comp.get(f)
-                row.append(1.0 if (val is not None and val >= thr) else 0.0)
+                if val is None:
+                    row.append(np.nan)  # null level — carries no evidence
+                    continue
+                thr = self.agreement_thresholds.get(f, self.default_threshold)
+                row.append(1.0 if val >= thr else 0.0)
             rows.append(row)
         if not rows:
             return np.empty((0, len(self.field_names)), dtype=np.float64)
         return np.asarray(rows, dtype=np.float64)
 
-    def estimate(self, comparisons: Sequence[Dict[str, float]], **kwargs) -> EMResult:
+    def estimate(
+        self,
+        comparisons: Sequence[Dict[str, float]],
+        *,
+        fixed_u: Optional[Dict[str, float]] = None,
+        **kwargs,
+    ) -> EMResult:
+        """Run EM over comparison records.
+
+        ``fixed_u`` maps field name -> u probability measured independently (see
+        :func:`estimate_mu`). Fields absent from the mapping fall back to
+        ``init_u``, so a partially-measured model still runs.
+        """
         gamma = self.build_gamma(comparisons)
+        if fixed_u is not None:
+            default_u = kwargs.get("init_u", 0.1)
+            kwargs["fixed_u"] = [
+                float(fixed_u.get(f, default_u)) for f in self.field_names
+            ]
         return estimate_mu(
             gamma,
             self.field_names,
