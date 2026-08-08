@@ -22,6 +22,30 @@ from ..utils.graph_utils import extract_key_from_vertex_id, format_vertex_id
 
 SYSTEM_FIELDS = {"_key", "_id", "_rev", "_from", "_to"}
 
+#: Golden-record metadata that must never be supplied by a source document or a
+#: steward override. Consolidated values used to be spread LAST into the golden
+#: document, so a source column named ``method``, ``stale`` or ``clusterSize``
+#: silently overwrote the record's own metadata — and those are plausible real
+#: column names (payment method, shipping method). Overwriting ``method`` breaks
+#: manual-edit detection; overwriting ``sourceClusterHash`` or ``stale`` breaks
+#: staleness detection. These names are excluded from consolidation and the
+#: metadata is written last so it always wins.
+GOLDEN_METADATA_FIELDS = {
+    "clusterId",
+    "clusterSize",
+    "memberIds",
+    "memberKeys",
+    "sourceClusterHash",
+    "stale",
+    "runId",
+    "updatedAt",
+    "method",
+    "mergeStrategy",
+    "fieldProvenance",
+    "fieldOverrides",
+    "editedBy",
+}
+
 MERGE_STRATEGIES = ("field_voting", "most_complete", "most_recent", "source_priority")
 
 
@@ -136,8 +160,33 @@ class GoldenRecordPersistenceService:
 
             consolidated, provenance = self._consolidate(member_docs)
 
+            # Re-apply steward field overrides on top of the recomputed values.
+            # Without this, a rerun silently reverts every manual correction:
+            # overwrite_mode="update" merges the freshly consolidated fields over
+            # the stored ones, so an analyst-supplied value is replaced by the
+            # machine's choice. Worse, `editedBy` is not recomputed and therefore
+            # survives, leaving a record that claims a human authored values the
+            # pipeline actually produced.
+            #
+            # This mirrors how pairwise adjudication already works: a verdict
+            # lives on the edge as suppressed/confirmed and re-clustering honours
+            # it, rather than being recomputed away.
+            overrides = self._load_field_overrides(golden_key)
+            for field, value in overrides.items():
+                consolidated[field] = value
+                if self.include_provenance:
+                    provenance[field] = {
+                        "strategy": "manual_override",
+                        "chosenFrom": "steward",
+                        "distinctValues": 1,
+                        "sources": 1,
+                    }
+
             member_keys = [extract_key_from_vertex_id(mid) for mid in member_ids]
+            # Consolidated values first, metadata second: metadata must win any
+            # name collision (see GOLDEN_METADATA_FIELDS).
             golden_doc: Dict[str, Any] = {
+                **consolidated,
                 "_key": golden_key,
                 "clusterId": cluster.get("cluster_id", cluster.get("_key")),
                 "clusterSize": len(member_ids),
@@ -152,7 +201,6 @@ class GoldenRecordPersistenceService:
                 "updatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 "method": method,
                 "mergeStrategy": self.merge_strategy,
-                **consolidated,
             }
             if self.include_provenance:
                 golden_doc["fieldProvenance"] = provenance
@@ -186,6 +234,32 @@ class GoldenRecordPersistenceService:
             "clusters_processed": clusters_processed,
             "golden_records_upserted": golden_upserted,
             "resolved_edges_upserted": edges_upserted,
+        }
+
+    def _load_field_overrides(self, golden_key: str) -> Dict[str, Any]:
+        """Steward-supplied field values that must outlive a rebuild.
+
+        Stored as ``fieldOverrides`` on the golden record itself, so they travel
+        with the entity and are keyed by the same deterministic cluster hash. A
+        cluster whose membership changes gets a different key and therefore does
+        not inherit overrides from a different entity — which is the correct
+        behaviour, and the staleness flag already surfaces that case.
+        """
+        try:
+            existing = self.golden_collection.get(golden_key)
+        except Exception:
+            return {}
+        if not existing:
+            return {}
+        overrides = existing.get("fieldOverrides")
+        if not isinstance(overrides, dict):
+            return {}
+        return {
+            field: value
+            for field, value in overrides.items()
+            if field not in SYSTEM_FIELDS
+            and field not in GOLDEN_METADATA_FIELDS
+            and not field.startswith("_")
         }
 
     def _get_cluster_member_ids(self, cluster: Dict[str, Any]) -> List[str]:
@@ -251,7 +325,12 @@ class GoldenRecordPersistenceService:
         for d in member_docs:
             all_fields.update(d.keys())
 
-        fields = [f for f in all_fields if f not in SYSTEM_FIELDS and not f.startswith("_")]
+        fields = [
+            f for f in all_fields
+            if f not in SYSTEM_FIELDS
+            and f not in GOLDEN_METADATA_FIELDS
+            and not f.startswith("_")
+        ]
         if self.include_fields:
             allowed = set(self.include_fields)
             fields = [f for f in fields if f in allowed]
