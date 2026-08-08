@@ -94,7 +94,8 @@ def test_build_count_query_includes_edge_exclusion_and_filters() -> None:
     assert "FOR s IN @@source_collection" in q
     assert "FOR e IN @@edge_collection" in q
     assert "FILTER s.state != null" in q
-    assert 'FILTER s.state == "CA"' in q
+    assert "FILTER s.state == @_filter_s_0_eq" in q
+    assert svc._collection_bind_vars()["_filter_s_0_eq"] == "CA"
 
 
 def test_build_matching_query_levenshtein_path_includes_target_filters_and_blocking() -> None:
@@ -103,7 +104,8 @@ def test_build_matching_query_levenshtein_path_includes_target_filters_and_block
     q = svc._build_matching_query(batch_size=10, offset=0, threshold=0.85, use_bm25=False, bm25_weight=0.2)
     assert "FOR s IN @@source_collection" in q
     assert "FOR t IN @@target_collection" in q
-    assert "FILTER LENGTH(t.city) >= 2" in q
+    assert "FILTER LENGTH(t.city) >= @_filter_t_0_min_length" in q
+    assert svc._collection_bind_vars()["_filter_t_0_min_length"] == 2
     assert "FILTER t.legal_name == s.company_name" in q
     assert "LEVENSHTEIN_DISTANCE" in q
 

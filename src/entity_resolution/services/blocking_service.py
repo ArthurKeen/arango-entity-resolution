@@ -387,13 +387,14 @@ class BlockingService(BaseEntityResolutionService):
                 aql = f"""
                 FOR doc IN @@collection
                 FILTER doc.email == @email AND doc._id != @target_id
-                LIMIT {limit}
+                LIMIT @limit
                 RETURN doc._id
                 """
                 cursor = db.aql.execute(aql, bind_vars={
                     **col_bind,
                     "email": target_record['email'],
-                    "target_id": target_record['_id']
+                    "target_id": target_record['_id'],
+                    "limit": limit,
                 })
                 candidates.update(doc for doc in cursor)
             
@@ -402,13 +403,14 @@ class BlockingService(BaseEntityResolutionService):
                 aql = f"""
                 FOR doc IN @@collection
                 FILTER doc.phone == @phone AND doc._id != @target_id
-                LIMIT {limit}
+                LIMIT @limit
                 RETURN doc._id
                 """
                 cursor = db.aql.execute(aql, bind_vars={
                     **col_bind,
                     "phone": target_record['phone'],
-                    "target_id": target_record['_id']
+                    "target_id": target_record['_id'],
+                    "limit": limit,
                 })
                 candidates.update(doc for doc in cursor)
             
@@ -421,14 +423,15 @@ class BlockingService(BaseEntityResolutionService):
                     FILTER doc.last_name == @last_name 
                            AND UPPER(LEFT(doc.first_name, 1)) == @first_initial 
                            AND doc._id != @target_id
-                    LIMIT {limit}
+                    LIMIT @limit
                     RETURN doc._id
                     """
                     cursor = db.aql.execute(aql, bind_vars={
                         **col_bind,
                         "last_name": target_record['last_name'],
                         "first_initial": first_initial,
-                        "target_id": target_record['_id']
+                        "target_id": target_record['_id'],
+                        "limit": limit,
                     })
                     candidates.update(doc for doc in cursor)
             
@@ -454,13 +457,14 @@ class BlockingService(BaseEntityResolutionService):
                     aql = f"""
                     FOR doc IN @@collection
                     FILTER UPPER(LEFT(doc.last_name, 3)) == @prefix AND doc._id != @target_id
-                    LIMIT {limit}
+                    LIMIT @limit
                     RETURN doc._id
                     """
                     cursor = db.aql.execute(aql, bind_vars={
                         **col_bind,
                         "prefix": prefix,
-                        "target_id": target_record['_id']
+                        "target_id": target_record['_id'],
+                        "limit": limit,
                     })
                     candidates.update(doc for doc in cursor)
             
@@ -472,13 +476,14 @@ class BlockingService(BaseEntityResolutionService):
                     aql = f"""
                     FOR doc IN @@collection
                     FILTER UPPER(LEFT(doc.first_name, 3)) == @prefix AND doc._id != @target_id
-                    LIMIT {limit}
+                    LIMIT @limit
                     RETURN doc._id
                     """
                     cursor = db.aql.execute(aql, bind_vars={
                         **col_bind,
                         "prefix": prefix,
-                        "target_id": target_record['_id']
+                        "target_id": target_record['_id'],
+                        "limit": limit,
                     })
                     candidates.update(doc for doc in cursor)
             
@@ -502,13 +507,14 @@ class BlockingService(BaseEntityResolutionService):
                     aql = f"""
                     FOR doc IN @@collection
                     FILTER SOUNDEX(doc.first_name) == @soundex AND doc._id != @target_id
-                    LIMIT {limit}
+                    LIMIT @limit
                     RETURN doc._id
                     """
                     cursor = db.aql.execute(aql, bind_vars={
                         **col_bind,
                         "soundex": first_soundex,
-                        "target_id": target_record['_id']
+                        "target_id": target_record['_id'],
+                        "limit": limit,
                     })
                     candidates.update(doc for doc in cursor)
             
@@ -518,13 +524,14 @@ class BlockingService(BaseEntityResolutionService):
                     aql = f"""
                     FOR doc IN @@collection
                     FILTER SOUNDEX(doc.last_name) == @soundex AND doc._id != @target_id
-                    LIMIT {limit}
+                    LIMIT @limit
                     RETURN doc._id
                     """
                     cursor = db.aql.execute(aql, bind_vars={
                         **col_bind,
                         "soundex": last_soundex,
-                        "target_id": target_record['_id']
+                        "target_id": target_record['_id'],
+                        "limit": limit,
                     })
                     candidates.update(doc for doc in cursor)
             
@@ -559,7 +566,7 @@ class BlockingService(BaseEntityResolutionService):
             LET doc_key = UPPER(CONCAT(doc.last_name || "", doc.first_name || ""))
             FILTER doc._id != @target_id AND doc_key != ""
             SORT doc_key
-            LIMIT {window_size * 2}
+            LIMIT @window_limit
             RETURN {{
                 _id: doc._id,
                 sort_key: doc_key,
@@ -570,7 +577,8 @@ class BlockingService(BaseEntityResolutionService):
             cursor = db.aql.execute(aql, bind_vars={
                 "@collection": collection,
                 "sort_key": sort_key,
-                "target_id": target_record['_id']
+                "target_id": target_record['_id'],
+                "window_limit": window_size * 2,
             })
             
             # Sort by distance and take closest records

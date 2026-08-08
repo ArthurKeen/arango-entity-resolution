@@ -398,7 +398,10 @@ class CrossCollectionMatchingService:
         
         # Add filters
         if 'source' in self.custom_filters:
-            for condition in self._build_filter_conditions('s', self.custom_filters['source']):
+            conditions, _ = self._build_filter_conditions(
+                's', self.custom_filters['source']
+            )
+            for condition in conditions:
                 query_parts.append(f"    FILTER {condition}")
         
         # Check if already has edge
@@ -436,7 +439,10 @@ class CrossCollectionMatchingService:
         
         # Add source filters
         if 'source' in self.custom_filters:
-            for condition in self._build_filter_conditions('s', self.custom_filters['source']):
+            conditions, _ = self._build_filter_conditions(
+                's', self.custom_filters['source']
+            )
+            for condition in conditions:
                 query_parts.append(f"    FILTER {condition}")
         
         # Check if already has edge (skip already matched)
@@ -518,7 +524,10 @@ class CrossCollectionMatchingService:
         
         # Add target filters
         if 'target' in self.custom_filters:
-            for condition in self._build_filter_conditions('t', self.custom_filters['target']):
+            conditions, _ = self._build_filter_conditions(
+                't', self.custom_filters['target']
+            )
+            for condition in conditions:
                 lines.append(f"            FILTER {condition}")
         
         # Add blocking conditions
@@ -606,41 +615,44 @@ class CrossCollectionMatchingService:
         
         return lines
     
-    def _build_filter_conditions(self, var_name: str, filters: Dict[str, Any]) -> List[str]:
-        """Build AQL filter conditions from filter specification."""
-        conditions = []
-        
-        for field, filter_spec in filters.items():
+    def _build_filter_conditions(
+        self, var_name: str, filters: Dict[str, Any]
+    ) -> tuple[List[str], Dict[str, Any]]:
+        """Build safe AQL filter conditions and their value bind variables."""
+        conditions: List[str] = []
+        bind_vars: Dict[str, Any] = {}
+
+        for field_index, (field, filter_spec) in enumerate(filters.items()):
             if not isinstance(filter_spec, dict):
                 continue
             
             safe_field = validate_field_name(field, allow_nested=True)
             field_ref = f"{var_name}.{safe_field}"
+            bind_prefix = f"_filter_{var_name}_{field_index}"
             
             if filter_spec.get('not_null'):
                 conditions.append(f"{field_ref} != null")
             
             if 'equals' in filter_spec:
-                value = filter_spec['equals']
-                if isinstance(value, str):
-                    conditions.append(f'{field_ref} == "{value}"')
-                else:
-                    conditions.append(f'{field_ref} == {value}')
+                key = f"{bind_prefix}_eq"
+                bind_vars[key] = filter_spec['equals']
+                conditions.append(f"{field_ref} == @{key}")
             
             if 'not_equal' in filter_spec:
                 values = filter_spec['not_equal']
                 if not isinstance(values, list):
                     values = [values]
-                for value in values:
-                    if isinstance(value, str):
-                        conditions.append(f'{field_ref} != "{value}"')
-                    else:
-                        conditions.append(f'{field_ref} != {value}')
+                for value_index, value in enumerate(values):
+                    key = f"{bind_prefix}_ne_{value_index}"
+                    bind_vars[key] = value
+                    conditions.append(f"{field_ref} != @{key}")
             
             if 'min_length' in filter_spec:
-                conditions.append(f"LENGTH({field_ref}) >= {filter_spec['min_length']}")
+                key = f"{bind_prefix}_min_length"
+                bind_vars[key] = int(filter_spec['min_length'])
+                conditions.append(f"LENGTH({field_ref}) >= @{key}")
         
-        return conditions
+        return conditions, bind_vars
     
     def _collection_bind_vars(self) -> Dict[str, Any]:
         """Build collection bind variables shared across queries."""
@@ -652,6 +664,11 @@ class CrossCollectionMatchingService:
             bv["@target_collection"] = self.target_collection_name
         if self.search_view:
             bv["@search_view"] = self.search_view
+        for var_name, scope in (("s", "source"), ("t", "target")):
+            filters = self.custom_filters.get(scope)
+            if filters:
+                _, filter_binds = self._build_filter_conditions(var_name, filters)
+                bv.update(filter_binds)
         return bv
 
     def _build_bind_vars(self, threshold: float, batch_size: int, offset: int) -> Dict[str, Any]:

@@ -164,8 +164,10 @@ class TestCollectBlockingStrategy:
         assert "INTO group" in query
         assert "KEEP d" in query
         assert "LET doc_keys = group[*].d._key" in query
-        assert "FILTER LENGTH(doc_keys) >= 2" in query
-        assert "FILTER LENGTH(doc_keys) <= 100" in query
+        assert "FILTER LENGTH(doc_keys) >= @min_block_size" in query
+        assert "FILTER LENGTH(doc_keys) <= @max_block_size" in query
+        assert bind_vars["min_block_size"] == 2
+        assert bind_vars["max_block_size"] == 100
         assert "d.phone != null" in query
         assert "LENGTH(d.phone) >= 10" in query
         assert "d.state != null" in query
@@ -373,11 +375,20 @@ class TestBM25BlockingStrategy:
         assert "FOR d1 IN test_collection" in query
         assert "FOR d2 IN test_view" in query
         assert "SEARCH ANALYZER(" in query
-        assert "PHRASE(d2.name, d1.name" in query
+        # Token mode (the default): a disjunctive token match ranked by BM25.
+        # This previously asserted PHRASE(d2.name, d1.name), which requires the
+        # source text to appear as an exact consecutive token sequence — on the
+        # Abt-Buy benchmark that yielded ZERO candidate pairs.
+        assert "d2.name IN TOKENS(d1.name" in query
+        assert "PHRASE(" not in query
         assert "LET bm25_score = BM25(d2)" in query
         assert "FILTER bm25_score > @bm25_threshold" in query
         assert "FILTER d2.state == d1.state" in query
-        assert "FILTER d1._key < d2._key" in query
+        # Only the self-pair is excluded in-query. A `d1._key < d2._key` filter
+        # here would combine with the per-entity LIMIT to drop discoverable
+        # pairs; symmetric duplicates are collapsed by _normalize_pairs instead.
+        assert "FILTER d1._key != d2._key" in query
+        assert "FILTER d1._key < d2._key" not in query
         assert "LIMIT @limit_per_entity" in query
         assert "d1.name != null" in query
         assert "LENGTH(d1.name) > 3" in query
@@ -481,3 +492,50 @@ def db():
 # Integration tests would go in a separate file (test_blocking_integration.py)
 # These would test with actual ArangoDB data
 
+
+
+class TestBM25MatchMode:
+    """match_mode governs whether blocking is fuzzy or near-exact.
+
+    The default was PHRASE-based, which requires the source text to appear in
+    the candidate as an exact consecutive token sequence. Measured on the
+    Abt-Buy benchmark that produced ZERO candidate pairs out of 1097 true
+    pairs — the strategy was advertised as fuzzy text matching but behaved as
+    near-exact phrase containment.
+    """
+
+    def _strategy(self, mode=None):
+        from unittest.mock import MagicMock
+        from entity_resolution.strategies.bm25_blocking import BM25BlockingStrategy
+
+        kwargs = {} if mode is None else {"match_mode": mode}
+        return BM25BlockingStrategy(
+            db=MagicMock(), collection="c", search_view="v",
+            search_field="name", **kwargs,
+        )
+
+    def test_default_is_token_matching(self):
+        assert self._strategy().match_mode == "tokens"
+        query = self._strategy()._build_bm25_query()
+        assert "IN TOKENS(" in query
+        assert "PHRASE(" not in query
+
+    def test_phrase_mode_remains_available(self):
+        query = self._strategy("phrase")._build_bm25_query()
+        assert "PHRASE(d2.name, d1.name" in query
+        assert "IN TOKENS(" not in query
+
+    def test_invalid_mode_rejected(self):
+        with pytest.raises(ValueError, match="match_mode"):
+            self._strategy("fuzzy")
+
+    def test_analyzer_is_validated_not_interpolated_raw(self):
+        """The analyzer name reaches the query text, so it must be validated."""
+        from unittest.mock import MagicMock
+        from entity_resolution.strategies.bm25_blocking import BM25BlockingStrategy
+
+        with pytest.raises(Exception):
+            BM25BlockingStrategy(
+                db=MagicMock(), collection="c", search_view="v",
+                search_field="name", analyzer='x", "y',
+            )

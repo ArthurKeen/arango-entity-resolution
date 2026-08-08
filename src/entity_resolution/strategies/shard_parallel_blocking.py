@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional
 from arango.database import StandardDatabase
 
 from .base_strategy import BlockingStrategy
+from ..utils.validation import validate_field_names
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,11 @@ class ShardParallelBlockingStrategy(BlockingStrategy):
         filters: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> None:
         super().__init__(db, collection, filters)
-        self.blocking_fields = blocking_fields
+        if not blocking_fields:
+            raise ValueError("blocking_fields cannot be empty")
+        # Field names are interpolated into the COLLECT expression and therefore
+        # cannot be represented as ordinary bind variables.
+        self.blocking_fields = validate_field_names(blocking_fields)
         self.max_block_size = max_block_size
         self.min_block_size = min_block_size
         self.parallelism = parallelism

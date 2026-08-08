@@ -234,13 +234,26 @@ class GeographicBlockingStrategy(BlockingStrategy):
             self._filter_bind_vars = {}
         
         # Add ZIP range filter if specified
+        self._zip_bind_vars = {}
         if self.blocking_type == "zip_range":
             zip_field = self.geographic_fields["zip"]
             zip_conditions = []
-            for min_zip, max_zip in self.zip_ranges:
+            for index, (min_zip, max_zip) in enumerate(self.zip_ranges):
+                min_zip = str(min_zip)
+                max_zip = str(max_zip)
+                min_key = f"zip_min_{index}"
+                max_key = f"zip_max_{index}"
+                min_len_key = f"zip_min_len_{index}"
+                max_len_key = f"zip_max_len_{index}"
+                self._zip_bind_vars.update({
+                    min_key: min_zip,
+                    max_key: max_zip,
+                    min_len_key: len(min_zip),
+                    max_len_key: len(max_zip),
+                })
                 zip_conditions.append(
-                    f'(SUBSTRING(TO_STRING(d.{zip_field}), 0, {len(min_zip)}) >= "{min_zip}" '
-                    f'AND SUBSTRING(TO_STRING(d.{zip_field}), 0, {len(max_zip)}) <= "{max_zip}")'
+                    f"(SUBSTRING(TO_STRING(d.{zip_field}), 0, @{min_len_key}) >= @{min_key} "
+                    f"AND SUBSTRING(TO_STRING(d.{zip_field}), 0, @{max_len_key}) <= @{max_key})"
                 )
             query_parts.append(f"    FILTER {' OR '.join(zip_conditions)}")
         
@@ -257,8 +270,8 @@ class GeographicBlockingStrategy(BlockingStrategy):
         query_parts.append("    LET doc_keys = group[*].d._key")
         
         # Filter by block size
-        query_parts.append(f"    FILTER LENGTH(doc_keys) >= {self.min_block_size}")
-        query_parts.append(f"    FILTER LENGTH(doc_keys) <= {self.max_block_size}")
+        query_parts.append("    FILTER LENGTH(doc_keys) >= @min_block_size")
+        query_parts.append("    FILTER LENGTH(doc_keys) <= @max_block_size")
         
         # Generate pairs within block
         query_parts.append("    FOR i IN 0..LENGTH(doc_keys)-2")
@@ -330,7 +343,12 @@ class GeographicBlockingStrategy(BlockingStrategy):
     
     def _build_bind_vars(self) -> Dict[str, Any]:
         """Build bind variables for the query (includes filter bind vars)."""
-        return getattr(self, '_filter_bind_vars', {})
+        return {
+            **getattr(self, '_filter_bind_vars', {}),
+            **getattr(self, '_zip_bind_vars', {}),
+            "min_block_size": int(self.min_block_size),
+            "max_block_size": int(self.max_block_size),
+        }
     
     def __repr__(self) -> str:
         """String representation of the strategy."""

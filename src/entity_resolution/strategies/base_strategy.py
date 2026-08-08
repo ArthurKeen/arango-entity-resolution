@@ -220,16 +220,24 @@ class BlockingStrategy(ABC):
     ) -> List[Dict[str, Any]]:
         """
         Normalize candidate pairs to ensure doc1_key < doc2_key.
-        
-        This prevents duplicate pairs like (A, B) and (B, A).
-        
+
+        This prevents duplicate pairs like (A, B) and (B, A), and drops
+        self-pairs (A, A).
+
+        A self-pair is never a meaningful candidate: a record compared with
+        itself scores 1.0, which then creates a self-loop edge and inflates
+        cluster quality metrics. Strategies can produce them legitimately —
+        ``graph_traversal_blocking`` does so whenever two parallel edges connect
+        the same entity to the same intermediate node (a company listed twice
+        against one phone number), which is ordinary dirty data.
+
         Args:
             pairs: List of candidate pairs
             key1_field: Field name for first document key
             key2_field: Field name for second document key
-        
+
         Returns:
-            Normalized pairs where doc1_key < doc2_key
+            Normalized pairs where doc1_key < doc2_key, self-pairs removed
         """
         normalized = []
         seen = set()
@@ -240,7 +248,11 @@ class BlockingStrategy(ABC):
             
             if not key1 or not key2:
                 continue
-            
+
+            # A record is not a candidate match for itself.
+            if key1 == key2:
+                continue
+
             # Ensure key1 < key2 for consistency
             if key1 > key2:
                 key1, key2 = key2, key1

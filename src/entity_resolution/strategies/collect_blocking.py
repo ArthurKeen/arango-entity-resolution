@@ -11,7 +11,10 @@ from arango.database import StandardDatabase
 import time
 
 from .base_strategy import BlockingStrategy
-from ..utils.validation import validate_field_names
+from ..utils.validation import (
+    validate_computed_field_expression,
+    validate_field_names,
+)
 
 
 class CollectBlockingStrategy(BlockingStrategy):
@@ -43,7 +46,8 @@ class CollectBlockingStrategy(BlockingStrategy):
         max_block_size: int = 100,
         min_block_size: int = 2,
         computed_fields: Optional[Dict[str, str]] = None,
-        exclude_values: Optional[Dict[str, set]] = None
+        exclude_values: Optional[Dict[str, set]] = None,
+        allow_unsafe_expressions: bool = False,
     ):
         """
         Initialize COLLECT-based blocking strategy.
@@ -71,6 +75,8 @@ class CollectBlockingStrategy(BlockingStrategy):
                 hub addresses (registered agent offices, co-working spaces) or
                 placeholder strings that would create false-positive blocks.
                 Example: {"address": {"401 E 8TH STREET", "300 N DAKOTA AVE"}}
+            allow_unsafe_expressions: Skip computed-expression validation.
+                Use only with trusted, code-owned AQL expressions.
         
         Examples:
             Basic phone + state blocking:
@@ -112,7 +118,15 @@ class CollectBlockingStrategy(BlockingStrategy):
         super().__init__(db, collection, filters)
         
         # Store computed fields first so we can reference them during validation
-        self.computed_fields = computed_fields or {}
+        raw_computed_fields = computed_fields or {}
+        self.computed_fields = {
+            name: (
+                expression.strip()
+                if allow_unsafe_expressions
+                else validate_computed_field_expression(expression)
+            )
+            for name, expression in raw_computed_fields.items()
+        }
         
         # Validate inputs
         if not blocking_fields:
@@ -137,13 +151,18 @@ class CollectBlockingStrategy(BlockingStrategy):
                 )
         
         self.blocking_fields = blocking_fields
-        self.max_block_size = max_block_size
-        self.min_block_size = min_block_size
+        try:
+            self.max_block_size = int(max_block_size)
+            self.min_block_size = int(min_block_size)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("block sizes must be integers") from exc
         self.exclude_values = exclude_values or {}
+        if self.exclude_values:
+            validate_field_names(list(self.exclude_values))
         
-        if min_block_size < 2:
+        if self.min_block_size < 2:
             raise ValueError("min_block_size must be at least 2")
-        if max_block_size < min_block_size:
+        if self.max_block_size < self.min_block_size:
             raise ValueError("max_block_size must be >= min_block_size")
     
     def generate_candidates(self) -> List[Dict[str, Any]]:
@@ -241,7 +260,10 @@ class CollectBlockingStrategy(BlockingStrategy):
             query_parts.append(f"    LET {temp_var} = {expression}")
             computed_field_map[field_name] = temp_var
 
-        bind_vars: dict = {}
+        bind_vars: dict = {
+            "min_block_size": self.min_block_size,
+            "max_block_size": self.max_block_size,
+        }
         # Add filter conditions
         if self.filters:
             conditions, filter_bind_vars = self._build_filter_conditions(self.filters, computed_field_map)
@@ -250,10 +272,14 @@ class CollectBlockingStrategy(BlockingStrategy):
                 query_parts.append(f"    FILTER {condition}")
 
         # Add exclusion filters for known hub/bad values
-        for field_name, values_set in self.exclude_values.items():
+        for index, (field_name, values_set) in enumerate(self.exclude_values.items()):
             if not values_set:
                 continue
-            bind_key = f"_excl_{field_name}"
+            # Dots are valid in a nested field reference but not in a bind
+            # identifier; keep the established readable name for simple fields.
+            bind_key = (
+                f"_excl_{field_name}" if "." not in field_name else f"_excl_{index}"
+            )
             bind_vars[bind_key] = sorted(values_set)
             if field_name in computed_field_map:
                 field_ref = computed_field_map[field_name]
@@ -281,8 +307,8 @@ class CollectBlockingStrategy(BlockingStrategy):
         query_parts.append("    LET doc_keys = group[*].d._key")
 
         # Filter by block size
-        query_parts.append(f"    FILTER LENGTH(doc_keys) >= {self.min_block_size}")
-        query_parts.append(f"    FILTER LENGTH(doc_keys) <= {self.max_block_size}")
+        query_parts.append("    FILTER LENGTH(doc_keys) >= @min_block_size")
+        query_parts.append("    FILTER LENGTH(doc_keys) <= @max_block_size")
 
         # Generate pairs within block
         query_parts.append("    FOR i IN 0..LENGTH(doc_keys)-2")

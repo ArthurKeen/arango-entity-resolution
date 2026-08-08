@@ -146,7 +146,9 @@ class HybridBlockingStrategy(BlockingStrategy):
         self.levenshtein_weight = 1.0 - bm25_weight
         self.limit_per_entity = limit_per_entity
         self.blocking_field = validate_field_name(blocking_field) if blocking_field else None
-        self.analyzer = analyzer
+        # Analyzer names are interpolated into string literals in generated AQL.
+        # Restrict them to identifier syntax so quotes/comments cannot escape.
+        self.analyzer = validate_field_name(analyzer)
     
     def generate_candidates(self) -> List[Dict[str, Any]]:
         """
@@ -248,7 +250,12 @@ class HybridBlockingStrategy(BlockingStrategy):
                     if field_filters.get('not_null'):
                         query_parts.append(f"    FILTER d1.{field_name} != null")
                     if 'min_length' in field_filters:
-                        min_len = field_filters['min_length']
+                        try:
+                            min_len = int(field_filters['min_length'])
+                        except (TypeError, ValueError) as exc:
+                            raise ValueError("filter min_length must be an integer") from exc
+                        if min_len < 0:
+                            raise ValueError("filter min_length must be non-negative")
                         query_parts.append(f"    FILTER LENGTH(d1.{field_name}) > {min_len}")
 
             if self.blocking_field and self.blocking_field in self.filters:

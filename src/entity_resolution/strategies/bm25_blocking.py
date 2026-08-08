@@ -77,7 +77,8 @@ class BM25BlockingStrategy(BlockingStrategy):
         limit_per_entity: int = 20,
         blocking_field: Optional[str] = None,
         filters: Optional[Dict[str, Dict[str, Any]]] = None,
-        analyzer: str = "text_en"
+        analyzer: str = "text_en",
+        match_mode: str = "tokens"
     ):
         """
         Initialize BM25-based blocking strategy.
@@ -96,6 +97,20 @@ class BM25BlockingStrategy(BlockingStrategy):
             filters: Optional filters per field (see base class for format)
             analyzer: ArangoSearch analyzer to use. Default "text_en".
                 Must match analyzer configured in the view.
+            match_mode: How a candidate is matched against the source text.
+
+                ``"tokens"`` (default) — disjunctive token match ranked by
+                BM25. Records are candidates when they share any token, and
+                BM25 ranks by how much they share, weighting rare tokens
+                higher. This is the standard formulation for text blocking and
+                tolerates word-order differences and extra words.
+
+                ``"phrase"`` — legacy behaviour, requiring the source text to
+                appear in the candidate as an exact consecutive token sequence.
+                This is near-exact matching, not fuzzy: on the Abt-Buy
+                benchmark it produced ZERO candidate pairs, because product
+                titles differ in word order and length. Retained only for
+                callers that depend on it.
         
         Raises:
             ValueError: If required parameters are missing or invalid
@@ -118,7 +133,14 @@ class BM25BlockingStrategy(BlockingStrategy):
         self.bm25_threshold = bm25_threshold
         self.limit_per_entity = limit_per_entity
         self.blocking_field = validate_field_name(blocking_field) if blocking_field else None
-        self.analyzer = analyzer
+        if match_mode not in ("tokens", "phrase"):
+            raise ValueError(
+                f"match_mode must be 'tokens' or 'phrase', got {match_mode!r}"
+            )
+        self.match_mode = match_mode
+        # The analyzer is interpolated into the query, so it must be validated
+        # like any other identifier rather than trusted from config.
+        self.analyzer = validate_field_name(analyzer)
     
     def generate_candidates(self) -> List[Dict[str, Any]]:
         """
@@ -206,7 +228,12 @@ class BM25BlockingStrategy(BlockingStrategy):
                 if search_field_filters.get('not_null'):
                     query_parts.append(f"    FILTER d1.{self.search_field} != null")
                 if 'min_length' in search_field_filters:
-                    min_len = search_field_filters['min_length']
+                    try:
+                        min_len = int(search_field_filters['min_length'])
+                    except (TypeError, ValueError) as exc:
+                        raise ValueError("filter min_length must be an integer") from exc
+                    if min_len < 0:
+                        raise ValueError("filter min_length must be non-negative")
                     query_parts.append(f"    FILTER LENGTH(d1.{self.search_field}) > {min_len}")
 
             if self.blocking_field and self.blocking_field in self.filters:
@@ -218,11 +245,29 @@ class BM25BlockingStrategy(BlockingStrategy):
         # `LIMIT @limit_per_entity` lives inside this subquery, so it
         # caps results per source document. `SORT bm25_score DESC` makes
         # the limit pick the highest-scoring matches.
+        if self.match_mode == "phrase":
+            # Legacy: requires d1's text to appear in d2 as an exact consecutive
+            # token sequence. Retained for callers that depend on it, but it is
+            # near-exact matching, NOT fuzzy — see the match_mode docstring.
+            search_expr = (
+                f"                PHRASE(d2.{self.search_field}, "
+                f"d1.{self.search_field}, \"{self.analyzer}\"),"
+            )
+        else:
+            # Token mode (default): disjunctive token match ranked by BM25 —
+            # the standard formulation for text blocking. Two records match on
+            # any shared token and BM25 ranks by how much they share, weighting
+            # rare tokens higher, so word order and extra words no longer matter.
+            search_expr = (
+                f"                d2.{self.search_field} IN "
+                f"TOKENS(d1.{self.search_field}, \"{self.analyzer}\"),"
+            )
+
         sub_parts = [
             f"    LET candidates = (",
             f"        FOR d2 IN {self.search_view}",
             f"            SEARCH ANALYZER(",
-            f"                PHRASE(d2.{self.search_field}, d1.{self.search_field}, \"{self.analyzer}\"),",
+            search_expr,
             f"                \"{self.analyzer}\"",
             f"            )",
             f"            LET bm25_score = BM25(d2)",
@@ -233,7 +278,14 @@ class BM25BlockingStrategy(BlockingStrategy):
                 f"            FILTER d2.{self.blocking_field} == d1.{self.blocking_field}"
             )
         sub_parts.extend([
-            f"            FILTER d1._key < d2._key",
+            # Exclude only the self-pair. A `d1._key < d2._key` filter here
+            # would interact with the per-entity LIMIT to silently drop real
+            # pairs: if B's top-K contains A but A's top-K does not contain B,
+            # the pair is only discoverable from B, and the key filter throws
+            # exactly that direction away. Symmetric duplicates are collapsed
+            # afterwards by _normalize_pairs, which costs nothing and loses
+            # nothing.
+            f"            FILTER d1._key != d2._key",
             f"            SORT bm25_score DESC",
             f"            LIMIT @limit_per_entity",
         ])

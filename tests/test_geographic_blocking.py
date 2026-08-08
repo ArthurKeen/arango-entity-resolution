@@ -172,9 +172,12 @@ class TestGeographicBlockingQuery:
             zip_ranges=[("570", "577")],
         )
         query = strategy._build_geographic_query()
+        bind_vars = strategy._build_bind_vars()
         assert "SUBSTRING" in query
-        assert '"570"' in query
-        assert '"577"' in query
+        assert "@zip_min_0" in query
+        assert "@zip_max_0" in query
+        assert bind_vars["zip_min_0"] == "570"
+        assert bind_vars["zip_max_0"] == "577"
 
     @pytest.mark.unit
     def test_zip_prefix_query(self, db):
@@ -200,8 +203,11 @@ class TestGeographicBlockingQuery:
             max_block_size=50,
         )
         query = strategy._build_geographic_query()
-        assert "LENGTH(doc_keys) >= 3" in query
-        assert "LENGTH(doc_keys) <= 50" in query
+        bind_vars = strategy._build_bind_vars()
+        assert "LENGTH(doc_keys) >= @min_block_size" in query
+        assert "LENGTH(doc_keys) <= @max_block_size" in query
+        assert bind_vars["min_block_size"] == 3
+        assert bind_vars["max_block_size"] == 50
 
     @pytest.mark.unit
     def test_filters_added_to_query(self, db):
