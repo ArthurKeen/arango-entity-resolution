@@ -12,6 +12,15 @@ Supports two deployment modes (routed by ``TEST_DEPLOYMENT_MODE``):
 
 * **self_managed_platform** -- JWT auth, ``/gen-ai/`` + ``/gral/<id>/`` APIs.
 * **managed_platform** -- oasisctl token, AMP management + engine APIs.
+
+**Suppressed edges.** Every in-process backend filters ``suppressed != true`` so
+that a human or LLM "not a match" verdict actually splits a cluster. The GAE
+``loaddata`` API takes *collection names*, not queries, so there is no way to
+express that filter at load time. This backend therefore materialises a
+temporary edge projection containing only active edges and loads that instead
+(see :meth:`GAEWCCBackend._prepare_edge_source`). Without it, analyst decisions
+were silently discarded on exactly the large deployments that need GAE — the
+rejected pair would be re-merged on every run.
 """
 
 from __future__ import annotations
@@ -20,10 +29,15 @@ import logging
 import time
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
+from ...utils.validation import validate_collection_name
+
 if TYPE_CHECKING:
     from ...config.er_config import GAEClusteringConfig
 
 logger = logging.getLogger(__name__)
+
+#: Suffix for the temporary active-edge projection loaded into the engine.
+_ACTIVE_EDGE_SUFFIX = "_gae_active"
 
 
 class GAEWCCBackend:
@@ -54,6 +68,8 @@ class GAEWCCBackend:
         self._connection = None
         self.gae_job_id: Optional[str] = None
         self.gae_runtime_seconds: Optional[float] = None
+        #: Name of the temp projection we created, if any — dropped on cleanup.
+        self._temp_edge_collection: Optional[str] = None
 
     # ── Connection ───────────────────────────────────────────────────
 
@@ -96,15 +112,18 @@ class GAEWCCBackend:
             vertex_collections = self._resolve_vertex_collections()
             database = self._resolve_database()
 
-            # 3. Load graph into engine
+            # 3. Load graph into engine. Suppressed edges must not reach the
+            #    engine, and loaddata cannot filter, so this may substitute a
+            #    temporary active-only projection.
+            edge_source = self._prepare_edge_source()
             logger.info(
                 "Loading graph into GAE: vertices=%s, edges=[%s], db=%s",
-                vertex_collections, self.edge_collection_name, database,
+                vertex_collections, edge_source, database,
             )
             load_job = conn.load_graph(
                 database=database,
                 vertex_collections=vertex_collections,
-                edge_collections=[self.edge_collection_name],
+                edge_collections=[edge_source],
             )
             load_job_id = load_job.get("id") or load_job.get("job_id")
             graph_id = load_job.get("graph_id")
@@ -146,6 +165,9 @@ class GAEWCCBackend:
 
         finally:
             self.gae_runtime_seconds = round(time.time() - start, 2)
+            # The projection is our own artifact, so it is always removed —
+            # independent of auto_cleanup, which governs the engine pod.
+            self._drop_temp_edge_collection()
             if self.gae_config.auto_cleanup:
                 self._cleanup(conn)
 
@@ -159,6 +181,83 @@ class GAEWCCBackend:
         return "gae_wcc"
 
     # ── Internal helpers ─────────────────────────────────────────────
+
+    def _count_suppressed_edges(self) -> int:
+        """How many edges carry a suppression verdict."""
+        cursor = self.db.aql.execute(
+            "FOR e IN @@collection FILTER e.suppressed == true "
+            "COLLECT WITH COUNT INTO n RETURN n",
+            bind_vars={"@collection": self.edge_collection_name},
+        )
+        result = list(cursor)
+        return int(result[0]) if result else 0
+
+    def _prepare_edge_source(self) -> str:
+        """Return the edge collection GAE should load.
+
+        The engine's ``loaddata`` endpoint accepts collection names only, so a
+        ``FILTER e.suppressed != true`` cannot be pushed into the load. When any
+        suppressed edge exists, this materialises a temporary edge collection
+        holding just the active edges and returns its name; the caller loads that
+        instead of the raw collection.
+
+        When nothing is suppressed the source collection is returned unchanged —
+        no copy is made, so the common case costs one COUNT query rather than a
+        full duplication of what may be millions of edges.
+
+        Only ``_from``/``_to`` are copied: that is all WCC reads, and it keeps
+        the projection small.
+        """
+        suppressed = self._count_suppressed_edges()
+        if suppressed == 0:
+            logger.info(
+                "No suppressed edges in %s — loading it directly.",
+                self.edge_collection_name,
+            )
+            return self.edge_collection_name
+
+        target = validate_collection_name(
+            f"{self.edge_collection_name}{_ACTIVE_EDGE_SUFFIX}"
+        )
+        logger.info(
+            "%d suppressed edge(s) in %s — materialising active-only projection %s "
+            "so analyst verdicts are honoured.",
+            suppressed, self.edge_collection_name, target,
+        )
+
+        # Recreate rather than reuse: a stale projection from an earlier run
+        # would silently resurrect edges suppressed since.
+        if self.db.has_collection(target):
+            self.db.delete_collection(target)
+        self.db.create_collection(target, edge=True)
+        self._temp_edge_collection = target
+
+        self.db.aql.execute(
+            """
+            FOR e IN @@source
+                FILTER e.suppressed != true
+                INSERT { _from: e._from, _to: e._to } INTO @@target
+            """,
+            bind_vars={
+                "@source": self.edge_collection_name,
+                "@target": target,
+            },
+        )
+        return target
+
+    def _drop_temp_edge_collection(self) -> None:
+        """Drop the active-edge projection, if this run created one."""
+        if not self._temp_edge_collection:
+            return
+        name = self._temp_edge_collection
+        try:
+            if self.db.has_collection(name):
+                self.db.delete_collection(name)
+                logger.info("Dropped temporary edge projection %s", name)
+        except Exception as exc:
+            logger.warning("Failed to drop temporary edge projection %s: %s", name, exc)
+        finally:
+            self._temp_edge_collection = None
 
     def _resolve_database(self) -> str:
         """Get the database name from the ArangoDB connection."""

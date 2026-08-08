@@ -295,14 +295,14 @@ class SelfManagedGAEConnection(GAEConnectionBase):
                     if status != "DEPLOYED":
                         continue
                     if svc_type == "gral" or sid.startswith("arangodb-gral-"):
-                    try:
-                        self.engine_id = sid
-                        self.get_engine_version()
-                        logger.info("Reusing existing DEPLOYED service: %s", sid)
-                        return sid
-                    except Exception as e:
-                        logger.debug("Service %s is DEPLOYED but engine API check failed: %s", sid, e)
-                        continue
+                        try:
+                            self.engine_id = sid
+                            self.get_engine_version()
+                            logger.info("Reusing existing DEPLOYED service: %s", sid)
+                            return sid
+                        except Exception as e:
+                            logger.debug("Service %s is DEPLOYED but engine API check failed: %s", sid, e)
+                            continue
             except Exception as exc:
                 logger.debug("Could not list services: %s", exc)
 

@@ -404,7 +404,7 @@ class TestComputedFieldRealWorldScenarios:
             min_block_size=2
         )
         
-        query, _ = strategy._build_collect_query()
+        query, bind_vars = strategy._build_collect_query()
         
         # Verify correct query structure
         assert "FOR d IN companies" in query
@@ -414,8 +414,10 @@ class TestComputedFieldRealWorldScenarios:
         assert "FILTER _computed_zip5 != null" in query
         assert "FILTER LENGTH(_computed_zip5) >= 5" in query
         assert "COLLECT address = d.address, zip5 = _computed_zip5" in query
-        assert "FILTER LENGTH(doc_keys) >= 2" in query
-        assert "FILTER LENGTH(doc_keys) <= 50" in query
+        assert "FILTER LENGTH(doc_keys) >= @min_block_size" in query
+        assert "FILTER LENGTH(doc_keys) <= @max_block_size" in query
+        assert bind_vars["min_block_size"] == 2
+        assert bind_vars["max_block_size"] == 50
     
     def test_phone_normalization_blocking(self, mock_db):
         """Real scenario: Normalized phone blocking."""

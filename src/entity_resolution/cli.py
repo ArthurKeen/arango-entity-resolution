@@ -1218,8 +1218,6 @@ def canonicalize(input_path, config_path, output_dir, header, delimiter, hub_thr
 def estimate(config, sample_size, max_iterations, no_term_frequencies, database, host, port, username, password):
     """Estimate Fellegi-Sunter m/u parameters via EM and persist them."""
     try:
-        from entity_resolution.learning import ModelParameterEstimator
-
         db = _get_db_from_options(database, host, port, username, password)
         pipeline = ConfigurableERPipeline(db=db, config_path=config)
         sim_service = pipeline.build_similarity_service()
@@ -1228,15 +1226,11 @@ def estimate(config, sample_size, max_iterations, no_term_frequencies, database,
             raise click.ClickException("No similarity fields configured; cannot estimate parameters.")
         # Graph-context features (plan 3.1) join the EM comparison vector so FS
         # learns their m/u, but they are NOT document attributes, so term
-        # frequencies are computed over the attribute fields only.
-        field_names = pipeline._effective_scoring_field_names()
+        # frequencies are computed over the attribute fields only. The shared
+        # estimator builder supplies that full vector and its configured
+        # agreement thresholds.
 
-        estimator = ModelParameterEstimator(
-            db=db,
-            similarity_service=sim_service,
-            edge_collection=pipeline.config.edge_collection,
-            field_names=field_names,
-        )
+        estimator = pipeline.build_model_parameter_estimator(sim_service)
         result = estimator.run(
             source_collection=pipeline.config.collection_name,
             sample_size=sample_size,

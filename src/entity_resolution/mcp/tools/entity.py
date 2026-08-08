@@ -3,6 +3,7 @@ Entity-level MCP tools: resolve_entity and explain_match.
 """
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any, Dict, List, Optional
 
@@ -12,6 +13,8 @@ from entity_resolution.mcp.contracts import CrossCollectionRequest, ResolveEntit
 from entity_resolution.mcp.connection import get_arango_hosts
 
 ER_OPTIONS_SCHEMA_VERSION = "1.0"
+
+logger = logging.getLogger(__name__)
 
 
 def run_resolve_entity(
@@ -73,6 +76,57 @@ def run_resolve_entity_request(
     )
     matches = resolver.resolve(request.record, top_k=request.top_k)
     return matches
+
+
+def _probabilistic_explanation(
+    db,
+    doc_a: Dict[str, Any],
+    doc_b: Dict[str, Any],
+    field_scores: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    """Fellegi-Sunter match-weight waterfall, when a trained model is available.
+
+    Returns ``None`` (rather than raising) whenever no model has been trained
+    yet, so ``explain_match`` keeps working on an untrained deployment.
+    """
+    try:
+        from ...learning.fellegi_sunter_scorer import (
+            FellegiSunterScorer,
+            term_frequency_tables_from_docs,
+        )
+
+        if not db.has_collection("er_model_params"):
+            return None
+        model = next(
+            iter(db.aql.execute(
+                "FOR d IN er_model_params "
+                "SORT d.created_at DESC, d.version DESC LIMIT 1 RETURN d"
+            )),
+            None,
+        )
+        if not model:
+            return None
+
+        tf_tables = {}
+        if db.has_collection("er_term_frequencies"):
+            tf_tables = term_frequency_tables_from_docs(
+                list(db.collection("er_term_frequencies").all())
+            )
+
+        scorer = FellegiSunterScorer.from_model_doc(model, term_frequencies=tf_tables)
+        sims = {f: info["score"] for f, info in field_scores.items()}
+        exact = {
+            f: doc_a[f]
+            for f in scorer.fields
+            if doc_a.get(f) is not None and doc_a.get(f) == doc_b.get(f)
+        }
+        report = scorer.explain(sims, exact)
+        report["model_version"] = model.get("version")
+        report["u_estimation"] = model.get("u_estimation")
+        return report
+    except Exception as exc:  # pragma: no cover - explanation is best-effort
+        logger.debug("Probabilistic explanation unavailable: %s", exc)
+        return None
 
 
 def run_explain_match(
@@ -159,6 +213,13 @@ def run_explain_match(
         if edges:
             existing_edge = edges[0]
 
+    # When a trained Fellegi-Sunter model exists, add the calibrated
+    # decomposition alongside the heuristic mean above. The heuristic says
+    # "these look 0.82 similar"; the waterfall says which evidence moved the
+    # decision and by how much, in additive log-odds — the auditable form a
+    # steward can defend, and the piece free-text LLM rationales cannot supply.
+    probabilistic = _probabilistic_explanation(db, doc_a, doc_b, field_scores)
+
     payload = {
         "er_options_schema_version": ER_OPTIONS_SCHEMA_VERSION,
         "key_a": key_a,
@@ -167,6 +228,7 @@ def run_explain_match(
         "field_breakdown": field_scores,
         "fields_compared": len(field_scores),
         "existing_edge": existing_edge,
+        "probabilistic": probabilistic,
         "interpretation": (
             "strong match" if overall >= 0.90
             else "probable match" if overall >= 0.75

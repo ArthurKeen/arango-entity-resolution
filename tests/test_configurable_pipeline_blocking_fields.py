@@ -17,12 +17,14 @@ def test_configurable_pipeline_uses_blocking_fields_from_config(monkeypatch):
             max_block_size=100,
             min_block_size=2,
             computed_fields=None,
+            allow_unsafe_expressions=False,
         ):
             captured["collection"] = collection
             captured["blocking_fields"] = blocking_fields
             captured["max_block_size"] = max_block_size
             captured["min_block_size"] = min_block_size
             captured["computed_fields"] = computed_fields
+            captured["allow_unsafe_expressions"] = allow_unsafe_expressions
 
         def generate_candidates(self):
             return []
@@ -56,6 +58,7 @@ def test_configurable_pipeline_uses_blocking_fields_from_config(monkeypatch):
     assert captured["min_block_size"] == 2
     assert captured["max_block_size"] == 50
     assert captured["computed_fields"] is None
+    assert captured["allow_unsafe_expressions"] is False
 
 
 def test_configurable_pipeline_supports_computed_fields_in_blocking_config(monkeypatch):
@@ -71,9 +74,11 @@ def test_configurable_pipeline_supports_computed_fields_in_blocking_config(monke
             max_block_size=100,
             min_block_size=2,
             computed_fields=None,
+            allow_unsafe_expressions=False,
         ):
             captured["blocking_fields"] = blocking_fields
             captured["computed_fields"] = computed_fields
+            captured["allow_unsafe_expressions"] = allow_unsafe_expressions
 
         def generate_candidates(self):
             return []
@@ -104,6 +109,7 @@ def test_configurable_pipeline_supports_computed_fields_in_blocking_config(monke
 
     assert captured["blocking_fields"] == ["zip5"]
     assert captured["computed_fields"] == {"zip5": "LEFT(d.pincode, 5)"}
+    assert captured["allow_unsafe_expressions"] is False
 
 
 def test_config_validation_requires_blocking_fields_for_exact():

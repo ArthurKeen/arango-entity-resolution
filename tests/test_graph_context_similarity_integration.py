@@ -85,7 +85,10 @@ def test_graph_features_reach_fs_scoring(graph_fixture):
     seen: dict = {}
 
     class _FakeFS:
-        def score(self, field_scores):
+        # Mirrors FellegiSunterScorer.score, including the exact_values argument
+        # used for term-frequency adjustment. A double that drifts from the real
+        # signature turns a genuine interface break into a passing test.
+        def score(self, field_scores, exact_values=None):
             seen.update(field_scores)
             return 0.9
 

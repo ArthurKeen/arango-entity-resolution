@@ -127,3 +127,87 @@ class TestGAENotAvailableFallback:
         backend._connection = conn
         with pytest.raises(RuntimeError, match="no GAE"):
             backend.cluster()
+
+
+class TestActiveEdgeProjectionAgainstRealDatabase:
+    """The suppressed-edge projection, exercised against a live ArangoDB.
+
+    GAE's ``loaddata`` accepts collection names, not queries, so suppressed
+    edges are excluded by materialising an active-only edge projection. That
+    involves real collection DDL and a real AQL insert, which a fake database
+    cannot validate — hence a live-DB test. No GAE engine is required: the
+    projection is pure ArangoDB work.
+    """
+
+    @pytest.fixture
+    def edges(self, db_connection):
+        """A similarity edge collection where one edge is suppressed."""
+        import uuid
+
+        vtx = f"t_v_{uuid.uuid4().hex[:8]}"
+        edge = f"t_e_{uuid.uuid4().hex[:8]}"
+        db_connection.create_collection(vtx)
+        db_connection.create_collection(edge, edge=True)
+        db_connection.collection(vtx).insert_many(
+            [{"_key": k} for k in ("a", "b", "c")]
+        )
+        # a-b is a real match; b-c was rejected by an analyst.
+        db_connection.collection(edge).insert_many([
+            {"_from": f"{vtx}/a", "_to": f"{vtx}/b", "similarity": 0.95},
+            {"_from": f"{vtx}/b", "_to": f"{vtx}/c", "similarity": 0.88,
+             "suppressed": True},
+        ])
+        yield vtx, edge
+        for name in (vtx, edge, f"{edge}_gae_active"):
+            if db_connection.has_collection(name):
+                db_connection.delete_collection(name)
+
+    def test_projection_contains_only_active_edges(self, db_connection, edges):
+        _vtx, edge = edges
+        backend = GAEWCCBackend(db_connection, edge)
+
+        source = backend._prepare_edge_source()
+
+        assert source == f"{edge}_gae_active"
+        assert db_connection.has_collection(source)
+        docs = list(db_connection.collection(source).all())
+        assert len(docs) == 1, (
+            f"expected only the active edge to be projected, got {docs}"
+        )
+        assert docs[0]["_to"].endswith("/b")
+        # The projection must be a real edge collection (type 3), or GAE cannot
+        # traverse it.
+        assert db_connection.collection(source).properties()["edge"] is True
+
+        backend._drop_temp_edge_collection()
+        assert not db_connection.has_collection(source)
+
+    def test_no_projection_when_nothing_suppressed(self, db_connection, edges):
+        _vtx, edge = edges
+        db_connection.aql.execute(
+            "FOR e IN @@c FILTER e.suppressed == true "
+            "UPDATE e WITH { suppressed: null } IN @@c",
+            bind_vars={"@c": edge},
+        )
+        backend = GAEWCCBackend(db_connection, edge)
+
+        assert backend._prepare_edge_source() == edge
+        assert not db_connection.has_collection(f"{edge}_gae_active")
+
+    def test_stale_projection_is_rebuilt_not_reused(self, db_connection, edges):
+        """A leftover projection must never resurrect since-suppressed edges."""
+        _vtx, edge = edges
+        stale = f"{edge}_gae_active"
+        db_connection.create_collection(stale, edge=True)
+        db_connection.collection(stale).insert_many([
+            {"_from": "ghost/x", "_to": "ghost/y"},
+        ])
+
+        backend = GAEWCCBackend(db_connection, edge)
+        source = backend._prepare_edge_source()
+
+        docs = list(db_connection.collection(source).all())
+        assert len(docs) == 1
+        assert "ghost" not in docs[0]["_from"], (
+            "stale projection contents survived into the new run"
+        )

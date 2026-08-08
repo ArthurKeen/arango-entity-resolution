@@ -49,6 +49,8 @@ class _SimilarityCfg:
     algorithm: str = "jaro_winkler"
     field_weights: dict = field(default_factory=dict)
     transformers: dict = field(default_factory=dict)
+    agreement_thresholds: dict = field(default_factory=dict)
+    match_prior: Optional[float] = None
 
 
 @dataclass
@@ -116,6 +118,27 @@ class _FakeDB:
     pass
 
 
+class _ModelAQL:
+    def __init__(self, model_doc: dict):
+        self.model_doc = model_doc
+        self.last_bind_vars: dict = {}
+
+    def execute(self, _query, bind_vars=None):
+        self.last_bind_vars = bind_vars or {}
+        if self.last_bind_vars.get("h") == self.model_doc["config_hash"]:
+            return iter([self.model_doc])
+        return iter([])
+
+
+class _ModelDB:
+    def __init__(self, model_doc: dict):
+        self.aql = _ModelAQL(model_doc)
+
+    @staticmethod
+    def has_collection(name: str) -> bool:
+        return name == "er_model_params"
+
+
 def test_init_requires_config_or_path() -> None:
     with pytest.raises(ValueError):
         ConfigurableERPipeline(db=_FakeDB(), config=None, config_path=None)
@@ -138,6 +161,50 @@ def test_init_loads_json_or_yaml_via_erpipelineconfig(monkeypatch, tmp_path: Pat
 
     pipe2 = ConfigurableERPipeline(db=_FakeDB(), config=None, config_path=p_yaml)
     assert pipe2.config is cfg
+
+
+def test_model_estimator_uses_runtime_fields_thresholds_and_algorithm() -> None:
+    cfg = _FakeConfig()
+    cfg.similarity.field_weights = {"name": 1.0, "city": 0.5}
+    cfg.similarity.agreement_thresholds = {"name": 0.72}
+    pipe = ConfigurableERPipeline(db=_FakeDB(), config=cfg)
+
+    estimator = pipe.build_model_parameter_estimator()
+
+    assert estimator.field_names == ["name", "city"]
+    assert estimator.agreement_thresholds == {"name": 0.72}
+    assert estimator._effective_thresholds() == {"name": 0.72, "city": 0.85}
+    assert estimator.algorithm == "jaro_winkler"
+
+
+def test_fs_loader_selects_model_for_exact_runtime_config() -> None:
+    from entity_resolution.learning.model_parameter_estimator import config_hash
+
+    cfg = _FakeConfig()
+    cfg.similarity.field_weights = {"name": 1.0}
+    cfg.similarity.agreement_thresholds = {"name": 0.72}
+    expected_hash = config_hash(
+        ["name"],
+        {"name": 0.72},
+        "jaro_winkler",
+    )
+    model_doc = {
+        "config_hash": expected_hash,
+        "version": 1,
+        "fields": ["name"],
+        "m": {"name": 0.9},
+        "u": {"name": 0.1},
+        "lambda": 0.2,
+        "agreement_thresholds": {"name": 0.72},
+    }
+    db = _ModelDB(model_doc)
+    pipe = ConfigurableERPipeline(db=db, config=cfg)
+
+    scorer = pipe._load_fs_scorer()
+
+    assert scorer is not None
+    assert scorer.agreement_thresholds == {"name": 0.72}
+    assert db.aql.last_bind_vars["h"] == expected_hash
 
 
 def test_run_routes_to_address_pipeline(monkeypatch) -> None:

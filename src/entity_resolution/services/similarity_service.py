@@ -15,6 +15,7 @@ Handles similarity computation using:
 
 import warnings
 import math
+import requests
 from typing import Dict, List, Any, Optional
 from .base_service import BaseEntityResolutionService, Config
 from ..utils.algorithms import validate_email, validate_phone, validate_zip_code, validate_state

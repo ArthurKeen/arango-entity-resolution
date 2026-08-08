@@ -828,6 +828,44 @@ class TestFindDuplicates:
 # MCP tool: explain_match
 # ---------------------------------------------------------------------------
 
+def test_probabilistic_explanation_uses_creation_time_across_config_versions():
+    from entity_resolution.mcp.tools.entity import _probabilistic_explanation
+
+    class _AQL:
+        def __init__(self):
+            self.query = ""
+
+        def execute(self, query):
+            self.query = query
+            return iter([{
+                "version": 1,
+                "created_at": "2026-08-05T00:00:00Z",
+                "m": {"name": 0.9},
+                "u": {"name": 0.1},
+                "lambda": 0.2,
+                "agreement_thresholds": {"name": 0.85},
+            }])
+
+    class _DB:
+        def __init__(self):
+            self.aql = _AQL()
+
+        @staticmethod
+        def has_collection(name):
+            return name == "er_model_params"
+
+    db = _DB()
+    report = _probabilistic_explanation(
+        db,
+        {"name": "Acme"},
+        {"name": "Acme"},
+        {"name": {"score": 1.0}},
+    )
+
+    assert report is not None
+    assert "SORT d.created_at DESC, d.version DESC" in db.aql.query
+
+
 class TestExplainMatch:
     @patch("entity_resolution.mcp.tools.entity.ArangoClient")
     def test_explain_match_returns_breakdown(self, mock_client_cls):

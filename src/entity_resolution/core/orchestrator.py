@@ -11,9 +11,12 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Dict, List, Literal, Optional, Sequence
+from typing import Any, Dict, List, Literal, Optional, Sequence, TYPE_CHECKING
 
 from ..strategies.base_strategy import BlockingStrategy
+
+if TYPE_CHECKING:
+    from arango.database import StandardDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -209,18 +212,27 @@ class MultiStrategyOrchestrator:
     ) -> "MultiStrategyOrchestrator":
         """Build an orchestrator from a YAML/dict configuration.
 
-        Expected format::
+        Expected format (every strategy entry needs its own ``collection``)::
 
             orchestrator:
               merge_mode: union
               deduplicate: true
               strategies:
                 - type: collect
+                  collection: companies
                   blocking_fields: [phone, state]
                   max_block_size: 50
                 - type: bm25
+                  collection: companies
+                  search_view: companies_view
                   search_field: company_name
-                  view_name: companies_view
+                  bm25_threshold: 2.0
+                  limit_per_entity: 20
+
+        The earlier version of this docstring omitted ``collection`` and used
+        ``view_name``/``top_n``/``score_threshold``; copying it produced a
+        ``KeyError`` or ``TypeError``. Those aliases are still accepted for
+        backward compatibility, but the names above are the strategy's own.
 
         Parameters
         ----------
@@ -245,24 +257,48 @@ class MultiStrategyOrchestrator:
                 max_block_size=cfg.get("max_block_size", 100),
                 min_block_size=cfg.get("min_block_size", 2),
             ),
+            # Config keys are the strategy's own parameter names. The legacy
+            # aliases view_name/top_n/score_threshold are still accepted so
+            # existing YAML keeps working, but they are NOT what the strategy
+            # takes — passing them through verbatim raised TypeError and made
+            # every bm25 entry unconstructible.
             "bm25": lambda cfg: BM25BlockingStrategy(
                 db=db,
                 collection=cfg["collection"],
+                search_view=cfg.get("search_view", cfg.get("view_name")),
                 search_field=cfg["search_field"],
-                view_name=cfg.get("view_name"),
-                top_n=cfg.get("top_n", 10),
-                score_threshold=cfg.get("score_threshold", 0.0),
+                bm25_threshold=cfg.get(
+                    "bm25_threshold", cfg.get("score_threshold", 2.0)
+                ),
+                limit_per_entity=cfg.get("limit_per_entity", cfg.get("top_n", 20)),
+                blocking_field=cfg.get("blocking_field"),
+                filters=cfg.get("filters"),
             ),
         }
 
+        required_keys = {
+            "collect": ("collection", "blocking_fields"),
+            "bm25": ("collection", "search_field"),
+        }
+
         strategies: List[BlockingStrategy] = []
-        for entry in config.get("strategies", []):
+        for index, entry in enumerate(config.get("strategies", [])):
             stype = entry.get("type", "")
             builder = strategy_builders.get(stype)
             if builder is None:
                 raise ValueError(
                     f"Unknown strategy type '{stype}'. "
                     f"Valid types: {list(strategy_builders.keys())}"
+                )
+            missing = [k for k in required_keys[stype] if not entry.get(k)]
+            if stype == "bm25" and not (
+                entry.get("search_view") or entry.get("view_name")
+            ):
+                missing.append("search_view")
+            if missing:
+                raise ValueError(
+                    f"strategies[{index}] (type '{stype}') is missing required "
+                    f"key(s): {missing}"
                 )
             strategies.append(builder(entry))
 

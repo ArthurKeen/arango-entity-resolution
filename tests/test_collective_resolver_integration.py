@@ -49,7 +49,11 @@ def collective_fixture(db_connection):
 class _MaxFS:
     """Toy FS scorer: match if the name agrees OR the pair shares a neighbour."""
 
-    def score(self, field_scores):
+    # Signature mirrors FellegiSunterScorer.score, including exact_values (used
+    # for term-frequency adjustment). This double ignores it, but must still
+    # accept it — a double that drifts from the real interface turns a genuine
+    # break into a passing test.
+    def score(self, field_scores, exact_values=None):
         return max(
             field_scores.get("name", 0.0),
             field_scores.get("graph_neighbor_jaccard", 0.0),

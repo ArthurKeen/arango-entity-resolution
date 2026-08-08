@@ -19,9 +19,12 @@ import json
 import logging
 import os
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import litellm
+
+if TYPE_CHECKING:
+    from ..config.er_config import LLMProviderConfig
 
 logger = logging.getLogger(__name__)
 

@@ -99,7 +99,10 @@ class ConfigurableERPipeline:
             'feedback_collection': None,
         }
         self._embedding_preflight_stats: Optional[Dict[str, Any]] = None
-    
+        #: Populated when similarity.auto_threshold is enabled — the chosen
+        #: operating point travels with the results that were produced under it.
+        self._auto_threshold_selection: Optional[Dict[str, Any]] = None
+
     def run(
         self,
         on_progress: Optional[Callable[[Dict[str, Any]], None]] = None,
@@ -149,6 +152,7 @@ class ConfigurableERPipeline:
             'similarity': {},
             'edges': {},
             'clustering': {},
+            'collective': {},
             'total_runtime_seconds': 0.0
         }
         
@@ -211,6 +215,47 @@ class ConfigurableERPipeline:
         if on_progress:
             on_progress({"type": "stage_complete", "stage": "blocking", "result": results['blocking'], "timestamp": datetime.utcnow().isoformat()})
         
+        # Phase 1b: Collective resolution (optional, plan 3.2).
+        # Honouring collective.enabled here is what makes the config flag real:
+        # it was previously parsed and validated but never consulted by run(),
+        # so users who set it got a silently ignored stage. Reported as its own
+        # results key rather than replacing clustering, so the standard
+        # score -> edge -> cluster path stays authoritative for persistence.
+        collective_cfg = getattr(self.config, "collective", None)
+        if collective_cfg is not None and collective_cfg.enabled and candidate_pairs:
+            if on_progress:
+                on_progress({"type": "stage_start", "stage": "collective", "timestamp": datetime.utcnow().isoformat()})
+            self.logger.info("Phase 1b: Collective resolution...")
+            collective_start = time.time()
+            collective_result = self.run_collective(candidate_pairs)
+            collective_time = time.time() - collective_start
+            if collective_result is None:
+                # run_collective already logged why (no graph_context).
+                results['collective'] = {
+                    'enabled': True,
+                    'applied': False,
+                    'reason': 'requires similarity.graph_context',
+                    'runtime_seconds': round(collective_time, 2),
+                }
+            else:
+                results['collective'] = {
+                    'enabled': True,
+                    'applied': True,
+                    'rounds': collective_result.get('rounds'),
+                    'converged': collective_result.get('converged'),
+                    'oscillated': collective_result.get('oscillated'),
+                    'clusters_found': collective_result.get('num_clusters'),
+                    'runtime_seconds': round(collective_time, 2),
+                }
+            if on_progress:
+                on_progress({"type": "stage_complete", "stage": "collective", "result": results['collective'], "timestamp": datetime.utcnow().isoformat()})
+        else:
+            results['collective'] = {
+                'enabled': bool(collective_cfg and collective_cfg.enabled),
+                'applied': False,
+                'runtime_seconds': 0.0,
+            }
+
         # Phase 2: Similarity
         if on_progress:
             on_progress({"type": "stage_start", "stage": "similarity", "timestamp": datetime.utcnow().isoformat()})
@@ -225,6 +270,7 @@ class ConfigurableERPipeline:
                 'pairs_processed': len(candidate_pairs),
                 'runtime_seconds': round(similarity_time, 2),
                 'active_learning': self._active_learning_stats.copy(),
+                'auto_threshold': self._auto_threshold_selection,
             }
             self.logger.info(f"[OK] Found {len(matches):,} matches")
         else:
@@ -574,6 +620,7 @@ class ConfigurableERPipeline:
                 max_block_size=self.config.blocking.max_block_size,
                 min_block_size=self.config.blocking.min_block_size,
                 computed_fields=computed_fields or None,
+                allow_unsafe_expressions=self.config.blocking.allow_unsafe_expressions,
             )
             return list(blocking_strategy.generate_candidates())
         
@@ -797,25 +844,33 @@ class ConfigurableERPipeline:
         """Attribute fields + graph feature fields — the FS/EM comparison vector."""
         return list(self._effective_field_weights().keys()) + self._graph_feature_names()
 
+    def build_model_parameter_estimator(self, similarity_service=None):
+        """Construct the estimator from the same comparison config used at runtime."""
+        from ..learning import ModelParameterEstimator
+
+        cfg = self.config.similarity
+        return ModelParameterEstimator(
+            db=self.db,
+            similarity_service=similarity_service,
+            edge_collection=self.config.edge_collection,
+            field_names=self._effective_scoring_field_names(),
+            agreement_thresholds=getattr(cfg, "agreement_thresholds", {}),
+            algorithm=cfg.algorithm,
+        )
+
     def _load_fs_scorer(self):
         """Build a FellegiSunterScorer from the latest persisted model params."""
-        from ..learning import ModelParameterEstimator
         from ..learning.fellegi_sunter_scorer import FellegiSunterScorer
 
-        field_names = list(self._effective_field_weights().keys())
-        estimator = ModelParameterEstimator(
-            db=self.db,
-            similarity_service=None,  # not needed for load_latest
-            edge_collection=self.config.edge_collection,
-            field_names=field_names,
-        )
-        doc = estimator.load_latest()
+        estimator = self.build_model_parameter_estimator()
+        doc = estimator.load_latest(estimator.configuration_hash())
         if not doc:
             return None
         cfg = self.config.similarity
         return FellegiSunterScorer.from_model_doc(
             doc,
             match_prior=getattr(cfg, "match_prior", None),
+            term_frequencies=estimator.load_term_frequencies(),
         )
 
     def run_similarity(self, candidate_pairs: list) -> list:
@@ -836,12 +891,68 @@ class ConfigurableERPipeline:
         if active_learning_cfg and active_learning_cfg.enabled:
             return self._run_similarity_with_active_learning(similarity_service, pair_tuples)
 
+        if getattr(self.config.similarity, 'auto_threshold', False):
+            return self._run_similarity_with_auto_threshold(
+                similarity_service, pair_tuples
+            )
+
         matches = similarity_service.compute_similarities(
             candidate_pairs=pair_tuples,
             threshold=self.config.similarity.threshold
         )
 
         return matches
+
+    def _run_similarity_with_auto_threshold(
+        self,
+        similarity_service: BatchSimilarityService,
+        pair_tuples: list[tuple[str, str]],
+    ) -> list:
+        """Score everything, infer the cutoff from the scores, then filter.
+
+        Requires scoring at threshold 0 first: the threshold is derived from the
+        shape of the score distribution, so the distribution has to exist before
+        a cutoff can be chosen. That costs nothing extra in scoring work — the
+        same pairs are scored either way — only in memory, since all scored pairs
+        are held rather than only the passing ones.
+
+        When the scores carry no evidence for a cutoff (not meaningfully
+        bimodal), the configured ``threshold`` is kept and a warning is emitted.
+        Inference can therefore only improve on the constant where there is
+        support for doing so; it never silently substitutes a guess.
+        """
+        from ..learning.threshold_selection import select_threshold_unsupervised
+
+        sim_cfg = self.config.similarity
+        scored = similarity_service.compute_similarities(
+            candidate_pairs=pair_tuples,
+            threshold=0.0,
+            return_all=True,
+        )
+        selection = select_threshold_unsupervised(
+            [row[2] for row in scored],
+            min_valley_depth=getattr(
+                sim_cfg, 'auto_threshold_min_valley_depth', 0.15
+            ),
+            fallback=sim_cfg.threshold,
+        )
+        self._auto_threshold_selection = selection.to_dict()
+
+        if selection.warning:
+            self.logger.warning(
+                "auto_threshold: keeping configured threshold %.3f — %s",
+                sim_cfg.threshold, selection.warning,
+            )
+        else:
+            self.logger.info(
+                "auto_threshold: selected %.4f (configured was %.3f, "
+                "valley depth %.3f over %d pairs)",
+                selection.threshold, sim_cfg.threshold,
+                selection.diagnostics.get('valley_depth', 0.0),
+                selection.diagnostics.get('sample_size', 0),
+            )
+
+        return [row for row in scored if row[2] >= selection.threshold]
 
     def _run_similarity_with_active_learning(
         self,

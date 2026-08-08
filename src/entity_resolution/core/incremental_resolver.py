@@ -63,7 +63,12 @@ class IncrementalResolver:
         self.fields = validate_field_names(fields or [])
         self.confidence_threshold = confidence_threshold
         self.blocking_strategy = blocking_strategy
-        self.prefix_length = prefix_length
+        try:
+            self.prefix_length = int(prefix_length)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("prefix_length must be a positive integer") from exc
+        if self.prefix_length <= 0:
+            raise ValueError("prefix_length must be a positive integer")
 
     # ------------------------------------------------------------------
     # Public API
