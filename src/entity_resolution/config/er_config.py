@@ -255,6 +255,121 @@ class GraphContextConfig:
         return errors
 
 
+#: Names used when comparison levels are given as bare thresholds. Beyond this
+#: many bands the shorthand stops being readable and explicit names are required.
+_SHORTHAND_LEVEL_NAMES = ("exact", "close", "near", "weak")
+#: Name of the final catch-all level appended by the shorthand form.
+_FALLBACK_LEVEL_NAME = "else"
+
+
+def normalize_comparison_levels(
+    configured: Optional[Dict[str, Any]],
+) -> Dict[str, List[Dict[str, Any]]]:
+    """Validate comparison-level structure and return it in canonical form.
+
+    Accepts either explicit levels (``{"name": ..., "min_similarity": ...}``) or
+    the bare-threshold shorthand (``[0.95, 0.7]``), and always returns the
+    explicit form with a trailing fallback level whose ``min_similarity`` is
+    ``None``.
+
+    Only structure is validated here. The m/u probabilities are learned by EM and
+    filled in by
+    :meth:`~entity_resolution.learning.em_estimator.CategoricalEMResult.to_comparison_levels`,
+    so a config cannot assert probabilities that contradict the data.
+
+    Raises ValueError with the offending field named, since a level table is
+    hand-written and a silent reinterpretation would change what every learned
+    weight means.
+    """
+    if not configured:
+        return {}
+
+    normalized: Dict[str, List[Dict[str, Any]]] = {}
+    for field, raw in configured.items():
+        if not isinstance(raw, (list, tuple)) or not raw:
+            raise ValueError(
+                f"similarity.comparison_levels[{field!r}] must be a non-empty list"
+            )
+
+        levels: List[Dict[str, Any]] = []
+        if all(isinstance(entry, (int, float)) and not isinstance(entry, bool)
+               for entry in raw):
+            # Shorthand: thresholds only. One name per band, plus the fallback.
+            if len(raw) > len(_SHORTHAND_LEVEL_NAMES):
+                raise ValueError(
+                    f"similarity.comparison_levels[{field!r}] shorthand supports at "
+                    f"most {len(_SHORTHAND_LEVEL_NAMES)} thresholds; name the levels "
+                    "explicitly for more"
+                )
+            for index, threshold in enumerate(raw):
+                levels.append({
+                    "name": _SHORTHAND_LEVEL_NAMES[index],
+                    "min_similarity": float(threshold),
+                })
+            levels.append({"name": _FALLBACK_LEVEL_NAME, "min_similarity": None})
+        else:
+            for index, entry in enumerate(raw):
+                if not isinstance(entry, dict):
+                    raise ValueError(
+                        f"similarity.comparison_levels[{field!r}][{index}] must be a "
+                        "mapping with 'name' and optional 'min_similarity', or the "
+                        "list must contain only numeric thresholds"
+                    )
+                name = str(entry.get("name") or "").strip()
+                if not name:
+                    raise ValueError(
+                        f"similarity.comparison_levels[{field!r}][{index}] needs a name"
+                    )
+                threshold = entry.get("min_similarity")
+                levels.append({
+                    "name": name,
+                    "min_similarity": None if threshold is None else float(threshold),
+                })
+            if levels[-1]["min_similarity"] is not None:
+                # Appending silently would change the model's meaning without the
+                # author knowing, so require the fallback to be written.
+                raise ValueError(
+                    f"similarity.comparison_levels[{field!r}] must end with a "
+                    "fallback level that has no min_similarity"
+                )
+
+        if len(levels) < 2:
+            raise ValueError(
+                f"similarity.comparison_levels[{field!r}] needs at least one "
+                "threshold plus the fallback; a single level carries no "
+                "discriminating information"
+            )
+
+        names = [level["name"] for level in levels]
+        if len(set(names)) != len(names):
+            raise ValueError(
+                f"similarity.comparison_levels[{field!r}] has duplicate level names"
+            )
+
+        previous = float("inf")
+        for level in levels[:-1]:
+            threshold = level["min_similarity"]
+            if threshold is None:
+                raise ValueError(
+                    f"similarity.comparison_levels[{field!r}]: only the final level "
+                    "may omit min_similarity"
+                )
+            if not 0.0 <= threshold <= 1.0:
+                raise ValueError(
+                    f"similarity.comparison_levels[{field!r}] thresholds must be "
+                    f"in [0, 1], got {threshold}"
+                )
+            if threshold >= previous:
+                raise ValueError(
+                    f"similarity.comparison_levels[{field!r}] thresholds must "
+                    "descend, most selective first"
+                )
+            previous = threshold
+
+        normalized[field] = levels
+    return normalized
+
+
 class SimilarityConfig:
     """Similarity configuration."""
     
@@ -271,6 +386,7 @@ class SimilarityConfig:
         graph_context: Optional["GraphContextConfig"] = None,
         auto_threshold: bool = False,
         auto_threshold_min_valley_depth: float = 0.15,
+        comparison_levels: Optional[Dict[str, Any]] = None,
     ):
         """
         Initialize similarity configuration.
@@ -302,6 +418,27 @@ class SimilarityConfig:
             auto_threshold_min_valley_depth: Evidence required before an inferred
                 threshold is trusted (see
                 :func:`entity_resolution.learning.threshold_selection.select_threshold_unsupervised`).
+            comparison_levels: Optional per-field comparison LEVELS for the
+                Fellegi-Sunter path, replacing the single agree/disagree cutoff
+                with an ordered set of bands. Only the structure is configured
+                here — the per-level m/u probabilities are learned by EM, so a
+                level table cannot be hand-tuned into disagreeing with the data.
+
+                Two accepted forms, both ordered most-selective first::
+
+                    comparison_levels:
+                      title:                       # explicit
+                        - {name: exact, min_similarity: 0.95}
+                        - {name: close, min_similarity: 0.70}
+                        - {name: else}             # fallback, no threshold
+                      body: [0.95, 0.70]           # shorthand, same result
+
+                The shorthand names the levels ``exact``/``close``/... and
+                appends the fallback automatically. A single binary cutoff
+                measurably underperforms on text: FS scored F1 0.117 against
+                weighted similarity's 0.541 on Abt-Buy because word-based
+                Jaccard over long descriptions almost never cleared one
+                threshold. Fields left unconfigured keep the binary model.
         """
         if scoring_method not in ("weighted_heuristic", "fellegi_sunter"):
             raise ValueError(
@@ -318,6 +455,7 @@ class SimilarityConfig:
         self.graph_context = graph_context
         self.auto_threshold = auto_threshold
         self.auto_threshold_min_valley_depth = auto_threshold_min_valley_depth
+        self.comparison_levels = normalize_comparison_levels(comparison_levels)
 
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> 'SimilarityConfig':
@@ -334,6 +472,7 @@ class SimilarityConfig:
             auto_threshold=config_dict.get('auto_threshold', False),
             auto_threshold_min_valley_depth=config_dict.get(
                 'auto_threshold_min_valley_depth', 0.15),
+            comparison_levels=config_dict.get('comparison_levels'),
             graph_context=GraphContextConfig.from_dict(config_dict.get('graph_context')),
         )
 
@@ -351,6 +490,14 @@ class SimilarityConfig:
             'match_prior': self.match_prior,
             'agreement_thresholds': self.agreement_thresholds,
         }
+        # Round-tripped explicitly: a config flag dropped by to_dict is silently
+        # lost on save/reload, and comparison levels change what a learned model
+        # means, so losing them would make a persisted model unreproducible.
+        if self.comparison_levels:
+            out['comparison_levels'] = {
+                field: [dict(level) for level in levels]
+                for field, levels in self.comparison_levels.items()
+            }
         if self.graph_context is not None:
             out['graph_context'] = self.graph_context.to_dict()
         return out

@@ -332,3 +332,122 @@ class TestScorerRoundTrip:
             "fields", "level_names", "m", "u", "lambda", "observed_counts",
         }
         assert payload["level_names"]["title"] == THREE_LEVELS
+
+
+# ---------------------------------------------------------------------------
+# Config schema and model identity
+# ---------------------------------------------------------------------------
+
+
+class TestComparisonLevelConfig:
+    """Only STRUCTURE is configurable; m/u are learned.
+
+    A hand-written level table that also asserted probabilities could contradict
+    the data, so the config deliberately cannot express them.
+    """
+
+    def _config(self, levels):
+        from entity_resolution.config.er_config import SimilarityConfig
+
+        return SimilarityConfig(comparison_levels=levels)
+
+    def test_shorthand_thresholds_expand_to_named_levels(self):
+        cfg = self._config({"title": [0.95, 0.7]})
+        assert cfg.comparison_levels["title"] == [
+            {"name": "exact", "min_similarity": 0.95},
+            {"name": "close", "min_similarity": 0.7},
+            {"name": "else", "min_similarity": None},
+        ]
+
+    def test_explicit_levels_are_preserved(self):
+        cfg = self._config({
+            "title": [
+                {"name": "identical", "min_similarity": 0.99},
+                {"name": "other"},
+            ]
+        })
+        assert [lvl["name"] for lvl in cfg.comparison_levels["title"]] == [
+            "identical", "other",
+        ]
+        assert cfg.comparison_levels["title"][-1]["min_similarity"] is None
+
+    def test_round_trips_through_to_dict(self):
+        """A config flag dropped by to_dict is silently lost on save/reload.
+
+        Levels change what every learned weight means, so losing them would make
+        a persisted model unreproducible.
+        """
+        from entity_resolution.config.er_config import SimilarityConfig
+
+        original = self._config({"title": [0.95, 0.7], "body": [0.8]})
+        restored = SimilarityConfig.from_dict(original.to_dict())
+        assert restored.comparison_levels == original.comparison_levels
+
+    def test_absent_levels_keep_the_binary_model(self):
+        assert self._config(None).comparison_levels == {}
+
+    @pytest.mark.parametrize(
+        "levels,message",
+        [
+            ({"t": [0.5, 0.9]}, "descend"),
+            ({"t": [{"name": "x", "min_similarity": 0.5}]}, "fallback"),
+            ({"t": []}, "non-empty"),
+            ({"t": [1.5]}, r"\[0, 1\]"),
+            ({"t": [{"name": "a", "min_similarity": 0.9}, {"name": "a"}]}, "duplicate"),
+            ({"t": [{"min_similarity": 0.9}, {"name": "z"}]}, "needs a name"),
+            ({"t": [0.9, 0.8, 0.7, 0.6, 0.5]}, "at most"),
+        ],
+    )
+    def test_invalid_structures_are_rejected_by_field(self, levels, message):
+        with pytest.raises(ValueError, match=message):
+            self._config(levels)
+
+    def test_error_names_the_offending_field(self):
+        with pytest.raises(ValueError, match="comparison_levels\\['body'\\]"):
+            self._config({"title": [0.9], "body": [0.1, 0.9]})
+
+
+class TestModelIdentity:
+    """Levels are part of a model's identity, not decoration."""
+
+    def _hash(self, levels=None):
+        from entity_resolution.learning.model_parameter_estimator import config_hash
+
+        return config_hash(
+            ["a", "b"], {"a": 0.85}, "jaccard", comparison_levels=levels
+        )
+
+    def test_changing_a_threshold_changes_the_hash(self):
+        """Otherwise the loader hands back parameters learned under other bins."""
+        at_95 = self._hash({"a": [{"name": "e", "min_similarity": 0.95},
+                                  {"name": "x", "min_similarity": None}]})
+        at_90 = self._hash({"a": [{"name": "e", "min_similarity": 0.90},
+                                  {"name": "x", "min_similarity": None}]})
+        assert at_95 != at_90
+
+    def test_adding_levels_changes_the_hash(self):
+        assert self._hash() != self._hash(
+            {"a": [{"name": "e", "min_similarity": 0.9},
+                   {"name": "x", "min_similarity": None}]}
+        )
+
+    def test_hash_is_stable_across_calls(self):
+        levels = {"a": [{"name": "e", "min_similarity": 0.9},
+                        {"name": "x", "min_similarity": None}]}
+        assert self._hash(levels) == self._hash(levels)
+
+    def test_binary_models_keep_their_existing_hash(self):
+        """Backward compatibility: models trained before levels existed must load.
+
+        Reproduces the pre-levels formula exactly; a drift here would orphan every
+        previously trained model.
+        """
+        import hashlib
+        import json
+
+        payload = json.dumps(
+            {"fields": ["a", "b"], "thresholds": {"a": 0.85}, "algorithm": "jaccard"},
+            sort_keys=True,
+        )
+        legacy = hashlib.md5(payload.encode("utf-8")).hexdigest()[:16]
+        assert self._hash() == legacy

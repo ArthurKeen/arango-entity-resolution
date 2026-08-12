@@ -74,7 +74,10 @@ def test_estimate_persist_and_term_frequencies(estimation_fixture):
     assert out["version"] == 1
 
     # Params persisted and reloadable.
-    latest = estimator.load_latest()
+    # Pass the config hash: hashless load_latest() ties on created_at
+    # (second precision) and is genuinely ambiguous when another model
+    # exists, which made this suite intermittently fail.
+    latest = estimator.load_latest(estimator.configuration_hash())
     assert latest["version"] == 1
     assert latest["fields"] == ["name", "city"]
 
@@ -196,7 +199,7 @@ def test_learned_params_drive_fs_scoring_and_separate_classes(estimation_fixture
     # Build an FS-scoring similarity service from the learned params.
     from entity_resolution.learning.fellegi_sunter_scorer import FellegiSunterScorer
 
-    doc = estimator.load_latest()
+    doc = estimator.load_latest(estimator.configuration_hash())
     fs_scorer = FellegiSunterScorer.from_model_doc(doc)
     fs_sim = BatchSimilarityService(
         db=db, collection=vcol,
@@ -285,7 +288,7 @@ def test_run_records_u_provenance_and_anchors_u(estimation_fixture):
     out = estimator.run(source_collection=vcol, sample_size=100, u_sample_size=200)
 
     assert out["u_estimation"] == "random_pairs"
-    persisted = estimator.load_latest()
+    persisted = estimator.load_latest(estimator.configuration_hash())
     assert persisted["u_estimation"] == "random_pairs", (
         "provenance must survive persistence — weights learned under a biased u "
         "are not comparable with weights learned under a measured one"

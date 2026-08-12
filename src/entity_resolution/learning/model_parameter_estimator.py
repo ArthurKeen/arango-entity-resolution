@@ -25,18 +25,54 @@ _MODEL_COLLECTION = "er_model_params"
 _TF_COLLECTION = "er_term_frequencies"
 
 
-def config_hash(field_names: Sequence[str], agreement_thresholds: Dict[str, float],
-                algorithm: str) -> str:
-    """Stable hash identifying an estimation configuration."""
-    payload = json.dumps(
-        {
-            "fields": sorted(field_names),
-            "thresholds": {k: agreement_thresholds[k] for k in sorted(agreement_thresholds)},
-            "algorithm": algorithm,
-        },
-        sort_keys=True,
-    )
-    return hashlib.md5(payload.encode("utf-8")).hexdigest()[:16]
+def config_hash(
+    field_names: Sequence[str],
+    agreement_thresholds: Dict[str, float],
+    algorithm: str,
+    comparison_levels: Optional[Dict[str, Any]] = None,
+) -> str:
+    """Stable hash identifying an estimation configuration.
+
+    Comparison levels are part of the identity, not decoration: per-level m/u are
+    estimated against a specific set of bands, so a model trained with
+    ``[0.95, 0.7]`` means something different from one trained with
+    ``[0.9, 0.5]``. Omitting levels from the hash would let the loader hand back
+    parameters learned under different bins — the same silent-mismatch class of
+    bug as reusing a model trained at another agreement threshold.
+
+    Only the structure is hashed (names and thresholds, in order); the learned
+    probabilities are the output, not the identity.
+    """
+    payload: Dict[str, Any] = {
+        "fields": sorted(field_names),
+        "thresholds": {k: agreement_thresholds[k] for k in sorted(agreement_thresholds)},
+        "algorithm": algorithm,
+    }
+    if comparison_levels:
+        payload["comparison_levels"] = {
+            field: [
+                [str(level.get("name")), level.get("min_similarity")]
+                for level in comparison_levels[field]
+            ]
+            for field in sorted(comparison_levels)
+        }
+    return hashlib.md5(
+        json.dumps(payload, sort_keys=True).encode("utf-8")
+    ).hexdigest()[:16]
+
+
+def _collapse_to_binary(level_probs: Sequence[float]) -> float:
+    """Binary-equivalent probability from a per-level vector.
+
+    "Agrees" in binary terms means the comparison reached any level above the
+    fallback, so the equivalent scalar is the total probability mass outside the
+    final level. Clamped away from 0 and 1 because the scorer takes
+    ``log(m/u)`` and ``log((1-m)/(1-u))``.
+    """
+    if not level_probs:
+        return 0.5
+    agree_mass = float(sum(level_probs[:-1]))
+    return min(max(agree_mass, 1e-6), 1 - 1e-6)
 
 
 class ModelParameterEstimator:
@@ -54,6 +90,7 @@ class ModelParameterEstimator:
         algorithm: Optional[str] = None,
         model_collection: str = _MODEL_COLLECTION,
         tf_collection: str = _TF_COLLECTION,
+        comparison_levels: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.db = db
         # A BatchSimilarityService (or anything exposing compute_similarities_detailed).
@@ -67,6 +104,13 @@ class ModelParameterEstimator:
         self.algorithm = algorithm or getattr(
             similarity_service, "algorithm_name", "unknown"
         )
+        #: Per-field comparison levels (structure only). When present, estimation
+        #: is categorical over those bands instead of binary agree/disagree.
+        self.comparison_levels = {
+            field: [dict(level) for level in levels]
+            for field, levels in (comparison_levels or {}).items()
+            if field in set(self.field_names)
+        }
         #: How u was obtained on the most recent estimate() call — persisted as
         #: provenance, since it materially changes what the weights mean.
         self._last_u_estimation: str = "unknown"
@@ -239,6 +283,22 @@ class ModelParameterEstimator:
             max_iterations=max_iterations,
             tol=tol,
         )
+        if self.comparison_levels:
+            # Categorical estimation over the configured bands. fixed_u from
+            # random pairs is a per-field scalar (P(agree | non-match)), which
+            # cannot be spread across levels without inventing a shape, so it is
+            # not forwarded here; u is learned jointly and recorded as such
+            # rather than mislabelled as measured.
+            logger.info(
+                "Estimating categorical m/u over configured comparison levels for %s",
+                sorted(self.comparison_levels),
+            )
+            result = estimator.estimate_categorical(
+                comparisons, self.comparison_levels
+            )
+            self._last_u_estimation = "joint_em_categorical"
+            return result
+
         result = estimator.estimate(comparisons, fixed_u=fixed_u or None)
         self._last_u_estimation = (
             "random_pairs" if fixed_u else "joint_em_candidates_only"
@@ -346,8 +406,39 @@ class ModelParameterEstimator:
             "u_estimation": self._last_u_estimation,
             "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         }
+        # Multi-level models carry their learned per-level probabilities plus the
+        # band structure they were estimated against. Both are needed to rebuild
+        # the scorer: the probabilities are meaningless without the thresholds
+        # that produced them.
+        levels = getattr(result, "level_names", None)
+        if levels:
+            doc["model_type"] = "categorical"
+            doc["comparison_levels"] = self._learned_comparison_levels(result)
+            doc["level_observed_counts"] = dict(result.observed_counts)
+            # A categorical result's m/u are per-level VECTORS, but the scorer's
+            # base model is scalar per field (it drives fields without levels and
+            # the term-frequency adjustment). Collapse to the binary equivalent —
+            # P(reaches any level above the fallback) — so a categorical model
+            # still loads through the same code path. Writing the vectors here
+            # would make FellegiSunterScorer clip a list and fail at load.
+            doc["m"] = {f: _collapse_to_binary(result.m[f]) for f in result.fields}
+            doc["u"] = {f: _collapse_to_binary(result.u[f]) for f in result.fields}
+            doc["m_levels"] = {f: list(result.m[f]) for f in result.fields}
+            doc["u_levels"] = {f: list(result.u[f]) for f in result.fields}
+        else:
+            doc["model_type"] = "binary"
         self.db.collection(self.model_collection).insert(doc, overwrite=True)
         return doc
+
+    def _learned_comparison_levels(self, result: Any) -> Dict[str, Any]:
+        """Merge learned m/u back into the configured band structure."""
+        thresholds = {
+            field: [level.get("min_similarity") for level in levels]
+            for field, levels in self.comparison_levels.items()
+        }
+        return result.to_comparison_levels(
+            {f: thresholds[f] for f in result.fields if f in thresholds}
+        )
 
     def persist_term_frequencies(self, tables: Dict[str, Any]) -> int:
         """Persist TF tables, one doc per field (overwrite by field key)."""
@@ -372,6 +463,7 @@ class ModelParameterEstimator:
             self.field_names,
             self._effective_thresholds(),
             self.algorithm,
+            self.comparison_levels or None,
         )
 
     def list_model_configurations(self) -> List[Dict[str, Any]]:

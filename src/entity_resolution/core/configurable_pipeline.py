@@ -856,6 +856,7 @@ class ConfigurableERPipeline:
             field_names=self._effective_scoring_field_names(),
             agreement_thresholds=getattr(cfg, "agreement_thresholds", {}),
             algorithm=cfg.algorithm,
+            comparison_levels=getattr(cfg, "comparison_levels", None),
         )
 
     def _load_fs_scorer(self):
@@ -878,6 +879,12 @@ class ConfigurableERPipeline:
             self._log_missing_fs_model(estimator, chash)
             return None
         cfg = self.config.similarity
+        # from_model_doc reads comparison_levels from the document itself. Levels
+        # must come from the MODEL rather than the config: the document carries
+        # the learned per-level m/u alongside the bands they were estimated
+        # against, whereas the config only describes structure. Pairing
+        # configured bands with probabilities learned under different ones is
+        # exactly what the config hash exists to prevent.
         return FellegiSunterScorer.from_model_doc(
             doc,
             match_prior=getattr(cfg, "match_prior", None),
