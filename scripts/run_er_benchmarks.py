@@ -362,6 +362,32 @@ def _build_similarity_service(db, collection: str, args, **extra):
     )
 
 
+def _comparison_levels(args, fields: Sequence[str]) -> Dict[str, Any]:
+    """Build per-field comparison bands from ``--comparison-levels``.
+
+    One descending threshold list is applied to every scoring field, which is
+    enough to test whether banding helps at all. Per-field tuning would confound
+    the question with hand-optimisation.
+    """
+    raw = getattr(args, "comparison_levels", None)
+    if not raw:
+        return {}
+    thresholds = [float(part) for part in str(raw).split(",") if part.strip()]
+    if not thresholds:
+        return {}
+    if sorted(thresholds, reverse=True) != thresholds:
+        raise ValueError("--comparison-levels must be descending, most selective first")
+    names = ("exact", "close", "near", "weak")
+    if len(thresholds) > len(names):
+        raise ValueError(f"--comparison-levels supports at most {len(names)} thresholds")
+    return {
+        field: [
+            {"name": names[i], "min_similarity": t} for i, t in enumerate(thresholds)
+        ] + [{"name": "else", "min_similarity": None}]
+        for field in fields
+    }
+
+
 def train_fs_model(
     db, collection: str, pairs: Sequence[Tuple[str, str]], args
 ) -> Tuple[Any, Dict[str, Any]]:
@@ -389,12 +415,14 @@ def train_fs_model(
         db.collection(edge_collection).insert_many(edges[start : start + 5000])
 
     fields = list(_field_weights(args))
+    levels = _comparison_levels(args, fields)
     estimator = ModelParameterEstimator(
         db=db,
         similarity_service=_build_similarity_service(db, collection, args),
         edge_collection=edge_collection,
         field_names=fields,
         default_threshold=args.fs_agreement_threshold,
+        comparison_levels=levels or None,
     )
     # Train fresh: models persist across runs, and load_latest() sorts by version
     # across ALL config hashes. Each distinct configuration starts its own
@@ -410,15 +438,11 @@ def train_fs_model(
         sample_size=args.fs_train_sample,
         u_sample_size=args.fs_u_sample,
     )
-    from entity_resolution.learning.model_parameter_estimator import config_hash
-
-    model = estimator.load_latest(
-        config_hash(
-            fields,
-            estimator._effective_thresholds(),
-            estimator.algorithm,
-        )
-    )
+    # Ask the estimator for its own identity rather than recomputing the hash
+    # here: configuration_hash() now also covers the comparison-level structure,
+    # and a local copy of the formula would silently miss the model the moment
+    # the two drifted.
+    model = estimator.load_latest(estimator.configuration_hash())
     if model is None:  # pragma: no cover - defensive
         raise RuntimeError("FS training produced no persisted model")
     tf_tables = estimator.load_term_frequencies() if args.fs_term_frequency else {}
@@ -433,7 +457,21 @@ def train_fs_model(
         "term_frequency_fields": sorted(tf_tables),
         "converged": model.get("converged"),
         "training_pairs": summary["model"]["n_pairs"],
+        "model_type": model.get("model_type", "binary"),
     }
+    if model.get("model_type") == "categorical":
+        trained["comparison_levels"] = {
+            field: [level.get("min_similarity") for level in field_levels]
+            for field, field_levels in (model.get("comparison_levels") or {}).items()
+        }
+        trained["m_levels"] = {
+            field: [round(v, 4) for v in values]
+            for field, values in (model.get("m_levels") or {}).items()
+        }
+        trained["u_levels"] = {
+            field: [round(v, 4) for v in values]
+            for field, values in (model.get("u_levels") or {}).items()
+        }
     if db.has_collection(edge_collection):
         db.delete_collection(edge_collection)
     return scorer, trained
@@ -737,6 +775,16 @@ def main() -> int:
     )
     parser.add_argument("--fs-train-sample", type=int, default=50_000)
     parser.add_argument("--fs-u-sample", type=int, default=10_000)
+    parser.add_argument(
+        "--comparison-levels", default=None,
+        help=(
+            "Descending similarity thresholds defining Fellegi-Sunter comparison "
+            "bands, applied to every scoring field, e.g. '0.9,0.6' for "
+            "exact/close/else. Omit for the single-cutoff binary model. Tests "
+            "whether retaining similarity gradation recovers the accuracy the "
+            "binary model loses on text."
+        ),
+    )
     parser.add_argument(
         "--no-fs-term-frequency", dest="fs_term_frequency",
         action="store_false", default=True,

@@ -170,9 +170,9 @@ with it, P 0.796 / R 0.955.
   posterior plus per-decision evidence decomposition are worth having. DBLP-ACM,
   the most structured dataset here, is where FS comes closest.
 - **Multi-level comparisons are the binding constraint, not a refinement.**
-  Splink-style levels (exact / fuzzy-close / else, each with its own m/u) would
-  let FS keep the gradation it currently discards. Until that lands, FS should not
-  be recommended as a general default, and this document should not imply it is.
+  Splink-style levels (exact / fuzzy-close / else, each with its own m/u) let FS
+  keep the gradation it otherwise discards. They have since been implemented and
+  measured — see [Multi-level comparisons](#multi-level-comparisons-measured).
 
 This is the result the benchmark existed to produce. Three statistical fixes
 landed in the FS path — a null comparison level, unbiased `u` from random pairs,
@@ -180,6 +180,84 @@ and TF adjustment — and each is correct and unit-tested. Measured end to end,
 one of them (TF) delivers a clear gain, and the path as a whole still loses to
 the simpler matcher because of a design property none of them addressed. Without
 these measurements the reasonable assumption would have been the reverse.
+
+### Multi-level comparisons: measured
+
+Comparison levels replace the single agree/disagree cutoff with ordered bands,
+each with its own learned m/u (`similarity.comparison_levels`). This is the fix
+the section above named as the binding constraint. It works — substantially —
+and it still does not overtake weighted similarity.
+
+| Dataset | Weighted F1 | FS binary | **FS multi-level** | Bands used |
+|---|---|---|---|---|
+| DBLP-ACM | **0.937** | 0.868 | 0.914 | 0.9 / 0.6 |
+| Abt-Buy | **0.541** | 0.117 | 0.505 | 0.6 / 0.35 |
+| Amazon-Google | **0.488** | 0.127 | 0.446 | 0.6 / 0.35 *(transferred)* |
+
+B-cubed moves the same way: DBLP-ACM 0.942 → 0.965, Abt-Buy 0.690 → 0.730.
+
+**The collapse is fixed.** On the product datasets FS went from unusable to
+competitive — Abt-Buy 4.3x (0.117 → 0.505), Amazon-Google 3.5x (0.127 → 0.446).
+The diagnosis was right: binarising at one cutoff was destroying the signal, and
+retaining the gradation recovers almost all of it.
+
+**Weighted similarity still wins on all three.** Multi-level closes most of the
+gap but never crosses it. The practical recommendation is therefore unchanged —
+weighted remains the default, and every headline number in this document uses it.
+
+**Multi-level also makes FS far less sensitive to the decision threshold.** On
+DBLP-ACM, F1 at the shipped 0.8 default rose from 0.771 to 0.911, and
+unsupervised threshold selection improved from 0.771 to 0.833. A model that
+degrades gracefully when the operating point is wrong is worth something
+independently of its peak F1, since the peak assumes a threshold the user has to
+find.
+
+#### Band placement matters more than having bands
+
+Bands must sit where the similarity distribution actually separates. The same
+dataset, four settings:
+
+| Abt-Buy bands | Pairwise F1 |
+|---|---|
+| 0.9 / 0.6 | 0.388 |
+| **0.6 / 0.35** | **0.505** |
+| 0.5 / 0.3 / 0.15 | 0.348 |
+| 0.4 / 0.2 | 0.423 |
+
+Bands copied from DBLP-ACM (0.9 / 0.6) score 0.388 on Abt-Buy — better than
+binary's 0.117, but a quarter below what correctly placed bands achieve. Word-based
+Jaccard over long product descriptions rarely exceeds ~0.6 even for true matches,
+so a 0.9 band is nearly always empty and the model wastes a level. More bands is
+not better either: the four-level 0.5/0.3/0.15 setting is the *worst* of the four.
+
+#### How much of this is fitted to the test set
+
+Honestly: some of it. The DBLP-ACM and Abt-Buy bands above were chosen by looking
+at benchmark F1, which is selection on the labels a real deployment does not have.
+
+Amazon-Google is the clean number. It reuses the bands tuned on **Abt-Buy**, a
+different dataset with different content, and still reaches 0.446 from a binary
+baseline of 0.127. That transfer result — not the tuned ones — is the evidence
+that multi-level generalises rather than merely fitting.
+
+Automatic band placement from the score distribution (quantiles, or the same
+valley-finding used for threshold selection) is the obvious next step and would
+remove the tuning caveat entirely.
+
+#### When to choose multi-level FS
+
+Weighted similarity is still the default. Choose FS with comparison levels when
+you need what it uniquely provides and can afford ~5% F1:
+
+- a **calibrated posterior** rather than an uncalibrated 0-1 score;
+- a **per-decision evidence decomposition** (which field contributed what, in
+  additive log-odds) for auditability;
+- **term-frequency adjustment**, worth +0.084 F1 where records share identical
+  values;
+- **robustness to a mis-set threshold**, as above.
+
+Place the bands using the observed similarity distribution for your data, not the
+values in this table.
 
 ## Threshold selection
 
@@ -293,6 +371,7 @@ Useful flags:
 | `--algorithm` | `jaccard` (default), `jaro_winkler`, `levenshtein` |
 | `--scoring-method` | `weighted_heuristic` (default) or `fellegi_sunter` |
 | `--fs-agreement-threshold` | FS agree/disagree cutoff per field (default 0.85) |
+| `--comparison-levels` | Descending band thresholds, e.g. `0.6,0.35`; omit for the binary model |
 | `--no-fs-term-frequency` | Disable TF adjustment, to isolate its contribution |
 | `--title-weight` | Weight on the title field (default 0.7) |
 | `--bm25-threshold`, `--limit-per-entity` | Blocking recall/volume trade-off |
@@ -308,9 +387,16 @@ deterministic given a fixed configuration.
   claims.
 - Unsupervised throughout. No labelled pairs and no LLM verification. Headline
   numbers use the weighted-similarity path; the Fellegi-Sunter path (EM-estimated
-  parameters with unbiased `u`, null comparison level and term-frequency
-  adjustment) is measured separately in
-  [Scoring method](#scoring-method-weighted-similarity-vs-fellegi-sunter).
+  parameters with unbiased `u`, null comparison level, term-frequency adjustment
+  and multi-level comparisons) is measured separately in
+  [Scoring method](#scoring-method-weighted-similarity-vs-fellegi-sunter) and
+  [Multi-level comparisons](#multi-level-comparisons-measured). Weighted
+  similarity remains the better matcher on all three datasets, so it stays the
+  default.
+- The multi-level band thresholds for DBLP-ACM and Abt-Buy were selected using
+  benchmark F1, which is selection on labels a deployment does not have. The
+  Amazon-Google figure reuses bands tuned on a different dataset and is the
+  unfitted result.
 - Comparison figures for other systems come from their respective papers and
   were not reproduced here.
 - DBLP-Scholar's blocking stage takes ~19 minutes on this hardware; see
