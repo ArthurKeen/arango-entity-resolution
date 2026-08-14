@@ -11,10 +11,13 @@ plan, Decision #1).
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any, Dict, List, Optional
 
 from ..utils.validation import validate_collection_name
+
+logger = logging.getLogger(__name__)
 
 _AUDIT_COLLECTION = "er_audit_log"
 
@@ -28,9 +31,22 @@ class CurationService:
         self._ensure_collection()
 
     def _ensure_collection(self) -> None:
-        # Normally created by migration #5; create defensively for direct use.
+        # Normally created by migrations #5/#6; create defensively for direct use.
         if not self.db.has_collection(self.audit_collection):
             self.db.create_collection(self.audit_collection)
+        try:
+            # history() filters on (collection, entity_key) and sorts by ts. With
+            # only the primary index that is a full scan plus an in-memory sort,
+            # and an append-only audit log grows without bound, so the UI's
+            # history lookup degrades continuously. Idempotent for an identical
+            # definition; best-effort because a missing index slows reads but
+            # must never stop an audit write.
+            self.db.collection(self.audit_collection).add_persistent_index(
+                fields=["collection", "entity_key", "ts"],
+                name="idx_audit_history",
+            )
+        except Exception as exc:  # pragma: no cover - index is an optimisation
+            logger.debug("Could not ensure audit history index: %s", exc)
 
     def record(
         self,

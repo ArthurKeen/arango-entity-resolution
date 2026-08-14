@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import logging
+
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from entity_resolution.ui.models.schemas import BatchVerdictRequest, VerdictRequest
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/review", tags=["review"])
 
@@ -168,8 +172,11 @@ async def submit_verdict(
             entity_key=doc_key,
             after={"key_a": key_a, "key_b": key_b, "decision": body.decision},
         )
-    except Exception:  # auditing must never block the verdict
-        pass
+    except Exception as exc:
+        # The verdict still applies — auditing must never block a steward
+        # action — but a swallowed failure would let an adjudication lose its
+        # accountability record with no trace anywhere.
+        logger.warning("Audit write failed for verdict %s/%s: %s", key_a, key_b, exc)
 
     # Apply it to the similarity graph and re-cluster the affected component.
     edge_coll = resolve_collection_name(request, f"{collection}_similarity_edges")
@@ -260,8 +267,10 @@ async def batch_verdict(
             curation.record(actor=actor, action="verdict", collection=collection,
                             entity_key=doc_key,
                             after={"key_a": v.key_a, "key_b": v.key_b, "decision": v.decision})
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning(
+                "Audit write failed for batch verdict %s/%s: %s", v.key_a, v.key_b, exc
+            )
         if applier is None:
             results.append({"key_a": v.key_a, "key_b": v.key_b, "applied": None})
             continue

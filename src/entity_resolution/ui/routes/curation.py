@@ -8,6 +8,8 @@ scoped re-cluster under a lock — and is written to ``er_audit_log``.
 
 from __future__ import annotations
 
+import logging
+
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, Request
@@ -17,6 +19,8 @@ from entity_resolution.ui.models.schemas import (
     RemoveMemberRequest,
     SplitClusterRequest,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/curation", tags=["curation"])
 
@@ -82,8 +86,11 @@ def _audit(request: Request, collection: str, action: str, entity_key: str,
             actor=actor, action=action, collection=collection,
             entity_key=entity_key, before=before, after=after,
         )
-    except Exception:  # auditing must never block the edit
-        pass
+    except Exception as exc:  # An audit gap must be visible: the mutation is allowed to proceed
+        # (auditing must never block a steward action), but swallowing the
+        # failure silently means an irreversible merge or golden-record edit
+        # can lose its accountability record with no trace anywhere.
+        logger.warning("Audit write failed for cluster edit: %s", exc)
 
 
 def _guard_writable(request: Request, collection: str) -> None:

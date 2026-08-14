@@ -16,6 +16,11 @@ class _FakeCollection:
     def __init__(self, name):
         self.name = name
         self.docs = {}
+        #: Index definitions applied, so migrations that add indexes are
+        #: observable. This double must mirror the real collection interface:
+        #: a double that lags behind it turns a genuine interface change into a
+        #: confusing test failure, and a genuine break into a passing test.
+        self.indexes_created = []
 
     def get(self, key):
         return self.docs.get(key)
@@ -25,6 +30,17 @@ class _FakeCollection:
         if key in self.docs and not overwrite:
             raise Exception("duplicate")
         self.docs[key] = dict(doc)
+
+    def add_persistent_index(self, fields, name=None, sparse=False, unique=False):
+        definition = {
+            "fields": list(fields), "name": name,
+            "sparse": sparse, "unique": unique,
+        }
+        # ArangoDB treats an identical definition as a no-op, so migrations stay
+        # idempotent; mirror that rather than accumulating duplicates.
+        if definition not in self.indexes_created:
+            self.indexes_created.append(definition)
+        return definition
 
 
 class _FakeDB:
@@ -156,3 +172,23 @@ def test_resumes_after_partial_failure():
     out = runner.migrate()
     assert out["applied"] == [2, 3]
     assert runner.current_version() == 3
+
+
+def test_audit_history_index_migration_is_applied_and_idempotent():
+    """Migration 6 must create the audit-history index exactly once.
+
+    Without it, CurationService.history() is a full collection scan plus an
+    in-memory sort against an append-only log that only grows.
+    """
+    db = _FakeDB()
+    runner = _runner(db)
+    runner.migrate()
+    runner.migrate()  # re-running must not duplicate the index
+
+    audit = db.collection("er_audit_log")
+    history_indexes = [
+        idx for idx in audit.indexes_created
+        if idx["fields"] == ["collection", "entity_key", "ts"]
+    ]
+    assert len(history_indexes) == 1
+    assert history_indexes[0]["name"] == "idx_audit_history"

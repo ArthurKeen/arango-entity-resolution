@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import logging
+
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from entity_resolution.ui.models.schemas import ApplyThresholdRequest
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/metrics", tags=["metrics"])
 
@@ -192,7 +196,10 @@ async def apply_threshold(
             actor=actor, action="apply_threshold", collection=collection,
             entity_key=run["_key"], before=before, after=after,
         )
-    except Exception:
-        pass
+    except Exception as exc:  # An audit gap must be visible: the mutation is allowed to proceed
+        # (auditing must never block a steward action), but swallowing the
+        # failure silently means an irreversible merge or golden-record edit
+        # can lose its accountability record with no trace anywhere.
+        logger.warning("Audit write failed for threshold change: %s", exc)
 
     return {"status": "ok", "run_id": run["_key"], "thresholds": after}

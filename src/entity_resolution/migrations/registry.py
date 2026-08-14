@@ -33,6 +33,22 @@ def _create_collection(name: str):
     return apply
 
 
+def _add_persistent_index(collection: str, fields: List[str], name: str):
+    """Idempotently add a persistent index.
+
+    ``add_persistent_index`` is itself idempotent for an identical definition,
+    but the collection is checked first so a migration cannot fail on a
+    deployment where an earlier step was skipped.
+    """
+    def apply(db) -> None:
+        if not db.has_collection(collection):
+            db.create_collection(collection)
+        db.collection(collection).add_persistent_index(
+            fields=fields, name=name, sparse=False, unique=False
+        )
+    return apply
+
+
 MIGRATIONS: List[Migration] = [
     Migration(
         id=1,
@@ -63,5 +79,18 @@ MIGRATIONS: List[Migration] = [
         name="create_er_audit_log",
         description="Audit trail for steward curation actions (plan 2.0).",
         apply=_create_collection("er_audit_log"),
+    ),
+    Migration(
+        id=6,
+        name="index_er_audit_log_history",
+        description=(
+            "Index (collection, entity_key, ts) on er_audit_log so per-entity "
+            "history is an index lookup rather than a full scan."
+        ),
+        apply=_add_persistent_index(
+            "er_audit_log",
+            ["collection", "entity_key", "ts"],
+            "idx_audit_history",
+        ),
     ),
 ]

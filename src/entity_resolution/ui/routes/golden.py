@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import hashlib
 from typing import Any, Dict, List
 
@@ -12,6 +14,8 @@ from entity_resolution.ui.models.schemas import (
     GoldenRecordPreviewRequest,
     SurvivorshipPreviewRequest,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/golden", tags=["golden"])
 
@@ -223,8 +227,11 @@ async def apply_golden_record(
             actor=actor, action="golden_edit", collection=collection,
             entity_key=key, before=before, after=doc,
         )
-    except Exception:
-        pass
+    except Exception as exc:  # An audit gap must be visible: the mutation is allowed to proceed
+        # (auditing must never block a steward action), but swallowing the
+        # failure silently means an irreversible merge or golden-record edit
+        # can lose its accountability record with no trace anywhere.
+        logger.warning("Audit write failed for golden-record edit: %s", exc)
 
     return {"status": "ok", "golden_key": key, "golden_record": doc}
 
