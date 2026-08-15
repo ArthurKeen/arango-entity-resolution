@@ -248,15 +248,32 @@ class WCCClusteringService:
         """
         return self._stats.copy()
     
-    def validate_clusters(self) -> Dict[str, Any]:
+    def validate_clusters(self, max_cluster_size: Optional[int] = None) -> Dict[str, Any]:
         """
         Validate cluster quality and consistency.
-        
+
         Checks:
         - No overlapping clusters (each entity in at most one cluster)
         - All edges respected (connected entities in same cluster)
         - Minimum size requirement met
-        
+        - Oversized clusters flagged (runaway transitive closure)
+
+        Args:
+            max_cluster_size: Flag clusters larger than this. Defaults to
+                ``config.er.max_cluster_size`` (100) when available, else 100.
+
+        On the oversized check: weakly connected components take the transitive
+        closure, so a single spurious edge bridging two otherwise-separate groups
+        collapses both into one cluster. That is entity resolution's signature
+        failure mode — expensive to reverse and easy to miss, because the run
+        reports success and the cluster count merely looks lower.
+
+        Oversized clusters are FLAGGED, never dropped. The legacy
+        ``ClusteringService`` discarded them (``len(members) <= max_cluster_size``),
+        which silently removes those records from the output entirely; surfacing
+        the problem is right, deleting the evidence is not. Use
+        ``ClusterRepairService`` to analyse coherence and propose splits.
+
         Returns:
             Validation results:
             {
@@ -304,7 +321,31 @@ class WCCClusteringService:
                     'min_required': self.min_cluster_size
                 })
         
-        # Check 3: Sample edge validation (check some edges are respected)
+        # Check 3: Oversized clusters (runaway transitive closure)
+        checks_performed.append("max_size_requirement")
+        size_limit = max_cluster_size
+        if size_limit is None:
+            size_limit = getattr(
+                getattr(getattr(self, "config", None), "er", None),
+                "max_cluster_size",
+                None,
+            ) or 100
+        for cluster_doc in self.cluster_collection:
+            size = cluster_doc.get('size', 0)
+            if size > size_limit:
+                issues.append({
+                    'type': 'above_max_size',
+                    'cluster_id': cluster_doc.get('cluster_id'),
+                    'size': size,
+                    'max_allowed': size_limit,
+                    'hint': (
+                        'A single spurious edge can chain separate groups into one '
+                        'component. Run cluster repair to check coherence and '
+                        'propose a split.'
+                    ),
+                })
+
+        # Check 4: Sample edge validation (check some edges are respected)
         checks_performed.append("sample_edges_validated")
         edges_sample = list(self.edge_collection.all(limit=100))
         edges_checked = 0
