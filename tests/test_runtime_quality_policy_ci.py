@@ -15,7 +15,7 @@ def test_quality_policy_profiles_are_well_formed() -> None:
     policy = _load_quality_policy()
     profiles = policy.get("profiles", {})
 
-    for profile in ("linux-cpu", "apple-silicon", "linux-gpu"):
+    for profile in ("linux-cpu", "apple-silicon", "linux-gpu", "windows-cpu"):
         assert profile in profiles
         cfg = profiles[profile]
         assert cfg["quality_corpus"].endswith("runtime_quality_corpus.json")

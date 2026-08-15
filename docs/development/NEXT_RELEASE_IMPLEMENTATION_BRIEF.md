@@ -240,8 +240,8 @@ Phase 0 acceptance summary:
 - [DONE] artifact export for health snapshots and compare outputs
 - [DONE] first-run bootstrap path for missing baselines
 - [DONE] full workload benchmark harness for representative model inference throughput/latency
-- [IN PROGRESS] quality drift/retrieval stability automated gates tied to production model sets (policy-backed corpus gate + calibration helper + activation evidence summary now in repo; final threshold calibration pending first self-hosted activation run)
-- [IN PROGRESS] platform CI matrix expansion for dedicated Apple Silicon and Linux GPU runners (workflow scaffold + activation-evidence artifact publication added; first self-hosted activation run and artifact review still pending runner availability)
+- [DONE] quality drift/retrieval stability automated gates tied to production model sets (policy-backed corpus gate with calibrated baselines from real model output; linux-cpu, apple-silicon, and windows-cpu baselines calibrated; quality gate policy thresholds tightened with 20% headroom)
+- [DONE] platform CI matrix expansion (dynamic matrix with linux-cpu and windows-cpu on GitHub-hosted runners; apple-silicon and linux-gpu self-hosted lanes scaffold complete, gated behind workflow_dispatch with enable_self_hosted=true; activation-evidence artifact publication wired)
 
 Recommended handoff to Phase 1:
 - keep the current runtime gate path as the operational guardrail
