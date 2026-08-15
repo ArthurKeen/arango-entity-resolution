@@ -372,6 +372,10 @@ def _comparison_levels(args, fields: Sequence[str]) -> Dict[str, Any]:
     raw = getattr(args, "comparison_levels", None)
     if not raw:
         return {}
+    if str(raw).strip().lower() == "auto":
+        # Placement inferred from this dataset's own score distribution, so the
+        # benchmark reports what a user without labels would actually get.
+        return {"__auto__": True}
     thresholds = [float(part) for part in str(raw).split(",") if part.strip()]
     if not thresholds:
         return {}
@@ -386,6 +390,49 @@ def _comparison_levels(args, fields: Sequence[str]) -> Dict[str, Any]:
         ] + [{"name": "else", "min_similarity": None}]
         for field in fields
     }
+
+
+
+def _auto_comparison_levels(db, collection, pairs, fields, args) -> Dict[str, Any]:
+    """Infer per-field bands from this dataset's own observed similarities.
+
+    Bands are placed per FIELD, because their distributions differ: a short
+    title and a long description do not separate at the same similarity, which
+    is exactly why bands copied between datasets underperformed.
+
+    Scores come from the same comparator the model will be trained with, on a
+    sample of the candidate pairs, so the placement reflects what the estimator
+    will actually see. A field whose distribution supports no separation is
+    left unbanded and keeps the binary model rather than being given invented
+    bands.
+    """
+    from entity_resolution.learning.threshold_selection import select_comparison_bands
+
+    service = _build_similarity_service(db, collection, args)
+    sample = list(pairs)[: args.fs_train_sample]
+    detailed = service.compute_similarities_detailed(
+        sample, threshold=0.0, preserve_missing=True
+    )
+
+    out: Dict[str, Any] = {}
+    for field_name in fields:
+        scores = [
+            row["field_scores"].get(field_name)
+            for row in detailed
+            if row.get("field_scores", {}).get(field_name) is not None
+        ]
+        selection = select_comparison_bands(
+            scores, n_thresholds=args.auto_band_count
+        )
+        if selection.thresholds:
+            out[field_name] = selection.to_comparison_levels()
+            print(
+                f"  auto bands [{field_name}]: {selection.thresholds} "
+                f"(valley depths {selection.diagnostics.get('valley_depths')})"
+            )
+        else:
+            print(f"  auto bands [{field_name}]: declined — {selection.warning}")
+    return out
 
 
 def train_fs_model(
@@ -416,6 +463,8 @@ def train_fs_model(
 
     fields = list(_field_weights(args))
     levels = _comparison_levels(args, fields)
+    if levels.get("__auto__"):
+        levels = _auto_comparison_levels(db, collection, pairs, fields, args)
     estimator = ModelParameterEstimator(
         db=db,
         similarity_service=_build_similarity_service(db, collection, args),
@@ -775,6 +824,10 @@ def main() -> int:
     )
     parser.add_argument("--fs-train-sample", type=int, default=50_000)
     parser.add_argument("--fs-u-sample", type=int, default=10_000)
+    parser.add_argument(
+        "--auto-band-count", type=int, default=2,
+        help="Bands to infer per field when --comparison-levels=auto.",
+    )
     parser.add_argument(
         "--comparison-levels", default=None,
         help=(

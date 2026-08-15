@@ -230,19 +230,38 @@ Jaccard over long product descriptions rarely exceeds ~0.6 even for true matches
 so a 0.9 band is nearly always empty and the model wastes a level. More bands is
 not better either: the four-level 0.5/0.3/0.15 setting is the *worst* of the four.
 
-#### How much of this is fitted to the test set
+#### Automatic band placement removes the tuning caveat
 
-Honestly: some of it. The DBLP-ACM and Abt-Buy bands above were chosen by looking
-at benchmark F1, which is selection on the labels a real deployment does not have.
+The bands above were hand-placed, and for DBLP-ACM and Abt-Buy they were chosen
+by looking at benchmark F1 — selection on labels a deployment does not have.
+`--comparison-levels auto` infers them per field from the observed similarity
+distribution instead, using no labels at all:
 
-Amazon-Google is the clean number. It reuses the bands tuned on **Abt-Buy**, a
-different dataset with different content, and still reaches 0.446 from a binary
-baseline of 0.127. That transfer result — not the tuned ones — is the evidence
-that multi-level generalises rather than merely fitting.
+| Dataset | Hand-placed F1 | **Auto F1** | Bands inferred |
+|---|---|---|---|
+| DBLP-ACM | 0.914 | **0.920** | title 0.97 / 0.55, body 0.97 / 0.55 |
+| Abt-Buy | 0.505 | **0.506** | title 0.34 / 0.02, body *declined* |
+| Amazon-Google | 0.446 | 0.428 | title 0.30, body *declined* |
 
-Automatic band placement from the score distribution (quantiles, or the same
-valley-finding used for threshold selection) is the obvious next step and would
-remove the tuning caveat entirely.
+Automatic placement is **comparable to label-tuned placement** — better on two
+datasets, 0.018 below on the third — while requiring nothing a deployment lacks.
+Since two of the three hand-placed figures were themselves fitted to the labels,
+the honest reading is that the automatic numbers are the ones a user can expect,
+and the caveat on the table above no longer applies to them.
+
+Bands are inferred **per field**, which matters: on both product datasets `title`
+banded successfully while `body` was declined. That is the same signal the binary
+model produced when it learned `m_body = 0.0` — long product descriptions do not
+separate matches from non-matches at any cutoff — but here it is reported rather
+than silently absorbed, and the field keeps the binary model instead of being
+given invented bands.
+
+Placement uses trough detection rather than multi-level Otsu. Otsu is the obvious
+generalisation and the wrong objective: between-class variance is maximised by
+splitting where mass is concentrated, so with one dominant mode — the normal ER
+shape — it subdivides that mode. Measured on a bimodal sample (3,000 non-matches
+near 0.10, 600 matches near 0.80), the variance criterion cut at 0.29 and 0.11,
+both inside the non-match peak, while the visible valley sat near 0.45.
 
 #### When to choose multi-level FS
 
@@ -371,7 +390,8 @@ Useful flags:
 | `--algorithm` | `jaccard` (default), `jaro_winkler`, `levenshtein` |
 | `--scoring-method` | `weighted_heuristic` (default) or `fellegi_sunter` |
 | `--fs-agreement-threshold` | FS agree/disagree cutoff per field (default 0.85) |
-| `--comparison-levels` | Descending band thresholds, e.g. `0.6,0.35`; omit for the binary model |
+| `--comparison-levels` | Descending band thresholds, e.g. `0.6,0.35`; `auto` to infer per field; omit for the binary model |
+| `--auto-band-count` | Bands to infer per field when `--comparison-levels=auto` (default 2) |
 | `--no-fs-term-frequency` | Disable TF adjustment, to isolate its contribution |
 | `--title-weight` | Weight on the title field (default 0.7) |
 | `--bm25-threshold`, `--limit-per-entity` | Blocking recall/volume trade-off |
@@ -393,10 +413,10 @@ deterministic given a fixed configuration.
   [Multi-level comparisons](#multi-level-comparisons-measured). Weighted
   similarity remains the better matcher on all three datasets, so it stays the
   default.
-- The multi-level band thresholds for DBLP-ACM and Abt-Buy were selected using
+- The hand-placed multi-level bands for DBLP-ACM and Abt-Buy were selected using
   benchmark F1, which is selection on labels a deployment does not have. The
-  Amazon-Google figure reuses bands tuned on a different dataset and is the
-  unfitted result.
+  automatic figures alongside them use no labels and are the ones a user can
+  expect to reproduce.
 - Comparison figures for other systems come from their respective papers and
   were not reproduced here.
 - DBLP-Scholar's blocking stage takes ~19 minutes on this hardware; see

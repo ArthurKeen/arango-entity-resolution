@@ -52,8 +52,20 @@ logger = logging.getLogger(__name__)
 #: Fallback when a distribution is too degenerate to infer anything from.
 _FALLBACK_THRESHOLD = 0.5
 
+#: Minimum gap between two comparison-band cuts, as a fraction of the histogram.
+#: Cuts closer than this describe the same thinning rather than two separations.
+_MIN_BAND_SEPARATION_FRACTION = 0.2
+
+#: A cut must leave at least this share of the scores on each side. Troughs in
+#: the sparse TAILS of a unimodal distribution score maximum depth — a single
+#: empty bin between two one-count bins looks like a perfect valley — so depth
+#: alone accepts noise. A band boundary should divide the data, not shave a tail.
+_MIN_BAND_MASS_FRACTION = 0.05
+
 __all__ = [
+    "BandSelection",
     "ThresholdSelection",
+    "select_comparison_bands",
     "select_threshold_supervised",
     "select_threshold_unsupervised",
     "otsu_threshold",
@@ -304,6 +316,189 @@ def otsu_threshold(
         "sample_size": total,
         "bins": bins,
     }
+
+
+@dataclass
+class BandSelection:
+    """Comparison-level band thresholds inferred from a score distribution."""
+
+    #: Descending thresholds, most selective first. Empty when selection failed.
+    thresholds: List[float]
+    method: str
+    diagnostics: Dict[str, Any] = field(default_factory=dict)
+    warning: Optional[str] = None
+
+    def to_comparison_levels(
+        self, names: Optional[Sequence[str]] = None
+    ) -> List[Dict[str, Any]]:
+        """Shape the thresholds as the level structure a config/scorer accepts.
+
+        Appends the fallback level whose ``min_similarity`` is ``None``.
+        """
+        default_names = ("exact", "close", "near", "weak")
+        chosen = list(names) if names else list(default_names[: len(self.thresholds)])
+        if len(chosen) != len(self.thresholds):
+            raise ValueError(
+                f"need one name per threshold ({len(self.thresholds)}), got {len(chosen)}"
+            )
+        levels = [
+            {"name": chosen[i], "min_similarity": t}
+            for i, t in enumerate(self.thresholds)
+        ]
+        levels.append({"name": "else", "min_similarity": None})
+        return levels
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "thresholds": list(self.thresholds),
+            "method": self.method,
+            "diagnostics": self.diagnostics,
+            "warning": self.warning,
+        }
+
+
+def select_comparison_bands(
+    scores: Sequence[float],
+    *,
+    n_thresholds: int = 2,
+    min_valley_depth: float = 0.15,
+    bins: int = 128,
+) -> BandSelection:
+    """Place comparison-level bands where the score distribution separates.
+
+    Benchmarking showed band PLACEMENT dominates band count: the same model
+    scored F1 0.388 with bands copied from another dataset versus 0.505 with
+    bands matched to its own distribution, because word-based Jaccard over long
+    text rarely exceeds ~0.6 so a 0.9 band sits empty. Hand-placing bands means
+    either inspecting the distribution or — as the published benchmark figures
+    did for two datasets — tuning against labels a deployment does not have.
+    This removes that dependency.
+
+    Places cuts at the deepest TROUGHS in the score histogram, not at the cuts
+    that maximise between-class variance. Multi-level Otsu is the obvious
+    generalisation and it is the wrong objective here: variance is maximised by
+    splitting wherever mass is concentrated, so when one mode dominates — the
+    normal ER shape, where non-matches vastly outnumber matches — it subdivides
+    that mode instead of separating it from the other. Measured on a clearly
+    bimodal sample (3000 non-matches near 0.10, 600 matches near 0.80), the
+    variance criterion returned cuts at 0.29 and 0.11, both inside the non-match
+    peak, while the visible valley sat near 0.45. Trough depth asks the question
+    band placement actually poses: where does the distribution thin out?
+
+    Refuses, rather than guessing, when the distribution carries no evidence of
+    separation — using ``valley_depth`` at the strongest cut, the same guard as
+    :func:`select_threshold_unsupervised`. Between-class variance cannot detect
+    bimodality (splitting a single Gaussian at its mean already yields ~0.64),
+    so gating on it would return confident-looking bands from a distribution
+    that supports none. A refusal is information: it says the matcher is not
+    separating classes on this data, and bands will not fix that.
+
+    Returns a :class:`BandSelection`; ``thresholds`` is empty when it declines.
+    """
+    if n_thresholds < 1:
+        raise ValueError("n_thresholds must be at least 1")
+    if n_thresholds > 3:
+        # Exhaustive search is O(bins**n_thresholds); beyond 3 cuts it stops
+        # being cheap, and the benchmark found more bands is not better anyway
+        # (a four-level split was the worst of four settings tried).
+        raise ValueError("n_thresholds above 3 is not supported")
+
+    values = [float(s) for s in scores if s is not None and math.isfinite(s)]
+    if len(values) < 2:
+        return BandSelection([], "fallback", {"sample_size": len(values)},
+                             "too few scores to infer bands")
+
+    low, high = min(values), max(values)
+    if high - low < 1e-9:
+        return BandSelection(
+            [], "fallback",
+            {"score_min": low, "score_max": high, "sample_size": len(values)},
+            "all scores identical; no band structure to infer",
+        )
+
+    # Same sqrt(n) resolution heuristic as the single-cut path: a fixed large
+    # bin count over few samples leaves noise spikes that read as real troughs.
+    bins = max(16, min(bins, int(math.sqrt(len(values))) * 2))
+    width = (high - low) / bins
+    counts = [0] * bins
+    for value in values:
+        counts[min(int((value - low) / width), bins - 1)] += 1
+
+    total = len(values)
+
+    # Smooth before looking for troughs: an unsmoothed histogram of real scores
+    # is spiky, and every downward blip between two spikes reads as a valley.
+    smoothed = [
+        sum(counts[max(0, i - 1): min(bins, i + 2)]) / len(
+            counts[max(0, i - 1): min(bins, i + 2)]
+        )
+        for i in range(bins)
+    ]
+
+    # Candidate cuts are interior local minima of the smoothed histogram, each
+    # scored by how deep its trough is relative to the surrounding peaks.
+    cumulative = 0
+    min_side_mass = total * _MIN_BAND_MASS_FRACTION
+    candidates = []
+    for i in range(bins):
+        cumulative += counts[i]
+        if i == 0 or i == bins - 1:
+            continue
+        if not (smoothed[i] <= smoothed[i - 1] and smoothed[i] <= smoothed[i + 1]):
+            continue
+        # Both sides must carry real mass, or this is a tail artefact rather
+        # than a separation between populations.
+        if min(cumulative, total - cumulative) < min_side_mass:
+            continue
+        depth = _valley_depth(counts, i)
+        if depth >= min_valley_depth:
+            candidates.append((depth, i))
+
+    diagnostics: Dict[str, Any] = {
+        "score_min": round(low, 4),
+        "score_max": round(high, 4),
+        "sample_size": total,
+        "bins": bins,
+        "candidate_valleys": len(candidates),
+    }
+
+    if not candidates:
+        message = (
+            "score distribution shows no separation (no trough reached depth "
+            f"{min_valley_depth}); bands would subdivide a single mode. Improve "
+            "features or scoring rather than banding."
+        )
+        logger.warning("Comparison-band selection declined: %s", message)
+        return BandSelection([], "fallback", diagnostics, message)
+
+    # Deepest troughs first, but suppress neighbours: across an empty gap every
+    # bin is a local minimum of equal depth, so taking the top-n outright
+    # returns adjacent cuts and a middle band holding almost nothing. Requiring
+    # separation makes each cut mark a DISTINCT thinning of the distribution.
+    min_separation = max(2, int(bins * _MIN_BAND_SEPARATION_FRACTION))
+    chosen: List[Tuple[float, int]] = []
+    for depth, index in sorted(candidates, reverse=True):
+        if all(abs(index - taken) >= min_separation for _, taken in chosen):
+            chosen.append((depth, index))
+        if len(chosen) == n_thresholds:
+            break
+
+    # Returning fewer bands than requested is deliberate: forcing extra cuts
+    # into a distribution that supports only one real separation manufactures
+    # structure, and the benchmark already showed more bands is not better.
+    thresholds = sorted(
+        (round(low + (index + 1) * width, 4) for _, index in chosen), reverse=True
+    )
+    diagnostics["valley_depths"] = [round(d, 4) for d, _ in chosen]
+    diagnostics["strongest_valley_depth"] = round(max(d for d, _ in chosen), 4)
+    if len(thresholds) < n_thresholds:
+        diagnostics["requested_thresholds"] = n_thresholds
+
+    logger.info(
+        "Selected comparison bands %s (valley depths %s over %d scores)",
+        thresholds, diagnostics["valley_depths"], total,
+    )
+    return BandSelection(thresholds, "valley_detection", diagnostics)
 
 
 def _valley_depth(counts: Sequence[int], cut_index: int, window: int = 3) -> float:
