@@ -94,8 +94,8 @@ Provide a practical, ArangoDB-native entity-resolution toolkit that supports:
 - **Null comparison level**: unobserved fields contribute zero evidence, distinct from an observed mismatch which takes the full disagreement weight. Training and scoring share this definition, so per-field m/u are estimated only over the pairs where that field was actually compared
 - **Two-population parameter estimation**: `m` from blocked candidate pairs (where true matches concentrate) and `u` from a random sample of record pairs (which are effectively all non-matches). `u` is measured directly rather than inferred jointly, because candidate pairs have already passed a similarity gate and cannot furnish a representative non-match sample. Each persisted model records which estimation regime produced it
 - **Term-frequency-adjusted agreement weight**: when two records share an identical value, the match weight is computed from that value's observed frequency rather than the field's average chance-agreement rate, so agreeing on a rare value counts as stronger evidence than agreeing on a common one. Values absent from the maintained per-field table fall back to the field average rather than being guessed
+- **Multi-level comparison bands**: a field may be compared at several ordered levels (for example exact / close / else) rather than one agree/disagree cutoff, with per-level m/u learned by EM. Only the band structure is configured; the probabilities are estimated, so a configured table cannot assert values that contradict the data. The band structure forms part of a model's identity, so changing it invalidates a previously trained model rather than silently reusing parameters learned under different bands. Bands may also be inferred per field from the observed score distribution, and inference declines rather than guessing when a field shows no separation
 - **Data-driven threshold selection** (`similarity.auto_threshold`, off by default): unsupervised inference from the score distribution via Otsu's method, plus supervised selection from labelled pairs. Inference is refused when the scores are not meaningfully bimodal, so the configured threshold is never replaced by an unsupported guess
-- **Runtime multi-level comparisons (partial)**: `FellegiSunterScorer` accepts optional ordered exact / fuzzy / fallback levels with per-level m/u, preserves the null level, explains which level was selected, and remains compatible with existing binary model documents. Levels must currently be supplied by the caller or loaded from a model document; EM does not yet learn per-level probabilities and the pipeline does not derive them automatically
 
 ### Graph-Aware and Incremental Resolution (Phase 3.1–3.4)
 
@@ -134,6 +134,14 @@ The product must allow users to run ER pipelines from configuration without writ
 
 The product must expose cluster summaries, cluster quality signals, and collection-level status in both CLI and MCP-facing workflows.
 
+**Cluster output must be validated for structural integrity, not only produced.**
+Validation must detect entities appearing in more than one cluster, clusters
+below the configured minimum size, and clusters above a configured maximum — the
+last because connected-component clustering takes the transitive closure, so a
+single spurious edge can silently merge unrelated entities while the run reports
+success. Suspect clusters are flagged for review, never discarded: removing them
+deletes the evidence of the defect along with the data.
+
 ### 3. Review and Adjudication
 
 The product must support optional active-learning and LLM-assisted review for ambiguous pairs without forcing those dependencies into the default runtime path.
@@ -146,6 +154,19 @@ Parametrized conformance tests verify suppressed-edge exclusion across every WCC
 backend, including GAE's active-edge projection. Confirmed-pair survival is
 integration-tested, but per-backend parametrized confirmation coverage remains
 to be added.
+
+**Every irreversible curation action is audited.** A cluster merge or split, a
+golden-record edit, an adjudication verdict and a threshold change must each
+append an attributed entry to the audit trail. Auditing must never block the
+action it records, but a failed audit write must be reported rather than
+discarded: an action whose accountability record was lost silently is
+indistinguishable from one that was never audited. Per-entity history must remain
+retrievable at a cost that does not grow with the age of the log.
+
+**Steward corrections survive recomputation.** A manually corrected golden-record
+field must not be reverted by a subsequent pipeline run. Manual values are
+recorded as overrides and re-applied after recomputation, with provenance
+identifying them as human rather than machine choices.
 
 ### 4. Portability
 
@@ -168,6 +189,12 @@ precision/recall/F1, together with the configuration that produced them. Results
 must be reproducible by a single documented command and published with the
 release, so matching-quality claims are falsifiable rather than asserted.
 
+**Evidence before recommendation.** A scoring method must not be presented as a
+recommended default until benchmark evidence shows it competitive on the
+published datasets. This project shipped a statistically more sophisticated
+matcher that measured *worse* than the simple one on every dataset; only
+measurement revealed it.
+
 **Threshold selection.** The product must be able to choose a decision threshold
 from data rather than requiring a hand-set constant. Benchmarking established
 that a single fixed default is unsafe: the best-F1 threshold varies by more than
@@ -184,14 +211,18 @@ The product must support both human-operated CLI workflows and AI-agent workflow
 
 The product must support optional GAE clustering for enterprise-scale graphs, with graceful fallback to local backends when GAE is unavailable.
 
-**Measured status (2026-08-03):** clustering scales, candidate generation does
-not. BM25 blocking completes 66,879 records in ~19 minutes versus ~7 seconds for
-4,910 — it issues one monolithic AQL query with a per-document subquery, with no
-batching or streaming, and materialises all candidate pairs in client memory.
-Throughput claims above roughly 50k records are unsubstantiated for this path.
-Chunked blocking with server-side pair emission is required before any
-higher-volume claim is made. Tracked as open drift; see
-`docs/BENCHMARKS.md#scale-limits`.
+**Measured status (2026-08-16):** blocking now executes in adaptive chunks whose
+size tracks a wall-clock budget, so no single request approaches the client read
+timeout. Verified at 66,879 records against the default 60-second timeout, which
+previously failed outright. Chunked and unchunked runs are asserted to produce
+identical candidate sets, and the query sorts by `_key` before `LIMIT` so chunks
+cannot overlap or skip documents.
+
+Throughput is still modest: ~17 minutes for 66,879 records against ~7 seconds
+for 4,910. Candidate pairs are also still materialised in client memory before
+deduplication, though `iter_candidates()` offers a streaming path. The README's
+1M-records figure remains unsubstantiated and claims above roughly 50k records
+should cite measurements. See `docs/BENCHMARKS.md#scale-limits`.
 
 ### 8. Steward Workbench UI
 

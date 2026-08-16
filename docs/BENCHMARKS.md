@@ -328,29 +328,35 @@ with nothing to distinguish the two cases.
 ## Scale limits
 
 DBLP-Scholar **completes and produces the best entity-level accuracy of the
-four**, but blocking takes **19.3 minutes** for 66,879 documents versus 7 seconds
-for DBLP-ACM's 4,910 — a ~13× growth in records costing ~164× the time. Quality
+four**, but blocking takes ~17 minutes for 66,879 documents versus 7 seconds for
+DBLP-ACM's 4,910 — a ~13x growth in records costing ~140x the time. Quality
 scales; throughput does not.
 
-Two implementation properties explain it, and both are real limitations rather
-than harness artifacts:
+The cause was structural and is now fixed. `BM25BlockingStrategy` issued **one
+monolithic AQL query** containing a per-document subquery, with no batching or
+streaming, so the single request exceeded python-arango's default 60-second read
+timeout and any direct caller above ~10k records hit that before anything else.
 
-- `BM25BlockingStrategy` issues **one monolithic AQL query** containing a
-  per-document subquery, with no client-side batching or streaming. The single
-  request exceeds the default 60-second python-arango read timeout, so the
-  harness raises it (`--request-timeout`, default 1800s). Anyone calling the
-  strategy directly at this scale hits that timeout first.
-- Every strategy materialises all candidate pairs into client memory before
-  deduplication, so peak memory scales with the candidate count rather than
-  being bounded.
+Blocking now executes in **adaptive chunks**: each request covers a bounded slice
+of source documents, and the slice size tracks a wall-clock budget measured from
+the previous chunk. Verified at 66,879 documents **against the default 60s
+timeout**, which previously failed outright: 1,335,613 candidate pairs across 67
+chunks, no timeout. Chunk size held at 1,000 (~15s per request), the adaptive
+logic correctly declining to grow into the timeout.
 
-Chunked blocking with server-side pair emission and a streaming cursor is the
-fix. Until then: ~5k records runs in seconds, ~67k takes ~20 minutes, and the
-default client timeout must be raised beyond roughly 10k. Use
-`shard_parallel_blocking` on a cluster for more (noting its own cross-shard
-caveat). The README's "1M records / ~3min" performance table is **not**
-substantiated for this blocking path, and published throughput at 100M+ records
-(as Splink-on-Spark and Senzing report) remains an open gap.
+Two properties make this safe rather than merely faster. Each source document
+searches the entire view independently, so partitioning the outer loop changes
+the number of requests and nothing else — chunked and unchunked runs are asserted
+to produce identical candidate sets across six chunk sizes. And the query sorts
+by `_key` before applying `LIMIT`, without which two chunks could overlap or skip
+documents and silently lose pairs.
+
+What remains: every strategy still materialises all candidate pairs into client
+memory before deduplication, so peak memory scales with the candidate count.
+`iter_candidates()` exposes a streaming path for callers that want to avoid it.
+The README's "1M records / ~3min" is still **not** substantiated — 67k takes ~17
+minutes — and published throughput at 100M+ records (as Splink-on-Spark and
+Senzing report) remains an open gap.
 
 ## What these benchmarks already caught
 

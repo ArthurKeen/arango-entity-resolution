@@ -6,12 +6,18 @@ Much faster than Levenshtein for initial candidate generation, particularly
 effective for name matching and fuzzy text search.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import Iterator, List, Dict, Any, Optional
 from arango.database import StandardDatabase
 import time
 
 from .base_strategy import BlockingStrategy
 from ..utils.validation import validate_view_name, validate_field_name
+
+#: Bounds on the adaptive chunk size. The floor keeps request overhead from
+#: dominating; the ceiling stops a fast early chunk from growing into one that
+#: exceeds the client timeout later, when the view is larger or text is longer.
+_MIN_CHUNK_SIZE = 100
+_MAX_CHUNK_SIZE = 20_000
 
 
 class BM25BlockingStrategy(BlockingStrategy):
@@ -78,7 +84,9 @@ class BM25BlockingStrategy(BlockingStrategy):
         blocking_field: Optional[str] = None,
         filters: Optional[Dict[str, Dict[str, Any]]] = None,
         analyzer: str = "text_en",
-        match_mode: str = "tokens"
+        match_mode: str = "tokens",
+        chunk_size: int = 1000,
+        chunk_target_seconds: float = 20.0
     ):
         """
         Initialize BM25-based blocking strategy.
@@ -137,6 +145,18 @@ class BM25BlockingStrategy(BlockingStrategy):
             raise ValueError(
                 f"match_mode must be 'tokens' or 'phrase', got {match_mode!r}"
             )
+        if chunk_size < 0:
+            raise ValueError("chunk_size must be non-negative (0 disables chunking)")
+        if chunk_target_seconds <= 0:
+            raise ValueError("chunk_target_seconds must be positive")
+        #: INITIAL source documents per request; adapted at runtime toward
+        #: chunk_target_seconds, so no single query approaches the client
+        #: read timeout regardless of collection size or text length.
+        self.chunk_size = chunk_size
+        #: Wall-clock budget per request. Comfortably under python-arango's
+        #: 60s default so a slow chunk still returns rather than timing out.
+        self.chunk_target_seconds = chunk_target_seconds
+        self._doc_count: Optional[int] = None
         self.match_mode = match_mode
         # The analyzer is interpolated into the query, so it must be validated
         # like any other identifier rather than trusted from config.
@@ -171,19 +191,9 @@ class BM25BlockingStrategy(BlockingStrategy):
         Performance: O(n log n) - faster than exact matching for fuzzy text
         """
         start_time = time.time()
-        
-        # Build the AQL query
-        query = self._build_bm25_query()
-        
-        # Execute query with bind variables
-        bind_vars = {
-            'bm25_threshold': self.bm25_threshold,
-            'limit_per_entity': self.limit_per_entity
-        }
-        
-        cursor = self.db.aql.execute(query, bind_vars=bind_vars)
-        pairs = list(cursor)
-        
+
+        pairs = list(self.iter_candidates())
+
         # Normalize pairs
         normalized_pairs = self._normalize_pairs(pairs)
         
@@ -204,7 +214,90 @@ class BM25BlockingStrategy(BlockingStrategy):
         
         return normalized_pairs
     
-    def _build_bm25_query(self) -> str:
+    def iter_candidates(self, chunk_size: Optional[int] = None) -> Iterator[Dict[str, Any]]:
+        """Yield candidate pairs, executing the search in bounded chunks.
+
+        The strategy previously issued ONE query containing a per-document
+        subquery over the whole collection and materialised every pair before
+        returning. Measured on the DBLP-Scholar benchmark (66,879 documents),
+        that took 19.3 minutes against 7.1 seconds for 4,910 — roughly 13x the
+        records for 164x the time — and the single request exceeded
+        python-arango's default 60-second read timeout, so any direct caller
+        above ~10k records hit that first.
+
+        Chunking bounds both: each request covers ``chunk_size`` source
+        documents, so no single query runs long enough to time out, and a
+        streaming caller can process pairs without holding them all in memory.
+
+        Correctness note: chunking the OUTER loop is safe because each source
+        document searches the entire view independently, so the set of pairs is
+        unchanged — only the number of requests differs. The query sorts by
+        ``_key`` before applying ``LIMIT``, without which two chunks could
+        overlap or skip documents and silently lose pairs.
+
+        Args:
+            chunk_size: source documents per request. Defaults to
+                ``self.chunk_size``. Pass ``0`` to force a single request
+                (the pre-chunking behaviour).
+
+        Yields:
+            Raw candidate-pair dicts, before symmetric normalisation.
+        """
+        size = self.chunk_size if chunk_size is None else chunk_size
+        base_bind = {
+            "bm25_threshold": self.bm25_threshold,
+            "limit_per_entity": self.limit_per_entity,
+        }
+
+        if not size or size <= 0:
+            cursor = self.db.aql.execute(
+                self._build_bm25_query(chunked=False), bind_vars=dict(base_bind)
+            )
+            yield from cursor
+            return
+
+        query = self._build_bm25_query(chunked=True)
+        total_docs = self._source_document_count()
+        offset = 0
+        chunks = 0
+        sizes: List[int] = []
+
+        while offset < total_docs:
+            started = time.time()
+            bind_vars = dict(base_bind, chunk_offset=offset, chunk_size=size)
+            cursor = self.db.aql.execute(query, bind_vars=bind_vars)
+            for row in cursor:
+                yield row
+            elapsed = time.time() - started
+
+            chunks += 1
+            sizes.append(size)
+            offset += size
+
+            # Adapt to the measured per-document cost. A fixed chunk size cannot
+            # be right for every workload: cost per source document scales with
+            # the size of the view being searched and the length of the text, so
+            # a size that is comfortable on 5k documents can exceed the client
+            # timeout on 67k. Measured on DBLP-Scholar at ~17ms/document, a
+            # 5,000-document chunk takes ~87s and still times out at the default
+            # 60s. Targeting a wall-clock budget per request keeps every query
+            # short regardless of workload.
+            if elapsed > self.chunk_target_seconds and size > _MIN_CHUNK_SIZE:
+                size = max(_MIN_CHUNK_SIZE, size // 2)
+            elif elapsed < self.chunk_target_seconds / 3 and size < _MAX_CHUNK_SIZE:
+                size = min(_MAX_CHUNK_SIZE, size * 2)
+
+        self._stats["chunks_executed"] = chunks
+        self._stats["chunk_sizes"] = sizes
+        self._stats["chunk_size"] = sizes[-1] if sizes else size
+
+    def _source_document_count(self) -> int:
+        """Number of source documents, cached for the duration of a run."""
+        if self._doc_count is None:
+            self._doc_count = self.db.collection(self.collection).count()
+        return self._doc_count
+
+    def _build_bm25_query(self, chunked: bool = False) -> str:
         """
         Build the AQL query for BM25-based blocking.
 
@@ -220,7 +313,13 @@ class BM25BlockingStrategy(BlockingStrategy):
             AQL query string
         """
         # Outer loop: iterate source documents and apply d1-level filters.
+        # SORT by _key before any LIMIT so chunked execution partitions the
+        # collection deterministically: without a stable order, two chunks can
+        # overlap or skip documents entirely and blocking silently loses pairs.
         query_parts = [f"FOR d1 IN {self.collection}"]
+        if chunked:
+            query_parts.append("    SORT d1._key")
+            query_parts.append("    LIMIT @chunk_offset, @chunk_size")
 
         if self.filters:
             search_field_filters = self.filters.get(self.search_field, {})
