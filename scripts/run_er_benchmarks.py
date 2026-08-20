@@ -486,6 +486,7 @@ def train_fs_model(
         source_collection=collection,
         sample_size=args.fs_train_sample,
         u_sample_size=args.fs_u_sample,
+        categorical_u_source=args.fs_categorical_u,
     )
     # Ask the estimator for its own identity rather than recomputing the hash
     # here: configuration_hash() now also covers the comparison-level structure,
@@ -824,6 +825,16 @@ def main() -> int:
     )
     parser.add_argument("--fs-train-sample", type=int, default=50_000)
     parser.add_argument("--fs-u-sample", type=int, default=10_000)
+    parser.add_argument(
+        "--fs-categorical-u", choices=("candidates", "random_pairs"),
+        default="candidates",
+        help=(
+            "Population u is measured over for MULTI-LEVEL models. 'candidates' "
+            "(default) matches the population actually scored; 'random_pairs' is "
+            "the textbook construction but saturates scores when blocking is "
+            "aggressive (DBLP-ACM F1 at the 0.8 default: 0.910 -> 0.672)."
+        ),
+    )
     parser.add_argument(
         "--auto-band-count", type=int, default=2,
         help="Bands to infer per field when --comparison-levels=auto.",

@@ -263,6 +263,61 @@ shape — it subdivides that mode. Measured on a bimodal sample (3,000 non-match
 near 0.10, 600 matches near 0.80), the variance criterion cut at 0.29 and 0.11,
 both inside the non-match peak, while the visible valley sat near 0.45.
 
+#### Which population `u` is measured over
+
+`u = P(a field agrees | the pair is NOT a match)`. The binary path measures it on
+**random record pairs**, and that correction was worth a lot: joint EM over
+candidates alone once produced a match weight of 27.6 nats (e^27 odds) where the
+anchored estimate gave 0.727. The reasoning is standard — candidate pairs have all
+cleared a similarity gate, so they cannot furnish a representative non-match
+sample.
+
+The multi-level path shipped without that correction, and closing the gap made
+things **worse**. Both arms measured on identical candidates, DBLP-ACM with bands
+0.9/0.6:
+
+| `u` measured over | u[title] | peak F1 | **F1 at the shipped 0.8** | B-cubed |
+|---|---|---|---|---|
+| candidate pairs (default) | 1.5e-2 | 0.914 | **0.911** | 0.965 |
+| random pairs | 5e-4 | 0.914 | **0.672** | 0.865 |
+
+Peak F1 is identical because rescaling every weight preserves pair *ranking*, and
+peak F1 only depends on ranking. Everything else degrades. With a denominator ~30x
+smaller, each agreeing field contributes ~3.4 extra nats, so scores saturate:
+4,363 of 32,278 candidates land above 0.8 and all remaining discrimination is
+squeezed into 0.97-1.00. Peak F1 then depends on whether a threshold sweep happens
+to hit the right grid point — observed flipping between 0.72 and 0.91 across runs
+whose learned parameters agreed to three decimals.
+
+Abt-Buy moves the *opposite* way at the default threshold (0.029 → 0.506),
+because its candidate-estimated `u[title] = 0.153` was so high that agreement
+carried almost no weight. So neither population is uniformly right.
+
+**The rule that explains both: `u` belongs to the population the model will
+actually score.** This pipeline scores blocked candidates, where 0.6+ similarity
+is common; among random pairs it is nearly impossible. Measuring on random pairs
+answers a question nothing asks, and the resulting overconfidence is not a
+calibration nicety — it costs 0.24 F1 at the operating point a user would ship.
+The default is therefore `candidates` for multi-level models, with
+`--fs-categorical-u random_pairs` available for the case the textbook assumes: a
+model scoring an unblocked population, or blocking loose enough that candidates
+approximate all pairs.
+
+Two secondary findings from the same work:
+
+- **`u_sample_size` was not delivering the sample it promised.** Pairs were formed
+  by splitting one key draw in half, so a 2,173-record collection yielded 1,086
+  pairs however large the request — and `u` for a selective level can be of order
+  1e-4, where ~1,000 observations expect a count of zero. The estimate then falls
+  back to its smoothing floor, and a floor standing in for a measurement inflates
+  `log(m/u)` rather than merely being imprecise. Keys are now re-paired at random,
+  so the requested pair count is delivered and a shortfall is logged.
+- **Raising the sample does not rescue the random-pair arm.** At 100,000 pairs the
+  selective levels still measured at or near the floor (u[title] = [3e-4, ~0,
+  0.9997]). Chance agreement above 0.6 between random bibliographic records is
+  genuinely below the resolution of any practical sample — the quantity is small
+  because it is *real*, not because the sample was thin.
+
 #### When to choose multi-level FS
 
 Weighted similarity is still the default. Choose FS with comparison levels when
@@ -398,6 +453,7 @@ Useful flags:
 | `--fs-agreement-threshold` | FS agree/disagree cutoff per field (default 0.85) |
 | `--comparison-levels` | Descending band thresholds, e.g. `0.6,0.35`; `auto` to infer per field; omit for the binary model |
 | `--auto-band-count` | Bands to infer per field when `--comparison-levels=auto` (default 2) |
+| `--fs-categorical-u` | Population `u` is measured over for multi-level models: `candidates` (default) or `random_pairs` — see [Which population `u` is measured over](#which-population-u-is-measured-over) |
 | `--no-fs-term-frequency` | Disable TF adjustment, to isolate its contribution |
 | `--title-weight` | Weight on the title field (default 0.7) |
 | `--bm25-threshold`, `--limit-per-entity` | Blocking recall/volume trade-off |

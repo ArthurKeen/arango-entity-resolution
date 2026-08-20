@@ -504,3 +504,219 @@ def test_no_models_at_all_says_so(estimation_fixture, caplog):
     message = " ".join(r.getMessage() for r in caplog.records)
     assert "no model parameters exist" in message
     assert "no model matches this configuration" not in message
+
+
+# ---------------------------------------------------------------------------
+# Categorical (multi-level) u measured on random pairs
+# ---------------------------------------------------------------------------
+
+CATEGORICAL_LEVELS = {
+    "name": [
+        {"name": "exact", "min_similarity": 0.9},
+        {"name": "close", "min_similarity": 0.6},
+        {"name": "else", "min_similarity": None},
+    ],
+    "city": [
+        {"name": "exact", "min_similarity": 0.9},
+        {"name": "close", "min_similarity": 0.6},
+        {"name": "else", "min_similarity": None},
+    ],
+}
+
+
+def _categorical_estimator(db, vcol, ecol):
+    sim = BatchSimilarityService(
+        db=db, collection=vcol,
+        field_weights={"name": 0.6, "city": 0.4},
+        similarity_algorithm="jaro_winkler",
+    )
+    return ModelParameterEstimator(
+        db=db, similarity_service=sim, edge_collection=ecol,
+        field_names=["name", "city"], default_threshold=0.7,
+        comparison_levels=CATEGORICAL_LEVELS,
+    )
+
+
+def test_categorical_estimate_measures_u_from_random_pairs(estimation_fixture):
+    """The multi-level path must anchor u on random pairs, like the binary one.
+
+    It shipped without this: the categorical branch ignored ``source_collection``
+    and learned u jointly, carrying exactly the selection bias the binary path
+    had already been fixed for.
+    """
+    db, vcol, ecol = estimation_fixture
+    estimator = _categorical_estimator(db, vcol, ecol)
+
+    result = estimator.estimate(
+        sample_size=100, source_collection=vcol, u_sample_size=400,
+        categorical_u_source="random_pairs",
+    )
+
+    assert estimator._last_u_estimation == "random_pairs_categorical"
+    for field in ("name", "city"):
+        levels = result.u[field]
+        assert len(levels) == 3, f"u[{field}] must have one entry per level"
+        assert sum(levels) == pytest.approx(1.0), f"u[{field}] is not a distribution"
+        assert all(p > 0 for p in levels), f"u[{field}] has a zero level: {levels}"
+
+
+@pytest.fixture
+def frequency_fixture(db_connection):
+    """A collection large enough to measure a chance-agreement rate precisely.
+
+    ``estimation_fixture`` holds 40 records, and random-pair sampling draws
+    ``2 * sample_size`` keys capped by collection size — so it yields at most 20
+    pairs however large ``u_sample_size`` is. On a proportion of 0.375 that is a
+    standard error of 0.108, wide enough that any assertion tight enough to be
+    meaningful is also flaky (observed: 0.435, 0.565).
+
+    600 records in the same group proportions give 300 pairs and an SE of 0.028,
+    which is what makes the analytic value below assertable.
+    """
+    suffix = uuid.uuid4().hex[:8]
+    vcol = f"itm_freq_{suffix}"
+    ecol = f"itm_freq_edges_{suffix}"
+    db = db_connection
+    db.create_collection(vcol)
+    db.create_collection(ecol, edge=True)
+
+    # Three groups at 50% / 25% / 25%. Group A splits into two spellings that are
+    # >0.9 similar to each other, so name and city agree on exactly the same
+    # within-group pairs and both have analytic chance agreement
+    # (0.5)^2 + (0.25)^2 + (0.25)^2 = 0.375.
+    records = []
+    for i in range(150):
+        records += [
+            {"_key": f"a{i}", "name": "Jonathon Smith", "city": "Boston"},
+            {"_key": f"b{i}", "name": "Jonathan Smith", "city": "Boston"},
+            {"_key": f"c{i}", "name": "Alice Walker", "city": "Seattle"},
+            {"_key": f"d{i}", "name": "Bob Martinez", "city": "Miami"},
+        ]
+    db.collection(vcol).insert_many(records)
+    db.collection(ecol).insert_many([
+        {"_from": f"{vcol}/a{i}", "_to": f"{vcol}/b{i}"} for i in range(150)
+    ])
+
+    yield db, vcol, ecol
+    for n in (vcol, ecol):
+        if db.has_collection(n):
+            db.delete_collection(n)
+
+
+ANALYTIC_CHANCE_AGREEMENT = 0.375
+CHANCE_AGREEMENT_TOLERANCE = 0.10  # ~3.5 standard errors at n=300
+
+
+def test_categorical_u_reflects_source_value_frequencies(frequency_fixture):
+    """The substantive property: measured u sees chance agreement EM cannot.
+
+    Two records drawn at random from this collection fall in the same group with
+    probability 0.375, so both fields genuinely agree by chance more than a third
+    of the time. Candidate pairs cannot reveal that — non-match candidates are
+    whatever survived blocking, and estimating u there says chance agreement is
+    nearly impossible, making any agreement look like overwhelming evidence.
+
+    The tolerance is derived, not tuned: 300 sampled pairs put the standard error
+    at sqrt(0.375 * 0.625 / 300) = 0.028.
+    """
+    db, vcol, ecol = frequency_fixture
+    estimator = _categorical_estimator(db, vcol, ecol)
+
+    measured = estimator.estimate_categorical_u_from_random_pairs(300, vcol)
+
+    for field in ("name", "city"):
+        exact = measured[field][0]
+        assert exact == pytest.approx(
+            ANALYTIC_CHANCE_AGREEMENT, abs=CHANCE_AGREEMENT_TOLERANCE
+        ), (
+            f"u[{field}][exact]={exact:.3f}, analytic value is "
+            f"{ANALYTIC_CHANCE_AGREEMENT}; a value near zero means u was not "
+            "measured on random pairs at all"
+        )
+
+
+def test_categorical_u_measured_differs_from_jointly_estimated(estimation_fixture):
+    """Measuring must actually change the model, not just its provenance label.
+
+    A fix that records "random_pairs_categorical" while producing the same
+    numbers would be indistinguishable from the bug in every other test here.
+    """
+    db, vcol, ecol = estimation_fixture
+
+    measured = _categorical_estimator(db, vcol, ecol).estimate(
+        sample_size=100, source_collection=vcol, u_sample_size=400,
+        categorical_u_source="random_pairs",
+    )
+    joint = _categorical_estimator(db, vcol, ecol).estimate(sample_size=100)
+
+    assert max(
+        abs(a - b)
+        for field in ("name", "city")
+        for a, b in zip(measured.u[field], joint.u[field])
+    ) > 0.05, (
+        f"measured u {measured.u} is indistinguishable from joint u {joint.u}; "
+        "the random-pair measurement is not reaching the estimator"
+    )
+
+
+def test_categorical_falls_back_to_joint_em_without_source_collection(
+    estimation_fixture,
+):
+    """No source collection -> joint estimation, labelled honestly as such."""
+    db, vcol, ecol = estimation_fixture
+    estimator = _categorical_estimator(db, vcol, ecol)
+
+    estimator.estimate(sample_size=100)
+
+    assert estimator._last_u_estimation == "joint_em_categorical"
+
+
+def test_categorical_u_defaults_to_candidates_even_with_a_source_collection(
+    estimation_fixture,
+):
+    """The default must stay 'candidates', and for a measured reason.
+
+    Random-pair u is the textbook construction, but u belongs to the population
+    being SCORED. This pipeline scores blocked candidates, where a 0.6+ similarity
+    is common; among random pairs it is nearly impossible. Substituting the latter
+    shrank u[title] on DBLP-ACM from 1.5e-2 to 5e-4, saturated the scores, and
+    dropped F1 at the shipped 0.8 threshold from 0.910 to 0.672.
+
+    Flipping this default is therefore a benchmark decision, not a cleanup — this
+    test exists so it cannot happen quietly.
+    """
+    db, vcol, ecol = estimation_fixture
+    estimator = _categorical_estimator(db, vcol, ecol)
+
+    estimator.estimate(sample_size=100, source_collection=vcol, u_sample_size=400)
+
+    assert estimator._last_u_estimation == "joint_em_categorical"
+
+
+def test_categorical_u_source_rejects_an_unknown_population(estimation_fixture):
+    db, vcol, ecol = estimation_fixture
+    with pytest.raises(ValueError, match="categorical_u_source"):
+        _categorical_estimator(db, vcol, ecol).estimate(
+            sample_size=100, source_collection=vcol,
+            categorical_u_source="random",  # near-miss of a valid value
+        )
+
+
+def test_categorical_u_provenance_survives_persistence(estimation_fixture):
+    """Provenance has to reach the persisted model, as it does for the binary path.
+
+    Per-level weights learned under a measured u are not comparable with weights
+    learned under a jointly-inferred one, and a silent mix is worse than either.
+    """
+    db, vcol, ecol = estimation_fixture
+    estimator = _categorical_estimator(db, vcol, ecol)
+
+    out = estimator.run(
+        source_collection=vcol, sample_size=100, u_sample_size=400,
+        categorical_u_source="random_pairs",
+    )
+
+    assert out["u_estimation"] == "random_pairs_categorical"
+    persisted = estimator.load_latest(estimator.configuration_hash())
+    assert persisted["u_estimation"] == "random_pairs_categorical"
+    assert persisted["u_levels"], "per-level u must be persisted, not just the scalar"

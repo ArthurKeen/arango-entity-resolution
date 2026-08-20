@@ -13,16 +13,71 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import random
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from .em_estimator import EMEstimator, EMResult
+from .em_estimator import EMEstimator, EMResult, assign_level
 from ..utils.graph_utils import extract_key_from_vertex_id
 
 logger = logging.getLogger(__name__)
 
 _MODEL_COLLECTION = "er_model_params"
 _TF_COLLECTION = "er_term_frequencies"
+# Enough keys to represent a value distribution. Pairs are formed by re-pairing
+# these, so a larger pair sample costs no extra key fetch.
+_MAX_RANDOM_KEY_DRAW = 50_000
+
+
+def categorical_u_from_comparisons(
+    comparisons: Sequence[Dict[str, float]],
+    comparison_levels: Dict[str, Any],
+    field_names: Sequence[str],
+) -> Dict[str, List[float]]:
+    """Count a per-level ``u`` distribution from non-match comparisons.
+
+    ``comparisons`` must come from pairs that are non-matches by construction —
+    random record pairs. The counting itself is the whole method: ``u_f,l =
+    P(field f falls in level l | non-match)`` is an observable frequency once the
+    sample is right, so it needs no EM.
+
+    Binning goes through :func:`~entity_resolution.learning.em_estimator.assign_level`,
+    the same function training and scoring use, so these counts cannot land in
+    different bins from the ones the model is trained against.
+
+    Levels are counted only over pairs where the field was OBSERVED, matching the
+    null-level convention: an absent field says nothing about chance agreement,
+    and folding it in would inflate the fallback level. A field observed on no
+    pair is omitted from the result rather than defaulted, so the estimator leaves
+    it to joint EM instead of receiving an invented distribution.
+    """
+    fields = [f for f in field_names if f in comparison_levels]
+    thresholds = {
+        f: [lvl.get("min_similarity") for lvl in comparison_levels[f]] for f in fields
+    }
+    counts: Dict[str, List[int]] = {f: [0] * len(thresholds[f]) for f in fields}
+    observed: Dict[str, int] = {f: 0 for f in fields}
+
+    for comp in comparisons:
+        for field in fields:
+            index = assign_level(comp.get(field), thresholds[field])
+            if index is None:
+                continue  # unobserved: carries no information about u
+            counts[field][index] += 1
+            observed[field] += 1
+
+    u_levels: Dict[str, List[float]] = {}
+    for field in fields:
+        n = observed[field]
+        if n == 0:
+            continue  # never observed — leave this field to joint EM
+        n_levels = len(counts[field])
+        # Laplace (Dirichlet(1) posterior mean) smoothing. A level the random
+        # sample never produced would otherwise take probability 0 and make
+        # log(m/u) infinite for any pair landing there; add-one keeps every level
+        # positive and sums to exactly 1 without a second pass.
+        u_levels[field] = [(c + 1.0) / (n + n_levels) for c in counts[field]]
+    return u_levels
 
 
 def config_hash(
@@ -91,8 +146,14 @@ class ModelParameterEstimator:
         model_collection: str = _MODEL_COLLECTION,
         tf_collection: str = _TF_COLLECTION,
         comparison_levels: Optional[Dict[str, Any]] = None,
+        random_pair_seed: Optional[int] = None,
     ) -> None:
         self.db = db
+        #: Seed for forming random pairs out of the drawn keys. The key draw
+        #: itself uses AQL ``RAND()``, so seeding this makes the pairing
+        #: reproducible but not the whole sample; set it when a test needs the
+        #: pairing held still.
+        self.random_pair_seed = random_pair_seed
         # A BatchSimilarityService (or anything exposing compute_similarities_detailed).
         self.similarity_service = similarity_service
         self.edge_collection = edge_collection
@@ -143,18 +204,56 @@ class ModelParameterEstimator:
                 LIMIT @n
                 RETURN d._key
             """,
-            bind_vars={"@col": source_collection, "n": int(sample_size) * 2},
+            bind_vars={
+                "@col": source_collection,
+                "n": min(int(sample_size) * 2, _MAX_RANDOM_KEY_DRAW),
+            },
         )
         keys = [k for k in cursor if k]
         if len(keys) < 2:
             return []
 
-        half = len(keys) // 2
-        pairs: List[Tuple[str, str]] = [
-            (a, b) for a, b in zip(keys[:half], keys[half : half * 2]) if a != b
-        ]
+        # Pairing the two halves off gives at most len(keys)/2 pairs, and the
+        # draw itself is capped by the collection — so a 2,173-record collection
+        # returned 1,086 pairs however large sample_size was, silently. That
+        # matters because u for a selective level can be of order 1e-4: at ~1,000
+        # observations the expected count is 0, the estimate falls back to its
+        # smoothing floor, and a floor standing in for a measurement inflates
+        # log(m/u) instead of merely being imprecise. Measured effect of exactly
+        # that on DBLP-ACM: the best operating point ran to 0.99 and F1 at the
+        # shipped 0.8 default fell from 0.910 to 0.672.
+        #
+        # Once the keys are drawn, more pairs cost nothing extra from the
+        # database: re-pair them at random. Each key may appear in several pairs,
+        # which is fine — u is a property of the value distribution, not of a
+        # matching. When the collection is smaller than the draw, `keys` IS the
+        # population, so the pairs are formed against the true distribution.
+        rng = random.Random(self.random_pair_seed)
+        # A collection of k records only has k*(k-1)/2 distinct pairs; asking for
+        # more would spin without finding any. Take most of what exists rather
+        # than all of it, so the loop below is not hunting the last few pairs.
+        distinct_possible = len(keys) * (len(keys) - 1) // 2
+        wanted = min(int(sample_size), int(distinct_possible * 0.9) or distinct_possible)
+        pairs: List[Tuple[str, str]] = []
+        seen: set = set()
+        max_attempts = wanted * 4 + 100
+        attempts = 0
+        while len(pairs) < wanted and attempts < max_attempts:
+            attempts += 1
+            a, b = rng.sample(keys, 2)
+            pair = (a, b) if a < b else (b, a)
+            if pair in seen:
+                continue
+            seen.add(pair)
+            pairs.append(pair)
         if not pairs:
             return []
+        if len(pairs) < int(sample_size):
+            logger.info(
+                "Drew %d random pairs from '%s' (%d keys); %d requested. u for a "
+                "selective level may fall below the resolution of this sample.",
+                len(pairs), source_collection, len(keys), int(sample_size),
+            )
 
         detailed = self.similarity_service.compute_similarities_detailed(
             pairs, threshold=0.0, preserve_missing=True
@@ -201,6 +300,65 @@ class ModelParameterEstimator:
             u_values[field] = max(agree_counts[field] / observed, 1.0 / (observed + 1))
         return u_values
 
+    def estimate_categorical_u_from_random_pairs(
+        self, sample_size: int, source_collection: str
+    ) -> Dict[str, List[float]]:
+        """Measure per-LEVEL ``u`` as the level distribution among random pairs.
+
+        The multi-level counterpart of :meth:`estimate_u_from_random_pairs`, and
+        the same argument applies unchanged: ``u_f,l = P(field f falls in level l
+        | the pair is NOT a match)`` is defined over random record pairs, so it
+        can be COUNTED there rather than inferred by EM over candidate pairs that
+        have all cleared a similarity gate.
+
+        Nothing about the categorical case makes this harder than the binary one.
+        A scalar agreement rate cannot be "spread" across levels — but no
+        spreading is required, because the whole level distribution is directly
+        observable: score random pairs, bin each field with the same
+        :func:`~entity_resolution.learning.em_estimator.assign_level` the
+        estimator and scorer use, and count. Binning through that shared function
+        is what guarantees these counts land in the bins EM will train against.
+
+        Levels are counted only over pairs where the field was OBSERVED, matching
+        the null-level convention used everywhere else: an absent field says
+        nothing about chance agreement, and folding it in would inflate the
+        fallback level.
+
+        Returns a per-field probability vector aligned with that field's
+        configured levels, ready to pass as ``fixed_u``. A field that was never
+        observed is OMITTED rather than defaulted, so
+        :func:`~entity_resolution.learning.em_estimator.estimate_categorical_mu`
+        leaves it to joint EM instead of receiving an invented distribution.
+        Returns an empty dict when no random pairs could be drawn or no levels are
+        configured, so callers can fall back wholesale.
+
+        .. warning::
+           This is NOT the default for the categorical path, and the reason is
+           measured. ``u`` belongs to the population the model will actually
+           score. This pipeline scores blocked candidates, where similarity above
+           0.6 is common; among random pairs it is nearly impossible. Measured on
+           DBLP-ACM with bands 0.9/0.6, random pairs put ``u[title]`` at 5e-4
+           against joint EM's 1.5e-2 — a ~30x smaller denominator, so every
+           agreeing field contributes ~3.4 extra nats and scores saturate. The
+           consequence, at the shipped 0.8 threshold: F1 fell from 0.910 to 0.672,
+           and 4,363 of 32,278 candidates scored above 0.8 with all remaining
+           discrimination squeezed into 0.97-1.00, making peak F1 depend on
+           whether a threshold sweep lands on the right grid point (observed
+           flipping between 0.72 and 0.91 across runs with near-identical models).
+
+           Use this when the model scores an unblocked population, or when
+           blocking is loose enough that candidates approximate all pairs. See
+           ``docs/BENCHMARKS.md`` for the full comparison.
+        """
+        if not self.comparison_levels:
+            return {}
+        comparisons = self.sample_random_pair_comparisons(sample_size, source_collection)
+        if not comparisons:
+            return {}
+        return categorical_u_from_comparisons(
+            comparisons, self.comparison_levels, self.field_names
+        )
+
     def sample_comparisons(self, sample_size: int) -> List[Dict[str, float]]:
         """Sample non-suppressed candidate pairs and compute per-field scores.
 
@@ -237,6 +395,7 @@ class ModelParameterEstimator:
         tol: float = 1e-5,
         source_collection: Optional[str] = None,
         u_sample_size: int = 10_000,
+        categorical_u_source: str = "candidates",
     ) -> EMResult:
         """Estimate m/u/lambda.
 
@@ -250,6 +409,12 @@ class ModelParameterEstimator:
         candidates alone, which is left available for backward compatibility but
         yields an inflated ``u`` and correspondingly compressed match weights.
         The choice is recorded on the persisted model as ``u_estimation``.
+
+        The MULTI-LEVEL path takes the opposite default, via
+        ``categorical_u_source``. Both are available and both are measured; which
+        one is right depends on the population being scored, not on which is more
+        principled in the abstract. ``estimate_categorical_u_from_random_pairs``
+        carries the numbers.
         """
         comparisons = self.sample_comparisons(sample_size)
         if not comparisons:
@@ -257,6 +422,57 @@ class ModelParameterEstimator:
                 f"no candidate pairs sampled from '{self.edge_collection}'; "
                 "run blocking/edge creation first"
             )
+
+        estimator = EMEstimator(
+            field_names=self.field_names,
+            agreement_thresholds=self.agreement_thresholds,
+            default_threshold=self.default_threshold,
+            max_iterations=max_iterations,
+            tol=tol,
+        )
+
+        # The two paths measure u over different shapes (a scalar per field vs a
+        # distribution per field), so each draws its own random-pair sample.
+        # Branching before sampling avoids paying for the sample the other path
+        # would need — random-pair sampling recomputes similarities, so it is the
+        # expensive half of estimation, not a lookup.
+        if self.comparison_levels:
+            logger.info(
+                "Estimating categorical m/u over configured comparison levels for %s",
+                sorted(self.comparison_levels),
+            )
+            if categorical_u_source not in ("candidates", "random_pairs"):
+                raise ValueError(
+                    "categorical_u_source must be 'candidates' or 'random_pairs', "
+                    f"got {categorical_u_source!r}"
+                )
+            u_levels: Dict[str, List[float]] = {}
+            if source_collection and categorical_u_source == "random_pairs":
+                u_levels = self.estimate_categorical_u_from_random_pairs(
+                    u_sample_size, source_collection
+                )
+                if u_levels:
+                    logger.info(
+                        "Measured per-level u from %d random pairs over '%s': %s",
+                        u_sample_size, source_collection,
+                        {
+                            f: [round(x, 4) for x in v]
+                            for f, v in u_levels.items()
+                        },
+                    )
+                else:
+                    logger.warning(
+                        "Could not measure per-level u from '%s'; falling back to "
+                        "joint EM estimation of u (biased upward).",
+                        source_collection,
+                    )
+            result = estimator.estimate_categorical(
+                comparisons, self.comparison_levels, fixed_u=u_levels or None
+            )
+            self._last_u_estimation = (
+                "random_pairs_categorical" if u_levels else "joint_em_categorical"
+            )
+            return result
 
         fixed_u: Dict[str, float] = {}
         if source_collection:
@@ -275,29 +491,6 @@ class ModelParameterEstimator:
                     "joint EM estimation of u (biased upward).",
                     source_collection,
                 )
-
-        estimator = EMEstimator(
-            field_names=self.field_names,
-            agreement_thresholds=self.agreement_thresholds,
-            default_threshold=self.default_threshold,
-            max_iterations=max_iterations,
-            tol=tol,
-        )
-        if self.comparison_levels:
-            # Categorical estimation over the configured bands. fixed_u from
-            # random pairs is a per-field scalar (P(agree | non-match)), which
-            # cannot be spread across levels without inventing a shape, so it is
-            # not forwarded here; u is learned jointly and recorded as such
-            # rather than mislabelled as measured.
-            logger.info(
-                "Estimating categorical m/u over configured comparison levels for %s",
-                sorted(self.comparison_levels),
-            )
-            result = estimator.estimate_categorical(
-                comparisons, self.comparison_levels
-            )
-            self._last_u_estimation = "joint_em_categorical"
-            return result
 
         result = estimator.estimate(comparisons, fixed_u=fixed_u or None)
         self._last_u_estimation = (
@@ -546,17 +739,21 @@ class ModelParameterEstimator:
         with_term_frequencies: bool = True,
         tf_fields: Optional[Sequence[str]] = None,
         u_sample_size: int = 10_000,
+        categorical_u_source: str = "candidates",
     ) -> Dict[str, Any]:
         """Estimate, persist, and (optionally) compute/persist term frequencies.
 
-        ``source_collection`` is passed through to :meth:`estimate` so ``u`` is
-        measured from random record pairs rather than inferred from the biased
-        candidate population.
+        ``source_collection`` is passed through to :meth:`estimate` so the binary
+        path measures ``u`` from random record pairs rather than inferring it from
+        the biased candidate population. ``categorical_u_source`` selects the same
+        choice for the multi-level path, where the default differs — see
+        :meth:`estimate_categorical_u_from_random_pairs`.
         """
         result = self.estimate(
             sample_size,
             source_collection=source_collection,
             u_sample_size=u_sample_size,
+            categorical_u_source=categorical_u_source,
         )
         model_doc = self.persist(result, sample_size=sample_size)
         out: Dict[str, Any] = {
