@@ -24,6 +24,25 @@ are restricted to cross-source pairs. That is a standard way to run linkage
 through a dedup engine and keeps the benchmark on the real pipeline rather than
 a bespoke path.
 
+Datasets (FEBRL, ANU — synthetic person records, the standard benchmark for
+structured multi-field linkage):
+
+============== ======= ========== ==============================
+dataset        records true pairs  shape
+============== ======= ========== ==============================
+febrl1           1,000        500  500 clusters of exactly 2
+febrl3           5,000      6,538  clusters of 1-6, 835 singletons
+febrl3-noid      5,000      6,538  febrl3 minus soc_sec_id
+============== ======= ========== ==============================
+
+These are *deduplication* tasks: one file matched against itself, truth encoded
+in the record ids rather than a mapping file. They exist because every Leipzig
+dataset compares two free-text fields, which cannot distinguish a matcher that
+learns per-field weights from one that averages similarities. FEBRL's ten fields
+have chance-agreement rates spanning three orders of magnitude, which can — and
+does: see docs/BENCHMARKS.md, where Fellegi-Sunter wins on these and loses on
+those.
+
 Metrics reported
 ----------------
 *Blocking* — ``pair_completeness`` (share of true pairs surviving blocking; the
@@ -79,7 +98,10 @@ BASE_URL = "https://dbs.uni-leipzig.de/file"
 
 @dataclass
 class DatasetSpec:
-    """How to fetch, parse and compare one benchmark dataset."""
+    """How to fetch, parse and compare one LINKAGE benchmark dataset.
+
+    Two sources, matched against each other, with truth in a mapping file.
+    """
 
     name: str
     archive: str
@@ -91,6 +113,43 @@ class DatasetSpec:
     text_fields_b: Sequence[str]
     #: Extra single-valued fields compared on their own, if present in both.
     aux_fields: Sequence[str] = field(default_factory=tuple)
+    #: Fields scored and their weights. ``None`` uses the ``--title-weight``
+    #: split over the two text fields, which is what these datasets want.
+    field_weights: Optional[Dict[str, float]] = None
+
+    is_dedup = False
+
+    def pair_space(self, records: Sequence[Dict[str, Any]]) -> int:
+        """Pairs a blocker could have emitted — the reduction-ratio denominator."""
+        n_a = sum(1 for r in records if r["_source"] == "a")
+        return n_a * (len(records) - n_a)
+
+
+@dataclass
+class DedupSpec:
+    """How to fetch, parse and compare one DEDUPLICATION benchmark dataset.
+
+    One file, matched against itself, with truth encoded in the record ids. This
+    is the shape the library's blocking strategies are natively written for — the
+    linkage datasets above are run through it by loading both sources into one
+    collection, which is a standard trick but still a trick.
+    """
+
+    name: str
+    url: str
+    filename: str
+    id_column: str
+    #: Fields compared individually. Also concatenated to form the BM25 text.
+    compare_fields: Sequence[str]
+    #: Maps a record id to the id of the entity it belongs to.
+    entity_of: Any
+    field_weights: Optional[Dict[str, float]] = None
+
+    is_dedup = True
+
+    def pair_space(self, records: Sequence[Dict[str, Any]]) -> int:
+        n = len(records)
+        return n * (n - 1) // 2
 
 
 DATASETS: Dict[str, DatasetSpec] = {
@@ -137,6 +196,82 @@ DATASETS: Dict[str, DatasetSpec] = {
 }
 
 
+# FEBRL person records: ten fields whose chance-agreement rates span three orders
+# of magnitude (`state` 0.236, `street_number` 0.016, `soc_sec_id` 0.0007 on
+# dataset3). That spread is the point. Every Leipzig dataset above compares two
+# free-text fields where chance agreement is unmeasurably small, which is the
+# regime least able to distinguish a matcher that learns per-field weights from
+# one that averages similarities — so the claim that Fellegi-Sunter "earns its
+# place on structured, multi-field records" could not be tested there at all.
+#
+# Weights are UNIFORM, deliberately. Hand-tuning them against benchmark F1 would
+# be selection on labels a deployment does not have, and it would also confound
+# the comparison: the question is whether FS's learned weighting beats an untuned
+# average, so the average must stay untuned.
+_FEBRL_FIELDS = (
+    "given_name", "surname", "street_number", "address_1", "address_2",
+    "suburb", "postcode", "state", "date_of_birth", "soc_sec_id",
+)
+_FEBRL_BASE = (
+    "https://raw.githubusercontent.com/J535D165/recordlinkage/master/"
+    "recordlinkage/datasets/febrl"
+)
+
+
+def _febrl_entity_of(record_id: str) -> str:
+    """``rec-223-org`` and ``rec-223-dup-0`` are the same person.
+
+    FEBRL encodes ground truth in the id rather than shipping a mapping file, so
+    the entity is the middle token.
+    """
+    parts = record_id.split("-")
+    return parts[1] if len(parts) > 1 else record_id
+
+
+DEDUP_DATASETS: Dict[str, DedupSpec] = {
+    # dataset1: 1,000 records, every entity exactly one original + one duplicate.
+    "febrl1": DedupSpec(
+        name="febrl1",
+        url=f"{_FEBRL_BASE}/dataset1.csv",
+        filename="febrl_dataset1.csv",
+        id_column="rec_id",
+        compare_fields=_FEBRL_FIELDS,
+        entity_of=_febrl_entity_of,
+        field_weights={f: 1.0 / len(_FEBRL_FIELDS) for f in _FEBRL_FIELDS},
+    ),
+    # dataset3: 5,000 records over 2,000 entities, clusters of 1-6 and 835
+    # singletons. The singletons matter — they punish over-merging, which a
+    # dataset of uniform 2-record clusters cannot.
+    "febrl3": DedupSpec(
+        name="febrl3",
+        url=f"{_FEBRL_BASE}/dataset3.csv",
+        filename="febrl_dataset3.csv",
+        id_column="rec_id",
+        compare_fields=_FEBRL_FIELDS,
+        entity_of=_febrl_entity_of,
+        field_weights={f: 1.0 / len(_FEBRL_FIELDS) for f in _FEBRL_FIELDS},
+    ),
+}
+
+# soc_sec_id is close to a unique identifier: FEBRL corrupts it on some
+# duplicates but usually leaves it intact, so agreement on it is nearly decisive.
+# Fellegi-Sunter learns exactly that (u = 0.0007) and is right to. But a headline
+# claim should not rest on a field that behaves like a primary key, so this
+# variant drops it and compares the same matchers on the nine remaining fields.
+_FEBRL_FIELDS_NO_ID = tuple(f for f in _FEBRL_FIELDS if f != "soc_sec_id")
+DEDUP_DATASETS["febrl3-noid"] = DedupSpec(
+    name="febrl3-noid",
+    url=f"{_FEBRL_BASE}/dataset3.csv",
+    filename="febrl_dataset3.csv",
+    id_column="rec_id",
+    compare_fields=_FEBRL_FIELDS_NO_ID,
+    entity_of=_febrl_entity_of,
+    field_weights={f: 1.0 / len(_FEBRL_FIELDS_NO_ID) for f in _FEBRL_FIELDS_NO_ID},
+)
+
+ALL_SPECS: Dict[str, Any] = {**DATASETS, **DEDUP_DATASETS}
+
+
 # ---------------------------------------------------------------------------
 # Fetch + parse
 # ---------------------------------------------------------------------------
@@ -167,6 +302,56 @@ def _read_csv(path: Path) -> List[Dict[str, str]]:
         except UnicodeDecodeError:
             continue
     raise RuntimeError(f"could not decode {path}")
+
+
+def load_dedup_dataset(spec: DedupSpec, data_dir: Path) -> Tuple[
+    List[Dict[str, Any]], Set[Tuple[str, str]]
+]:
+    """Return (records, truth_pairs) for a single-file deduplication dataset.
+
+    Truth comes from the record ids rather than a mapping file: every pair of
+    records belonging to the same entity is a true match, so a cluster of n
+    records contributes n*(n-1)/2 pairs.
+    """
+    data_dir.mkdir(parents=True, exist_ok=True)
+    path = data_dir / spec.filename
+    if not path.is_file():
+        print(f"  downloading {spec.url} ...", flush=True)
+        with urllib.request.urlopen(spec.url, timeout=180) as response:
+            path.write_bytes(response.read())
+
+    rows = _read_csv(path)
+    records: List[Dict[str, Any]] = []
+    clusters: Dict[str, List[str]] = {}
+    for row in rows:
+        # These CSVs put a space after each comma, so DictReader keys arrive
+        # with a leading space; strip both sides of keys and values.
+        clean = {(k or "").strip(): (v or "").strip() for k, v in row.items()}
+        rid = clean.get(spec.id_column, "")
+        if not rid:
+            continue
+        key = _safe_key(rid)
+        doc: Dict[str, Any] = {
+            "_key": key,
+            "source_id": rid,
+            # One logical source, but the field is kept so that downstream code
+            # (and the emitted JSON) has the same shape for both dataset
+            # families.
+            "_source": "a",
+            "text": " ".join(clean.get(f, "") for f in spec.compare_fields).strip(),
+        }
+        for f in spec.compare_fields:
+            doc[f] = clean.get(f, "")
+        records.append(doc)
+        clusters.setdefault(spec.entity_of(rid), []).append(key)
+
+    truth: Set[Tuple[str, str]] = set()
+    for members in clusters.values():
+        ordered = sorted(members)
+        for i, a in enumerate(ordered):
+            for b in ordered[i + 1:]:
+                truth.add((a, b))
+    return records, truth
 
 
 def load_dataset(spec: DatasetSpec, data_dir: Path) -> Tuple[
@@ -294,8 +479,10 @@ def _create_view(db, view: str, collection: str, analyzer: str = "text_en") -> N
     print("  WARNING: view did not fully index within 120s; recall may be understated")
 
 
-def generate_candidates(db, collection: str, view: str, args) -> List[Tuple[str, str]]:
-    """Cross-source candidate pairs via the library's BM25 blocking strategy."""
+def generate_candidates(
+    db, collection: str, view: str, args, is_dedup: bool = False
+) -> List[Tuple[str, str]]:
+    """Candidate pairs via the library's BM25 blocking strategy."""
     from entity_resolution.strategies.bm25_blocking import BM25BlockingStrategy
 
     strategy = BM25BlockingStrategy(
@@ -308,14 +495,16 @@ def generate_candidates(db, collection: str, view: str, args) -> List[Tuple[str,
     )
     pairs = strategy.generate_candidates()
 
-    sources = _source_map(db, collection)
+    # A linkage task can only match across sources, so same-source pairs are
+    # dropped. A dedup task matches a collection against itself, where that
+    # filter would remove every pair there is.
+    sources = {} if is_dedup else _source_map(db, collection)
     out: Set[Tuple[str, str]] = set()
     for pair in pairs:
         k1, k2 = pair.get("doc1_key"), pair.get("doc2_key")
         if not k1 or not k2 or k1 == k2:
             continue
-        # Linkage task: only cross-source pairs can be true matches.
-        if sources.get(k1) == sources.get(k2):
+        if not is_dedup and sources.get(k1) == sources.get(k2):
             continue
         out.add(tuple(sorted((k1, k2))))  # type: ignore[arg-type]
     return sorted(out)
@@ -329,12 +518,15 @@ def _source_map(db, collection: str) -> Dict[str, str]:
     return {row["k"]: row["s"] for row in cursor}
 
 
-def _field_weights(args) -> Dict[str, float]:
+def _field_weights(args, spec: Any = None) -> Dict[str, float]:
     """Fields compared, and how much each counts.
 
-    The title carries most of the signal on these datasets; the body is
-    supporting evidence and is often missing on one side.
+    A spec may name its own fields and weights (the multi-field dedup datasets
+    do). Otherwise the title carries most of the signal and the body is
+    supporting evidence, often missing on one side.
     """
+    if spec is not None and getattr(spec, "field_weights", None):
+        return dict(spec.field_weights)
     return {"title": args.title_weight, "body": 1.0 - args.title_weight}
 
 
@@ -346,7 +538,7 @@ _NORMALIZATION = {
 }
 
 
-def _build_similarity_service(db, collection: str, args, **extra):
+def _build_similarity_service(db, collection: str, args, spec: Any = None, **extra):
     from entity_resolution.services.batch_similarity_service import (
         BatchSimilarityService,
     )
@@ -354,7 +546,7 @@ def _build_similarity_service(db, collection: str, args, **extra):
     return BatchSimilarityService(
         db=db,
         collection=collection,
-        field_weights=_field_weights(args),
+        field_weights=_field_weights(args, spec),
         similarity_algorithm=args.algorithm,
         batch_size=args.batch_size,
         normalization_config=_NORMALIZATION,
@@ -393,7 +585,9 @@ def _comparison_levels(args, fields: Sequence[str]) -> Dict[str, Any]:
 
 
 
-def _auto_comparison_levels(db, collection, pairs, fields, args) -> Dict[str, Any]:
+def _auto_comparison_levels(
+    db, collection, pairs, fields, args, spec: Any = None
+) -> Dict[str, Any]:
     """Infer per-field bands from this dataset's own observed similarities.
 
     Bands are placed per FIELD, because their distributions differ: a short
@@ -408,7 +602,7 @@ def _auto_comparison_levels(db, collection, pairs, fields, args) -> Dict[str, An
     """
     from entity_resolution.learning.threshold_selection import select_comparison_bands
 
-    service = _build_similarity_service(db, collection, args)
+    service = _build_similarity_service(db, collection, args, spec=spec)
     sample = list(pairs)[: args.fs_train_sample]
     detailed = service.compute_similarities_detailed(
         sample, threshold=0.0, preserve_missing=True
@@ -436,7 +630,7 @@ def _auto_comparison_levels(db, collection, pairs, fields, args) -> Dict[str, An
 
 
 def train_fs_model(
-    db, collection: str, pairs: Sequence[Tuple[str, str]], args
+    db, collection: str, pairs: Sequence[Tuple[str, str]], args, spec: Any = None
 ) -> Tuple[Any, Dict[str, Any]]:
     """Train a Fellegi-Sunter model on this dataset's own candidate pairs.
 
@@ -461,13 +655,13 @@ def train_fs_model(
     for start in range(0, len(edges), 5000):
         db.collection(edge_collection).insert_many(edges[start : start + 5000])
 
-    fields = list(_field_weights(args))
+    fields = list(_field_weights(args, spec))
     levels = _comparison_levels(args, fields)
     if levels.get("__auto__"):
-        levels = _auto_comparison_levels(db, collection, pairs, fields, args)
+        levels = _auto_comparison_levels(db, collection, pairs, fields, args, spec)
     estimator = ModelParameterEstimator(
         db=db,
-        similarity_service=_build_similarity_service(db, collection, args),
+        similarity_service=_build_similarity_service(db, collection, args, spec=spec),
         edge_collection=edge_collection,
         field_names=fields,
         default_threshold=args.fs_agreement_threshold,
@@ -503,6 +697,7 @@ def train_fs_model(
         "u": {k: round(v, 4) for k, v in model["u"].items()},
         "lambda": round(model["lambda"], 4),
         "u_estimation": model.get("u_estimation"),
+        "fit_warning": model.get("fit_warning"),
         "agreement_threshold": args.fs_agreement_threshold,
         "term_frequency_fields": sorted(tf_tables),
         "converged": model.get("converged"),
@@ -528,7 +723,7 @@ def train_fs_model(
 
 
 def score_pairs(
-    db, collection: str, pairs: Sequence[Tuple[str, str]], args
+    db, collection: str, pairs: Sequence[Tuple[str, str]], args, spec: Any = None
 ) -> Tuple[List[Tuple[str, str, float]], Optional[Dict[str, Any]]]:
     """Score candidate pairs with the library's similarity service.
 
@@ -538,10 +733,10 @@ def score_pairs(
     fs_info: Optional[Dict[str, Any]] = None
     extra: Dict[str, Any] = {}
     if args.scoring_method == "fellegi_sunter":
-        scorer, fs_info = train_fs_model(db, collection, pairs, args)
+        scorer, fs_info = train_fs_model(db, collection, pairs, args, spec=spec)
         extra = {"scoring_method": "fellegi_sunter", "fs_scorer": scorer}
 
-    service = _build_similarity_service(db, collection, args, **extra)
+    service = _build_similarity_service(db, collection, args, spec=spec, **extra)
     scored = service.compute_similarities(
         list(pairs), threshold=0.0, return_all=True
     )
@@ -556,12 +751,16 @@ def score_pairs(
 def blocking_metrics(
     candidates: Sequence[Tuple[str, str]],
     truth: Set[Tuple[str, str]],
-    n_a: int,
-    n_b: int,
+    full_space: int,
 ) -> Dict[str, float]:
+    """``full_space`` is the pair count a blocker could have emitted.
+
+    It differs by task shape — n_a*n_b for a linkage run, n*(n-1)/2 for a dedup
+    run — so the caller supplies it via ``spec.pair_space`` rather than having it
+    inferred here from source counts that a dedup dataset does not have.
+    """
     candidate_set = set(candidates)
     retained = len(candidate_set & truth)
-    full_space = n_a * n_b
     return {
         "candidate_pairs": len(candidate_set),
         "true_pairs": len(truth),
@@ -659,14 +858,20 @@ def cluster_metrics_at(
 
 
 def run_dataset(name: str, args) -> Dict[str, Any]:
-    spec = DATASETS[name]
+    spec = ALL_SPECS[name]
     print(f"\n=== {name} ===", flush=True)
 
     started = time.time()
-    records, truth = load_dataset(spec, Path(args.data_dir))
-    n_a = sum(1 for r in records if r["_source"] == "a")
-    n_b = len(records) - n_a
-    print(f"  records: {n_a} + {n_b} = {len(records)}, true pairs: {len(truth)}")
+    if spec.is_dedup:
+        records, truth = load_dedup_dataset(spec, Path(args.data_dir))
+        print(f"  records: {len(records)} (dedup), true pairs: {len(truth)}")
+    else:
+        records, truth = load_dataset(spec, Path(args.data_dir))
+        n_a = sum(1 for r in records if r["_source"] == "a")
+        print(
+            f"  records: {n_a} + {len(records) - n_a} = {len(records)}, "
+            f"true pairs: {len(truth)}"
+        )
 
     db = _connect(args)
     collection = f"bench_{name.replace('-', '_')}"
@@ -677,9 +882,11 @@ def run_dataset(name: str, args) -> Dict[str, Any]:
         _create_view(db, view, collection, analyzer=args.analyzer)
 
         t0 = time.time()
-        candidates = generate_candidates(db, collection, view, args)
+        candidates = generate_candidates(
+            db, collection, view, args, is_dedup=spec.is_dedup
+        )
         blocking_time = time.time() - t0
-        block = blocking_metrics(candidates, truth, n_a, n_b)
+        block = blocking_metrics(candidates, truth, spec.pair_space(records))
         print(
             f"  blocking: {block['candidate_pairs']:,} pairs, "
             f"completeness={block['pair_completeness']:.3f}, "
@@ -687,12 +894,15 @@ def run_dataset(name: str, args) -> Dict[str, Any]:
         )
 
         t0 = time.time()
-        scored, fs_info = score_pairs(db, collection, candidates, args)
+        scored, fs_info = score_pairs(db, collection, candidates, args, spec=spec)
         scoring_time = time.time() - t0
         if fs_info:
             print(
                 f"  FS model: m={fs_info['m']} u={fs_info['u']} "
                 f"lambda={fs_info['lambda']} u_from={fs_info['u_estimation']} "
+                + (f"\n  !! UNFIT MODEL: {fs_info['fit_warning']}\n  "
+                   if fs_info.get("fit_warning") else "")
+                + 
                 f"tf_fields={fs_info['term_frequency_fields']}"
             )
 
@@ -735,10 +945,15 @@ def run_dataset(name: str, args) -> Dict[str, Any]:
             f"  B-cubed: F1={bc['f1']:.4f} (P={bc['precision']:.4f} R={bc['recall']:.4f})"
         )
 
+        n_a = sum(1 for r in records if r["_source"] == "a")
         return {
             "dataset": name,
+            "task": "dedup" if spec.is_dedup else "linkage",
+            "records": len(records),
+            # A dedup dataset has one source, so all records fall in "a" and
+            # records_b is 0 — kept so both families emit the same JSON shape.
             "records_a": n_a,
-            "records_b": n_b,
+            "records_b": len(records) - n_a,
             "true_pairs": len(truth),
             "blocking": {**block, "runtime_seconds": round(blocking_time, 2)},
             "matching": {
@@ -775,7 +990,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--dataset", default="abt-buy",
-        choices=[*DATASETS, "all"],
+        choices=[*ALL_SPECS, "all", "leipzig", "febrl"],
+        help=(
+            "One dataset, or a family: 'leipzig' (the four linkage datasets), "
+            "'febrl' (the multi-field dedup datasets), 'all' (everything)."
+        ),
     )
     parser.add_argument("--data-dir", default=str(REPO_ROOT / ".benchmark_data"))
     parser.add_argument("--output", default=None, help="Write JSON results here.")
@@ -863,7 +1082,12 @@ def main() -> int:
     parser.add_argument("--keep", action="store_true", help="Keep benchmark collections.")
     args = parser.parse_args()
 
-    names = list(DATASETS) if args.dataset == "all" else [args.dataset]
+    families = {
+        "all": list(ALL_SPECS),
+        "leipzig": list(DATASETS),
+        "febrl": list(DEDUP_DATASETS),
+    }
+    names = families.get(args.dataset, [args.dataset])
     results = [run_dataset(name, args) for name in names]
 
     if args.output:

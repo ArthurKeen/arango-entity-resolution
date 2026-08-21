@@ -28,6 +28,13 @@ logger = logging.getLogger(__name__)
 
 _EPS = 1e-6
 
+# A match prior above this over BLOCKED CANDIDATE pairs means the "match" class
+# has absorbed the candidate population. Blocking exists to discard most pairs, so
+# matches are a small minority of what survives it — measured on the FEBRL and
+# Leipzig benchmarks, a healthy lambda sits between 0.01 and 0.15. This is a
+# degeneracy alarm, not a tuning knob.
+_MAX_PLAUSIBLE_MATCH_PRIOR = 0.5
+
 
 @dataclass
 class EMResult:
@@ -79,6 +86,9 @@ class CategoricalEMResult:
     log_likelihood: float
     #: Per field, how many pairs actually supplied a level (not NaN).
     observed_counts: Dict[str, int]
+    #: Set when the fit looks degenerate. The parameters are still returned —
+    #: the caller decides — but they should not be trusted silently.
+    warning: Optional[str] = None
 
     def to_dict(self) -> Dict[str, object]:
         return {
@@ -92,6 +102,7 @@ class CategoricalEMResult:
             "n_pairs": self.n_pairs,
             "log_likelihood": self.log_likelihood,
             "observed_counts": dict(self.observed_counts),
+            "warning": self.warning,
         }
 
     def to_comparison_levels(
@@ -318,12 +329,29 @@ def estimate_categorical_mu(
     # Resolve label switching by which class concentrates on the most selective
     # level. Skipped when u was measured externally — swapping would discard
     # those values and return an m that was never estimated as one.
+    warning: Optional[str] = None
     if fixed_u is None:
         m_top = float(np.mean([p[0] for p in m_probs]))
         u_top = float(np.mean([p[0] for p in u_probs]))
         if m_top < u_top:
             m_probs, u_probs = u_probs, m_probs
             lam = 1 - lam
+    elif lam > _MAX_PLAUSIBLE_MATCH_PRIOR:
+        # Holding u fixed removes the swap above as an escape route, so a poor
+        # fit surfaces as an implausible prior instead: EM explains the
+        # candidates by declaring most of them matches. Observed on FEBRL
+        # dataset3 with u measured on random pairs — lambda converged to 0.925
+        # against 0.099 for the same data with u estimated jointly, and the
+        # resulting model scored F1 0.26 with B-cubed 0.001. The parameters are
+        # returned anyway, because the caller may be scoring a genuinely
+        # match-dense population, but silence here ships a broken model.
+        warning = (
+            f"match prior converged to {lam:.4f}, above the plausible bound "
+            f"{_MAX_PLAUSIBLE_MATCH_PRIOR}: the supplied fixed u probably does "
+            "not describe this pair population, so the two classes have not "
+            "separated. Treat these parameters as unfit."
+        )
+        logger.warning("Degenerate categorical EM fit — %s", warning)
 
     return CategoricalEMResult(
         fields=fields,
@@ -336,6 +364,7 @@ def estimate_categorical_mu(
         n_pairs=int(n_pairs),
         log_likelihood=ll,
         observed_counts={f: int(present[i].sum()) for i, f in enumerate(fields)},
+        warning=warning,
     )
 
 

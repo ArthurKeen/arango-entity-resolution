@@ -176,3 +176,72 @@ def test_measured_u_is_lower_than_candidate_biased_u_for_selective_levels():
         "random-pair u must assign less chance mass to the exact level than the "
         "blocking-enriched candidate population does"
     )
+
+
+# ---------------------------------------------------------------------------
+# Degeneracy alarm when a supplied fixed u does not fit the pair population
+# ---------------------------------------------------------------------------
+
+
+def _two_level(n_fields):
+    return {f"f{i}": ["agree", "else"] for i in range(n_fields)}
+
+
+def test_implausible_match_prior_is_flagged_when_u_is_fixed():
+    """A fixed u that misdescribes the population must not fail silently.
+
+    Holding u constant removes label-switch resolution as an escape route, so a
+    bad fit surfaces as an absurd match prior instead. Measured on FEBRL
+    dataset3: lambda converged to 0.925 against 0.099 for the same data with u
+    estimated jointly, and that model scored F1 0.26 with B-cubed 0.001. Nothing
+    detected it.
+    """
+    import numpy as np
+
+    from entity_resolution.learning.em_estimator import estimate_categorical_mu
+
+    # Every pair agrees everywhere, while the supplied u insists agreement is
+    # near-certain by chance. The only fit left is "almost all of this is a match".
+    gamma = np.zeros((200, 3))
+    result = estimate_categorical_mu(
+        gamma,
+        _two_level(3),
+        fixed_u={f"f{i}": [0.99, 0.01] for i in range(3)},
+        init_lambda=0.5,
+    )
+
+    assert result.lambda_ > 0.5, f"fixture did not reproduce the failure: {result.lambda_}"
+    assert result.warning is not None, "degenerate fit reported no warning"
+    assert "match prior" in result.warning
+    assert result.to_dict()["warning"] == result.warning
+
+
+def test_a_healthy_fixed_u_fit_is_not_flagged():
+    """The alarm must stay quiet on a well-separated fit, or it is noise."""
+    import numpy as np
+
+    from entity_resolution.learning.em_estimator import estimate_categorical_mu
+
+    # 20 agreeing pairs among 200: a normal post-blocking match rate.
+    gamma = np.ones((200, 3))
+    gamma[:20] = 0.0
+    result = estimate_categorical_mu(
+        gamma,
+        _two_level(3),
+        fixed_u={f"f{i}": [0.01, 0.99] for i in range(3)},
+    )
+
+    assert result.lambda_ < 0.5, result.lambda_
+    assert result.warning is None, result.warning
+
+
+def test_jointly_estimated_u_is_not_subject_to_the_alarm():
+    """Joint EM resolves label switching by swapping, so the alarm is inapplicable."""
+    import numpy as np
+
+    from entity_resolution.learning.em_estimator import estimate_categorical_mu
+
+    gamma = np.zeros((200, 3))
+    result = estimate_categorical_mu(gamma, _two_level(3), init_lambda=0.5)
+
+    assert result.warning is None

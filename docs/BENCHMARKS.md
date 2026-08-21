@@ -166,9 +166,10 @@ with it, P 0.796 / R 0.955.
   matcher on every dataset here, and it is the configuration all headline numbers
   in this document use.
 - **FS earns its place on structured, multi-field records** — identifiers, dates,
-  codes, postal fields — where exact agreement is meaningful and its calibrated
-  posterior plus per-decision evidence decomposition are worth having. DBLP-ACM,
-  the most structured dataset here, is where FS comes closest.
+  codes, postal fields — where exact agreement is meaningful. This began as a
+  conjecture with no evidence behind it, since every dataset above compares two
+  free-text fields. It has since been tested on FEBRL person records and holds
+  decisively: see [Structured multi-field records](#structured-multi-field-records-where-fellegi-sunter-wins).
 - **Multi-level comparisons are the binding constraint, not a refinement.**
   Splink-style levels (exact / fuzzy-close / else, each with its own m/u) let FS
   keep the gradation it otherwise discards. They have since been implemented and
@@ -317,6 +318,102 @@ Two secondary findings from the same work:
   0.9997]). Chance agreement above 0.6 between random bibliographic records is
   genuinely below the resolution of any practical sample — the quantity is small
   because it is *real*, not because the sample was thin.
+
+## Structured multi-field records: where Fellegi-Sunter wins
+
+Everything above compares **two free-text fields**. That is the regime least able
+to separate a matcher that learns per-field weights from one that averages
+similarities, so the recommendation "FS earns its place on structured,
+multi-field records" was an untested conjecture in this document for as long as it
+appeared here.
+
+**FEBRL** (Freely Extensible Biomedical Record Linkage, ANU) is the standard
+benchmark for that shape: synthetic person records with generated typos,
+transpositions and field swaps, ground truth encoded in the record ids. Ten
+fields, and — the reason it settles the question — chance-agreement rates that
+span three orders of magnitude:
+
+| Field | Distinct values | Chance agreement |
+|---|---|---|
+| `state` | 35 | **0.212** |
+| `street_number` | 342 | 0.014 |
+| `postcode` | 1,273 | 0.0015 |
+| `suburb` | 1,706 | 0.0014 |
+| `date_of_birth` | 2,089 | 0.0007 |
+| `soc_sec_id` | 2,291 | **0.0007** |
+
+Agreement on `state` is worth almost nothing; agreement on `soc_sec_id` is nearly
+decisive. That is a 300x spread in evidential value, and a uniform weighted
+average has no way to express it. Learning it is precisely what Fellegi-Sunter
+does.
+
+Field weights for the weighted baseline are **uniform** — deliberately untuned,
+because tuning them against benchmark F1 would select on labels a deployment does
+not have, and would confound the comparison being made.
+
+| Dataset | Matcher | Pairwise F1 | F1 at default 0.8 | Entity F1 (B-cubed) |
+|---|---|---|---|---|
+| febrl1 | weighted | 0.997 | 0.988 | 0.9985 |
+| febrl1 | **FS binary** | **1.000** | **1.000** | **1.0000** |
+| febrl1 | FS multi-level | 1.000 | 1.000 | 1.0000 |
+| febrl3 | weighted | 0.991 | 0.965 | 0.9935 |
+| febrl3 | **FS binary** | **0.9995** | **0.9985** | **0.9993** |
+| febrl3 | FS multi-level | 0.991 | 0.989 | 0.9940 |
+| febrl3-noid | weighted | 0.979 | 0.954 | 0.9836 |
+| febrl3-noid | **FS binary** | **0.9975** | **0.9939** | **0.9974** |
+| febrl3-noid | FS multi-level | 0.982 | 0.981 | 0.9905 |
+
+Blocking recall is 1.000 on all three, so nothing here is capped by candidate
+generation. febrl1 is 1,000 records in 500 two-record clusters; febrl3 is 5,000
+records over 2,000 entities with clusters of 1-6 **including 835 singletons**,
+which punish over-merging in a way uniform two-record clusters cannot.
+
+**Fellegi-Sunter wins, and by more than the gap it lost by on the text datasets.**
+At the shipped default threshold — the number a user actually gets — febrl3 goes
+0.965 to 0.9985, closing 96% of the remaining error.
+
+`febrl3-noid` exists because `soc_sec_id` behaves like a primary key, and a
+headline claim should not rest on one. Dropping it costs FS 0.002 F1 and the
+ordering is unchanged, so the result is not an artifact of a de facto identifier.
+
+### Two findings that invert the earlier advice
+
+**Binary beats multi-level here — the exact reverse of the text datasets.** On
+Abt-Buy, binarising collapsed FS to 0.117 F1 and comparison levels were a 4.3x
+repair. On febrl3 binary is the *best* configuration and levels cost 0.008. Both
+results have the same explanation: one cutoff is only destructive when the
+comparator's output is a continuum with no meaningful exact-agreement point. Names,
+dates, postcodes and identifiers agree exactly or not at all, so a cutoff loses
+almost nothing — and auto-placed bands actively hurt, because Jaro-Winkler is
+generous enough that unrelated names routinely exceed 0.6 and land in a high band.
+
+**The random-pair `u` option produces a degenerate model here, and now says so.**
+On febrl3 with measured `u`, EM converged to a match prior of **0.930** against
+0.099 for the same data estimated jointly, scoring F1 0.26 with B-cubed 0.001.
+Holding `u` fixed removes label-switch resolution as an escape route, so a `u`
+that does not describe the pair population surfaces as an absurd prior instead.
+`estimate_categorical_mu` now flags any fixed-`u` fit whose prior exceeds 0.5,
+persists the warning on the model as `fit_warning`, and the harness prints
+`!! UNFIT MODEL`. The parameters are still returned — a caller may genuinely be
+scoring a match-dense population — but they are no longer returned silently.
+
+### The rule this yields
+
+**FS's value is proportional to the spread in per-field discriminating power, and
+that spread is measurable before choosing a matcher.** Compute each field's chance
+agreement (the sum of its squared value frequencies — no labels needed):
+
+- **Wide spread** (structured records: identifiers, dates, codes, postal fields)
+  → FS, and prefer the binary model. Weighted averaging cannot express what the
+  data is telling you.
+- **Narrow spread** (two or three free-text fields where chance agreement is
+  uniformly negligible) → weighted similarity, and reach for comparison levels
+  only if you need FS's calibrated posterior or evidence decomposition.
+
+This replaces the earlier flat recommendation of "default to weighted". Weighted
+remains the right default for text-heavy data and is still what the Leipzig
+headline numbers use — but on structured records it is the weaker choice, by a
+margin large enough to matter.
 
 #### When to choose multi-level FS
 

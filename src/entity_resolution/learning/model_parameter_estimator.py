@@ -618,6 +618,11 @@ class ModelParameterEstimator:
             doc["u"] = {f: _collapse_to_binary(result.u[f]) for f in result.fields}
             doc["m_levels"] = {f: list(result.m[f]) for f in result.fields}
             doc["u_levels"] = {f: list(result.u[f]) for f in result.fields}
+            # A degeneracy warning travels with the model. A caller loading it
+            # months later has no other way to learn the fit was unsound, and an
+            # unsound model is indistinguishable from a sound one by inspection.
+            if getattr(result, "warning", None):
+                doc["fit_warning"] = result.warning
         else:
             doc["model_type"] = "binary"
         self.db.collection(self.model_collection).insert(doc, overwrite=True)
