@@ -92,9 +92,9 @@ Provide a practical, ArangoDB-native entity-resolution toolkit that supports:
 - Config-driven similarity field transformers for phone, state, street suffix, and company suffix normalization, plus `missing_sentinels` to map placeholders such as `NULL`, `UNKNOWN`, and `N/A` to absent values so they follow null-comparison semantics
 - Fellegi-Sunter probabilistic scoring with unsupervised EM parameter estimation (m/u probabilities, log-likelihood weights, versioned model persistence keyed by config hash), selectable alongside weighted-heuristic scoring; field profiling for semantic type/completeness/cardinality analysis
 - **Null comparison level**: unobserved fields contribute zero evidence, distinct from an observed mismatch which takes the full disagreement weight. Training and scoring share this definition, so per-field m/u are estimated only over the pairs where that field was actually compared
-- **Two-population parameter estimation**: `m` from blocked candidate pairs (where true matches concentrate) and `u` from a random sample of record pairs (which are effectively all non-matches). `u` is measured directly rather than inferred jointly, because candidate pairs have already passed a similarity gate and cannot furnish a representative non-match sample. Each persisted model records which estimation regime produced it
+- **Two-population parameter estimation**: `m` from blocked candidate pairs (where true matches concentrate) and `u` from the population the model will actually score, named explicitly per model. For the binary path that is a random sample of record pairs, measured directly rather than inferred jointly, because candidate pairs have already passed a similarity gate and cannot furnish a representative non-match sample. For the multi-level path the default is the blocked candidate population, because taking `u` from random pairs there measured *worse* at the shipped operating point — a `u` estimated over a population the model never scores makes it overconfident. Each persisted model records which regime produced it
 - **Term-frequency-adjusted agreement weight**: when two records share an identical value, the match weight is computed from that value's observed frequency rather than the field's average chance-agreement rate, so agreeing on a rare value counts as stronger evidence than agreeing on a common one. Values absent from the maintained per-field table fall back to the field average rather than being guessed
-- **Multi-level comparison bands**: a field may be compared at several ordered levels (for example exact / close / else) rather than one agree/disagree cutoff, with per-level m/u learned by EM. Only the band structure is configured; the probabilities are estimated, so a configured table cannot assert values that contradict the data. The band structure forms part of a model's identity, so changing it invalidates a previously trained model rather than silently reusing parameters learned under different bands. Bands may also be inferred per field from the observed score distribution, and inference declines rather than guessing when a field shows no separation
+- **Multi-level comparison bands**: a field may be compared at several ordered levels (for example exact / close / else) rather than one agree/disagree cutoff, with per-level m/u learned by EM. Only the band structure is configured; the probabilities are estimated, so a configured table cannot assert values that contradict the data. The band structure forms part of a model's identity, so changing it invalidates a previously trained model rather than silently reusing parameters learned under different bands. Bands may also be inferred per field from the observed score distribution, and inference declines rather than guessing when a field shows no separation. Weighted similarity remains the default for text-heavy data because it measured better there — not because the path is unwired; on structured multi-field records the probabilistic path measures better (`docs/BENCHMARKS.md`)
 - **Data-driven threshold selection** (`similarity.auto_threshold`, off by default): unsupervised inference from the score distribution via Otsu's method, plus supervised selection from labelled pairs. Inference is refused when the scores are not meaningfully bimodal, so the configured threshold is never replaced by an unsupported guess
 
 ### Graph-Aware and Incremental Resolution (Phase 3.1–3.4)
@@ -112,7 +112,7 @@ Provide a practical, ArangoDB-native entity-resolution toolkit that supports:
 ### Evaluation and Verifiability
 
 - Cluster-level metrics: B-cubed precision/recall/F1 and pairwise metrics over the transitive closure of produced clusters
-- Published, reproducible results on the public Leipzig record-linkage benchmarks (`scripts/run_er_benchmarks.py`, `docs/BENCHMARKS.md`)
+- Published, reproducible results on public record-linkage benchmarks — the Leipzig linkage datasets and the FEBRL deduplication datasets (`scripts/run_er_benchmarks.py`, `docs/BENCHMARKS.md`)
 - Per-decision match-weight decomposition (additive log-odds waterfall) exposed through `explain_match`
 - Mechanical quality gates in CI: blocking lint, secret scanning, version consistency, wiring/contract conformance, matching-quality F1 floors, coverage floor
 
@@ -192,8 +192,27 @@ release, so matching-quality claims are falsifiable rather than asserted.
 **Evidence before recommendation.** A scoring method must not be presented as a
 recommended default until benchmark evidence shows it competitive on the
 published datasets. This project shipped a statistically more sophisticated
-matcher that measured *worse* than the simple one on every dataset; only
-measurement revealed it.
+matcher that measured *worse* than the simple one on every text-heavy dataset,
+and *better* on every structured multi-field dataset; only measurement revealed
+either. A scoring method's recommendation is therefore conditional on data shape,
+and the condition is measurable in advance: Fellegi-Sunter's advantage tracks the
+spread in per-field chance agreement (the sum of each field's squared value
+frequencies), which needs no labels.
+
+**Parameter estimation must name its reference population.** `u` = P(field
+agrees | non-match) is only meaningful relative to a population, and the choice
+materially changes calibration: measured on DBLP-ACM, taking `u` from random
+record pairs rather than from the blocked candidates the model actually scores
+moved F1 at the shipped threshold from 0.911 to 0.672, while leaving peak F1
+identical. The product must therefore make the population explicit and record it
+on the persisted model.
+
+**A degenerate fit must be reported, not returned silently.** Where estimation
+can converge to a solution that is unusable on its face — such as a match prior
+above 0.5 over blocked candidate pairs, which blocking makes impossible by
+construction — the product must flag it on the model and surface it to the
+caller. A model whose parameters are unfit must not be indistinguishable from one
+that is.
 
 **Threshold selection.** The product must be able to choose a decision threshold
 from data rather than requiring a hand-set constant. Benchmarking established
@@ -338,7 +357,6 @@ Still open:
 - Stricter anti-merge constraints and policy controls (minimum-evidence floor, conflicting-hard-identifier veto)
 - **Chunked, streaming candidate generation** — required before any throughput claim above ~50k records (see Functional Requirement 7)
 - **Active learning**: uncertainty-sampled pair selection for labelling, so a useful model needs tens rather than thousands of labels
-- **Multi-level comparisons (learning path)**: unsupervised categorical EM estimation, configuration, and persistence of per-level m/u. The runtime scorer accepts configured levels, but levels are not yet learned or written by `ModelParameterEstimator`; weighted similarity therefore remains the default for text-heavy data until this path is wired and benchmarked
 - **Embeddings as a scoring feature**, not blocking-only
 - **LLM cascade for the clerical-review band** with explicit accuracy/cost/latency accounting
 - Retraction in incremental maintenance, so a record *update* can split a cluster rather than only a human verdict
