@@ -297,8 +297,8 @@ This eliminates the integration overhead of Elasticsearch + Neo4j + PostgreSQL s
 
 ## Benchmark Results
 
-Measured on the standard public record-linkage benchmarks (Leipzig DBS group),
-unsupervised — no labelled training pairs:
+Measured on standard public benchmarks, unsupervised — no labelled training
+pairs. **Linkage** tasks (match source A against source B), Leipzig DBS group:
 
 | Dataset | Records | Pair completeness | Pairwise F1 | B-cubed F1 | Magellan (supervised) |
 |---------|---------|------------------|-------------|------------|----------------------|
@@ -307,9 +307,25 @@ unsupervised — no labelled training pairs:
 | Abt-Buy | 2.2K | 0.957 | 0.541 | 0.779 | ~0.43 |
 | Amazon-Google | 4.6K | 0.890 | 0.488 | 0.852 | ~0.49 |
 
-Reproduce with `python scripts/run_er_benchmarks.py --dataset all`. Full method,
-per-dataset detail, scale limits, and comparison caveats are in
-[docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+**Deduplication** tasks (match a collection against itself), FEBRL person
+records — ten structured fields rather than two free-text ones:
+
+| Dataset | Records | Scoring | Pairwise F1 | B-cubed F1 |
+|---------|---------|---------|-------------|------------|
+| febrl1 | 1.0K | weighted | 0.997 | 0.9985 |
+| febrl1 | 1.0K | **Fellegi-Sunter** | **1.000** | **1.0000** |
+| febrl3 | 5.0K | weighted | 0.991 | 0.9935 |
+| febrl3 | 5.0K | **Fellegi-Sunter** | **0.9995** | **0.9993** |
+
+The two tables disagree about which scoring method to use, and that is the
+finding: weighted similarity wins on free text, Fellegi-Sunter wins on
+structured multi-field records. Which one applies is predictable before you
+run anything, from how much your fields differ in how often they agree by
+chance — no labels required.
+
+Reproduce with `python scripts/run_er_benchmarks.py --dataset all` (linkage) and
+`--dataset febrl3` (dedup). Full method, per-dataset detail, scale limits, and
+comparison caveats are in [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
 ## Performance
 
