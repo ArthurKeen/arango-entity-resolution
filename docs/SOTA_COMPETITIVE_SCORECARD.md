@@ -1,15 +1,16 @@
 # State-of-the-Art and Competitive Scorecard
 
-**Evaluated:** August 6, 2026  
-**Release baseline:** `v3.8.0` plus verified working-tree improvements  
-**Overall competitive score:** **5.8/10 — differentiated mid-tier contender**
+**Evaluated:** August 25, 2026  
+**Release baseline:** `v3.8.0` plus committed post-release work  
+**Overall competitive score:** **6.3/10 — differentiated mid-tier contender**
 
 The project now has one of the broadest **open, graph-native ER toolkits** rather
 than merely hosting a generic matcher in a graph database. Its overall score is
 held below the leaders because this scorecard counts only shipped, wired
-behavior: Splink remains ahead in probabilistic modeling, Zingg in learned
-blocking/active learning, and Senzing/AWS/commercial MDM platforms in
-entity-centric operation, scale, and governance.
+behavior: Splink remains ahead in probabilistic *tooling* — interactive model
+diagnostics and proven scale — though the modeling itself is now near parity;
+Zingg leads in learned blocking and active learning; and Senzing/AWS/commercial
+MDM platforms lead in entity-centric operation, scale, and governance.
 
 ## Capability scorecard
 
@@ -18,10 +19,10 @@ roadmap intent.
 
 | Capability | Weight | Score | Position | Assessment |
 |---|---:|---:|---|---|
-| Probabilistic modeling / EM / TF | 9% | **6** | Behind Splink | Binary EM, posterior scoring, null semantics, random-pair `u`, TF adjustment, and config-hashed persistence are real; learned multi-level probabilities are absent and FS loses to weighted scoring on text |
+| Probabilistic modeling / EM / TF | 9% | **8** | Near parity with Splink on modeling | Binary and categorical multi-level EM, posterior scoring, null semantics, TF adjustment, config-hashed persistence, bands inferred from the score distribution, an explicit and recorded reference population for `u`, and degenerate-fit detection are all shipped and benchmarked. FS loses to weighted scoring on text and wins on structured multi-field records. Splink still leads on interactive model diagnostics and on proven scale |
 | Blocking breadth and ANN | 8% | **8** | Leader in breadth | Nine exported strategies include native vector ANN and graph embeddings; rules are not learned and several strategies are not wired into the primary pipeline |
 | Active learning | 5% | **5** | Behind Zingg | Verdicts mutate edges/clusters and tune LLM thresholds, but there is no uncertainty-sampled iterative matcher or blocker training loop |
-| Threshold tuning | 6% | **6** | Partial parity | Supervised selection and guarded Otsu are wired; the UI lacks a labelled precision/recall/F1 operating curve and Otsu correctly declines on unimodal product scores |
+| Threshold tuning | 6% | **7** | Partial parity | Supervised selection and guarded unsupervised selection are wired, and comparison bands are placed automatically per field by trough detection, matching label-tuned placement without labels; the UI still lacks a labelled precision/recall/F1 operating curve, and selection correctly declines on unimodal product scores |
 | Cluster QA and repair | 6% | **6** | Partial parity | B-cubed, coherence/bridge analysis, suspect clusters, and repair operations exist; the graph-metric and policy suite is narrower than leaders |
 | Steward Workbench | 7% | **6** | OSS parity; behind MDM | Merge/split/remove, batch verdicts, audit, profiling, thresholds, and survivorship exist; workflow assignment, RBAC, and tenancy do not |
 | Explainability | 5% | **6** | Partial parity | FS waterfall, field evidence, TF effects, and optional graph evidence exist; explanations are not uniformly tied to the production scorer and structured why-not/history is incomplete |
@@ -32,16 +33,16 @@ roadmap intent.
 | Enterprise clustering | 6% | **7** | Near parity architecture | GAE WCC plus multiple local backends and automatic selection are strong; default clustering remains WCC-centric |
 | LLM matcher tier | 5% | **6** | Partial parity | Uncertain-band verification, retries, budgets, and provider abstraction exist; no end-to-end quality/cost/latency benchmark has been published |
 | Privacy and governance | 5% | **5** | Behind | Masking and audit attribution exist but are optional; there is no default PII policy, erasure propagation, RBAC, or tenant isolation |
-| Benchmarks and regression evidence | 6% | **7** | Strong | Public Leipzig results, machine-readable artifacts, B-cubed, and quality floors are substantial; dataset breadth and release-commit reproduction remain limited |
-| Candidate-generation scale | 10% | **4** | Behind | BM25 is monolithic and non-streaming, materializes pairs client-side, and takes ~19 minutes at 66,879 records |
+| Benchmarks and regression evidence | 6% | **8** | Strong | Two public dataset families covering both task shapes (Leipzig linkage, FEBRL deduplication), machine-readable artifacts, B-cubed, quality floors, and published negative results; release-commit reproduction remains limited |
+| Candidate-generation scale | 10% | **6** | Behind | BM25 executes in adaptive chunks sized to a wall-clock budget, verified at 66,879 records against the default client timeout it previously exceeded, with a streaming `iter_candidates()` path available; the batch path still materializes pairs client-side, and nothing above ~67k is evidenced against Splink's 100M+ Spark/Athena claims |
 
-**Weighted total:** 5.8/10, normalized across 102% of stated weights.
+**Weighted total:** 6.3/10, normalized across 102% of stated weights.
 
 ## Competitive position by product
 
 | Comparator | Where this project wins | Where the comparator leads |
 |---|---|---|
-| [Splink](https://moj-analytical-services.github.io/splink/) | Graph context, collective and incremental resolution, native vector/graph execution, steward write workflows, MCP/LLM integration | Mature multi-level Fellegi–Sunter, EM/TF controls and diagnostics, interactive model charts, proven million-record laptop and 100M+ Spark/Athena scale |
+| [Splink](https://moj-analytical-services.github.io/splink/) | Graph context, collective and incremental resolution, native vector/graph execution, steward write workflows, MCP/LLM integration, automatic band placement without labels, and published evidence on both linkage and deduplication task shapes | EM/TF controls and diagnostics, interactive model charts, proven million-record laptop and 100M+ Spark/Athena scale |
 | [Zingg](https://github.com/zinggAI/zingg) | No-label weighted baseline, graph-native evidence, richer analyst UI, transparent benchmark harness, MCP | Learned blocking, uncertainty-driven active learning, Spark-scale matching; incremental production flow is stronger in Enterprise |
 | [Senzing](https://senzing.com/) | Open Python implementation, configurable algorithms, ArangoDB-native deployment and analytics, reproducibility | Real-time entity-centric learning, global identity/relationship intelligence, why/why-not/how explanations, multilingual matching, operational scale into billions |
 | AWS Entity Resolution | Deployment control, transparent scoring, graph context, richer explainability and curation, no managed-service lock-in | Managed real-time rules, incremental ML processing at enterprise scale, operational SLAs and AWS data-plane integration |
@@ -49,7 +50,8 @@ roadmap intent.
 
 ## Measured quality position
 
-The August benchmark demonstrates credible but uneven matching quality:
+The benchmarks demonstrate credible but **uneven and shape-dependent** matching
+quality. On **linkage** tasks over free text (Leipzig), unsupervised:
 
 - **DBLP-ACM:** pairwise F1 **0.937**, B-cubed F1 **0.977**.
 - **DBLP-Scholar:** pairwise F1 **0.840**, B-cubed F1 **0.987** over
@@ -59,12 +61,35 @@ The August benchmark demonstrates credible but uneven matching quality:
 - **Amazon-Google:** pairwise F1 **0.488**, approximately level with the cited
   Magellan supervised baseline and behind deep/PLM approaches.
 
-The honest conclusion is that the current weighted matcher is competitive on
-structured/bibliographic data and credible on noisy products without labels,
-but it is not a SOTA product matcher. The current FS implementation is also not
-yet the answer: it scores **0.868 / 0.117 / 0.127** on DBLP-ACM, Abt-Buy, and
-Amazon-Google versus **0.937 / 0.541 / 0.488** for weighted similarity. Learned
-multi-level comparison categories are the binding quality improvement.
+On **deduplication** tasks over structured person records (FEBRL), unsupervised:
+
+- **febrl1** (1,000 records): Fellegi–Sunter pairwise F1 **1.000**, B-cubed
+  **1.0000**, against weighted similarity's 0.997 / 0.9985.
+- **febrl3** (5,000 records, clusters of 1–6 including 835 singletons):
+  Fellegi–Sunter pairwise F1 **0.9995**, B-cubed **0.9993**, against weighted
+  similarity's 0.991 / 0.9935. The result holds with the identifier field
+  dropped (0.9975 vs 0.979), so it is not an artifact of one giveaway column.
+
+The honest conclusion has changed since August 6, and in the project's favour.
+The earlier version of this section stated that "the current FS implementation is
+also not yet the answer", citing 0.868 / 0.117 / 0.127 on the text datasets, and
+named learned multi-level categories as the binding improvement. Those categories
+have since been built, benchmarked, and — on text — found to close most of the
+gap without crossing it. The larger finding came from adding a second task shape:
+
+**Neither scoring method is the answer; the data shape decides, and it is
+knowable in advance.** Weighted similarity wins on free text, Fellegi–Sunter wins
+decisively on structured multi-field records, and the deciding variable is the
+spread in per-field chance agreement — the sum of each field's squared value
+frequencies — which requires no labels to compute. Publishing a rule for choosing
+a matcher, rather than a single recommended matcher, is a position few
+comparators state at all.
+
+Two caveats hold this short of a SOTA claim. The project is still not a SOTA
+product matcher on noisy e-commerce text. And counter-intuitively, *binary* FS
+beat multi-level FS on the structured data, which means the more elaborate
+comparison model is not uniformly better and the library cannot yet auto-select
+between them.
 
 ## SOTA claims the project can defend
 
@@ -79,15 +104,28 @@ multi-level comparison categories are the binding quality improvement.
    verification.
 4. **Unusually honest quality evidence.** The benchmark publishes poor as well
    as strong results, reports blocking recall and entity-level metrics, and
-   documents the measured scaling failure.
+   documents its own failures and reversals: the scaling failure and its fix, a
+   statistically superior matcher losing to a simpler one on text, and a
+   theoretically correct parameter change that had to be rejected because it
+   measured worse at the shipped operating point.
+5. **A published rule for choosing a matcher, not just a matcher.** The
+   condition under which the probabilistic path beats the weighted one is stated
+   as a measurable property of the data and validated on both task shapes.
+   Comparators generally ship a default and leave the question unaddressed.
 
 ## Claims the project should not make yet
 
-- Overall best-in-class or SOTA matching accuracy.
-- Splink-equivalent probabilistic matching before categorical multi-level EM is
-  trained, persisted, wired, and benchmarked.
-- Million-record or real-time candidate-generation scale from the current BM25
-  path.
+- Overall best-in-class or SOTA matching accuracy, particularly on noisy
+  e-commerce text.
+- Splink-equivalent probabilistic **tooling**. The modeling is now comparable —
+  categorical multi-level EM is trained, persisted, wired, and benchmarked — but
+  Splink's interactive diagnostics and its demonstrated scale are not matched.
+- Million-record or real-time candidate-generation scale. Adaptive chunking is
+  verified to 66,879 records; beyond that there is no evidence, and the batch
+  path still materializes pairs client-side.
+- Automatic selection between scoring methods or between binary and multi-level
+  comparisons. The *rule* for choosing is now measured and documented, but the
+  library does not yet apply it for the user.
 - Enterprise MDM readiness before RBAC, tenant isolation, immutable audit,
   deployment packaging, telemetry, and lifecycle operations exist.
 - Production GraphSAGE/GNN matching; current graph embeddings are a bounded
@@ -95,21 +133,30 @@ multi-level comparison categories are the binding quality improvement.
 
 ## Highest-leverage moves
 
-1. **Finish multi-level Fellegi–Sunter end to end:** comparison-level
-   configuration, categorical EM, persistence, production model loading, and
-   benchmark ratchets.
-2. **Stream candidate generation:** chunk BM25 source records, consume a
-   streaming Arango cursor, deduplicate incrementally, and add memory/throughput
-   gates at 50k–1M records.
-3. **Close the active-learning loop:** select uncertain/diverse pairs, train
+The August 6 list led with finishing multi-level Fellegi–Sunter and streaming
+candidate generation. Both are done, which is what moved this scorecard from 5.8
+to 6.3. The remaining list is reordered accordingly.
+
+1. **Auto-select the scoring configuration.** The rule is measured — per-field
+   chance-agreement spread predicts whether Fellegi–Sunter or weighted
+   similarity wins, and structured data favours binary over multi-level
+   comparisons. Profile the collection and recommend (or default to) the right
+   configuration instead of leaving it to the user to read a benchmark document.
+2. **Close the active-learning loop:** select uncertain/diverse pairs, train
    from adjudications, compare lift per label, and expose the loop in the
-   Workbench.
-4. **Broaden automatic cluster repair:** build on the existing coherence and
+   Workbench. This is the largest remaining gap against Zingg.
+3. **Push candidate generation past 67k:** consume the streaming iterator in the
+   batch path so pairs are not materialised client-side, then add memory and
+   throughput gates at 100k–1M records.
+4. **Productize operations and governance:** container, telemetry, RBAC,
+   tenant/source policies, immutable audit, and erasure propagation. This is now
+   the single largest weighted drag on the score.
+5. **Broaden automatic cluster repair:** build on the existing coherence and
    bridge-edge repair path with hard-identifier vetoes and benchmarked policies.
-5. **Benchmark the LLM cascade:** accuracy lift, latency, token usage, and cost
+6. **Benchmark the LLM cascade:** accuracy lift, latency, token usage, and cost
    per accepted match on the noisy product datasets.
-6. **Productize operations and governance:** container, telemetry, RBAC,
-   tenant/source policies, immutable audit, and erasure propagation.
+7. **Add interactive model diagnostics** to close the remaining Splink gap now
+   that the underlying modeling is comparable.
 
 ## Sources and comparison boundary
 
