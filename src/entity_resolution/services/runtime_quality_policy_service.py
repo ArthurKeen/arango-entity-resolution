@@ -15,7 +15,7 @@ from typing import Any, Dict
 class RuntimeQualityPolicyService:
     """Validate runtime quality policy files used by CI workflows."""
 
-    REQUIRED_PROFILES = ("linux-cpu", "apple-silicon", "linux-gpu")
+    REQUIRED_PROFILES = ("linux-cpu", "apple-silicon", "linux-gpu", "windows-cpu")
     REQUIRED_PATH_FIELDS = ("quality_corpus", "quality_baseline_metrics")
     REQUIRED_NUMERIC_FIELDS = (
         "quality_batch_size",

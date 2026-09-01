@@ -30,6 +30,16 @@
       "quality_batch_size": 16,
       "quality_cosine_drift_max": 0.2,
       "quality_topk_overlap_min": 0.5
+    },
+    "windows-cpu": {
+      "label": "ci-windows-cpu",
+      "quality_corpus": "ci/runtime-quality/corpus/runtime_quality_corpus.json",
+      "quality_baseline_metrics": "ci/runtime-quality/baselines/windows-cpu.json",
+      "quality_model_name": "all-MiniLM-L6-v2",
+      "quality_device": "cpu",
+      "quality_batch_size": 16,
+      "quality_cosine_drift_max": 0.12,
+      "quality_topk_overlap_min": 0.8
     }
   }
 }
