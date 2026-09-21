@@ -256,3 +256,88 @@ class TestFixedU:
         )
         assert res.u["name"] == pytest.approx(0.03)
         assert res.u["city"] == pytest.approx(0.2)
+
+
+class TestDegenerateBinaryFit:
+    """An unusable binary fit must be reported, not returned silently.
+
+    Blocking exists to enrich candidates with matches, but candidates remain
+    overwhelmingly non-matches, so a match prior near 1.0 is impossible by
+    construction. When ``u`` is held fixed the usual label-switch correction
+    cannot fire — swapping would discard the measured values — so a fit that has
+    not separated the classes surfaces as exactly that implausible prior.
+
+    Measured on FEBRL dataset3 with u from random pairs: lambda converged to
+    ~0.99 across four consecutive runs and the resulting model scored pairwise
+    F1 0.236 with B-cubed 0.0014, while nothing anywhere warned. The categorical
+    path had carried this guard since it was first hit there; the binary path had
+    not, which is why a published benchmark row claiming 0.9995 was in fact a
+    model that had collapsed.
+    """
+
+    @staticmethod
+    def _match_dense_gamma(n_pairs: int = 60) -> np.ndarray:
+        """Agreement so uniform that EM can only explain it as one class."""
+        return np.ones((n_pairs, 3), dtype=float)
+
+    def test_implausible_prior_is_flagged(self):
+        res = estimate_mu(self._match_dense_gamma(), ["a", "b", "c"],
+                          fixed_u=[0.001, 0.001, 0.001])
+
+        assert res.lambda_ > 0.5
+        assert res.warning is not None, (
+            "a match prior above 0.5 over blocked candidates is impossible by "
+            "construction and must not be returned without a warning"
+        )
+        assert "match prior" in res.warning
+
+    def test_parameters_are_still_returned(self):
+        """Flag it, don't raise: the caller may be scoring a match-dense set."""
+        res = estimate_mu(self._match_dense_gamma(), ["a", "b", "c"],
+                          fixed_u=[0.001, 0.001, 0.001])
+
+        assert set(res.m) == {"a", "b", "c"}
+        assert np.isfinite(res.log_likelihood)
+
+    def test_healthy_fit_carries_no_warning(self):
+        """The guard must not cry wolf on an ordinary fit."""
+        gamma = np.array([[1.0, 1.0, 1.0]] * 5 + [[0.0, 0.0, 0.0]] * 25)
+
+        res = estimate_mu(gamma, ["a", "b", "c"], fixed_u=[0.05, 0.05, 0.05])
+
+        assert res.lambda_ <= 0.5
+        assert res.warning is None
+
+    def test_warning_survives_to_dict(self):
+        """It has to reach the persisted document to be worth anything."""
+        res = estimate_mu(self._match_dense_gamma(), ["a", "b", "c"],
+                          fixed_u=[0.001, 0.001, 0.001])
+
+        assert res.to_dict()["warning"] == res.warning
+
+    def test_realistic_candidate_population_is_not_flagged(self):
+        """The guard must stay quiet on the shape real blocking produces.
+
+        Blocked candidates are non-match dominant, so a sound fit lands well
+        below the bound and nothing should warn.
+        """
+        gamma = np.array([[1.0, 1.0, 1.0]] * 5 + [[0.0, 0.0, 0.0]] * 25)
+
+        res = estimate_mu(gamma, ["a", "b", "c"])
+
+        assert res.lambda_ <= 0.5
+        assert res.warning is None
+
+    def test_guard_is_not_conditional_on_fixed_u(self):
+        """An implausible prior is implausible however it was reached.
+
+        Jointly-estimated u can also land above the bound once the swap has
+        declined to fire, and the requirement is about the prior, not about
+        which estimation route produced it.
+        """
+        gamma = np.array([[1.0, 1.0, 1.0]] * 25 + [[0.0, 0.0, 0.0]] * 5)
+
+        res = estimate_mu(gamma, ["a", "b", "c"])
+
+        assert res.lambda_ > 0.5
+        assert res.warning is not None

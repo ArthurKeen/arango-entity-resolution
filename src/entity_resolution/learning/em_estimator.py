@@ -52,6 +52,9 @@ class EMResult:
     converged: bool
     n_pairs: int
     log_likelihood: float
+    #: Set when the fit is unusable on its face. The parameters are still
+    #: returned, but a caller must be able to tell an unfit model from a fit one.
+    warning: Optional[str] = None
 
     def to_dict(self) -> Dict[str, object]:
         return {
@@ -59,6 +62,7 @@ class EMResult:
             "m": dict(self.m),
             "u": dict(self.u),
             "lambda": self.lambda_,
+            "warning": self.warning,
             "iterations": self.iterations,
             "converged": self.converged,
             "n_pairs": self.n_pairs,
@@ -535,9 +539,26 @@ def estimate_mu(
     # Resolve label switching: the match class must be the higher-agreement one.
     # Skipped when u was supplied — swapping would discard the measured values
     # and hand back an m that was never estimated as one.
+    warning: Optional[str] = None
     if fixed_u is None and float(np.mean(m)) < float(np.mean(u)):
         m, u = u, m
         lam = 1 - lam
+    elif lam > _MAX_PLAUSIBLE_MATCH_PRIOR:
+        # Same failure the categorical path guards against, and it reaches this
+        # path by the same route: with u held fixed the swap above cannot fire,
+        # so a fit that has not separated the classes surfaces as an implausible
+        # prior instead. Measured on FEBRL dataset3 with u from random pairs,
+        # lambda converged to 0.99 across four runs — EM declaring 99% of blocked
+        # candidate pairs to be matches, which blocking makes impossible by
+        # construction — and the model scored F1 0.236 with B-cubed 0.0014.
+        # It went unnoticed for exactly as long as this branch did not exist.
+        warning = (
+            f"match prior converged to {lam:.4f}, above the plausible bound "
+            f"{_MAX_PLAUSIBLE_MATCH_PRIOR}: the supplied fixed u probably does "
+            "not describe this pair population, so the two classes have not "
+            "separated. Treat these parameters as unfit."
+        )
+        logger.warning("Degenerate EM fit — %s", warning)
 
     return EMResult(
         fields=list(field_names),
@@ -548,6 +569,7 @@ def estimate_mu(
         converged=converged,
         n_pairs=int(n_pairs),
         log_likelihood=ll,
+        warning=warning,
     )
 
 
