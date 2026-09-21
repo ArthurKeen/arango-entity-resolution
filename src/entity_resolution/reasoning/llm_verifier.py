@@ -28,6 +28,22 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+#: Response budget for a single verdict, in tokens.
+#:
+#: This was 256, which silently destroyed verdicts. The model answers with JSON
+#: whose ``reasoning`` field is free text, and a model that explains itself at
+#: any length runs past the cap mid-string. The truncated JSON then fails to
+#: parse, the verdict is discarded, and the pair is routed to human review as if
+#: the model had never been asked. Measured on 200 ambiguous Amazon-Google pairs:
+#: google/gemini-3.8-flash lost 57 of 200 verdicts (28%) at 256 tokens and 1 of
+#: 200 at 1024. Terse models were unaffected (claude-opus-5 lost 5, llama3.1:8b
+#: none), so the failure is invisible unless a verbose model is tried.
+_DEFAULT_MAX_RESPONSE_TOKENS = 1024
+
+#: Floor below which a complete verdict cannot be expressed. decision +
+#: confidence + even a one-clause reason needs roughly this much.
+_MIN_RESPONSE_TOKENS = 64
+
 # Tolerant of empty/nested/`json`-tagged fenced blocks (the old split("```")[1]
 # crashed on a single or empty fence).
 _FENCE_RE = re.compile(r"```(?:json)?\s*(.*?)```", re.DOTALL)
@@ -92,6 +108,7 @@ class LLMMatchVerifier:
         max_cost_usd: Optional[float] = None,
         max_calls: Optional[int] = None,
         mask_fields: Optional[List[str]] = None,
+        max_response_tokens: int = _DEFAULT_MAX_RESPONSE_TOKENS,
     ) -> None:
         self.model = model or os.getenv("OPENROUTER_MODEL", "openrouter/google/gemini-2.0-flash")
         self.low_threshold = low_threshold
@@ -100,6 +117,14 @@ class LLMMatchVerifier:
         self.api_key = api_key or os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
         self.base_url = base_url
         self.timeout_seconds = timeout_seconds
+        #: Response budget for one verdict. See _DEFAULT_MAX_RESPONSE_TOKENS.
+        if max_response_tokens < _MIN_RESPONSE_TOKENS:
+            raise ValueError(
+                f"max_response_tokens must be at least {_MIN_RESPONSE_TOKENS}; "
+                f"a smaller budget truncates the verdict JSON and the answer is "
+                f"discarded as unparseable"
+            )
+        self.max_response_tokens = max_response_tokens
 
         # Cost controls (None = unbounded).
         self.max_cost_usd = max_cost_usd
@@ -387,7 +412,7 @@ class LLMMatchVerifier:
         kwargs: Dict[str, Any] = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 256,
+            "max_tokens": self.max_response_tokens,
             "temperature": 0.1,
             "timeout": self.timeout_seconds,
         }

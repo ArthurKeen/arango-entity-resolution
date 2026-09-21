@@ -204,3 +204,96 @@ class TestLLMHardening:
         est = v.estimate_cost(num_pairs=100)
         assert est["num_pairs"] == 100
         assert "cost_usd" in est
+
+
+class TestResponseBudget:
+    """The response budget must fit a verdict a verbose model actually writes.
+
+    This was hardcoded at 256 tokens. The verdict is JSON whose ``reasoning``
+    field is free text, so a model that explains itself at length runs past the
+    cap mid-string, the truncated JSON fails to parse, and the verdict is thrown
+    away — the pair is routed to human review as though the model was never
+    asked. Measured on 200 ambiguous Amazon-Google pairs: gemini-3.8-flash lost
+    57 of 200 verdicts (28%) at 256 tokens and 1 of 200 at 1024.
+
+    It was invisible because terse models don't trigger it — claude-opus-5 lost
+    5 and a local llama3.1:8b lost none. Only a verbose model exposes it, which
+    is why these tests simulate truncation rather than asserting a constant.
+    """
+
+    def _verifier(self, **kwargs):
+        from entity_resolution.reasoning.llm_verifier import LLMMatchVerifier
+        return LLMMatchVerifier(model="test/model", api_key="test-key", **kwargs)
+
+    @staticmethod
+    def _truncating_completion(reasoning_chars: int):
+        """A fake boundary that truncates like a real one: at max_tokens.
+
+        Roughly four characters per token, which is the usual English ratio and
+        close enough to reproduce the failure at the boundary that matters.
+        """
+        def _complete(**kwargs):
+            body = json.dumps({
+                "decision": "match",
+                "confidence": 0.9,
+                "reasoning": "x" * reasoning_chars,
+            })
+            budget_chars = int(kwargs["max_tokens"]) * 4
+            resp = MagicMock()
+            resp.choices[0].message.content = body[:budget_chars]
+            return resp
+        return _complete
+
+    @patch("entity_resolution.reasoning.llm_verifier.litellm")
+    def test_verbose_verdict_survives_the_default_budget(self, mock_litellm):
+        """The regression: a long but legitimate verdict must still parse."""
+        mock_litellm.completion.side_effect = self._truncating_completion(1500)
+        v = self._verifier(low_threshold=0.55, high_threshold=0.80)
+
+        result = v.verify(RECORD_A, RECORD_B, score=0.70)
+
+        assert result["decision"] == "match", (
+            "a verbose verdict was truncated and discarded; the response budget "
+            "is too small for the JSON the model actually returns"
+        )
+        assert result.get("needs_review") is not True
+
+    @patch("entity_resolution.reasoning.llm_verifier.litellm")
+    def test_a_too_small_budget_really_does_destroy_the_verdict(self, mock_litellm):
+        """Proves the test above is load-bearing rather than vacuously green.
+
+        With the old 256-token budget the same response is lost, so the
+        simulation reproduces the measured failure instead of merely passing.
+        """
+        mock_litellm.completion.side_effect = self._truncating_completion(1500)
+        v = self._verifier(low_threshold=0.55, high_threshold=0.80,
+                           max_response_tokens=256)
+
+        result = v.verify(RECORD_A, RECORD_B, score=0.70)
+
+        assert result["decision"] == "error"
+        assert result["needs_review"] is True
+
+    @patch("entity_resolution.reasoning.llm_verifier.litellm")
+    def test_request_carries_the_configured_budget(self, mock_litellm):
+        """The setting must reach the provider, not just be stored."""
+        mock_litellm.completion.side_effect = self._truncating_completion(20)
+        v = self._verifier(low_threshold=0.55, high_threshold=0.80,
+                           max_response_tokens=2048)
+
+        v.verify(RECORD_A, RECORD_B, score=0.70)
+
+        assert mock_litellm.completion.call_args.kwargs["max_tokens"] == 2048
+
+    def test_budget_below_the_floor_is_rejected(self):
+        """A budget too small for any verdict is a configuration error.
+
+        Failing at construction beats discovering it as a mysterious stream of
+        'unparseable output' warnings in production.
+        """
+        with pytest.raises(ValueError, match="max_response_tokens"):
+            self._verifier(max_response_tokens=16)
+
+    def test_default_budget_is_not_the_broken_value(self):
+        v = self._verifier()
+        assert v.max_response_tokens >= 512
