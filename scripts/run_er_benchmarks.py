@@ -458,7 +458,7 @@ def _create_view(db, view: str, collection: str, analyzer: str = "text_en") -> N
         properties={
             "links": {
                 collection: {
-                    "fields": {"text": {"analyzers": [analyzer]}},
+                    "fields": {f: {"analyzers": [analyzer]} for f in ("text", "title", "body")},
                     "includeAllFields": False,
                 }
             }
@@ -489,7 +489,7 @@ def generate_candidates(
         db=db,
         collection=collection,
         search_view=view,
-        search_field="text",
+        search_field=getattr(args, "blocking_field", None) or "text",
         bm25_threshold=args.bm25_threshold,
         limit_per_entity=args.limit_per_entity,
     )
@@ -1007,6 +1007,14 @@ def main() -> int:
     )
     parser.add_argument("--database", default="er_benchmarks")
     parser.add_argument("--analyzer", default="text_en")
+    parser.add_argument(
+        "--blocking-field", default="text",
+        help=(
+            "Field BM25 blocking searches. Default 'text' concatenates title "
+            "and body; on datasets with long descriptions that drowns the title, "
+            "so 'title' can give strictly better recall with fewer pairs."
+        ),
+    )
     parser.add_argument("--bm25-threshold", type=float, default=1.0)
     parser.add_argument("--limit-per-entity", type=int, default=20)
     parser.add_argument(

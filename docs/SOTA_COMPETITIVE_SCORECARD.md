@@ -63,12 +63,19 @@ quality. On **linkage** tasks over free text (Leipzig), unsupervised:
 
 On **deduplication** tasks over structured person records (FEBRL), unsupervised:
 
-- **febrl1** (1,000 records): Fellegi–Sunter pairwise F1 **1.000**, B-cubed
-  **1.0000**, against weighted similarity's 0.997 / 0.9985.
+- **febrl1** (1,000 records): Fellegi–Sunter pairwise F1 **0.999**, B-cubed
+  **0.999**, against weighted similarity's 0.998 / 0.999.
 - **febrl3** (5,000 records, clusters of 1–6 including 835 singletons):
-  Fellegi–Sunter pairwise F1 **0.9995**, B-cubed **0.9993**, against weighted
-  similarity's 0.991 / 0.9935. The result holds with the identifier field
-  dropped (0.9975 vs 0.979), so it is not an artifact of one giveaway column.
+  Fellegi–Sunter pairwise F1 **0.9953**, B-cubed **0.9986**, against weighted
+  similarity's 0.9936 / 0.9963. Close at the best threshold — the decisive gap is
+  at the shipped default, **0.9953 against 0.547**, because FS posteriors are
+  calibrated and a uniform weighted average over ten corrupted fields is not. The
+  result holds with the identifier field dropped (0.979 vs 0.443 at that default),
+  so it is not an artifact of one giveaway column.
+- Both figures are from FS with **comparison levels**. The binary model collapses
+  on these two datasets to an unfit solution and is now flagged as such. An
+  earlier version of this section cited the binary row at 0.9995; that number was
+  wrong and has been withdrawn.
 
 The honest conclusion has changed since August 6, and in the project's favour.
 The earlier version of this section stated that "the current FS implementation is

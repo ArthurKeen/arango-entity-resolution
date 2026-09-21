@@ -84,9 +84,11 @@ Since the August 6 evaluation:
   hand-placed against labels.
 - A second benchmark family (FEBRL deduplication) settled a claim the docs had
   been asserting without evidence: the probabilistic matcher wins decisively on
-  structured multi-field records (febrl3 pairwise F1 0.9995 vs 0.991), the
-  reverse of its result on text. Which matcher applies is now predictable in
-  advance from the spread in per-field chance agreement, without labels.
+  structured multi-field records — decisively at the shipped threshold (febrl3
+  0.9953 vs 0.547), narrowly at the best swept one — the reverse of its result on
+  text. Which matcher applies is now predictable in advance from the spread in
+  per-field chance agreement, without labels. The first published version of that
+  table was wrong and has been withdrawn; see docs/BENCHMARKS.md.
 - Candidate generation is adaptively chunked, closing the P0 scale constraint at
   the 67k scale that previously failed outright.
 - Two correctness properties were discovered by measurement and made explicit:
@@ -138,8 +140,9 @@ register can be read as a history rather than only a snapshot.
   and benchmark ratchets are all shipped and measured. The accompanying claim
   that "binary FS remains materially worse than weighted similarity" was true
   only of text-heavy data and is now stated conditionally: on structured
-  multi-field records the ordering reverses, and binary FS beats both weighted
-  similarity and multi-level FS there.
+  multi-field records the ordering reverses. The winning configuration there is
+  FS with comparison levels, not the binary model, which collapses to an unfit
+  solution on two of the three FEBRL datasets.
 
 ## Release-readiness decision
 

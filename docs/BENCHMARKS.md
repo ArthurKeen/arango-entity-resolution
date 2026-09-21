@@ -168,8 +168,10 @@ with it, P 0.796 / R 0.955.
 - **FS earns its place on structured, multi-field records** — identifiers, dates,
   codes, postal fields — where exact agreement is meaningful. This began as a
   conjecture with no evidence behind it, since every dataset above compares two
-  free-text fields. It has since been tested on FEBRL person records and holds
-  decisively: see [Structured multi-field records](#structured-multi-field-records-where-fellegi-sunter-wins).
+  free-text fields. It has since been tested on FEBRL person records and holds —
+  decisively at the shipped threshold, narrowly at the best swept one, and only
+  with comparison levels: see
+  [Structured multi-field records](#structured-multi-field-records-where-fellegi-sunter-wins).
 - **Multi-level comparisons are the binding constraint, not a refinement.**
   Splink-style levels (exact / fuzzy-close / else, each with its own m/u) let FS
   keep the gradation it otherwise discards. They have since been implemented and
@@ -353,49 +355,78 @@ not have, and would confound the comparison being made.
 
 | Dataset | Matcher | Pairwise F1 | F1 at default 0.8 | Entity F1 (B-cubed) |
 |---|---|---|---|---|
-| febrl1 | weighted | 0.997 | 0.988 | 0.9985 |
-| febrl1 | **FS binary** | **1.000** | **1.000** | **1.0000** |
-| febrl1 | FS multi-level | 1.000 | 1.000 | 1.0000 |
-| febrl3 | weighted | 0.991 | 0.965 | 0.9935 |
-| febrl3 | **FS binary** | **0.9995** | **0.9985** | **0.9993** |
-| febrl3 | FS multi-level | 0.991 | 0.989 | 0.9940 |
-| febrl3-noid | weighted | 0.979 | 0.954 | 0.9836 |
-| febrl3-noid | **FS binary** | **0.9975** | **0.9939** | **0.9974** |
-| febrl3-noid | FS multi-level | 0.982 | 0.981 | 0.9905 |
+| febrl1 | weighted | 0.998 | 0.759 | 0.999 |
+| febrl1 | **FS binary** | **0.999** | **0.998** | **0.999** |
+| febrl1 | FS multi-level | 0.987 | 0.985 | 0.9945 |
+| febrl3 | weighted | 0.9936 | 0.547 | 0.9963 |
+| febrl3 | FS binary | *0.236 — UNFIT* | *0.190* | *0.0014* |
+| febrl3 | **FS multi-level** | **0.9953** | **0.9953** | **0.9986** |
+| febrl3-noid | weighted | 0.9813 | 0.443 | 0.9928 |
+| febrl3-noid | FS binary | *0.190 — UNFIT* | *0.190* | *0.0014* |
+| febrl3-noid | **FS multi-level** | **0.9802** | **0.9790** | **0.9918** |
+
+Every row is reproducible with one command; the three matchers are
+`--scoring-method weighted_heuristic`, `--scoring-method fellegi_sunter`, and
+`--scoring-method fellegi_sunter --comparison-levels auto` respectively. Bands
+are inferred per field from the score distribution, never hand-placed, so nothing
+here is tuned against the labels.
 
 Blocking recall is 1.000 on all three, so nothing here is capped by candidate
 generation. febrl1 is 1,000 records in 500 two-record clusters; febrl3 is 5,000
 records over 2,000 entities with clusters of 1-6 **including 835 singletons**,
 which punish over-merging in a way uniform two-record clusters cannot.
 
-**Fellegi-Sunter wins, and by more than the gap it lost by on the text datasets.**
-At the shipped default threshold — the number a user actually gets — febrl3 goes
-0.965 to 0.9985, closing 96% of the remaining error.
+> **An earlier version of this table was wrong and has been withdrawn.** It
+> reported febrl3 FS binary as 0.9995 / 0.9985 / 0.9993 — the row the whole
+> section rested on — and both weighted rows' "F1 at default 0.8" as 0.988 and
+> 0.965. Re-measurement produced 0.236 / 0.190 / 0.0014 and 0.759 / 0.547. The
+> binary figure was a model that had silently collapsed (see below); the weighted
+> figures are not reproducible by any configuration found. Five of nine rows
+> changed. The conclusion changed with them.
+
+**Fellegi-Sunter still wins on structured records — through comparison levels,
+not the binary model.** That is the reverse of what this document previously
+claimed.
+
+**And the win is robustness to the operating point, not peak accuracy.** At the
+best swept threshold the two matchers are close, and on `febrl3-noid` weighted is
+fractionally ahead (0.9813 vs 0.9802). At the shipped 0.8 default — the number a
+user actually gets without tuning — FS multi-level scores 0.9953 against 0.547 on
+febrl3, and 0.979 against 0.443 on febrl3-noid. Uniform weighted averaging over
+ten corrupted fields puts true matches around 0.5-0.6, so a 0.8 cutoff discards
+most of them; FS posteriors are calibrated and saturate near 1, so the same cutoff
+costs almost nothing. The value on offer is a matcher that does not require you to
+find the threshold first.
 
 `febrl3-noid` exists because `soc_sec_id` behaves like a primary key, and a
-headline claim should not rest on one. Dropping it costs FS 0.002 F1 and the
-ordering is unchanged, so the result is not an artifact of a de facto identifier.
+headline claim should not rest on one. Dropping it costs FS multi-level 0.015 F1
+at the default and the ordering is unchanged, so the result is not an artifact of
+a de facto identifier.
 
-### Two findings that invert the earlier advice
+### Binary Fellegi-Sunter is fragile here, and now says so
 
-**Binary beats multi-level here — the exact reverse of the text datasets.** On
-Abt-Buy, binarising collapsed FS to 0.117 F1 and comparison levels were a 4.3x
-repair. On febrl3 binary is the *best* configuration and levels cost 0.008. Both
-results have the same explanation: one cutoff is only destructive when the
-comparator's output is a continuum with no meaningful exact-agreement point. Names,
-dates, postcodes and identifiers agree exactly or not at all, so a cutoff loses
-almost nothing — and auto-placed bands actively hurt, because Jaro-Winkler is
-generous enough that unrelated names routinely exceed 0.6 and land in a high band.
+On febrl3 and febrl3-noid the binary model **collapses**: EM converges to a match
+prior of ~0.99, declaring almost every blocked candidate pair a match, which
+blocking makes impossible by construction. Four consecutive runs gave 0.991,
+0.9914, 0.9905 and 0.9893 — consistently degenerate, not a seed-dependent fluke.
+The resulting model scores F1 0.236 with B-cubed 0.0014.
 
-**The random-pair `u` option produces a degenerate model here, and now says so.**
-On febrl3 with measured `u`, EM converged to a match prior of **0.930** against
-0.099 for the same data estimated jointly, scoring F1 0.26 with B-cubed 0.001.
-Holding `u` fixed removes label-switch resolution as an escape route, so a `u`
-that does not describe the pair population surfaces as an absurd prior instead.
-`estimate_categorical_mu` now flags any fixed-`u` fit whose prior exceeds 0.5,
-persists the warning on the model as `fit_warning`, and the harness prints
-`!! UNFIT MODEL`. The parameters are still returned — a caller may genuinely be
-scoring a match-dense population — but they are no longer returned silently.
+The mechanism is label switching. Binary estimation defaults to `u` measured on
+random pairs, and holding `u` fixed removes the usual swap correction as an
+escape route, so a `u` that does not describe the pair population surfaces as an
+absurd prior instead. It works on febrl1 — 500 clean two-record clusters — and
+fails on the harder datasets.
+
+`estimate_mu` now flags any fit whose prior exceeds 0.5, persists it on the model
+as `fit_warning`, and the harness prints `!! UNFIT MODEL`. The categorical path
+has carried this guard since the failure was first seen there; the binary path
+did not, which is exactly how a collapsed model reached a published table. The
+parameters are still returned — a caller may genuinely be scoring a match-dense
+population — but they are no longer returned silently.
+
+The practical consequence: **prefer comparison levels on structured data.** They
+are not merely an alternative to the binary model here, they are the configuration
+that reliably fits at all.
 
 ### The rule this yields
 
@@ -404,8 +435,8 @@ that spread is measurable before choosing a matcher.** Compute each field's chan
 agreement (the sum of its squared value frequencies — no labels needed):
 
 - **Wide spread** (structured records: identifiers, dates, codes, postal fields)
-  → FS, and prefer the binary model. Weighted averaging cannot express what the
-  data is telling you.
+  → FS with comparison levels. Weighted averaging cannot express what the data is
+  telling you, and the binary model does not reliably fit on this shape.
 - **Narrow spread** (two or three free-text fields where chance agreement is
   uniformly negligible) → weighted similarity, and reach for comparison levels
   only if you need FS's calibrated posterior or evidence decomposition.
