@@ -32,6 +32,10 @@ test-quality: ## Run the matching-quality regression gate (F1 floors)
 lint: ## Run flake8 linter (full, advisory)
 	flake8 --max-line-length=120 src/ tests/
 
+check-scorecards: ## Advisory: scorecard arithmetic, staleness, and quoted facts
+	python3 scripts/check_scorecard.py --measure; \
+	  rc=$$?; if [ $$rc -eq 1 ]; then echo "scorecard arithmetic is wrong"; exit 1; fi; exit 0
+
 lint-critical: ## Blocking lint: syntax errors and undefined names only
 	flake8 --select=E9,F63,F7,F82 --show-source src/ tests/
 

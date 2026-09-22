@@ -1,19 +1,21 @@
 # Project Health Scorecard
 
-**Evaluated:** August 25, 2026  
+**Evaluated:** September 22, 2026  
 **Release baseline:** `v3.8.0` plus committed post-release work  
 **Assessment scope:** released code plus committed, gate-passing work on `main`  
-**Overall health:** **7.8/10 — B**
+**Overall health:** **7.7/10 — B**
 
 This is the current operational scorecard. The June 2026 reviews remain useful
 as historical baselines, but their security, matching, UI, and graph-feature
 findings no longer describe the current system.
 
-Movement since the August 6 evaluation is concentrated in three dimensions —
-matching quality, performance, and documentation — because that is where the
-work went. Security, Workbench, maintainability, and operations are unchanged
-and remain the binding constraints; the overall score moves only 0.2 as a
-result.
+The September 22 re-evaluation moves the score **down** 0.1, and that is the
+scorecard working as intended. A published benchmark table was found to have five
+of nine rows wrong, including the headline, and the README carried a quality claim
+that measurement contradicts. Both were corrected properly — the withdrawn figures
+are named in the documents — but the lapse is a documentation-discipline fact and
+is scored as one. Correctness improved in the same period: two real defects were
+found by measurement and fixed with mutation-tested regressions.
 
 ## Scoring method
 
@@ -24,23 +26,23 @@ score is weighted by impact on correctness, trust, and production use.
 | Dimension | Weight | Score | Current evidence |
 |---|---:|---:|---|
 | Architecture and core design | 12% | **9.0** | Config-driven pipeline, pluggable blocking and clustering, shared services behind CLI/MCP/UI, native ArangoDB graph/vector paths |
-| Correctness and reliability | 12% | **8.8** | Binding human verdicts, null-safe scoring, configuration-hashed model loading, strict known-defect and conformance gates; a degenerate parameter fit is now flagged on the model rather than returned silently |
-| Tests and mechanical verification | 12% | **8.7** | `make verify`: 1,779 passed, 8 skipped, 75.34% coverage against a 72% floor; matching-quality and wiring gates are blocking; new estimator tests were mutation-checked (each reverts to red when the defect is reintroduced) |
+| Correctness and reliability | 12% | **8.8** | Binding human verdicts, null-safe scoring, configuration-hashed model loading, strict known-defect and conformance gates; a degenerate parameter fit is flagged on both estimation paths rather than returned silently; the LLM verifier's response budget no longer truncates verbose verdicts. Both of those were shipped defects found by measurement this cycle, which is why the score holds rather than rises |
+| Tests and mechanical verification | 12% | **8.7** | `make verify`: 1,790 passed, 8 skipped, 75.37% coverage against a 72% floor; matching-quality and wiring gates are blocking; every regression test added this cycle was mutation-checked against the reversion it guards. Gates cover code, not prose — see risk 6 |
 | Security and privacy | 12% | **7.0** | Optional API/WebSocket auth and rate limiting, AQL hardening, SPA containment, secret scan, and optional LLM masking; secure deployment still depends on configuration |
-| Matching quality and evaluation | 12% | **8.4** | Two public benchmark families covering both task shapes (Leipzig linkage, FEBRL deduplication), B-cubed metrics, multi-level Fellegi–Sunter learned end to end with bands inferred from the score distribution, an explicit and recorded reference population for `u`, and a measurable rule for choosing a scorer before running anything |
+| Matching quality and evaluation | 12% | **8.4** | Two public benchmark families covering both task shapes, B-cubed metrics, multi-level Fellegi–Sunter learned end to end, an explicit reference population for `u`, a measurable rule for choosing a scorer, and now an oracle-bounded measurement of the LLM tier. The FEBRL conclusion was corrected to what the data supports — FS wins through comparison levels, and the win is robustness at the shipped threshold rather than peak accuracy |
 | Steward Workbench and API UX | 10% | **7.2** | Binding edits, audit, threshold tuning, profiling, survivorship overrides, auth UX, and dark mode; frontend and enterprise workflow coverage remain thin |
 | Maintainability and debt | 10% | **6.5** | Good layering and deprecation discipline, offset by legacy exports, unwired strategies, oversized modules, 4,057 advisory flake8 findings (flat since August 6), and no clean mypy baseline |
-| Documentation and release discipline | 8% | **8.5** | PRD reconciled against measurement (four reviewed patches applied, including one that removed an internal contradiction), README publishing both benchmark families, current benchmark methodology, security and release docs; some historical docs and API/version references remain stale |
+| Documentation and release discipline | 8% | **8.0** | PRD reconciled against measurement, benchmark methodology current, every FEBRL row now records its command. Down from 8.5: a published benchmark table had five of nine rows wrong for four weeks and the README asserted a precision improvement that measurement contradicts. Both are corrected with the withdrawn figures named, but no gate reads prose, so nothing would have caught either without a manual re-run |
 | Performance and scalability | 7% | **6.5** | GAE and local backend choices are strong; BM25 candidate generation is now adaptively chunked against a wall-clock budget and verified at 66,879 records against the default client timeout it previously exceeded, with a streaming `iter_candidates()` path; strategies still materialise all pairs client-side before deduplication, and nothing above ~67k is evidenced |
 | Operations and deployment | 5% | **5.0** | Health endpoints, migrations, and runtime-provider gates exist, but there is no service image/Kubernetes package or standard Prometheus/OpenTelemetry stack |
 
-**Weighted total:** 7.8/10.
+**Weighted total:** 7.7/10.
 
 ## Verification snapshot
 
-- Python correctness gate: **pass** — 1,779 tests passed; critical lint, secret
+- Python correctness gate: **pass** — 1,790 tests passed; critical lint, secret
   scan, version consistency, wiring conformance, statistical quality floors, and
-  72% coverage floor all passed on August 25.
+  72% coverage floor all passed on September 22.
 - Python coverage: **75.34%**.
 - UI unit tests: **pass** — 7 tests across 3 files.
 - UI production build: **pass**. Vite reports a large main bundle
@@ -124,6 +126,18 @@ register can be read as a history rather than only a snapshot.
    appropriate for the current embedded scope, but RBAC, tenant isolation,
    immutable audit guarantees, erasure propagation, and default-on LLM masking
    remain v4 work.
+6. **Prose is ungated — P1 trust constraint.** Every mechanical gate reads code.
+   Nothing reads `README.md`, `docs/BENCHMARKS.md`, or these scorecards, which is
+   how a benchmark table with five wrong rows and a README quality claim with no
+   measurement behind it both shipped and survived. The surface most readers see
+   is the least verified. First step taken: the scorecards now carry a
+   mechanical staleness check (`make check-scorecards`, surfaced at session
+   start). Still open: checking numbers quoted in docs against the artifacts
+   they cite.
+7. **Verification-tier defaults — P2 product constraint.** The LLM tier is now
+   measured and works with a competent model, but ships with a band that holds
+   8.5% of errors and recommends a local model that does not work. Derive the
+   band from the error distribution and qualify the provider table.
 
 ### Closed since August 6
 

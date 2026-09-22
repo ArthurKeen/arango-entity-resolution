@@ -1,6 +1,6 @@
 # State-of-the-Art and Competitive Scorecard
 
-**Evaluated:** August 25, 2026  
+**Evaluated:** September 22, 2026  
 **Release baseline:** `v3.8.0` plus committed post-release work  
 **Overall competitive score:** **6.3/10 — differentiated mid-tier contender**
 
@@ -19,7 +19,7 @@ roadmap intent.
 
 | Capability | Weight | Score | Position | Assessment |
 |---|---:|---:|---|---|
-| Probabilistic modeling / EM / TF | 9% | **8** | Near parity with Splink on modeling | Binary and categorical multi-level EM, posterior scoring, null semantics, TF adjustment, config-hashed persistence, bands inferred from the score distribution, an explicit and recorded reference population for `u`, and degenerate-fit detection are all shipped and benchmarked. FS loses to weighted scoring on text and wins on structured multi-field records. Splink still leads on interactive model diagnostics and on proven scale |
+| Probabilistic modeling / EM / TF | 9% | **8** | Near parity with Splink on modeling | Binary and categorical multi-level EM, posterior scoring, null semantics, TF adjustment, config-hashed persistence, bands inferred from the score distribution, an explicit and recorded reference population for `u`, and degenerate-fit detection on both estimation paths are shipped and benchmarked. FS loses to weighted scoring on text and wins on structured records via comparison levels — the binary model collapses there and is now flagged as unfit. FS's measured advantage is calibration: it holds at the shipped threshold where the weighted score does not. Splink still leads on interactive diagnostics and proven scale |
 | Blocking breadth and ANN | 8% | **8** | Leader in breadth | Nine exported strategies include native vector ANN and graph embeddings; rules are not learned and several strategies are not wired into the primary pipeline |
 | Active learning | 5% | **5** | Behind Zingg | Verdicts mutate edges/clusters and tune LLM thresholds, but there is no uncertainty-sampled iterative matcher or blocker training loop |
 | Threshold tuning | 6% | **7** | Partial parity | Supervised selection and guarded unsupervised selection are wired, and comparison bands are placed automatically per field by trough detection, matching label-tuned placement without labels; the UI still lacks a labelled precision/recall/F1 operating curve, and selection correctly declines on unimodal product scores |
@@ -31,9 +31,9 @@ roadmap intent.
 | Graph-context / collective matching | 7% | **5** | OSS niche leader | Shared-neighbor/path evidence and collective fixpoint resolution are wired but opt-in and not proven at Senzing-class maturity or scale |
 | Graph embeddings | 4% | **4** | Prototype | Graph-embedding blocking exists, but the current DeepWalk/count-SVD implementation is bounded and not a production GraphSAGE/GNN path |
 | Enterprise clustering | 6% | **7** | Near parity architecture | GAE WCC plus multiple local backends and automatic selection are strong; default clustering remains WCC-centric |
-| LLM matcher tier | 5% | **6** | Partial parity | Uncertain-band verification, retries, budgets, and provider abstraction exist; no end-to-end quality/cost/latency benchmark has been published |
+| LLM matcher tier | 5% | **7** | Partial parity, now measured | Uncertain-band verification, retries, budgets, and provider abstraction exist and are benchmarked: a competent frontier model is worth +0.25 accuracy on the ambiguous band for ~$4 per dataset, and the cheap tier equals the expensive one. Two defects the measurement exposed: the shipped 0.55–0.80 band holds 8.5% of errors, and the local model the docs recommended does not work here. Precision is the weak side — every model over-merges |
 | Privacy and governance | 5% | **5** | Behind | Masking and audit attribution exist but are optional; there is no default PII policy, erasure propagation, RBAC, or tenant isolation |
-| Benchmarks and regression evidence | 6% | **8** | Strong | Two public dataset families covering both task shapes (Leipzig linkage, FEBRL deduplication), machine-readable artifacts, B-cubed, quality floors, and published negative results; release-commit reproduction remains limited |
+| Benchmarks and regression evidence | 6% | **8** | Strong | Two public dataset families covering both task shapes, machine-readable artifacts, B-cubed, quality floors, an oracle-bounded LLM tier, and published negative results. One published table was found to have five of nine rows wrong, retracted with the withdrawn figures named, and re-measured; every FEBRL row now records the exact command that produces it. Release-commit reproduction remains limited |
 | Candidate-generation scale | 10% | **6** | Behind | BM25 executes in adaptive chunks sized to a wall-clock budget, verified at 66,879 records against the default client timeout it previously exceeded, with a streaming `iter_candidates()` path available; the batch path still materializes pairs client-side, and nothing above ~67k is evidenced against Splink's 100M+ Spark/Athena claims |
 
 **Weighted total:** 6.3/10, normalized across 102% of stated weights.
@@ -133,6 +133,14 @@ between them.
 - Automatic selection between scoring methods or between binary and multi-level
   comparisons. The *rule* for choosing is now measured and documented, but the
   library does not yet apply it for the user.
+- That a local model is adequate for the verification tier. `llama3.1:8b`
+  answered "match" for 88% of ambiguous pairs when 38% were matches — no evidence
+  it beats the plain score threshold. Local inference remains the right answer
+  where data cannot leave the network, but only after verifying on your own data.
+- That the shipped 0.55–0.80 verification band is suitable as a default. On the
+  one dataset measured it contains 8.5% of the matcher's errors; a wider band
+  reaches 61%. The band should be placed from the error distribution, not
+  assumed.
 - Enterprise MDM readiness before RBAC, tenant isolation, immutable audit,
   deployment packaging, telemetry, and lifecycle operations exist.
 - Production GraphSAGE/GNN matching; current graph embeddings are a bounded
@@ -146,9 +154,10 @@ to 6.3. The remaining list is reordered accordingly.
 
 1. **Auto-select the scoring configuration.** The rule is measured — per-field
    chance-agreement spread predicts whether Fellegi–Sunter or weighted
-   similarity wins, and structured data favours binary over multi-level
-   comparisons. Profile the collection and recommend (or default to) the right
-   configuration instead of leaving it to the user to read a benchmark document.
+   similarity wins, and on structured data comparison levels are the
+   configuration that reliably fits (the binary model collapses). Profile the
+   collection and recommend (or default to) the right configuration instead of
+   leaving it to the user to read a benchmark document.
 2. **Close the active-learning loop:** select uncertain/diverse pairs, train
    from adjudications, compare lift per label, and expose the loop in the
    Workbench. This is the largest remaining gap against Zingg.
@@ -160,9 +169,19 @@ to 6.3. The remaining list is reordered accordingly.
    the single largest weighted drag on the score.
 5. **Broaden automatic cluster repair:** build on the existing coherence and
    bridge-edge repair path with hard-identifier vetoes and benchmarked policies.
-6. **Benchmark the LLM cascade:** accuracy lift, latency, token usage, and cost
-   per accepted match on the noisy product datasets.
-7. **Add interactive model diagnostics** to close the remaining Splink gap now
+6. **Derive the verification band from the error distribution.** The cascade is
+   now benchmarked; what it showed is that the fixed default band is nearly
+   inert. Place it the way thresholds are already placed — from the data — and
+   report what share of errors a band contains before routing anything to it.
+7. **Express hard identifiers in scoring.** There is no way to say "two records
+   grounding to different canonical IDs cannot merge." That conflicting-identifier
+   veto is worth more than any positive grounding bonus, and it is the missing
+   piece for ontology-grounded resolution.
+8. **Gate prose claims.** A README quality claim and a benchmark table were both
+   wrong for weeks because no gate reads documentation. Numbers in docs should be
+   checked against the artifacts they cite; the scorecards now carry a staleness
+   check for the same reason.
+9. **Add interactive model diagnostics** to close the remaining Splink gap now
    that the underlying modeling is comparable.
 
 ## Sources and comparison boundary
