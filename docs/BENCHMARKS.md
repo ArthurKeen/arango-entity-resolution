@@ -80,8 +80,10 @@ The honest reading:
 - **Amazon-Google** — 0.488 is level with Magellan's supervised ~0.49.
 - Against PLM/LLM matchers (Ditto, GPT-4) there is a wide gap on the noisy
   product datasets. Closing it needs a learned or LLM matcher tier, not better
-  string similarity. The library has an LLM verification path; wiring it into the
-  clerical-review band and measuring it here is the obvious next step.
+  string similarity. That tier has since been measured — see
+  [LLM verification of the ambiguous band](#llm-verification-of-the-ambiguous-band-measured).
+  A competent model is worth +0.25 accuracy on the pairs the score cannot settle,
+  for a few dollars a run; a small local model makes things worse.
 
 ## Method
 
@@ -110,6 +112,118 @@ Two configuration choices materially affect the outcome and are worth stating:
 - **Title and body compared separately.** Concatenating them lets a 200-word
   description drown out the title, which carries most of the discriminating
   signal.
+
+## LLM verification of the ambiguous band: measured
+
+The library can route pairs whose score falls in an uncertain band to a language
+model. The tier had shipped unmeasured, which is the gap this section closes.
+All figures below are Amazon-Google, the hardest of the four linkage datasets,
+where the weighted matcher scores F1 0.4875.
+
+### First: how much is winnable at all
+
+An oracle — a judge that is free, instant and right every time — bounds what any
+adjudicator can deliver. If the oracle is worth little, the tier is not worth
+building with any model.
+
+| Band | Pairs | Share of all errors | Oracle F1 | Gain |
+|---|---|---|---|---|
+| **[0.55, 0.80)** *(shipped default)* | 323 | **8.5%** | 0.5097 | +0.0222 |
+| [0.40, 0.90) | 962 | 31.9% | 0.5827 | +0.0952 |
+| **[0.30, 0.95)** | 1,932 | **61.0%** | 0.7351 | **+0.2476** |
+| [0.20, 1.01) | 4,055 | 79.7% | 0.8759 | +0.3885 |
+| every candidate | 25,808 | 89.9% | 0.9418 | +0.4543 |
+
+**The shipped band is in the wrong place.** It holds 8.5% of the errors, so a
+perfect judge on it is worth +0.022 — true whichever model does the judging.
+Widen it to [0.30, 0.95) and the same perfect judge is worth +0.2476. The band
+assumes matches cluster high and non-matches low, which is exactly what does not
+happen here: the unsupervised threshold selector already *declines* on both
+product datasets because the distribution has no valley.
+
+The all-candidates row is a useful consistency check: perfect judgment over every
+candidate gives precision 1.0 and recall equal to blocking recall (0.890), hence
+F1 0.9418. Blocking is the hard cap, but only once judgment is near-perfect.
+
+### Then: what an available judge actually does
+
+200 pairs sampled from [0.30, 0.95), judged through the library's own
+`LLMMatchVerifier` — its prompt, its parsing, its fallbacks — not a bespoke
+harness.
+
+| Judge | Accuracy | vs threshold | Significant? | Abstained | $/pair | Median latency |
+|---|---|---|---|---|---|---|
+| score threshold alone | 0.5628 | — | — | — | $0 | — |
+| `llama3.1:8b` (local) | 0.5050 | −0.060 | no (McNemar p=0.16) | 0% | $0 | 1.7s |
+| `gemini-3.8-flash` | **0.8141** | **+0.2513** | yes (p<0.0001) | 0.5% | $0.0019 | 3.2s |
+| `claude-opus-5` | **0.8205** | **+0.2513** | yes (p<0.0001) | 2.5% | $0.0119 | 3.1s |
+| oracle | 1.0000 | +0.437 | — | — | — | — |
+
+**The cheap frontier model equals the expensive one** — 0.8141 against 0.8205,
+identical deltas. Opus costs 6x more for nothing measurable. Over the full
+1,932-pair band that is **$3.70 against $23.01**.
+
+**A small local model is not merely weaker, it is unusable here.** llama3.1:8b
+answered "match" for 88% of pairs when 38% were matches: recall 1.000, precision
+0.434. It essentially never says no. The accuracy gap against the plain threshold
+is *not* statistically significant (p=0.16), so the honest claim is "no evidence
+it helps" rather than "it is worse" — but there is certainly no case for shipping
+it.
+
+**Confidence gating does not rescue it.** The usual mitigation is to override the
+score only when the model is confident. llama's confidence came back at 0.7–0.8
+for almost everything, including all 99 false positives; above a 0.83 cutoff it
+touches 7 of 200 pairs. A signal that does not vary cannot be thresholded. The
+two frontier models spread their confidence far wider (19 distinct values for
+Opus against 4 for llama) — though note gemini matched Opus's accuracy with a
+*narrower* spread, so confidence range alone does not predict performance.
+
+**What improves is recall, not precision.** All three judges over-merge. Opus
+says "match" on 56% of pairs where truth is 39%; precision 0.688 against recall
+0.987. If precision is the binding constraint, this tier is the wrong instrument.
+
+Extrapolating the observed accuracy linearly onto the oracle's +0.2476 puts a
+frontier model at roughly **+0.14 F1** on this dataset, for under $4 — the
+largest single quality gain available on the dataset where the library is
+weakest. That extrapolation is crude and is not quoted as a headline anywhere.
+
+### A defect this exposed
+
+The first gemini run abstained on **28% of pairs**: the verifier capped responses
+at 256 tokens, verbose models ran past it mid-JSON, and the truncated verdict was
+discarded as unparseable. Raising the cap took parse failures from 57 to 1. Terse
+models barely triggered it (Opus lost 5, llama none), so it was invisible until a
+verbose model was tried — and any measurement taken through one was silently
+computed on whichever subset happened to answer briefly. Fixed in `908b108`;
+the budget is now `max_response_tokens`, defaulting to 1024.
+
+## Blocking: which field to search
+
+`BM25BlockingStrategy` searches one field. The benchmark harness concatenates
+title and body into `text` and searches that. On Amazon-Google, searching `title`
+alone is strictly better **as blocking**:
+
+| Configuration | Candidate pairs | Pair completeness | Reduction ratio | Time |
+|---|---|---|---|---|
+| `text` @20 *(default)* | 25,808 | 0.8900 | 0.99413 | 12s |
+| **`title` @20** | **19,513** | **0.9815** | **0.99556** | **2s** |
+| `text` @20 + `title` @20 | 37,494 | 0.9931 | 0.99147 | — |
+
++0.092 completeness with 24% *fewer* pairs and 4.7x faster. The cause is the one
+already documented for scoring: a long description floods the BM25 term space and
+drowns the title. That lesson had been applied to similarity and never to
+blocking.
+
+**It does not improve end-to-end quality.** Pairwise F1 goes 0.4875 → 0.4775 and
+B-cubed 0.8519 → 0.8472, because precision falls further than recall rises. With
+a 0.890 ceiling the matcher was achieving 0.516 recall — using 58% of the
+headroom it already had. Raising a ceiling you are nowhere near buys nothing;
+the scorer is the binding constraint on this dataset, which is what the LLM
+section above is about.
+
+**And it reverses on Abt-Buy** (`text` 0.9572 against `title` 0.9508), so it
+cannot be hardcoded. `--blocking-field` exists to make the choice explicit; the
+default is unchanged.
 
 ## Scoring method: weighted similarity vs Fellegi-Sunter
 
@@ -581,6 +695,7 @@ Useful flags:
 | `--fs-agreement-threshold` | FS agree/disagree cutoff per field (default 0.85) |
 | `--comparison-levels` | Descending band thresholds, e.g. `0.6,0.35`; `auto` to infer per field; omit for the binary model |
 | `--auto-band-count` | Bands to infer per field when `--comparison-levels=auto` (default 2) |
+| `--blocking-field` | Field BM25 blocking searches: `text` (default), `title`, or `body` — see [Blocking](#blocking-which-field-to-search) |
 | `--fs-categorical-u` | Population `u` is measured over for multi-level models: `candidates` (default) or `random_pairs` — see [Which population `u` is measured over](#which-population-u-is-measured-over) |
 | `--no-fs-term-frequency` | Disable TF adjustment, to isolate its contribution |
 | `--title-weight` | Weight on the title field (default 0.7) |

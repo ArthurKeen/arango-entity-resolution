@@ -78,7 +78,7 @@ Data Sources → Blocking → Similarity → Clustering → Golden Records
 
 Optional AI stages can be inserted into the pipeline:
 
-- **LLM Match Verification** — auto-calls an LLM for ambiguous pairs in the 0.55–0.80 confidence range
+- **LLM Match Verification** — auto-calls an LLM for ambiguous pairs in a configurable confidence band (0.55–0.80 by default; [measured results](docs/BENCHMARKS.md#llm-verification-of-the-ambiguous-band-measured))
 - **GraphRAG Entity Extraction** — extracts entities from unstructured documents and links them to the graph
 - **Geospatial-Temporal Validation** — confirms or rejects matches based on location and time feasibility
 
@@ -147,13 +147,28 @@ The ONNX Runtime backend (`pip install "arango-entity-resolution[onnx]"`) provid
 
 ### LLM Match Curation
 
-When similarity scoring produces ambiguous pairs (default 0.55–0.80 confidence), the pipeline can auto-delegate them to an LLM for a match/no-match decision. This dramatically improves precision for hard cases like abbreviated company names, nickname variations, and varied address formats — without manual review.
+When similarity scoring produces ambiguous pairs (default 0.55–0.80 confidence), the pipeline can auto-delegate them to an LLM for a match/no-match decision, without manual review.
+
+**Measured, on 200 ambiguous Amazon-Google pairs** ([full results](docs/BENCHMARKS.md#llm-verification-of-the-ambiguous-band-measured)) — the model matters, and not in the direction the provider table suggests:
+
+| Judge | Accuracy on those pairs | Cost / 1,000 pairs |
+|---|---|---|
+| score threshold alone | 0.563 | — |
+| `ollama/llama3.1:8b` (local) | **0.505** | $0 |
+| `openrouter/google/gemini-3.8-flash` | **0.814** | ~$1.90 |
+| `openrouter/anthropic/claude-opus-5` | **0.821** | ~$11.90 |
+
+Two things follow. A competent model is worth a lot — +0.25 accuracy on exactly the pairs the score cannot settle. And **a small local model is not competent at this**: llama3.1:8b answered "match" for 88% of pairs when 38% were matches, which is worse than the threshold it was meant to improve on. Verify on your own data before trusting a local model here.
+
+Note also what improves: these models raise accuracy by recovering **recall**. All three *over-merge* — precision is their weakest dimension (0.68 for the two that work). If precision is your constraint, this tier is not the fix.
+
+The default 0.55–0.80 band is also narrow. On Amazon-Google it contains only 8.5% of the matcher's errors, so verification there has little to work with; a wider band (0.30–0.95) reaches 61%. Tune it to your score distribution rather than accepting the default.
 
 The verifier works with any provider supported by [litellm](https://docs.litellm.ai/), including fully local models that need no API key:
 
 | Provider | Example model string | API key required |
 |----------|---------------------|------------------|
-| **Ollama** (local) | `ollama/llama3.1:8b`, `ollama/mistral` | No |
+| **Ollama** (local) | `ollama/llama3.1:8b`, `ollama/mistral` | No — but see the measurements above |
 | **OpenRouter** | `openrouter/google/gemini-2.0-flash` | `OPENROUTER_API_KEY` |
 | **OpenAI** | `openai/gpt-4o` | `OPENAI_API_KEY` |
 | **Anthropic** | `anthropic/claude-3-5-sonnet-20241022` | `ANTHROPIC_API_KEY` |
