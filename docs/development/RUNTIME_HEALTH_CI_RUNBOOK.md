@@ -386,8 +386,13 @@ arango-er runtime-health-benchmark \
 
 This repository includes a dedicated runtime matrix workflow:
 - workflow: `.github/workflows/runtime-platform-matrix.yml`
-- default lanes on push/PR: `linux-cpu`
 - default lanes (run on every push/PR): `linux-cpu`, `windows-cpu`
+  - `windows-cpu` runs the lane but **not** the quality gate
+    (`run_quality_gate: false`). Its baseline
+    (`ci/runtime-quality/baselines/windows-cpu.json`) is calibrated and
+    validated by the policy tests, but no CI run exercises it yet. Flip the
+    flag once the lane has completed green at least once — turning on a gate
+    whose baseline has never run is how a lane lands red on its first push.
 - optional self-hosted lanes via manual dispatch: `apple-silicon`, `linux-gpu`
 
 To run self-hosted lanes manually:
