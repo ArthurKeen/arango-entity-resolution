@@ -1,0 +1,11 @@
+{
+  "metadata": {
+    "profile": "windows-cpu",
+    "corpus_name": "ci_runtime_quality_v1",
+    "calibrated_at": "2026-03-24",
+    "model_name": "all-MiniLM-L6-v2",
+    "device": "cpu"
+  },
+  "cosine_drift": 0.097101,
+  "topk_overlap": 1.0
+}
