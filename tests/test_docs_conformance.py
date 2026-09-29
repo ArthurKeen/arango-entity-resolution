@@ -50,15 +50,9 @@ def _as_pipeline_dict(block: dict) -> dict:
     return {"blocking": {"strategy": "exact", "fields": [{"field": "x"}]}, **er}
 
 
-# Pinned per block, by the first top-level key, so a reordered README still maps.
-_YAML_KNOWN = {
-    "embedding": _known("README uses embedding.model; the loader reads model_name."),
-    "active_learning": _known("README uses refresh_every_n; the loader reads refresh_every."),
-    "entity_resolution": _known(
-        "README config example uses collection and similarity.fields; the loader "
-        "reads collection_name and similarity.field_weights, and ignores the rest."
-    ),
-}
+# Pin a block here as _known(...) when the README drifts and the fix must wait;
+# keyed by the block's first top-level key, so a reordered README still maps.
+_YAML_KNOWN: dict = {}
 
 
 def _yaml_params():
@@ -90,11 +84,7 @@ def test_readme_yaml_keys_are_ones_the_loader_reads(block: str) -> None:
 @pytest.mark.parametrize(
     "block",
     [
-        pytest.param(
-            b,
-            id="entity_resolution",
-            marks=_known("README blocking.strategy 'collect' is not a valid strategy; 'exact' is."),
-        )
+        pytest.param(b, id="entity_resolution")
         for b in _YAML_BLOCKS
         if "entity_resolution" in yaml.safe_load(b)
     ],
@@ -120,12 +110,34 @@ def test_readme_mcp_tool_count_matches_registry() -> None:
     assert counts == {len(_registered_mcp_tools())}
 
 
-@_known("resolve_and_commit and profile_fields are registered but not in the README tool tables.")
 def test_readme_mcp_tool_tables_match_registry() -> None:
     section = _readme_section("### MCP Tools", "#### Resources")
     tables = section.split("The `recommend_resolution_strategy` tool evaluates")[0]
     documented = set(re.findall(r"^\| `([a-z_]+)` \|", tables, re.M))
     assert documented == _registered_mcp_tools()
+
+
+def test_readme_blocking_table_matches_what_config_and_library_offer() -> None:
+    # The table once listed seven strategies, omitted two that config accepts
+    # (graph_embedding) or the library exports (hybrid), and did not say which
+    # could be selected from configuration at all.
+    import entity_resolution.strategies as strategies
+    from entity_resolution.config.er_config import BlockingConfig
+
+    section = _readme_section("### Blocking Strategies", "### Clustering Backends")
+    rows = re.findall(r"^\| \*\*[^|]+\*\* \| ([^|]+) \|", section, re.M)
+    config_names = {m for cell in rows for m in re.findall(r"^`([a-z0-9_]+)`$", cell.strip())}
+    library_only = {m for cell in rows for m in re.findall(r"library only: `(\w+)`", cell)}
+    assert config_names == set(BlockingConfig.VALID_STRATEGIES)
+    exported = {n for n in dir(strategies) if n.endswith("BlockingStrategy") and n != "BlockingStrategy"}
+    exported.add("ShardParallelBlockingStrategy")  # exported from the package root, lazily
+    assert library_only <= exported
+    reachable = {
+        "exact": "CollectBlockingStrategy", "bm25": "BM25BlockingStrategy",
+        "vector": "VectorBlockingStrategy", "lsh": "LSHBlockingStrategy",
+        "graph_embedding": "GraphEmbeddingBlockingStrategy",
+    }
+    assert library_only | set(reachable.values()) == exported, "a strategy class is missing from the table"
 
 
 def test_readme_backend_table_matches_valid_backends() -> None:
@@ -152,21 +164,20 @@ def test_readme_cli_commands_parse(line: str) -> None:
 
     from entity_resolution.cli import main
 
-    name, *args = shlex.split(line)[1:]
+    name, *args = shlex.split(line, comments=True)[1:]
     with click.Context(main) as ctx:
         command = main.get_command(ctx, name)
         assert command is not None, f"no such subcommand: {name}"
         command.make_context(name, list(args), parent=ctx)  # raises on a bad flag
 
 
-@_known("README launches the UI with --port, which is the ArangoDB port; the UI port is --serve-port.")
 def test_readme_ui_command_sets_the_ui_port() -> None:
     import click
 
     from entity_resolution.cli import main
 
     (line,) = [l for l in _CLI_LINES if l.startswith("arango-er ui ")]
-    _, name, *args = shlex.split(line)
+    _, name, *args = shlex.split(line, comments=True)
     with click.Context(main) as ctx:
         params = main.get_command(ctx, name).make_context(name, args, parent=ctx).params
     documented_port = int(re.search(r"--(?:serve-)?port (\d+)", line).group(1))

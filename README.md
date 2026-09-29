@@ -13,7 +13,10 @@ pip install arango-entity-resolution
 pip install "arango-entity-resolution[mcp]"       # MCP server for AI agents
 pip install "arango-entity-resolution[llm]"       # LLM match verification
 pip install "arango-entity-resolution[ml]"        # Vector embeddings (sentence-transformers)
-pip install "arango-entity-resolution[mcp,llm,ml]"  # Everything
+pip install "arango-entity-resolution[ui]"        # Steward Workbench web UI
+pip install "arango-entity-resolution[onnx]"      # ONNX Runtime for faster CPU embeddings
+pip install "arango-entity-resolution[sparse]"    # scipy clustering backend for very large graphs
+pip install "arango-entity-resolution[mcp,llm,ml,ui,onnx,sparse]"  # Everything
 ```
 
 ## Quick Start
@@ -85,15 +88,22 @@ Optional AI stages can be inserted into the pipeline:
 ## Key Features
 
 ### Blocking Strategies
-| Strategy | Use Case |
-|----------|----------|
-| **Exact / COLLECT** | High-precision blocking on email, phone, composite keys |
-| **BM25 / ArangoSearch** | Fuzzy text matching (400x faster than Levenshtein) |
-| **Vector / ANN** | Semantic similarity via sentence-transformers embeddings; **requires** ArangoDB 3.12+ with a native `APPROX_NEAR_COSINE` vector index (no brute-force fallback) |
-| **Geographic** | Proximity-based blocking with coordinate distance |
-| **LSH** | Locality-sensitive hashing for high-dimensional data |
-| **Graph Traversal** | Shared-identifier network analysis |
-| **Shard-Parallel** | Optimised for sharded ArangoDB clusters |
+
+Six strategies can be selected from pipeline configuration with
+`blocking.strategy`; four more are Python classes you construct yourself.
+
+| Strategy | `blocking.strategy` | Use Case |
+|----------|---------------------|----------|
+| **Exact / COLLECT** | `exact` | High-precision blocking on email, phone, composite keys |
+| **BM25** | `bm25` | Token matching ranked by BM25 over an ArangoSearch view; pair completeness 0.890–1.000 on the four [Leipzig benchmarks](docs/BENCHMARKS.md#summary) |
+| **ArangoSearch** | `arangosearch` | Alias of `bm25` |
+| **Vector / ANN** | `vector` | Semantic similarity via sentence-transformers embeddings; **requires** ArangoDB 3.12+ with a native `APPROX_NEAR_COSINE` vector index (no brute-force fallback) |
+| **LSH** | `lsh` | Locality-sensitive hashing for high-dimensional data |
+| **Graph embedding** | `graph_embedding` | node2vec embeddings of an existing relationship graph; needs `blocking.edge_collection`; small/medium graphs |
+| **Hybrid** | library only: `HybridBlockingStrategy` | BM25 retrieval re-scored with Levenshtein |
+| **Geographic** | library only: `GeographicBlockingStrategy` | Proximity-based blocking with coordinate distance |
+| **Graph Traversal** | library only: `GraphTraversalBlockingStrategy` | Shared-identifier network analysis |
+| **Shard-Parallel** | library only: `ShardParallelBlockingStrategy` | Optimised for sharded ArangoDB clusters |
 
 ### Clustering Backends
 
@@ -137,7 +147,7 @@ Embedding generation for vector blocking auto-detects the best available hardwar
 
 ```yaml
 embedding:
-  model: all-MiniLM-L6-v2
+  model_name: all-MiniLM-L6-v2
   device: auto              # selects CUDA > MPS > CPU at runtime
   max_batch_size: 256       # OOM safety cap for GPU workloads
   runtime: pytorch          # or onnx for faster CPU inference
@@ -185,7 +195,7 @@ active_learning:
     fallback_provider: openrouter   # auto-fallback if Ollama is unreachable
   low_threshold: 0.55              # below this → auto no_match
   high_threshold: 0.80             # above this → auto match
-  refresh_every_n: 100             # re-optimize thresholds every N verifications
+  refresh_every: 100               # re-optimize thresholds every N verifications
 ```
 
 The LLM receives both records, the overall similarity score, and field-level scores, and returns a structured JSON verdict with decision, confidence, and reasoning. When the LLM overrides a score, the system synthesises a new score that pushes the pair above or below the thresholds so downstream clustering reflects the decision.
@@ -208,6 +218,7 @@ The MCP server exposes 17 tools organized into two groups — core ER operations
 | `explain_match` | Field-level similarity breakdown between two records |
 | `get_clusters` | Return entity clusters with quality metadata (density, similarity stats) |
 | `merge_entities` | Preview a golden record merge ("most_complete", "newest", or "first") |
+| `resolve_and_commit` | Resolve one record into the graph: link it to its matches and re-cluster only the affected component (writes, unlike `resolve_entity`) |
 
 #### Advisor Tools
 
@@ -216,6 +227,7 @@ An AI agent can use the advisor tools to analyze a dataset, choose the right str
 | Tool | What it does |
 |------|-------------|
 | `profile_dataset` | Profile fields: null rates, distinct counts, heavy hitters, duplicate/hub risk |
+| `profile_fields` | Profile fields (semantic type, completeness, cardinality, sample values); optionally emit a recommended similarity config |
 | `recommend_resolution_strategy` | Rank strategy families from a profile and objective constraints |
 | `recommend_blocking_candidates` | Rank single-field and composite blocking keys by fit score |
 | `evaluate_blocking_plan` | Estimate pair volume, block-size distribution, and risk flags |
@@ -252,7 +264,7 @@ A browser-based interface for analysts and data stewards who need to interact wi
 
 ```bash
 pip install "arango-entity-resolution[ui]"
-arango-er ui --port 8787 --open
+arango-er ui --serve-port 8787 --open    # --port is the ArangoDB port
 ```
 
 | Screen | What it does |
@@ -274,10 +286,10 @@ Pipelines are driven by YAML (or JSON) configuration:
 ```yaml
 entity_resolution:
   entity_type: company
-  collection: companies
+  collection_name: companies
 
   blocking:
-    strategy: collect
+    strategy: exact
     fields:
       - field: state
       - field: city
@@ -285,7 +297,7 @@ entity_resolution:
   similarity:
     algorithm: jaro_winkler
     threshold: 0.80
-    fields:
+    field_weights:
       name: 0.40
       address: 0.30
       phone: 0.20

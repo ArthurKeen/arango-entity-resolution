@@ -15,6 +15,11 @@ from ..utils.constants import DEFAULT_SIMILARITY_THRESHOLD, DEFAULT_BATCH_SIZE
 
 class BlockingConfig:
     """Blocking configuration."""
+
+    #: Strategies ConfigurableERPipeline can run from ``blocking.strategy``.
+    #: Other strategy classes exist in ``entity_resolution.strategies`` but are
+    #: library-only; tests/test_docs_conformance.py holds the README to this set.
+    VALID_STRATEGIES = ("exact", "arangosearch", "bm25", "vector", "lsh", "graph_embedding")
     
     def __init__(
         self,
@@ -1423,7 +1428,7 @@ class ERPipelineConfig:
                 f"blocking.min_block_size ({self.blocking.min_block_size})"
             )
         
-        if self.blocking.strategy not in ('exact', 'arangosearch', 'bm25', 'vector', 'lsh', 'graph_embedding'):
+        if self.blocking.strategy not in BlockingConfig.VALID_STRATEGIES:
             errors.append(
                 "blocking.strategy must be 'exact', 'arangosearch', 'bm25', 'vector', 'lsh', "
                 f"or 'graph_embedding', got: {self.blocking.strategy}"
