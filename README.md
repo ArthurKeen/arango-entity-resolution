@@ -191,12 +191,19 @@ active_learning:
     model: llama3.1:8b
     base_url: http://localhost:11434
     timeout_seconds: 120
-    healthcheck_on_start: true
-    fallback_provider: openrouter   # auto-fallback if Ollama is unreachable
+    healthcheck_on_start: true      # probe the provider when the pipeline starts
+  mask_fields: [ssn, email]         # hash these values before they leave the network
   low_threshold: 0.55              # below this → auto no_match
   high_threshold: 0.80             # above this → auto match
   refresh_every: 100               # re-optimize thresholds every N verifications
 ```
+
+**What leaves the network.** By default the provider receives every field of both
+records except those starting with `_`. Fields listed in `mask_fields` are sent
+as a stable hash instead, so the model can still see that two values are equal
+but never sees the values. Masking costs verdict quality on anything fuzzy, so
+reserve it for identifiers. A local `ollama/` model sends nothing off the machine.
+`fallback_provider` is accepted by the config but not yet acted on.
 
 The LLM receives both records, the overall similarity score, and field-level scores, and returns a structured JSON verdict with decision, confidence, and reasoning. When the LLM overrides a score, the system synthesises a new score that pushes the pair above or below the thresholds so downstream clustering reflects the decision.
 

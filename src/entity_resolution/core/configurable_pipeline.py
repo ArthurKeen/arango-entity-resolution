@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from arango.database import StandardDatabase
 import logging
+import os
 import time
 
 from ..config.er_config import ERPipelineConfig
@@ -1035,6 +1036,8 @@ class ConfigurableERPipeline:
             'score_overrides': 0,
             'feedback_collection': verifier.store.collection,
         }
+        if getattr(self, "_llm_healthcheck", None) is not None:
+            self._active_learning_stats['healthcheck'] = self._llm_healthcheck
 
         for item in detailed_matches:
             score = item['weighted_score']
@@ -1068,16 +1071,39 @@ class ConfigurableERPipeline:
         cfg = self.config.active_learning
         feedback_collection = cfg.feedback_collection or f"{self.config.collection_name}_llm_feedback"
         store = FeedbackStore(self.db, collection=feedback_collection)
-        return AdaptiveLLMVerifier(
+        # The structured `llm:` block used to be parsed, validated and then
+        # dropped here: only the bare `model` string was passed, so provider,
+        # base_url, timeout and api_key_env never reached the verifier, and
+        # neither did mask_fields, the one control over what leaves the network.
+        provider = cfg.llm
+        extra: Dict[str, Any] = {}
+        if provider is not None:
+            extra["base_url"] = provider.base_url
+            extra["timeout_seconds"] = provider.timeout_seconds
+            if provider.api_key_env:
+                extra["api_key"] = os.environ.get(provider.api_key_env)
+        verifier = AdaptiveLLMVerifier(
             feedback_store=store,
             refresh_every=cfg.refresh_every,
-            model=cfg.model,
+            model=cfg.effective_model_string(),
             low_threshold=cfg.low_threshold,
             high_threshold=cfg.high_threshold,
             entity_type=self.config.entity_type,
             optimizer_target_precision=cfg.optimizer_target_precision,
             optimizer_min_samples=cfg.optimizer_min_samples,
+            mask_fields=cfg.mask_fields,
+            **extra,
         )
+        if provider is not None and provider.healthcheck_on_start:
+            health = verifier.verifier.healthcheck()
+            self._llm_healthcheck = health
+            if not health.get("ok"):
+                # Not fatal: the verifier answers from the score when the LLM
+                # fails, and that fallback is counted, never credited to it.
+                self.logger.warning(
+                    "LLM healthcheck failed for %s: %s", health.get("model"), health.get("error")
+                )
+        return verifier
 
     def _format_field_scores_for_llm(self, field_scores: Dict[str, float]) -> Dict[str, Dict[str, Any]]:
         """Convert plain per-field scores into the structure expected by LLM prompts."""

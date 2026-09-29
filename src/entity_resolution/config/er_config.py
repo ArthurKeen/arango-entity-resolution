@@ -1046,6 +1046,7 @@ class ActiveLearningConfig:
         optimizer_target_precision: float = 0.95,
         optimizer_min_samples: int = 20,
         llm: Optional[LLMProviderConfig] = None,
+        mask_fields: Optional[List[str]] = None,
     ):
         self.enabled = enabled
         self.feedback_collection = feedback_collection
@@ -1056,6 +1057,10 @@ class ActiveLearningConfig:
         self.optimizer_target_precision = optimizer_target_precision
         self.optimizer_min_samples = optimizer_min_samples
         self.llm = llm
+        #: Fields whose values are hashed before a record is sent to the LLM.
+        #: Identifier-like fields only: the model then sees equality, not the
+        #: value, which costs verdict quality on anything fuzzy.
+        self.mask_fields = list(mask_fields or [])
 
     def effective_model_string(self) -> Optional[str]:
         """Return the litellm model string, preferring ``llm`` over bare ``model``."""
@@ -1078,6 +1083,7 @@ class ActiveLearningConfig:
             optimizer_target_precision=config_dict.get('optimizer_target_precision', 0.95),
             optimizer_min_samples=config_dict.get('optimizer_min_samples', 20),
             llm=llm,
+            mask_fields=config_dict.get('mask_fields'),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -1096,6 +1102,8 @@ class ActiveLearningConfig:
             result['model'] = self.model
         if self.llm is not None:
             result['llm'] = self.llm.to_dict()
+        if self.mask_fields:
+            result['mask_fields'] = list(self.mask_fields)
         return result
 
     def validate(self) -> List[str]:
@@ -1103,6 +1111,8 @@ class ActiveLearningConfig:
         errors = []
         if self.refresh_every < 1:
             errors.append(f"refresh_every must be >= 1, got: {self.refresh_every}")
+        if not all(isinstance(f, str) and f for f in self.mask_fields):
+            errors.append(f"mask_fields must be a list of field names, got: {self.mask_fields!r}")
         if not 0.0 <= self.low_threshold <= 1.0:
             errors.append(f"low_threshold must be between 0.0 and 1.0, got: {self.low_threshold}")
         if not 0.0 <= self.high_threshold <= 1.0:
