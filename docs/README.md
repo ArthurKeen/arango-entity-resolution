@@ -28,11 +28,9 @@ Welcome to the ArangoDB Entity Resolution documentation!
 - [System Design](architecture/DESIGN.md) - How the system works
 - [Centralized ER Service](architecture/CENTRALIZED_ER_SERVICE.md) - Enterprise service with shared knowledge graph
 - [Graph Algorithms](architecture/GRAPH_ALGORITHMS_EXPLANATION.md) - Algorithm explanations
-- [Foxx Architecture](architecture/FOXX_ARCHITECTURE.md) - Foxx service design
-- [Foxx Deployment](architecture/FOXX_DEPLOYMENT.md) - Deploy Foxx services
 
 ### Development
-- [Enhancement Plan](guides/LIBRARY_ENHANCEMENT_PLAN.md) - Historical formalization plan
+- [Enhancement Plan](archive/completed-work/LIBRARY_ENHANCEMENT_PLAN.md) - Historical formalization plan
 - [Next Release Brief](development/NEXT_RELEASE_IMPLEMENTATION_BRIEF.md) - Implementation brief for releases `3.3.0`–`3.5.0` (all shipped)
 - [GAE Enhancement Path](development/GAE_ENHANCEMENT_PATH.md) - GAE clustering design (implemented in 3.5.0)
 - [Batch vs Bulk Processing](development/BATCH_VS_BULK_PROCESSING.md) - Performance patterns

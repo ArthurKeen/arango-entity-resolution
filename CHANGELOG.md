@@ -447,7 +447,7 @@ service.create_edges(matches) # Safe - same edges won't duplicate
 
 **Version Identifier**: 3.0.0-stable
 
-This is the current production release including all major ER services extracted from customer projects. See [VERSION_HISTORY.md](VERSION_HISTORY.md) for complete version timeline.
+This is the current production release including all major ER services extracted from customer projects.
 
 ### Added - Vector Search-Based Entity Resolution (Phase 2)
 

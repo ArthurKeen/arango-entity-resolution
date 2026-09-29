@@ -1029,14 +1029,13 @@ The phased implementation approach minimizes risk while delivering value increme
 ## Implementation References
 
 ### Technical Documentation
-- **[ArangoSearch Implementation Strategy](../research/notes/arango_search_implementation_strategy.md)**: Detailed technical guide for implementing blocking using ArangoSearch with custom analyzers, views, and AQL queries
-- **[Foxx Services Architecture](FOXX_ARCHITECTURE.md)**: Comprehensive guide to the mixed Python/Foxx architecture with deployment strategies
-- **[Research Bibliography](../research/bibliography.md)**: Academic foundation with paper summaries and implementation insights
+- **[ArangoSearch Implementation Strategy](../../research/notes/arango_search_implementation_strategy.md)**: Detailed technical guide for implementing blocking using ArangoSearch with custom analyzers, views, and AQL queries
+- **[Research Bibliography](../../research/bibliography.md)**: Academic foundation with paper summaries and implementation insights
 
 ### Research Foundation
-- **[Blocking Techniques](../research/papers/blocking/)**: Implementation of Papadakis survey findings
-- **[Similarity Scoring](../research/papers/similarity/)**: Fellegi-Sunter probabilistic framework
-- **[System Architecture](../research/papers/systems/)**: End-to-end design based on Magellan principles
+- **[Blocking Techniques](../../research/papers/blocking/)**: Implementation of Papadakis survey findings
+- **[Similarity Scoring](../../research/papers/similarity/)**: Fellegi-Sunter probabilistic framework
+- **[System Architecture](../../research/papers/systems/)**: End-to-end design based on Magellan principles
 
 ### Key Implementation Insights from ArangoSearch Strategy
 

@@ -14,6 +14,10 @@ Checked sources:
 * ``CHANGELOG.md`` — most recent released ``## [x.y.z]`` heading
 * ``docs/PRD.md`` — ``**Current Release**: `x.y.z```
 * ``README.md`` — ``**Version x.y.z**``
+* ``docs/README.md`` — ``**Current Version:** x.y.z``
+* ``ui/openapi.json`` — ``info.version``, the committed schema the UI's
+  TypeScript types are generated from. It sat at 3.5.1 for three releases
+  because regenerating it was a manual step nobody's gate noticed.
 
 Usage::
 
@@ -24,6 +28,7 @@ Exit codes: ``0`` consistent, ``1`` mismatch, ``2`` a version could not be found
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -58,6 +63,8 @@ def collect_versions() -> Dict[str, Optional[str]]:
     changelog = _read("CHANGELOG.md")
     prd = _read("docs/PRD.md")
     readme = _read("README.md")
+    docs_index = _read("docs/README.md")
+    openapi = _read("ui/openapi.json")
 
     return {
         "constants.py __version__": _search(
@@ -70,6 +77,12 @@ def collect_versions() -> Dict[str, Optional[str]]:
             prd, rf"\*\*Current Release\*\*:\s*`?{SEMVER}`?"
         ),
         "README.md version badge": _search(readme, rf"\*\*Version\s+{SEMVER}\*\*"),
+        "docs/README.md Current Version": _search(
+            docs_index, rf"\*\*Current Version:\*\*\s*{SEMVER}"
+        ),
+        "ui/openapi.json info.version": (
+            json.loads(openapi).get("info", {}).get("version") if openapi else None
+        ),
     }
 
 

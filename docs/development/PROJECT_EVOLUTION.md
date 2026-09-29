@@ -391,5 +391,5 @@ The foundation is solid, the roadmap is clear, and the future is bright for cont
 
 *Last Updated*: January 2025
 
-*For current status and next steps, see [README.md](../README.md) and [PRD.md](PRD.md)*
+*For current status and next steps, see [README.md](../README.md) and [PRD.md](../PRD.md)*
 

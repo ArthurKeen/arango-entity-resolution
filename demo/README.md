@@ -553,7 +553,7 @@ DEMO_DUPLICATE_RATE=0.2
 
 - [Main README](../README.md) - Project overview
 - [PRESENTATION_SCRIPT.md](PRESENTATION_SCRIPT.md) - Detailed presentation guide with talking points
-- [API Documentation](../docs/API_REFERENCE.md) - Complete API reference
+- [API Documentation](../docs/api/API_REFERENCE.md) - Complete API reference
 - [Testing Guide](../docs/TESTING.md) - Testing strategies
 
 ### Support

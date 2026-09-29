@@ -471,9 +471,9 @@ batch_size=1000
 ## [DOCS] Reference Documentation
 
 - **[BATCH_VS_BULK_PROCESSING.md](BATCH_VS_BULK_PROCESSING.md)** - Comprehensive guide
-- **[API_REFERENCE.md](API_REFERENCE.md)** - API documentation
+- **[API_REFERENCE.md](../api/API_REFERENCE.md)** - API documentation
 - **[TESTING.md](TESTING.md)** - Testing procedures
-- **[PRD.md](PRD.md)** - Product roadmap
+- **[PRD.md](../PRD.md)** - Product roadmap
 
 ---
 

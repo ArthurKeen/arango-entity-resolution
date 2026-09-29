@@ -21,9 +21,15 @@ Checks, in order of severity:
       Past a threshold the judgments are describing a codebase that no longer
       exists. This is what the session-start hook surfaces.
 
+  AGREEMENT (soft, exit 2). Every place a scorecard states the same fact must
+      state the same value. The health scorecard once gave its test count three
+      times (1,790 / 1,790 / 1,779) and its coverage twice (75.37% / 75.34%);
+      checking only the first mention saw none of it.
+
   FACTS (soft, exit 2; --measure only, because it runs the test suite). The
       test count, coverage and advisory-lint figures the health scorecard quotes,
-      against what the repo measures now.
+      against what the repo measures now. Every mention is compared, not just
+      the first.
 
 Exit 0 means the scorecards are arithmetically sound, current enough, and (with
 --measure) quoting true numbers. It says nothing about whether the grades are
@@ -114,15 +120,42 @@ def measure_facts() -> Dict[str, Any]:
     }
 
 
-def stated_facts(path: Path) -> Dict[str, Any]:
-    t = path.read_text()
-    tests = re.search(r"([\d,]+) passed", t)
-    cov = re.search(r"([\d.]+)% coverage", t)
-    lint = re.search(r"([\d,]+) advisory flake8 findings", t)
+#: Every phrasing a fact is written in. A count needs >= 4 digits so "7 tests
+#: across 3 files" (the UI suite) is not read as the Python suite, and coverage
+#: needs a decimal so the "72% coverage floor" is not read as a measurement.
+_FACT_PATTERNS: Dict[str, List[str]] = {
+    "tests_passed": [
+        r"\b(\d{1,3}(?:,\d{3})+|\d{4,}) (?:tests )?passed\b",
+        r"\((\d{1,3}(?:,\d{3})+|\d{4,}) tests\b",
+    ],
+    "coverage_pct": [
+        r"\b(\d{2}\.\d+)% coverage",
+        r"coverage:\s*\*{0,2}(\d{2}\.\d+)%",
+        r"\d tests, (\d{2}\.\d+)%",
+    ],
+    "flake8_findings": [r"\b([\d,]+) advisory flake8 findings"],
+}
+
+
+def stated_facts(path: Path) -> Dict[str, List[float]]:
+    """Every value each fact is stated as, in document order."""
+    text = path.read_text()
+    found: Dict[str, List[float]] = {}
+    for key, patterns in _FACT_PATTERNS.items():
+        hits = []
+        for pattern in patterns:
+            for m in re.finditer(pattern, text):
+                hits.append((m.start(), float(m.group(1).replace(",", ""))))
+        found[key] = [value for _, value in sorted(hits)]
+    return found
+
+
+def check_agreement(path: Path) -> Dict[str, Any]:
+    """Facts a document states with more than one value."""
     return {
-        "tests_passed": int(tests.group(1).replace(",", "")) if tests else None,
-        "coverage_pct": float(cov.group(1)) if cov else None,
-        "flake8_findings": int(lint.group(1).replace(",", "")) if lint else None,
+        key: sorted(set(values))
+        for key, values in stated_facts(path).items()
+        if len(set(values)) > 1
     }
 
 
@@ -134,7 +167,7 @@ def main() -> int:
     ap.add_argument("--stale-after", type=int, default=STALE_AFTER_COMMITS)
     args = ap.parse_args()
 
-    report: Dict[str, Any] = {"arithmetic": {}, "staleness": {}, "facts": None}
+    report: Dict[str, Any] = {"arithmetic": {}, "staleness": {}, "agreement": {}, "facts": None}
     hard_fail = soft_fail = False
 
     for name, path, hdr in (
@@ -148,6 +181,12 @@ def main() -> int:
         a = check_arithmetic(path, hdr)
         report["arithmetic"][name] = a
         hard_fail |= not a["ok"]
+
+    for name, path in (("health", HEALTH), ("sota", SOTA)):
+        if path.exists():
+            disagreements = check_agreement(path)
+            report["agreement"][name] = disagreements
+            soft_fail |= bool(disagreements)
 
     dates = [d for d in (evaluated_on(HEALTH), evaluated_on(SOTA)) if d]
     if dates:
@@ -169,11 +208,12 @@ def main() -> int:
         stated = stated_facts(HEALTH)
         drift = {}
         for k in measured:
-            m, s = measured[k], stated.get(k)
-            if m is None or s is None:
+            m, values = measured[k], stated.get(k) or []
+            if m is None or not values:
                 continue
-            same = abs(m - s) < (0.05 if k == "coverage_pct" else 0.5)
-            drift[k] = {"stated": s, "measured": m, "ok": same}
+            tolerance = 0.05 if k == "coverage_pct" else 0.5
+            same = all(abs(m - v) < tolerance for v in values)
+            drift[k] = {"stated": sorted(set(values)), "measured": m, "ok": same}
             soft_fail |= not same
         report["facts"] = drift
 
@@ -185,6 +225,11 @@ def main() -> int:
             detail = (f"computed {a['computed']} stated {a['stated']} header {a['header']}"
                       if a.get("ok") else a.get("reason"))
             print(f"[{mark}] arithmetic/{name}: {detail}")
+        for name, disagreements in report["agreement"].items():
+            if not disagreements:
+                print(f"[OK  ] agreement/{name}: each fact stated with one value")
+            for k, values in disagreements.items():
+                print(f"[WARN] agreement/{name}: {k} stated as {values}")
         s = report["staleness"]
         mark = "WARN" if s.get("stale") else "OK  "
         print(f"[{mark}] staleness: evaluated {s.get('evaluated', '?')}, "

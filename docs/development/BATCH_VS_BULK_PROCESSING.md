@@ -506,10 +506,9 @@ print(f"Pairs/sec: {result['statistics']['pairs_per_second']}")
 
 ## Related Documentation
 
-- [API Reference](API_REFERENCE.md) - Complete API documentation
+- [API Reference](../api/API_REFERENCE.md) - Complete API documentation
 - [Testing Guide](TESTING.md) - Performance testing procedures
-- [PRD.md](PRD.md) - Project requirements and roadmap
-- [FOXX_ARCHITECTURE.md](FOXX_ARCHITECTURE.md) - Foxx service details
+- [PRD.md](../PRD.md) - Project requirements and roadmap
 
 ---
 

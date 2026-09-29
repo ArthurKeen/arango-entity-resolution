@@ -2,7 +2,7 @@
 
 A production-ready entity resolution system for ArangoDB that identifies and links records referring to the same real-world entity across multiple data sources. Uses record blocking, graph algorithms, and AI to scale from thousands to millions of records.
 
-**Version 3.8.0** | [Changelog](CHANGELOG.md) | [Version History](VERSION_HISTORY.md) | [PyPI](https://pypi.org/project/arango-entity-resolution/)
+**Version 3.8.0** | [Changelog](CHANGELOG.md) | [PyPI](https://pypi.org/project/arango-entity-resolution/)
 
 ## Installation
 

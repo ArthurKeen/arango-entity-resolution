@@ -458,8 +458,8 @@ computed_fields: Optional[Dict[str, str]] = None
 
 ## Related Documentation
 
-- [Blocking Strategies Guide](BLOCKING_STRATEGIES.md)
-- [Performance Tuning Guide](PERFORMANCE_TUNING.md)
+- Blocking Strategies Guide
+- Performance Tuning Guide
 - [ArangoDB AQL Functions](https://www.arangodb.com/docs/stable/aql/functions.html)
 
 ---
