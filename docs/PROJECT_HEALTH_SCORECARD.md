@@ -87,7 +87,7 @@ Since the August 6 evaluation:
 - A second benchmark family (FEBRL deduplication) settled a claim the docs had
   been asserting without evidence: the probabilistic matcher wins decisively on
   structured multi-field records — decisively at the shipped threshold (febrl3
-  0.9953 vs 0.547), narrowly at the best swept one — the reverse of its result on
+  0.9950 vs 0.547), narrowly at the best swept one — the reverse of its result on
   text. Which matcher applies is now predictable in advance from the spread in
   per-field chance agreement, without labels. The first published version of that
   table was wrong and has been withdrawn; see docs/BENCHMARKS.md.

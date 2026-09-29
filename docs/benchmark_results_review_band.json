@@ -1,0 +1,77 @@
+{
+  "dataset": "amazon-google",
+  "blocking_recall": 0.89,
+  "candidates": 25808,
+  "config": {
+    "blocking_field": "text",
+    "algorithm": "jaccard",
+    "scoring_method": "weighted_heuristic"
+  },
+  "best_threshold": 0.34,
+  "baseline": {
+    "precision": 0.4618,
+    "recall": 0.5162,
+    "f1": 0.4875
+  },
+  "errors": {
+    "false_positives": 782,
+    "false_negatives": 629
+  },
+  "bands": [
+    {
+      "band": [
+        0.55,
+        0.8
+      ],
+      "pairs": 323,
+      "true_pairs": 203,
+      "error_share": 0.085,
+      "oracle_f1": 0.5097,
+      "oracle_delta_f1": 0.0222
+    },
+    {
+      "band": [
+        0.4,
+        0.9
+      ],
+      "pairs": 962,
+      "true_pairs": 512,
+      "error_share": 0.3189,
+      "oracle_f1": 0.5827,
+      "oracle_delta_f1": 0.0952
+    },
+    {
+      "band": [
+        0.3,
+        0.95
+      ],
+      "pairs": 1932,
+      "true_pairs": 758,
+      "error_share": 0.6102,
+      "oracle_f1": 0.7351,
+      "oracle_delta_f1": 0.2476
+    },
+    {
+      "band": [
+        0.2,
+        1.01
+      ],
+      "pairs": 4055,
+      "true_pairs": 1013,
+      "error_share": 0.7966,
+      "oracle_f1": 0.8759,
+      "oracle_delta_f1": 0.3885
+    },
+    {
+      "band": [
+        0.0,
+        1.01
+      ],
+      "pairs": 25808,
+      "true_pairs": 1157,
+      "error_share": 0.8987,
+      "oracle_f1": 0.9418,
+      "oracle_delta_f1": 0.4543
+    }
+  ]
+}

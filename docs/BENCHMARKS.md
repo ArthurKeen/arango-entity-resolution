@@ -145,11 +145,36 @@ The all-candidates row is a useful consistency check: perfect judgment over ever
 candidate gives precision 1.0 and recall equal to blocking recall (0.890), hence
 F1 0.9418. Blocking is the hard cap, but only once judgment is near-perfect.
 
+This table is free to reproduce, since no model is called, and is checked against
+its committed artifact:
+
+```bash
+python scripts/measure_review_band.py --dataset amazon-google \
+  --port 8529 --password "$ARANGO_ROOT_PASSWORD" \
+  --output docs/benchmark_results_review_band.json
+```
+
 ### Then: what an available judge actually does
 
 200 pairs sampled from [0.30, 0.95), judged through the library's own
 `LLMMatchVerifier` — its prompt, its parsing, its fallbacks — not a bespoke
 harness.
+
+> **This table is not artifact-backed.** It was measured on September 19–21,
+> 2026 with a script that lived outside the repository, and the per-pair verdicts
+> were written to a temporary directory that has since been cleared. The script
+> is now committed as `scripts/measure_llm_band.py` (reconstructed from the
+> session that ran it, and smoke-tested against a local model). A re-run writes
+> the per-pair rows to JSON, but it sends record content to the provider and
+> costs about $0.40 (gemini-3.8-flash) or $2.40 (claude-opus-5) per 200 pairs,
+> so it is not run automatically:
+>
+> ```bash
+> python scripts/measure_llm_band.py --dataset amazon-google \
+>   --port 8529 --password "$ARANGO_ROOT_PASSWORD" \
+>   --model openrouter/google/gemini-3.8-flash --band 0.30,0.95 --sample 200 \
+>   --output docs/benchmark_results_llm_band_gemini.json
+> ```
 
 | Judge | Accuracy | vs threshold | Significant? | Abstained | $/pair | Median latency |
 |---|---|---|---|---|---|---|
@@ -470,20 +495,38 @@ not have, and would confound the comparison being made.
 | Dataset | Matcher | Pairwise F1 | F1 at default 0.8 | Entity F1 (B-cubed) |
 |---|---|---|---|---|
 | febrl1 | weighted | 0.998 | 0.759 | 0.999 |
-| febrl1 | **FS binary** | **0.999** | **0.998** | **0.999** |
+| febrl1 | **FS binary** | **1.000** | **0.998** | **1.000** |
 | febrl1 | FS multi-level | 0.987 | 0.985 | 0.9945 |
 | febrl3 | weighted | 0.9936 | 0.547 | 0.9963 |
 | febrl3 | FS binary | *0.236 — UNFIT* | *0.190* | *0.0014* |
-| febrl3 | **FS multi-level** | **0.9953** | **0.9953** | **0.9986** |
+| febrl3 | **FS multi-level** | **0.9954** | **0.9950** | **0.9989** |
 | febrl3-noid | weighted | 0.9813 | 0.443 | 0.9928 |
 | febrl3-noid | FS binary | *0.190 — UNFIT* | *0.190* | *0.0014* |
-| febrl3-noid | **FS multi-level** | **0.9802** | **0.9790** | **0.9918** |
+| febrl3-noid | **FS multi-level** | **0.9814** | **0.9798** | **0.9922** |
 
 Every row is reproducible with one command; the three matchers are
 `--scoring-method weighted_heuristic`, `--scoring-method fellegi_sunter`, and
 `--scoring-method fellegi_sunter --comparison-levels auto` respectively. Bands
 are inferred per field from the score distribution, never hand-placed, so nothing
-here is tuned against the labels.
+here is tuned against the labels. Each row's command and full output are
+committed in [`benchmark_results_febrl.json`](benchmark_results_febrl.json), and
+`tests/test_published_results_conformance.py` fails if this table or the README's disagrees with
+it.
+
+> **The Fellegi-Sunter rows were not reproducible until September 29, 2026.**
+> Three unseeded samples fed training: the term-frequency table broke ties at its
+> top-100 cutoff arbitrarily, band inference sliced a Python set whose order
+> follows the per-process hash seed, and the EM training sample used AQL
+> `RAND()`. Identical runs on the old code gave febrl1 multi-level 0.986 and 0.987.
+> All three are now seeded (`--fs-sample-seed`), and repeated runs agree to every
+> digit. The rows above are from the deterministic code: the multi-level rows
+> moved in the third or fourth decimal, febrl1 binary from 0.999 to 1.000, and
+> no conclusion changed except the next paragraph's, where the febrl3-noid
+> comparison moved from "weighted fractionally ahead" to a tie. The Leipzig
+> [scoring-method table](#scoring-method-weighted-similarity-vs-fellegi-sunter)
+> re-measured identically at its printed precision on the seeded code; the
+> term-frequency and multi-level Leipzig tables were measured before seeding and
+> have not been re-run, so their last digit is not guaranteed.
 
 Blocking recall is 1.000 on all three, so nothing here is capped by candidate
 generation. febrl1 is 1,000 records in 500 two-record clusters; febrl3 is 5,000
@@ -503,10 +546,10 @@ not the binary model.** That is the reverse of what this document previously
 claimed.
 
 **And the win is robustness to the operating point, not peak accuracy.** At the
-best swept threshold the two matchers are close, and on `febrl3-noid` weighted is
-fractionally ahead (0.9813 vs 0.9802). At the shipped 0.8 default — the number a
-user actually gets without tuning — FS multi-level scores 0.9953 against 0.547 on
-febrl3, and 0.979 against 0.443 on febrl3-noid. Uniform weighted averaging over
+best swept threshold the two matchers are close, and on `febrl3-noid` they are
+tied (0.9814 vs 0.9813). At the shipped 0.8 default — the number a
+user actually gets without tuning — FS multi-level scores 0.9950 against 0.547 on
+febrl3, and 0.980 against 0.443 on febrl3-noid. Uniform weighted averaging over
 ten corrupted fields puts true matches around 0.5-0.6, so a 0.8 cutoff discards
 most of them; FS posteriors are calibrated and saturate near 1, so the same cutoff
 costs almost nothing. The value on offer is a matcher that does not require you to
@@ -703,8 +746,10 @@ Useful flags:
 | `--emit-curve` | Include the full threshold sweep in the JSON |
 | `--keep` | Leave benchmark collections in place for inspection |
 
-Results were stable across repeated runs on identical inputs; the pipeline is
-deterministic given a fixed configuration.
+Repeated runs on identical inputs agree to every digit. For the weighted
+matcher that was always true; for Fellegi-Sunter it has been true only since the
+training samples were seeded (`--fs-sample-seed`, default 20260929) — see the
+note under the FEBRL table.
 
 ## Caveats
 

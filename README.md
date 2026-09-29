@@ -328,9 +328,9 @@ records — ten structured fields rather than two free-text ones:
 | Dataset | Records | Scoring | Pairwise F1 | F1 at default 0.8 | B-cubed F1 |
 |---------|---------|---------|-------------|-------------------|------------|
 | febrl1 | 1.0K | weighted | 0.998 | 0.759 | 0.999 |
-| febrl1 | 1.0K | **Fellegi-Sunter** | **0.999** | **0.998** | **0.999** |
+| febrl1 | 1.0K | **Fellegi-Sunter (binary)** | **1.000** | **0.998** | **1.000** |
 | febrl3 | 5.0K | weighted | 0.9936 | 0.547 | 0.9963 |
-| febrl3 | 5.0K | **Fellegi-Sunter** | **0.9953** | **0.9953** | **0.9986** |
+| febrl3 | 5.0K | **Fellegi-Sunter (multi-level)** | **0.9954** | **0.9950** | **0.9989** |
 
 The two tables disagree about which scoring method to use, and that is the
 finding: weighted similarity wins on free text, Fellegi-Sunter wins on
@@ -339,12 +339,16 @@ run anything, from how much your fields differ in how often they agree by
 chance — no labels required.
 
 Note the middle column. On structured records the two methods are close at their
-best threshold, and the real difference shows at the shipped default: 0.9953
+best threshold, and the real difference shows at the shipped default: 0.9950
 against 0.547 on febrl3. Fellegi-Sunter's posteriors are calibrated, so it does
 not require you to find the operating point first.
 
-Reproduce with `python scripts/run_er_benchmarks.py --dataset all` (linkage) and
-`--dataset febrl3` (dedup). Full method, per-dataset detail, scale limits, and
+Binary Fellegi-Sunter fits febrl1 but collapses on febrl3, which is why the
+febrl3 row uses comparison levels; the full nine-row comparison is in
+[BENCHMARKS.md](docs/BENCHMARKS.md#structured-multi-field-records-where-fellegi-sunter-wins).
+Reproduce with `python scripts/run_er_benchmarks.py --dataset all` (linkage), and
+for the dedup rows `--dataset febrl1 --scoring-method fellegi_sunter` and
+`--dataset febrl3 --scoring-method fellegi_sunter --comparison-levels auto`. Full method, per-dataset detail, scale limits, and
 comparison caveats are in [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
 ## Performance

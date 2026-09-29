@@ -1,0 +1,1852 @@
+{
+  "_about": "Artifact behind the FEBRL table in docs/BENCHMARKS.md and README.md. tests/test_published_results_conformance.py fails if either document disagrees with it. Regenerate by running each row's command with --output and rebuilding this file; runs are deterministic (--fs-sample-seed defaults to 20260929).",
+  "rows": [
+    {
+      "dataset": "febrl1",
+      "matcher": "weighted",
+      "command": "python scripts/run_er_benchmarks.py --dataset febrl1 --scoring-method weighted_heuristic",
+      "pairwise_f1": 0.998,
+      "f1_at_default_0_8": 0.7593,
+      "b_cubed_f1": 0.999,
+      "fit_warning": null,
+      "result": {
+        "dataset": "febrl1",
+        "task": "dedup",
+        "records": 1000,
+        "records_a": 1000,
+        "records_b": 0,
+        "true_pairs": 500,
+        "blocking": {
+          "candidate_pairs": 12276,
+          "true_pairs": 500,
+          "true_pairs_retained": 500,
+          "pair_completeness": 1.0,
+          "reduction_ratio": 0.9754234234234235,
+          "runtime_seconds": 0.28
+        },
+        "matching": {
+          "best_f1": {
+            "precision": 1.0,
+            "recall": 0.996,
+            "f1": 0.998,
+            "predicted_pairs": 498,
+            "true_positives": 498,
+            "threshold": 0.42
+          },
+          "at_configured_threshold": {
+            "precision": 1.0,
+            "recall": 0.612,
+            "f1": 0.7593,
+            "predicted_pairs": 306,
+            "true_positives": 306,
+            "threshold": 0.8
+          },
+          "auto_threshold": {
+            "unsupervised": {
+              "threshold": 0.4182,
+              "method": "otsu",
+              "regime": "unsupervised",
+              "objective": null,
+              "metrics": {},
+              "diagnostics": {
+                "valley_depth": 0.9912,
+                "separability": 0.8048,
+                "between_class_variance": 0.017533,
+                "total_variance": 0.021784,
+                "score_min": 0.0,
+                "score_max": 1.0,
+                "sample_size": 12276,
+                "bins": 220,
+                "min": 0.0,
+                "p25": 0.1,
+                "median": 0.1333,
+                "p75": 0.1667,
+                "max": 1.0,
+                "mean": 0.1544,
+                "stdev": 0.1477
+              },
+              "warning": null,
+              "achieved": {
+                "precision": 1.0,
+                "recall": 0.996,
+                "f1": 0.998,
+                "predicted_pairs": 498,
+                "true_positives": 498,
+                "threshold": 0.4182
+              }
+            },
+            "supervised": {
+              "threshold": 0.42,
+              "method": "supervised_sweep",
+              "regime": "supervised",
+              "objective": "f1",
+              "metrics": {
+                "precision": 1.0,
+                "recall": 0.996,
+                "f1": 0.998
+              },
+              "diagnostics": {
+                "labelled_pairs": 500,
+                "scored_pairs": 12276,
+                "steps": 99,
+                "constraints": {
+                  "min_precision": null,
+                  "min_recall": null
+                }
+              },
+              "warning": null
+            }
+          },
+          "runtime_seconds": 0.25
+        },
+        "clustering": {
+          "threshold": 0.42,
+          "b_cubed": {
+            "precision": 1.0,
+            "recall": 0.998,
+            "f1": 0.999,
+            "records_evaluated": 1000
+          },
+          "pairwise_closure": {
+            "precision": 1.0,
+            "recall": 0.996,
+            "f1": 0.998,
+            "true_positives": 498,
+            "predicted_pairs": 498,
+            "truth_pairs": 500
+          },
+          "predicted_clusters": 498,
+          "truth_clusters": 500
+        },
+        "fs_model": null,
+        "config": {
+          "blocking": "bm25",
+          "scoring_method": "weighted_heuristic",
+          "bm25_threshold": 1.0,
+          "limit_per_entity": 20,
+          "similarity_algorithm": "jaccard",
+          "analyzer": "text_en"
+        },
+        "total_runtime_seconds": 0.63,
+        "threshold_curve": null
+      }
+    },
+    {
+      "dataset": "febrl1",
+      "matcher": "FS binary",
+      "command": "python scripts/run_er_benchmarks.py --dataset febrl1 --scoring-method fellegi_sunter",
+      "pairwise_f1": 1.0,
+      "f1_at_default_0_8": 0.998,
+      "b_cubed_f1": 1.0,
+      "fit_warning": null,
+      "result": {
+        "dataset": "febrl1",
+        "task": "dedup",
+        "records": 1000,
+        "records_a": 1000,
+        "records_b": 0,
+        "true_pairs": 500,
+        "blocking": {
+          "candidate_pairs": 12276,
+          "true_pairs": 500,
+          "true_pairs_retained": 500,
+          "pair_completeness": 1.0,
+          "reduction_ratio": 0.9754234234234235,
+          "runtime_seconds": 0.28
+        },
+        "matching": {
+          "best_f1": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "predicted_pairs": 500,
+            "true_positives": 500,
+            "threshold": 0.4
+          },
+          "at_configured_threshold": {
+            "precision": 1.0,
+            "recall": 0.996,
+            "f1": 0.998,
+            "predicted_pairs": 498,
+            "true_positives": 498,
+            "threshold": 0.8
+          },
+          "auto_threshold": {
+            "unsupervised": {
+              "threshold": 0.4273,
+              "method": "otsu",
+              "regime": "unsupervised",
+              "objective": null,
+              "metrics": {},
+              "diagnostics": {
+                "valley_depth": 0.9989,
+                "separability": 0.9983,
+                "between_class_variance": 0.03857,
+                "total_variance": 0.038636,
+                "score_min": 0.0,
+                "score_max": 1.0,
+                "sample_size": 12276,
+                "bins": 220,
+                "min": 0.0,
+                "p25": 0.0,
+                "median": 0.0,
+                "p75": 0.0,
+                "max": 1.0,
+                "mean": 0.0409,
+                "stdev": 0.1974
+              },
+              "warning": null,
+              "achieved": {
+                "precision": 1.0,
+                "recall": 0.998,
+                "f1": 0.999,
+                "predicted_pairs": 499,
+                "true_positives": 499,
+                "threshold": 0.4273
+              }
+            },
+            "supervised": {
+              "threshold": 0.4,
+              "method": "supervised_sweep",
+              "regime": "supervised",
+              "objective": "f1",
+              "metrics": {
+                "precision": 1.0,
+                "recall": 1.0,
+                "f1": 1.0
+              },
+              "diagnostics": {
+                "labelled_pairs": 500,
+                "scored_pairs": 12276,
+                "steps": 99,
+                "constraints": {
+                  "min_precision": null,
+                  "min_recall": null
+                }
+              },
+              "warning": null
+            }
+          },
+          "runtime_seconds": 1.01
+        },
+        "clustering": {
+          "threshold": 0.4,
+          "b_cubed": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "records_evaluated": 1000
+          },
+          "pairwise_closure": {
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "true_positives": 500,
+            "predicted_pairs": 500,
+            "truth_pairs": 500
+          },
+          "predicted_clusters": 500,
+          "truth_clusters": 500
+        },
+        "fs_model": {
+          "m": {
+            "given_name": 0.6858,
+            "surname": 0.6515,
+            "street_number": 0.846,
+            "address_1": 0.6335,
+            "address_2": 0.5828,
+            "suburb": 0.7144,
+            "postcode": 0.8235,
+            "state": 0.9634,
+            "date_of_birth": 0.9336,
+            "soc_sec_id": 0.8884
+          },
+          "u": {
+            "given_name": 0.0051,
+            "surname": 0.0033,
+            "street_number": 0.0149,
+            "address_1": 0.0005,
+            "address_2": 0.0014,
+            "suburb": 0.0012,
+            "postcode": 0.0016,
+            "state": 0.2309,
+            "date_of_birth": 0.0007,
+            "soc_sec_id": 0.0005
+          },
+          "lambda": 0.0413,
+          "u_estimation": "random_pairs",
+          "fit_warning": null,
+          "agreement_threshold": 0.85,
+          "term_frequency_fields": [
+            "address_1",
+            "address_2",
+            "date_of_birth",
+            "given_name",
+            "postcode",
+            "soc_sec_id",
+            "state",
+            "street_number",
+            "suburb",
+            "surname"
+          ],
+          "converged": true,
+          "training_pairs": 12276,
+          "model_type": "binary"
+        },
+        "config": {
+          "blocking": "bm25",
+          "scoring_method": "fellegi_sunter",
+          "bm25_threshold": 1.0,
+          "limit_per_entity": 20,
+          "similarity_algorithm": "jaccard",
+          "analyzer": "text_en"
+        },
+        "total_runtime_seconds": 1.37,
+        "threshold_curve": null
+      }
+    },
+    {
+      "dataset": "febrl1",
+      "matcher": "FS multi-level",
+      "command": "python scripts/run_er_benchmarks.py --dataset febrl1 --scoring-method fellegi_sunter --comparison-levels auto",
+      "pairwise_f1": 0.987,
+      "f1_at_default_0_8": 0.9849,
+      "b_cubed_f1": 0.9945,
+      "fit_warning": null,
+      "result": {
+        "dataset": "febrl1",
+        "task": "dedup",
+        "records": 1000,
+        "records_a": 1000,
+        "records_b": 0,
+        "true_pairs": 500,
+        "blocking": {
+          "candidate_pairs": 12276,
+          "true_pairs": 500,
+          "true_pairs_retained": 500,
+          "pair_completeness": 1.0,
+          "reduction_ratio": 0.9754234234234235,
+          "runtime_seconds": 0.27
+        },
+        "matching": {
+          "best_f1": {
+            "precision": 0.988,
+            "recall": 0.986,
+            "f1": 0.987,
+            "predicted_pairs": 499,
+            "true_positives": 493,
+            "threshold": 0.49
+          },
+          "at_configured_threshold": {
+            "precision": 0.9899,
+            "recall": 0.98,
+            "f1": 0.9849,
+            "predicted_pairs": 495,
+            "true_positives": 490,
+            "threshold": 0.8
+          },
+          "auto_threshold": {
+            "unsupervised": {
+              "threshold": 0.4864,
+              "method": "otsu",
+              "regime": "unsupervised",
+              "objective": null,
+              "metrics": {},
+              "diagnostics": {
+                "valley_depth": 0.9988,
+                "separability": 0.9882,
+                "between_class_variance": 0.037933,
+                "total_variance": 0.038385,
+                "score_min": 0.0,
+                "score_max": 1.0,
+                "sample_size": 12276,
+                "bins": 220,
+                "min": 0.0,
+                "p25": 0.0,
+                "median": 0.0001,
+                "p75": 0.0011,
+                "max": 1.0,
+                "mean": 0.0437,
+                "stdev": 0.1967
+              },
+              "warning": null,
+              "achieved": {
+                "precision": 0.988,
+                "recall": 0.986,
+                "f1": 0.987,
+                "predicted_pairs": 499,
+                "true_positives": 493,
+                "threshold": 0.4864
+              }
+            },
+            "supervised": {
+              "threshold": 0.49,
+              "method": "supervised_sweep",
+              "regime": "supervised",
+              "objective": "f1",
+              "metrics": {
+                "precision": 0.988,
+                "recall": 0.986,
+                "f1": 0.987
+              },
+              "diagnostics": {
+                "labelled_pairs": 500,
+                "scored_pairs": 12276,
+                "steps": 99,
+                "constraints": {
+                  "min_precision": null,
+                  "min_recall": null
+                }
+              },
+              "warning": null
+            }
+          },
+          "runtime_seconds": 1.2
+        },
+        "clustering": {
+          "threshold": 0.49,
+          "b_cubed": {
+            "precision": 0.996,
+            "recall": 0.993,
+            "f1": 0.9945,
+            "records_evaluated": 1000
+          },
+          "pairwise_closure": {
+            "precision": 0.984,
+            "recall": 0.986,
+            "f1": 0.985,
+            "true_positives": 493,
+            "predicted_pairs": 501,
+            "truth_pairs": 500
+          },
+          "predicted_clusters": 491,
+          "truth_clusters": 500
+        },
+        "fs_model": {
+          "m": {
+            "given_name": 0.7147,
+            "surname": 0.6859,
+            "street_number": 0.8492,
+            "address_1": 0.8666,
+            "address_2": 0.6854,
+            "suburb": 0.7509,
+            "postcode": 0.878,
+            "state": 0.9696
+          },
+          "u": {
+            "given_name": 0.1227,
+            "surname": 0.0744,
+            "street_number": 0.2895,
+            "address_1": 0.4118,
+            "address_2": 0.0315,
+            "suburb": 0.0377,
+            "postcode": 0.0434,
+            "state": 0.4784
+          },
+          "lambda": 0.0367,
+          "u_estimation": "joint_em_categorical",
+          "fit_warning": null,
+          "agreement_threshold": 0.85,
+          "term_frequency_fields": [
+            "address_1",
+            "address_2",
+            "date_of_birth",
+            "given_name",
+            "postcode",
+            "soc_sec_id",
+            "state",
+            "street_number",
+            "suburb",
+            "surname"
+          ],
+          "converged": true,
+          "training_pairs": 12276,
+          "model_type": "categorical",
+          "comparison_levels": {
+            "given_name": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "surname": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "street_number": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "address_1": [
+              0.3047,
+              0.1094,
+              null
+            ],
+            "address_2": [
+              0.5703,
+              0.375,
+              null
+            ],
+            "suburb": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "postcode": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "state": [
+              0.9688,
+              0.7734,
+              null
+            ]
+          },
+          "m_levels": {
+            "given_name": [
+              0.7147,
+              0.0,
+              0.2853
+            ],
+            "surname": [
+              0.6859,
+              0.0,
+              0.3141
+            ],
+            "street_number": [
+              0.8492,
+              0.0,
+              0.1508
+            ],
+            "address_1": [
+              0.8283,
+              0.0382,
+              0.1334
+            ],
+            "address_2": [
+              0.6469,
+              0.0384,
+              0.3146
+            ],
+            "suburb": [
+              0.7509,
+              0.0,
+              0.2491
+            ],
+            "postcode": [
+              0.878,
+              0.0,
+              0.122
+            ],
+            "state": [
+              0.9696,
+              0.0,
+              0.0304
+            ]
+          },
+          "u_levels": {
+            "given_name": [
+              0.1227,
+              0.0,
+              0.8773
+            ],
+            "surname": [
+              0.0744,
+              0.0,
+              0.9256
+            ],
+            "street_number": [
+              0.2895,
+              0.0,
+              0.7105
+            ],
+            "address_1": [
+              0.3848,
+              0.027,
+              0.5882
+            ],
+            "address_2": [
+              0.0244,
+              0.0071,
+              0.9685
+            ],
+            "suburb": [
+              0.0377,
+              0.0,
+              0.9623
+            ],
+            "postcode": [
+              0.0434,
+              0.0,
+              0.9566
+            ],
+            "state": [
+              0.4784,
+              0.0,
+              0.5216
+            ]
+          }
+        },
+        "config": {
+          "blocking": "bm25",
+          "scoring_method": "fellegi_sunter",
+          "bm25_threshold": 1.0,
+          "limit_per_entity": 20,
+          "similarity_algorithm": "jaccard",
+          "analyzer": "text_en"
+        },
+        "total_runtime_seconds": 1.56,
+        "threshold_curve": null
+      }
+    },
+    {
+      "dataset": "febrl3",
+      "matcher": "weighted",
+      "command": "python scripts/run_er_benchmarks.py --dataset febrl3 --scoring-method weighted_heuristic",
+      "pairwise_f1": 0.9936,
+      "f1_at_default_0_8": 0.5473,
+      "b_cubed_f1": 0.9963,
+      "fit_warning": null,
+      "result": {
+        "dataset": "febrl3",
+        "task": "dedup",
+        "records": 5000,
+        "records_a": 5000,
+        "records_b": 0,
+        "true_pairs": 6538,
+        "blocking": {
+          "candidate_pairs": 62299,
+          "true_pairs": 6538,
+          "true_pairs_retained": 6538,
+          "pair_completeness": 1.0,
+          "reduction_ratio": 0.9950150830166034,
+          "runtime_seconds": 4.98
+        },
+        "matching": {
+          "best_f1": {
+            "precision": 0.9959,
+            "recall": 0.9913,
+            "f1": 0.9936,
+            "predicted_pairs": 6508,
+            "true_positives": 6481,
+            "threshold": 0.35
+          },
+          "at_configured_threshold": {
+            "precision": 1.0,
+            "recall": 0.3767,
+            "f1": 0.5473,
+            "predicted_pairs": 2463,
+            "true_positives": 2463,
+            "threshold": 0.8
+          },
+          "auto_threshold": {
+            "unsupervised": {
+              "threshold": 0.4414,
+              "method": "otsu",
+              "regime": "unsupervised",
+              "objective": null,
+              "metrics": {},
+              "diagnostics": {
+                "valley_depth": 0.8894,
+                "separability": 0.8408,
+                "between_class_variance": 0.031719,
+                "total_variance": 0.037723,
+                "score_min": 0.0,
+                "score_max": 1.0,
+                "sample_size": 62299,
+                "bins": 256,
+                "min": 0.0,
+                "p25": 0.1111,
+                "median": 0.1481,
+                "p75": 0.2222,
+                "max": 1.0,
+                "mean": 0.2072,
+                "stdev": 0.1943
+              },
+              "warning": null,
+              "achieved": {
+                "precision": 1.0,
+                "recall": 0.9682,
+                "f1": 0.9838,
+                "predicted_pairs": 6330,
+                "true_positives": 6330,
+                "threshold": 0.4414
+              }
+            },
+            "supervised": {
+              "threshold": 0.35,
+              "method": "supervised_sweep",
+              "regime": "supervised",
+              "objective": "f1",
+              "metrics": {
+                "precision": 0.9959,
+                "recall": 0.9913,
+                "f1": 0.9936
+              },
+              "diagnostics": {
+                "labelled_pairs": 6538,
+                "scored_pairs": 62299,
+                "steps": 99,
+                "constraints": {
+                  "min_precision": null,
+                  "min_recall": null
+                }
+              },
+              "warning": null
+            }
+          },
+          "runtime_seconds": 1.23
+        },
+        "clustering": {
+          "threshold": 0.35,
+          "b_cubed": {
+            "precision": 0.9928,
+            "recall": 0.9998,
+            "f1": 0.9963,
+            "records_evaluated": 5000
+          },
+          "pairwise_closure": {
+            "precision": 0.9823,
+            "recall": 0.9998,
+            "f1": 0.991,
+            "true_positives": 6537,
+            "predicted_pairs": 6655,
+            "truth_pairs": 6538
+          },
+          "predicted_clusters": 1156,
+          "truth_clusters": 1165
+        },
+        "fs_model": null,
+        "config": {
+          "blocking": "bm25",
+          "scoring_method": "weighted_heuristic",
+          "bm25_threshold": 1.0,
+          "limit_per_entity": 20,
+          "similarity_algorithm": "jaccard",
+          "analyzer": "text_en"
+        },
+        "total_runtime_seconds": 6.88,
+        "threshold_curve": null
+      }
+    },
+    {
+      "dataset": "febrl3",
+      "matcher": "FS binary",
+      "command": "python scripts/run_er_benchmarks.py --dataset febrl3 --scoring-method fellegi_sunter",
+      "pairwise_f1": 0.2357,
+      "f1_at_default_0_8": 0.19,
+      "b_cubed_f1": 0.0014,
+      "fit_warning": "match prior converged to 0.9905, above the plausible bound 0.5: the supplied fixed u probably does not describe this pair population, so the two classes have not separated. Treat these parameters as unfit.",
+      "result": {
+        "dataset": "febrl3",
+        "task": "dedup",
+        "records": 5000,
+        "records_a": 5000,
+        "records_b": 0,
+        "true_pairs": 6538,
+        "blocking": {
+          "candidate_pairs": 62299,
+          "true_pairs": 6538,
+          "true_pairs_retained": 6538,
+          "pair_completeness": 1.0,
+          "reduction_ratio": 0.9950150830166034,
+          "runtime_seconds": 5.71
+        },
+        "matching": {
+          "best_f1": {
+            "precision": 0.1336,
+            "recall": 1.0,
+            "f1": 0.2357,
+            "predicted_pairs": 48942,
+            "true_positives": 6538,
+            "threshold": 0.99
+          },
+          "at_configured_threshold": {
+            "precision": 0.1049,
+            "recall": 1.0,
+            "f1": 0.19,
+            "predicted_pairs": 62299,
+            "true_positives": 6538,
+            "threshold": 0.8
+          },
+          "auto_threshold": {
+            "unsupervised": {
+              "threshold": 0.969,
+              "method": "otsu",
+              "regime": "unsupervised",
+              "objective": null,
+              "metrics": {},
+              "diagnostics": {
+                "valley_depth": 0.9978,
+                "separability": 0.8812,
+                "between_class_variance": 0.000318,
+                "total_variance": 0.000361,
+                "score_min": 0.9344,
+                "score_max": 1.0,
+                "sample_size": 62299,
+                "bins": 256,
+                "min": 0.9344,
+                "p25": 0.9955,
+                "median": 0.9992,
+                "p75": 0.9997,
+                "max": 1.0,
+                "mean": 0.9905,
+                "stdev": 0.019
+              },
+              "warning": null,
+              "achieved": {
+                "precision": 0.1189,
+                "recall": 1.0,
+                "f1": 0.2125,
+                "predicted_pairs": 55004,
+                "true_positives": 6538,
+                "threshold": 0.969
+              }
+            },
+            "supervised": {
+              "threshold": 0.99,
+              "method": "supervised_sweep",
+              "regime": "supervised",
+              "objective": "f1",
+              "metrics": {
+                "precision": 0.1336,
+                "recall": 1.0,
+                "f1": 0.2357
+              },
+              "diagnostics": {
+                "labelled_pairs": 6538,
+                "scored_pairs": 62299,
+                "steps": 99,
+                "constraints": {
+                  "min_precision": null,
+                  "min_recall": null
+                }
+              },
+              "warning": null
+            }
+          },
+          "runtime_seconds": 3.76
+        },
+        "clustering": {
+          "threshold": 0.99,
+          "b_cubed": {
+            "precision": 0.0007,
+            "recall": 1.0,
+            "f1": 0.0014,
+            "records_evaluated": 5000
+          },
+          "pairwise_closure": {
+            "precision": 0.0005,
+            "recall": 1.0,
+            "f1": 0.001,
+            "true_positives": 6538,
+            "predicted_pairs": 12497500,
+            "truth_pairs": 6538
+          },
+          "predicted_clusters": 1,
+          "truth_clusters": 1165
+        },
+        "fs_model": {
+          "m": {
+            "given_name": 0.1925,
+            "surname": 0.1394,
+            "street_number": 0.2933,
+            "address_1": 0.1145,
+            "address_2": 0.1135,
+            "suburb": 0.1712,
+            "postcode": 0.167,
+            "state": 0.5167,
+            "date_of_birth": 0.1028,
+            "soc_sec_id": 0.0903
+          },
+          "u": {
+            "given_name": 0.0037,
+            "surname": 0.003,
+            "street_number": 0.0136,
+            "address_1": 0.0006,
+            "address_2": 0.0004,
+            "suburb": 0.001,
+            "postcode": 0.0009,
+            "state": 0.212,
+            "date_of_birth": 0.0005,
+            "soc_sec_id": 0.0004
+          },
+          "lambda": 0.9905,
+          "u_estimation": "random_pairs",
+          "fit_warning": "match prior converged to 0.9905, above the plausible bound 0.5: the supplied fixed u probably does not describe this pair population, so the two classes have not separated. Treat these parameters as unfit.",
+          "agreement_threshold": 0.85,
+          "term_frequency_fields": [
+            "address_1",
+            "address_2",
+            "date_of_birth",
+            "given_name",
+            "postcode",
+            "soc_sec_id",
+            "state",
+            "street_number",
+            "suburb",
+            "surname"
+          ],
+          "converged": false,
+          "training_pairs": 50000,
+          "model_type": "binary"
+        },
+        "config": {
+          "blocking": "bm25",
+          "scoring_method": "fellegi_sunter",
+          "bm25_threshold": 1.0,
+          "limit_per_entity": 20,
+          "similarity_algorithm": "jaccard",
+          "analyzer": "text_en"
+        },
+        "total_runtime_seconds": 13.42,
+        "threshold_curve": null
+      }
+    },
+    {
+      "dataset": "febrl3",
+      "matcher": "FS multi-level",
+      "command": "python scripts/run_er_benchmarks.py --dataset febrl3 --scoring-method fellegi_sunter --comparison-levels auto",
+      "pairwise_f1": 0.9954,
+      "f1_at_default_0_8": 0.995,
+      "b_cubed_f1": 0.9989,
+      "fit_warning": null,
+      "result": {
+        "dataset": "febrl3",
+        "task": "dedup",
+        "records": 5000,
+        "records_a": 5000,
+        "records_b": 0,
+        "true_pairs": 6538,
+        "blocking": {
+          "candidate_pairs": 62299,
+          "true_pairs": 6538,
+          "true_pairs_retained": 6538,
+          "pair_completeness": 1.0,
+          "reduction_ratio": 0.9950150830166034,
+          "runtime_seconds": 4.7
+        },
+        "matching": {
+          "best_f1": {
+            "precision": 0.9988,
+            "recall": 0.992,
+            "f1": 0.9954,
+            "predicted_pairs": 6494,
+            "true_positives": 6486,
+            "threshold": 0.84
+          },
+          "at_configured_threshold": {
+            "precision": 0.9977,
+            "recall": 0.9924,
+            "f1": 0.995,
+            "predicted_pairs": 6503,
+            "true_positives": 6488,
+            "threshold": 0.8
+          },
+          "auto_threshold": {
+            "unsupervised": {
+              "threshold": 0.4961,
+              "method": "otsu",
+              "regime": "unsupervised",
+              "objective": null,
+              "metrics": {},
+              "diagnostics": {
+                "valley_depth": 0.9998,
+                "separability": 0.9926,
+                "between_class_variance": 0.092007,
+                "total_variance": 0.092693,
+                "score_min": 0.0,
+                "score_max": 1.0,
+                "sample_size": 62299,
+                "bins": 256,
+                "min": 0.0,
+                "p25": 0.0,
+                "median": 0.0002,
+                "p75": 0.0046,
+                "max": 1.0,
+                "mean": 0.1095,
+                "stdev": 0.3054
+              },
+              "warning": null,
+              "achieved": {
+                "precision": 0.9897,
+                "recall": 0.9951,
+                "f1": 0.9924,
+                "predicted_pairs": 6574,
+                "true_positives": 6506,
+                "threshold": 0.4961
+              }
+            },
+            "supervised": {
+              "threshold": 0.84,
+              "method": "supervised_sweep",
+              "regime": "supervised",
+              "objective": "f1",
+              "metrics": {
+                "precision": 0.9988,
+                "recall": 0.992,
+                "f1": 0.9954
+              },
+              "diagnostics": {
+                "labelled_pairs": 6538,
+                "scored_pairs": 62299,
+                "steps": 99,
+                "constraints": {
+                  "min_precision": null,
+                  "min_recall": null
+                }
+              },
+              "warning": null
+            }
+          },
+          "runtime_seconds": 5.02
+        },
+        "clustering": {
+          "threshold": 0.84,
+          "b_cubed": {
+            "precision": 0.9985,
+            "recall": 0.9993,
+            "f1": 0.9989,
+            "records_evaluated": 5000
+          },
+          "pairwise_closure": {
+            "precision": 0.9956,
+            "recall": 0.9992,
+            "f1": 0.9974,
+            "true_positives": 6533,
+            "predicted_pairs": 6562,
+            "truth_pairs": 6538
+          },
+          "predicted_clusters": 1161,
+          "truth_clusters": 1165
+        },
+        "fs_model": {
+          "m": {
+            "given_name": 0.5866,
+            "surname": 0.571,
+            "street_number": 0.8064,
+            "address_1": 0.5108,
+            "address_2": 0.4825,
+            "suburb": 0.6428,
+            "postcode": 0.7655,
+            "state": 0.9411,
+            "date_of_birth": 0.9142,
+            "soc_sec_id": 0.868
+          },
+          "u": {
+            "given_name": 0.1449,
+            "surname": 0.0882,
+            "street_number": 0.2308,
+            "address_1": 0.0669,
+            "address_2": 0.0679,
+            "suburb": 0.1147,
+            "postcode": 0.0965,
+            "state": 0.4646,
+            "date_of_birth": 0.0059,
+            "soc_sec_id": 0.0
+          },
+          "lambda": 0.1031,
+          "u_estimation": "joint_em_categorical",
+          "fit_warning": null,
+          "agreement_threshold": 0.85,
+          "term_frequency_fields": [
+            "address_1",
+            "address_2",
+            "date_of_birth",
+            "given_name",
+            "postcode",
+            "soc_sec_id",
+            "state",
+            "street_number",
+            "suburb",
+            "surname"
+          ],
+          "converged": true,
+          "training_pairs": 50000,
+          "model_type": "categorical",
+          "comparison_levels": {
+            "given_name": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "surname": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "street_number": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "address_1": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "address_2": [
+              0.9688,
+              0.75,
+              null
+            ],
+            "suburb": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "postcode": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "state": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "date_of_birth": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "soc_sec_id": [
+              0.9688,
+              0.7734,
+              null
+            ]
+          },
+          "m_levels": {
+            "given_name": [
+              0.5866,
+              0.0,
+              0.4134
+            ],
+            "surname": [
+              0.571,
+              0.0,
+              0.429
+            ],
+            "street_number": [
+              0.8064,
+              0.0,
+              0.1936
+            ],
+            "address_1": [
+              0.5108,
+              0.0,
+              0.4892
+            ],
+            "address_2": [
+              0.482,
+              0.0005,
+              0.5175
+            ],
+            "suburb": [
+              0.6428,
+              0.0,
+              0.3572
+            ],
+            "postcode": [
+              0.7655,
+              0.0,
+              0.2345
+            ],
+            "state": [
+              0.9411,
+              0.0,
+              0.0589
+            ],
+            "date_of_birth": [
+              0.9142,
+              0.0,
+              0.0858
+            ],
+            "soc_sec_id": [
+              0.868,
+              0.0,
+              0.132
+            ]
+          },
+          "u_levels": {
+            "given_name": [
+              0.1449,
+              0.0,
+              0.8551
+            ],
+            "surname": [
+              0.0882,
+              0.0,
+              0.9118
+            ],
+            "street_number": [
+              0.2308,
+              0.0,
+              0.7692
+            ],
+            "address_1": [
+              0.0669,
+              0.0,
+              0.9331
+            ],
+            "address_2": [
+              0.0678,
+              0.0001,
+              0.9321
+            ],
+            "suburb": [
+              0.1147,
+              0.0,
+              0.8853
+            ],
+            "postcode": [
+              0.0965,
+              0.0,
+              0.9035
+            ],
+            "state": [
+              0.4646,
+              0.0,
+              0.5354
+            ],
+            "date_of_birth": [
+              0.0059,
+              0.0,
+              0.9941
+            ],
+            "soc_sec_id": [
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        },
+        "config": {
+          "blocking": "bm25",
+          "scoring_method": "fellegi_sunter",
+          "bm25_threshold": 1.0,
+          "limit_per_entity": 20,
+          "similarity_algorithm": "jaccard",
+          "analyzer": "text_en"
+        },
+        "total_runtime_seconds": 10.26,
+        "threshold_curve": null
+      }
+    },
+    {
+      "dataset": "febrl3-noid",
+      "matcher": "weighted",
+      "command": "python scripts/run_er_benchmarks.py --dataset febrl3-noid --scoring-method weighted_heuristic",
+      "pairwise_f1": 0.9813,
+      "f1_at_default_0_8": 0.443,
+      "b_cubed_f1": 0.9928,
+      "fit_warning": null,
+      "result": {
+        "dataset": "febrl3-noid",
+        "task": "dedup",
+        "records": 5000,
+        "records_a": 5000,
+        "records_b": 0,
+        "true_pairs": 6538,
+        "blocking": {
+          "candidate_pairs": 62275,
+          "true_pairs": 6538,
+          "true_pairs_retained": 6537,
+          "pair_completeness": 0.9998470480269196,
+          "reduction_ratio": 0.9950170034006801,
+          "runtime_seconds": 4.83
+        },
+        "matching": {
+          "best_f1": {
+            "precision": 0.9934,
+            "recall": 0.9694,
+            "f1": 0.9813,
+            "predicted_pairs": 6380,
+            "true_positives": 6338,
+            "threshold": 0.39
+          },
+          "at_configured_threshold": {
+            "precision": 1.0,
+            "recall": 0.2845,
+            "f1": 0.443,
+            "predicted_pairs": 1860,
+            "true_positives": 1860,
+            "threshold": 0.8
+          },
+          "auto_threshold": {
+            "unsupervised": {
+              "threshold": 0.4492,
+              "method": "otsu",
+              "regime": "unsupervised",
+              "objective": null,
+              "metrics": {},
+              "diagnostics": {
+                "valley_depth": 0.8287,
+                "separability": 0.796,
+                "between_class_variance": 0.028403,
+                "total_variance": 0.035681,
+                "score_min": 0.0,
+                "score_max": 1.0,
+                "sample_size": 62275,
+                "bins": 256,
+                "min": 0.0,
+                "p25": 0.125,
+                "median": 0.1667,
+                "p75": 0.25,
+                "max": 1.0,
+                "mean": 0.2218,
+                "stdev": 0.1889
+              },
+              "warning": null,
+              "achieved": {
+                "precision": 0.9985,
+                "recall": 0.933,
+                "f1": 0.9647,
+                "predicted_pairs": 6109,
+                "true_positives": 6100,
+                "threshold": 0.4492
+              }
+            },
+            "supervised": {
+              "threshold": 0.39,
+              "method": "supervised_sweep",
+              "regime": "supervised",
+              "objective": "f1",
+              "metrics": {
+                "precision": 0.9934,
+                "recall": 0.9694,
+                "f1": 0.9813
+              },
+              "diagnostics": {
+                "labelled_pairs": 6538,
+                "scored_pairs": 62275,
+                "steps": 99,
+                "constraints": {
+                  "min_precision": null,
+                  "min_recall": null
+                }
+              },
+              "warning": null
+            }
+          },
+          "runtime_seconds": 1.12
+        },
+        "clustering": {
+          "threshold": 0.39,
+          "b_cubed": {
+            "precision": 0.9877,
+            "recall": 0.998,
+            "f1": 0.9928,
+            "records_evaluated": 5000
+          },
+          "pairwise_closure": {
+            "precision": 0.9473,
+            "recall": 0.9971,
+            "f1": 0.9715,
+            "true_positives": 6519,
+            "predicted_pairs": 6882,
+            "truth_pairs": 6538
+          },
+          "predicted_clusters": 1150,
+          "truth_clusters": 1165
+        },
+        "fs_model": null,
+        "config": {
+          "blocking": "bm25",
+          "scoring_method": "weighted_heuristic",
+          "bm25_threshold": 1.0,
+          "limit_per_entity": 20,
+          "similarity_algorithm": "jaccard",
+          "analyzer": "text_en"
+        },
+        "total_runtime_seconds": 6.63,
+        "threshold_curve": null
+      }
+    },
+    {
+      "dataset": "febrl3-noid",
+      "matcher": "FS binary",
+      "command": "python scripts/run_er_benchmarks.py --dataset febrl3-noid --scoring-method fellegi_sunter",
+      "pairwise_f1": 0.19,
+      "f1_at_default_0_8": 0.19,
+      "b_cubed_f1": 0.0014,
+      "fit_warning": "match prior converged to 0.9995, above the plausible bound 0.5: the supplied fixed u probably does not describe this pair population, so the two classes have not separated. Treat these parameters as unfit.",
+      "result": {
+        "dataset": "febrl3-noid",
+        "task": "dedup",
+        "records": 5000,
+        "records_a": 5000,
+        "records_b": 0,
+        "true_pairs": 6538,
+        "blocking": {
+          "candidate_pairs": 62275,
+          "true_pairs": 6538,
+          "true_pairs_retained": 6537,
+          "pair_completeness": 0.9998470480269196,
+          "reduction_ratio": 0.9950170034006801,
+          "runtime_seconds": 4.88
+        },
+        "matching": {
+          "best_f1": {
+            "precision": 0.105,
+            "recall": 0.9998,
+            "f1": 0.19,
+            "predicted_pairs": 62275,
+            "true_positives": 6537,
+            "threshold": 0.01
+          },
+          "at_configured_threshold": {
+            "precision": 0.105,
+            "recall": 0.9998,
+            "f1": 0.19,
+            "predicted_pairs": 62275,
+            "true_positives": 6537,
+            "threshold": 0.8
+          },
+          "auto_threshold": {
+            "unsupervised": {
+              "threshold": 0.9983,
+              "method": "otsu",
+              "regime": "unsupervised",
+              "objective": null,
+              "metrics": {},
+              "diagnostics": {
+                "valley_depth": 0.9974,
+                "separability": 0.8852,
+                "between_class_variance": 1e-06,
+                "total_variance": 1e-06,
+                "score_min": 0.9964,
+                "score_max": 1.0,
+                "sample_size": 62275,
+                "bins": 256,
+                "min": 0.9964,
+                "p25": 0.9998,
+                "median": 1.0,
+                "p75": 1.0,
+                "max": 1.0,
+                "mean": 0.9995,
+                "stdev": 0.001
+              },
+              "warning": null,
+              "achieved": {
+                "precision": 0.1187,
+                "recall": 0.9998,
+                "f1": 0.2123,
+                "predicted_pairs": 55050,
+                "true_positives": 6537,
+                "threshold": 0.9983
+              }
+            },
+            "supervised": {
+              "threshold": 0.01,
+              "method": "supervised_sweep",
+              "regime": "supervised",
+              "objective": "f1",
+              "metrics": {
+                "precision": 0.105,
+                "recall": 0.9998,
+                "f1": 0.19
+              },
+              "diagnostics": {
+                "labelled_pairs": 6538,
+                "scored_pairs": 62275,
+                "steps": 99,
+                "constraints": {
+                  "min_precision": null,
+                  "min_recall": null
+                }
+              },
+              "warning": null
+            }
+          },
+          "runtime_seconds": 3.5
+        },
+        "clustering": {
+          "threshold": 0.01,
+          "b_cubed": {
+            "precision": 0.0007,
+            "recall": 1.0,
+            "f1": 0.0014,
+            "records_evaluated": 5000
+          },
+          "pairwise_closure": {
+            "precision": 0.0005,
+            "recall": 1.0,
+            "f1": 0.001,
+            "true_positives": 6538,
+            "predicted_pairs": 12497500,
+            "truth_pairs": 6538
+          },
+          "predicted_clusters": 1,
+          "truth_clusters": 1165
+        },
+        "fs_model": {
+          "m": {
+            "given_name": 0.1908,
+            "surname": 0.1394,
+            "street_number": 0.2918,
+            "address_1": 0.1138,
+            "address_2": 0.1136,
+            "suburb": 0.1696,
+            "postcode": 0.1674,
+            "state": 0.5156,
+            "date_of_birth": 0.1019
+          },
+          "u": {
+            "given_name": 0.0037,
+            "surname": 0.003,
+            "street_number": 0.0136,
+            "address_1": 0.0006,
+            "address_2": 0.0004,
+            "suburb": 0.001,
+            "postcode": 0.0009,
+            "state": 0.212,
+            "date_of_birth": 0.0005
+          },
+          "lambda": 0.9995,
+          "u_estimation": "random_pairs",
+          "fit_warning": "match prior converged to 0.9995, above the plausible bound 0.5: the supplied fixed u probably does not describe this pair population, so the two classes have not separated. Treat these parameters as unfit.",
+          "agreement_threshold": 0.85,
+          "term_frequency_fields": [
+            "address_1",
+            "address_2",
+            "date_of_birth",
+            "given_name",
+            "postcode",
+            "state",
+            "street_number",
+            "suburb",
+            "surname"
+          ],
+          "converged": false,
+          "training_pairs": 50000,
+          "model_type": "binary"
+        },
+        "config": {
+          "blocking": "bm25",
+          "scoring_method": "fellegi_sunter",
+          "bm25_threshold": 1.0,
+          "limit_per_entity": 20,
+          "similarity_algorithm": "jaccard",
+          "analyzer": "text_en"
+        },
+        "total_runtime_seconds": 12.22,
+        "threshold_curve": null
+      }
+    },
+    {
+      "dataset": "febrl3-noid",
+      "matcher": "FS multi-level",
+      "command": "python scripts/run_er_benchmarks.py --dataset febrl3-noid --scoring-method fellegi_sunter --comparison-levels auto",
+      "pairwise_f1": 0.9814,
+      "f1_at_default_0_8": 0.9798,
+      "b_cubed_f1": 0.9922,
+      "fit_warning": null,
+      "result": {
+        "dataset": "febrl3-noid",
+        "task": "dedup",
+        "records": 5000,
+        "records_a": 5000,
+        "records_b": 0,
+        "true_pairs": 6538,
+        "blocking": {
+          "candidate_pairs": 62275,
+          "true_pairs": 6538,
+          "true_pairs_retained": 6537,
+          "pair_completeness": 0.9998470480269196,
+          "reduction_ratio": 0.9950170034006801,
+          "runtime_seconds": 5.05
+        },
+        "matching": {
+          "best_f1": {
+            "precision": 0.991,
+            "recall": 0.972,
+            "f1": 0.9814,
+            "predicted_pairs": 6413,
+            "true_positives": 6355,
+            "threshold": 0.82
+          },
+          "at_configured_threshold": {
+            "precision": 0.987,
+            "recall": 0.9728,
+            "f1": 0.9798,
+            "predicted_pairs": 6444,
+            "true_positives": 6360,
+            "threshold": 0.8
+          },
+          "auto_threshold": {
+            "unsupervised": {
+              "threshold": 0.4961,
+              "method": "otsu",
+              "regime": "unsupervised",
+              "objective": null,
+              "metrics": {},
+              "diagnostics": {
+                "valley_depth": 0.9962,
+                "separability": 0.9742,
+                "between_class_variance": 0.089715,
+                "total_variance": 0.092088,
+                "score_min": 0.0,
+                "score_max": 1.0,
+                "sample_size": 62275,
+                "bins": 256,
+                "min": 0.0,
+                "p25": 0.0,
+                "median": 0.0007,
+                "p75": 0.016,
+                "max": 1.0,
+                "mean": 0.1175,
+                "stdev": 0.3043
+              },
+              "warning": null,
+              "achieved": {
+                "precision": 0.9562,
+                "recall": 0.9821,
+                "f1": 0.969,
+                "predicted_pairs": 6715,
+                "true_positives": 6421,
+                "threshold": 0.4961
+              }
+            },
+            "supervised": {
+              "threshold": 0.82,
+              "method": "supervised_sweep",
+              "regime": "supervised",
+              "objective": "f1",
+              "metrics": {
+                "precision": 0.991,
+                "recall": 0.972,
+                "f1": 0.9814
+              },
+              "diagnostics": {
+                "labelled_pairs": 6538,
+                "scored_pairs": 62275,
+                "steps": 99,
+                "constraints": {
+                  "min_precision": null,
+                  "min_recall": null
+                }
+              },
+              "warning": null
+            }
+          },
+          "runtime_seconds": 4.71
+        },
+        "clustering": {
+          "threshold": 0.82,
+          "b_cubed": {
+            "precision": 0.9875,
+            "recall": 0.9969,
+            "f1": 0.9922,
+            "records_evaluated": 5000
+          },
+          "pairwise_closure": {
+            "precision": 0.9647,
+            "recall": 0.9954,
+            "f1": 0.9798,
+            "true_positives": 6508,
+            "predicted_pairs": 6746,
+            "truth_pairs": 6538
+          },
+          "predicted_clusters": 1150,
+          "truth_clusters": 1165
+        },
+        "fs_model": {
+          "m": {
+            "given_name": 0.6033,
+            "surname": 0.587,
+            "street_number": 0.8185,
+            "address_1": 0.5304,
+            "address_2": 0.5355,
+            "suburb": 0.6582,
+            "postcode": 0.7874,
+            "state": 0.9481,
+            "date_of_birth": 0.9459
+          },
+          "u": {
+            "given_name": 0.1459,
+            "surname": 0.0909,
+            "street_number": 0.2339,
+            "address_1": 0.0679,
+            "address_2": 0.0993,
+            "suburb": 0.1163,
+            "postcode": 0.1004,
+            "state": 0.4686,
+            "date_of_birth": 0.0078
+          },
+          "lambda": 0.0973,
+          "u_estimation": "joint_em_categorical",
+          "fit_warning": null,
+          "agreement_threshold": 0.85,
+          "term_frequency_fields": [
+            "address_1",
+            "address_2",
+            "date_of_birth",
+            "given_name",
+            "postcode",
+            "state",
+            "street_number",
+            "suburb",
+            "surname"
+          ],
+          "converged": true,
+          "training_pairs": 50000,
+          "model_type": "categorical",
+          "comparison_levels": {
+            "given_name": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "surname": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "street_number": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "address_1": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "address_2": [
+              0.9688,
+              0.4766,
+              null
+            ],
+            "suburb": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "postcode": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "state": [
+              0.9688,
+              0.7734,
+              null
+            ],
+            "date_of_birth": [
+              0.9688,
+              0.7734,
+              null
+            ]
+          },
+          "m_levels": {
+            "given_name": [
+              0.6033,
+              0.0,
+              0.3967
+            ],
+            "surname": [
+              0.587,
+              0.0,
+              0.413
+            ],
+            "street_number": [
+              0.8185,
+              0.0,
+              0.1815
+            ],
+            "address_1": [
+              0.5304,
+              0.0,
+              0.4696
+            ],
+            "address_2": [
+              0.4883,
+              0.0472,
+              0.4645
+            ],
+            "suburb": [
+              0.6582,
+              0.0,
+              0.3418
+            ],
+            "postcode": [
+              0.7874,
+              0.0,
+              0.2126
+            ],
+            "state": [
+              0.9481,
+              0.0,
+              0.0519
+            ],
+            "date_of_birth": [
+              0.9459,
+              0.0,
+              0.0541
+            ]
+          },
+          "u_levels": {
+            "given_name": [
+              0.1459,
+              0.0,
+              0.8541
+            ],
+            "surname": [
+              0.0909,
+              0.0,
+              0.9091
+            ],
+            "street_number": [
+              0.2339,
+              0.0,
+              0.7661
+            ],
+            "address_1": [
+              0.0679,
+              0.0,
+              0.9321
+            ],
+            "address_2": [
+              0.0705,
+              0.0288,
+              0.9007
+            ],
+            "suburb": [
+              0.1163,
+              0.0,
+              0.8837
+            ],
+            "postcode": [
+              0.1004,
+              0.0,
+              0.8996
+            ],
+            "state": [
+              0.4686,
+              0.0,
+              0.5314
+            ],
+            "date_of_birth": [
+              0.0078,
+              0.0,
+              0.9922
+            ]
+          }
+        },
+        "config": {
+          "blocking": "bm25",
+          "scoring_method": "fellegi_sunter",
+          "bm25_threshold": 1.0,
+          "limit_per_entity": 20,
+          "similarity_algorithm": "jaccard",
+          "analyzer": "text_en"
+        },
+        "total_runtime_seconds": 10.48,
+        "threshold_curve": null
+      }
+    }
+  ]
+}
