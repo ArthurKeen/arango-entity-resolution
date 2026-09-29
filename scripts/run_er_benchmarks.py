@@ -76,6 +76,7 @@ import argparse
 import csv
 import io
 import json
+import random
 import os
 import sys
 import time
@@ -603,7 +604,12 @@ def _auto_comparison_levels(
     from entity_resolution.learning.threshold_selection import select_comparison_bands
 
     service = _build_similarity_service(db, collection, args, spec=spec)
-    sample = list(pairs)[: args.fs_train_sample]
+    # `pairs` may be a set, whose iteration order changes with the per-process
+    # string-hash seed; slicing it drew a different sample, and so different
+    # bands, on every run. Sort, then shuffle with a fixed seed.
+    sample = sorted(pairs)
+    random.Random(args.fs_sample_seed).shuffle(sample)
+    sample = sample[: args.fs_train_sample]
     detailed = service.compute_similarities_detailed(
         sample, threshold=0.0, preserve_missing=True
     )
@@ -666,6 +672,10 @@ def train_fs_model(
         field_names=fields,
         default_threshold=args.fs_agreement_threshold,
         comparison_levels=levels or None,
+        # Fixed so a published row reproduces exactly. Unseeded, febrl3's
+        # 62k candidates against a 50k training sample drew a different
+        # sample, and so a slightly different model, on every run.
+        random_pair_seed=args.fs_sample_seed,
     )
     # Train fresh: models persist across runs, and load_latest() sorts by version
     # across ALL config hashes. Each distinct configuration starts its own
@@ -986,7 +996,8 @@ def run_dataset(name: str, args) -> Dict[str, Any]:
                 db.delete_collection(collection)
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
+    """The harness's CLI. Shared so companion scripts get every default."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--dataset", default="abt-buy",
@@ -998,6 +1009,10 @@ def main() -> int:
     )
     parser.add_argument("--data-dir", default=str(REPO_ROOT / ".benchmark_data"))
     parser.add_argument("--output", default=None, help="Write JSON results here.")
+    parser.add_argument(
+        "--fs-sample-seed", type=int, default=20260929,
+        help="Seed for every Fellegi-Sunter training sample, so runs reproduce.",
+    )
     parser.add_argument("--markdown", default=None, help="Write a results table here.")
     parser.add_argument("--host", default=os.getenv("ARANGO_TEST_HOST", "localhost"))
     parser.add_argument("--port", default=os.getenv("ARANGO_TEST_PORT", "8529"))
@@ -1088,6 +1103,11 @@ def main() -> int:
     )
     parser.add_argument("--emit-curve", action="store_true")
     parser.add_argument("--keep", action="store_true", help="Keep benchmark collections.")
+    return parser
+
+
+def main() -> int:
+    parser = build_parser()
     args = parser.parse_args()
 
     families = {
