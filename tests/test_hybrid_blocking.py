@@ -173,10 +173,36 @@ class TestHybridBlockingQuery:
 
     @pytest.mark.unit
     def test_query_prevents_self_match(self, db):
-        """Query ensures a document is not matched with itself."""
+        """Only the self-pair is excluded, not the higher key's direction.
+
+        This test once asserted ``d1._key < d2._key``. Under the per-entity
+        LIMIT that filter drops every pair discoverable only from the higher
+        key's side; the collection's highest-key record got no candidates at
+        all. Symmetric duplicates are collapsed by ``_normalize_pairs``.
+        """
         strategy = _make_strategy(db)
         query = strategy._build_hybrid_query()
-        assert "FILTER d1._key < d2._key" in query
+        assert "FILTER d1._key != d2._key" in query
+        assert "d1._key < d2._key" not in query
+
+    @pytest.mark.unit
+    def test_default_retrieval_is_token_matching(self, db):
+        strategy = _make_strategy(db)
+        assert strategy.match_mode == "tokens"
+        query = strategy._build_hybrid_query()
+        assert "IN TOKENS(d1.name" in query
+        assert "PHRASE(" not in query
+
+    @pytest.mark.unit
+    def test_phrase_mode_remains_available(self, db):
+        query = _make_strategy(db, match_mode="phrase")._build_hybrid_query()
+        assert "PHRASE(d2.name, d1.name" in query
+        assert "IN TOKENS(" not in query
+
+    @pytest.mark.unit
+    def test_invalid_match_mode_rejected(self, db):
+        with pytest.raises(ValueError, match="match_mode"):
+            _make_strategy(db, match_mode="fuzzy")
 
     @pytest.mark.unit
     def test_query_has_limit(self, db):

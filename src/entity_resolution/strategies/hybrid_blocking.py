@@ -86,7 +86,8 @@ class HybridBlockingStrategy(BlockingStrategy):
         limit_per_entity: int = 20,
         blocking_field: Optional[str] = None,
         filters: Optional[Dict[str, Dict[str, Any]]] = None,
-        analyzer: str = "text_en"
+        analyzer: str = "text_en",
+        match_mode: str = "tokens",
     ):
         """
         Initialize hybrid blocking strategy.
@@ -112,6 +113,12 @@ class HybridBlockingStrategy(BlockingStrategy):
             filters: Optional filters per field (see base class for format)
             analyzer: ArangoSearch analyzer to use. Default "text_en".
                 Must match analyzer configured in the view.
+            match_mode: How the ArangoSearch stage retrieves candidates for the
+                primary search field. ``"tokens"`` (default) matches any shared
+                token and lets BM25 rank; ``"phrase"`` requires the source value
+                to appear as an exact consecutive token sequence, which is
+                near-exact and drops typos and extra words before Levenshtein
+                ever sees them. Same semantics as ``BM25BlockingStrategy``.
         
         Raises:
             ValueError: If required parameters are missing or invalid
@@ -131,6 +138,11 @@ class HybridBlockingStrategy(BlockingStrategy):
             raise ValueError("bm25_weight must be between 0.0 and 1.0")
         if limit_per_entity <= 0:
             raise ValueError("limit_per_entity must be positive")
+        if match_mode not in ("tokens", "phrase"):
+            raise ValueError(
+                f"match_mode must be 'tokens' or 'phrase', got {match_mode!r}"
+            )
+        self.match_mode = match_mode
         
         # Validate names for security (prevent AQL injection)
         self.search_view = validate_view_name(search_view)
@@ -265,12 +277,25 @@ class HybridBlockingStrategy(BlockingStrategy):
 
         primary_field = list(self.search_fields.keys())[0]
 
+        # Retrieval mirrors BM25BlockingStrategy, which fixed the same two
+        # defects first: PHRASE is near-exact (a single typo empties the
+        # candidate set), and a `d1._key < d2._key` filter under a per-entity
+        # LIMIT discards pairs discoverable only from the higher key's side.
+        if self.match_mode == "phrase":
+            search_expr = (
+                f"                PHRASE(d2.{primary_field}, d1.{primary_field}, \"{self.analyzer}\"),"
+            )
+        else:
+            search_expr = (
+                f"                d2.{primary_field} IN TOKENS(d1.{primary_field}, \"{self.analyzer}\"),"
+            )
+
         # Per-entity subquery: candidates for this specific d1.
         sub_parts = [
             f"    LET candidates = (",
             f"        FOR d2 IN {self.search_view}",
             f"            SEARCH ANALYZER(",
-            f"                PHRASE(d2.{primary_field}, d1.{primary_field}, \"{self.analyzer}\"),",
+            search_expr,
             f"                \"{self.analyzer}\"",
             f"            )",
             f"            LET bm25_score = BM25(d2)",
@@ -280,7 +305,8 @@ class HybridBlockingStrategy(BlockingStrategy):
             sub_parts.append(
                 f"            FILTER d2.{self.blocking_field} == d1.{self.blocking_field}"
             )
-        sub_parts.append("            FILTER d1._key < d2._key")
+        # Self-pairs only; symmetric duplicates are collapsed by _normalize_pairs.
+        sub_parts.append("            FILTER d1._key != d2._key")
 
         levenshtein_parts = []
         field_scores_parts = []
