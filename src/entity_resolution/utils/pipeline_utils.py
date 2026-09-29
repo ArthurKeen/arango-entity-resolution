@@ -439,11 +439,14 @@ def get_pipeline_statistics(
         
         # Count clustered entities
         if db.has_collection(cluster_collection):
-            query = f"""
-            FOR cluster IN {cluster_collection}
-                RETURN SUM(cluster.size)
+            # One aggregate over all clusters. The previous form,
+            # `FOR cluster IN ... RETURN SUM(cluster.size)`, summed each
+            # cluster's scalar size on its own row, and only the first row was
+            # read, so clustering_rate reported 0 for clusters of 2 and 3.
+            query = """
+            RETURN SUM(FOR cluster IN @@cluster_collection RETURN cluster.size)
             """
-            cursor = db.aql.execute(query)
+            cursor = db.aql.execute(query, bind_vars={"@cluster_collection": cluster_collection})
             cluster_sizes = list(cursor)
             clustered_entities = cluster_sizes[0] if cluster_sizes else 0
             if clustered_entities is None:
@@ -478,13 +481,13 @@ def get_pipeline_statistics(
         
         if total_clusters > 0:
             query = f"""
-            FOR cluster IN {cluster_collection}
+            FOR cluster IN @@cluster_collection
                 COLLECT AGGREGATE 
                     avg_size = AVG(cluster.size),
                     max_size = MAX(cluster.size)
                 RETURN {{avg_size, max_size}}
             """
-            cursor = db.aql.execute(query)
+            cursor = db.aql.execute(query, bind_vars={"@cluster_collection": cluster_collection})
             cluster_agg_rows = list(cursor)
             cluster_agg = cluster_agg_rows[0] if cluster_agg_rows else {}
             avg_size = cluster_agg.get('avg_size') or 0
@@ -492,7 +495,7 @@ def get_pipeline_statistics(
             
             # Size distribution
             query = f"""
-            FOR cluster IN {cluster_collection}
+            FOR cluster IN @@cluster_collection
                 LET size_bucket = (
                     cluster.size == 2 ? "2" :
                     cluster.size == 3 ? "3" :
@@ -503,7 +506,7 @@ def get_pipeline_statistics(
                 COLLECT bucket = size_bucket WITH COUNT INTO cnt
                 RETURN {{bucket, count: cnt}}
             """
-            cursor = db.aql.execute(query)
+            cursor = db.aql.execute(query, bind_vars={"@cluster_collection": cluster_collection})
             size_dist_list = list(cursor)
             size_distribution = {item['bucket']: item['count'] for item in size_dist_list}
             
