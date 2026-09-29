@@ -26,6 +26,8 @@ nothing silently gets fixed without the ledger being updated.
 
 from __future__ import annotations
 
+import re
+
 import importlib
 import inspect
 import pkgutil
@@ -74,6 +76,22 @@ class FakeCollection:
         return []
 
 
+_LEGAL_COLLECTION_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_\-]{0,255}$")
+
+
+def _assert_legal_collection_name(name, kwargs):
+    """Raise where real ArangoDB would (ERR 1208), instead of accepting any string.
+
+    A leading underscore is reserved for system collections. The UI created
+    "_er_pipeline_runs" as a normal collection for months while every fake
+    accepted it.
+    """
+    if kwargs.get("system") and str(name).startswith("_"):
+        return
+    if not _LEGAL_COLLECTION_NAME.match(str(name)):
+        raise ValueError(f"[ERR 1208] illegal collection name: {name!r}")
+
+
 class FakeDatabase:
     """Minimal python-arango StandardDatabase stand-in.
 
@@ -93,6 +111,7 @@ class FakeDatabase:
         return True
 
     def create_collection(self, name, **kwargs):
+        _assert_legal_collection_name(name, kwargs)
         return FakeCollection(name)
 
     def collections(self):
@@ -464,6 +483,7 @@ class _SuppressionAwareFakeDatabase(FakeDatabase):
         return name in self._existing
 
     def create_collection(self, name, **kwargs):
+        _assert_legal_collection_name(name, kwargs)
         self.created_collections.append(name)
         self._existing.add(name)
         return FakeCollection(name)

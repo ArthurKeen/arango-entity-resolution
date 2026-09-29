@@ -101,7 +101,7 @@ TASKS:
 
    pipeline.py:
    - GET /api/pipeline/status/{collection} — wraps pipeline_status MCP tool
-   - GET /api/pipeline/history — query _er_pipeline_runs collection
+   - GET /api/pipeline/history — query er_pipeline_runs collection
    - POST /api/pipeline/run — accepts ERPipelineConfig as JSON, runs pipeline
      in background task, returns run_id
 

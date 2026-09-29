@@ -157,7 +157,7 @@ The FastAPI backend wraps existing services. Every endpoint calls the same Pytho
 |--------|------|---------|-------|
 | `POST` | `/api/pipeline/run` | `ConfigurableERPipeline.run()` | Accepts config JSON; streams progress via WebSocket |
 | `GET` | `/api/pipeline/status/{collection}` | `pipeline_status` (MCP) | Doc count, edge stats, cluster count |
-| `GET` | `/api/pipeline/history` | New: pipeline run log | Timestamped run results stored in `_er_pipeline_runs` |
+| `GET` | `/api/pipeline/history` | New: pipeline run log | Timestamped run results stored in `er_pipeline_runs` |
 | `WS` | `/ws/pipeline/{run_id}` | New: live progress | Stage-by-stage progress events during a run |
 
 #### Clusters
@@ -634,7 +634,7 @@ Every backend endpoint maps directly to existing library code. No new resolution
 
 **New code required in the core library:**
 1. **Progress callbacks** in `ConfigurableERPipeline.run()` — optional `on_progress` parameter
-2. **Pipeline run history** — store run metadata in an `_er_pipeline_runs` collection
+2. **Pipeline run history** — store run metadata in an `er_pipeline_runs` collection
 3. **Cluster graph query** — AQL to return nodes + edges for a given cluster (for visualization)
 4. **Review queue filtering** — extend `FeedbackStore` with filter/sort/pagination helpers
 

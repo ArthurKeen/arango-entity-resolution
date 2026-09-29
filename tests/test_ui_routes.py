@@ -5,6 +5,8 @@ Uses a mock ArangoDB database handle so no real database is needed.
 
 from __future__ import annotations
 
+import re
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -42,6 +44,38 @@ def mock_db():
     db.create_collection.return_value = mock_coll
 
     return db
+
+
+class _StrictRunStoreDB:
+    """A db that enforces ArangoDB's collection naming rule and keeps writes.
+
+    Deliberately not a MagicMock: a name ArangoDB would reject raises here, and
+    a method the code calls that this class lacks raises too.
+    """
+
+    _LEGAL_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_\-]{0,255}$")
+
+    def __init__(self):
+        self.name = "strict_test_db"
+        self.stores: dict = {}
+        self.aql = SimpleNamespace(execute=lambda *a, **k: iter([]))
+
+    def has_collection(self, name):
+        return name in self.stores
+
+    def create_collection(self, name, system=False, **kwargs):
+        if not (system and name.startswith("_")) and not self._LEGAL_NAME.match(name):
+            raise ValueError(f"[ERR 1208] illegal name: {name!r}")
+        self.stores[name] = {}
+        return self.collection(name)
+
+    def collection(self, name):
+        store = self.stores[name]
+        return SimpleNamespace(
+            insert=lambda doc, **k: store.__setitem__(doc["_key"], dict(doc)),
+            update=lambda doc, **k: store[doc["_key"]].update(doc),
+            get=lambda key: store.get(key),
+        )
 
 
 @pytest.fixture
@@ -467,6 +501,20 @@ class TestPipeline:
         data = resp.json()
         assert "run_id" in data
         assert data["status"] == "running"
+
+    def test_pipeline_run_persists_to_a_legal_collection(self):
+        # The MagicMock db above accepts any collection name, so the test
+        # beside this one passed while every real first run raised ERR 1208 on
+        # create_collection("_er_pipeline_runs"). This fake enforces ArangoDB's
+        # naming rule and keeps what is written, so the run must actually land.
+        db = _StrictRunStoreDB()
+        client = TestClient(create_app(db=db))
+        resp = client.post("/api/pipeline/run", json={"config": {"collection": "test"}})
+        assert resp.status_code == 200
+        run_id = resp.json()["run_id"]
+        (runs_collection,) = db.stores
+        assert runs_collection == "er_pipeline_runs"
+        assert run_id in db.stores[runs_collection]
 
     def test_pipeline_run_readonly(self, mock_db):
         readonly_app = create_app(db=mock_db, readonly=True)

@@ -2432,7 +2432,7 @@
     },
     "/api/pipeline/history": {
       "get": {
-        "description": "Query pipeline run history from _er_pipeline_runs collection.",
+        "description": "Query pipeline run history from the er_pipeline_runs collection.",
         "operationId": "pipeline_history_api_pipeline_history_get",
         "parameters": [
           {

@@ -640,7 +640,7 @@ export interface paths {
         };
         /**
          * Pipeline History
-         * @description Query pipeline run history from _er_pipeline_runs collection.
+         * @description Query pipeline run history from the er_pipeline_runs collection.
          */
         get: operations["pipeline_history_api_pipeline_history_get"];
         put?: never;

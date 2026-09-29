@@ -9,6 +9,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from entity_resolution.ui.auth import extract_request_token, tokens_match
+from entity_resolution.ui.routes.pipeline import RUNS_COLLECTION
 
 router = APIRouter(tags=["websocket"])
 
@@ -27,7 +28,7 @@ async def pipeline_progress(websocket: WebSocket, run_id: str) -> None:
     await websocket.accept()
 
     db = websocket.app.state.db
-    runs_coll = "_er_pipeline_runs"
+    runs_coll = RUNS_COLLECTION
 
     _STAGE_EVENTS = {"stage_start", "stage_progress", "stage_complete", "stage_error"}
 

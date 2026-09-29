@@ -12,7 +12,12 @@ from entity_resolution.ui.models.schemas import PipelineRunRequest, PipelineRunR
 
 router = APIRouter(prefix="/api/pipeline", tags=["pipeline"])
 
-_RUNS_COLLECTION = "_er_pipeline_runs"
+#: Run log shared by this module, metrics.py and ws.py. It must not start with an
+#: underscore: ArangoDB reserves that for system collections, and creating
+#: "_er_pipeline_runs" failed with ERR 1208 on the first run in every database —
+#: so no deployment can hold data under the old name.
+RUNS_COLLECTION = "er_pipeline_runs"
+_RUNS_COLLECTION = RUNS_COLLECTION
 
 
 def _db(request: Request):
@@ -66,7 +71,7 @@ async def pipeline_history(
     limit: int = 20,
     offset: int = 0,
 ) -> Dict[str, Any]:
-    """Query pipeline run history from _er_pipeline_runs collection."""
+    """Query pipeline run history from the er_pipeline_runs collection."""
     db = _db(request)
 
     if not db.has_collection(_RUNS_COLLECTION):

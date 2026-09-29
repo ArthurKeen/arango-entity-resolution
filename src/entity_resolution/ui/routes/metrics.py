@@ -9,12 +9,11 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from entity_resolution.ui.models.schemas import ApplyThresholdRequest
+from entity_resolution.ui.routes.pipeline import RUNS_COLLECTION as _RUNS_COLLECTION
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/metrics", tags=["metrics"])
-
-_RUNS_COLLECTION = "_er_pipeline_runs"
 
 
 def _db(request: Request):
@@ -118,7 +117,7 @@ async def boundary_pairs(
 
 
 def _latest_run_for_collection(db, collection: str) -> Optional[Dict[str, Any]]:
-    """Most recent _er_pipeline_runs doc whose config targets ``collection``."""
+    """Most recent er_pipeline_runs doc whose config targets ``collection``."""
     if not db.has_collection(_RUNS_COLLECTION):
         return None
     cursor = db.aql.execute(
