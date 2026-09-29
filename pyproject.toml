@@ -49,7 +49,10 @@ sparse = [
     "scipy>=1.11.0",
 ]
 mcp = [
-    "mcp>=1.0.0",
+    # mcp 2.x removed mcp.server.fastmcp, which server.py imports. Unbounded,
+    # this broke every fresh install of the [mcp] extra, and CI failed at test
+    # collection on every run from August 7 to September 29, 2026.
+    "mcp>=1.0.0,<2",
 ]
 llm = [
     "litellm>=1.0.0",
