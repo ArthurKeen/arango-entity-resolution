@@ -97,7 +97,7 @@ Skip-marked with `@requires_gae` (checks `ARANGO_GAE_ENABLED=1`):
 
 ### Validated
 
-Live integration validated against self-managed GAE on `prod.demo.pilot.arango.ai:8529`.
+Live integration validated against a self-managed GAE deployment.
 
 ---
 

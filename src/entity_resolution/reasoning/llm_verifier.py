@@ -161,6 +161,18 @@ class LLMMatchVerifier:
     # Public API
     # ------------------------------------------------------------------
 
+    def _scrub(self, text: str) -> str:
+        """Remove the API key from third-party error text before it is logged or returned.
+
+        Provider exceptions are logged, returned in ``error`` and ``reasoning``,
+        and reported by the pipeline's healthcheck. Whether a given provider
+        echoes the key it was handed is not something this code controls, so the
+        key is removed wherever it appears.
+        """
+        if self.api_key and len(self.api_key) >= 8:
+            text = text.replace(self.api_key, "***")
+        return text
+
     def healthcheck(self) -> Dict[str, Any]:
         """Check whether the configured model/provider is reachable.
 
@@ -194,7 +206,7 @@ class LLMMatchVerifier:
                 "ok": False,
                 "model": self.model,
                 "latency_ms": None,
-                "error": str(exc),
+                "error": self._scrub(str(exc)),
             }
 
     def needs_verification(self, score: float) -> bool:
@@ -284,16 +296,17 @@ class LLMMatchVerifier:
         try:
             return self._call_llm(record_a, record_b, score, field_scores or {})
         except Exception as exc:
-            logger.warning("LLM verification failed (falling back to score): %s", exc)
+            error = self._scrub(str(exc))
+            logger.warning("LLM verification failed (falling back to score): %s", error)
             decision = "match" if score >= (self.low_threshold + self.high_threshold) / 2 else "no_match"
             return {
                 "decision": decision,
                 "confidence": score,
-                "reasoning": f"LLM unavailable ({exc}); decision based on raw score.",
+                "reasoning": f"LLM unavailable ({error}); decision based on raw score.",
                 "score_override": None,
                 "llm_called": False,
                 "model": self.model,
-                "error": str(exc),
+                "error": error,
             }
 
     def verify_batch(

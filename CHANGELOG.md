@@ -182,7 +182,7 @@ resolution engine, native ArangoDB 3.12+ vector search, and API hardening.
   and auto-selection with GAE priority.
 - New integration test skeleton (`test_gae_integration.py`) with `@requires_gae` skip
   marker for environments with GAE access.
-- Live integration validated against self-managed GAE on `prod.demo.pilot.arango.ai`.
+- Live integration validated against a self-managed GAE deployment.
 
 ## [3.4.0] - 2026-03-15
 

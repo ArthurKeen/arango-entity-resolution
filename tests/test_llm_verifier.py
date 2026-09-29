@@ -297,3 +297,26 @@ class TestResponseBudget:
     def test_default_budget_is_not_the_broken_value(self):
         v = self._verifier()
         assert v.max_response_tokens >= 512
+
+
+def test_api_key_is_scrubbed_from_error_text(monkeypatch, caplog):
+    """Provider error text is logged and returned; the key must not ride along."""
+    import logging
+
+    import litellm
+
+    from entity_resolution.reasoning.llm_verifier import LLMMatchVerifier
+
+    key = "sk-" + "or-v1-" + "0123456789abcdef0123456789abcdef"
+
+    def failing(**kwargs):  # the LLM API is the external boundary
+        raise RuntimeError(f"401 Unauthorized: invalid key {kwargs.get('api_key')}")
+
+    monkeypatch.setattr(litellm, "completion", failing)
+    verifier = LLMMatchVerifier(model="openrouter/some/model", api_key=key)
+    with caplog.at_level(logging.WARNING):
+        result = verifier.verify({"name": "A"}, {"name": "B"}, 0.7)
+    assert result["llm_called"] is False
+    for text in (result["error"], result["reasoning"], caplog.text, str(verifier.healthcheck())):
+        assert key not in text
+    assert "***" in result["error"]

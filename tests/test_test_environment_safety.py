@@ -36,8 +36,8 @@ def test_local_hosts_are_allowed(host):
 @pytest.mark.parametrize(
     "host",
     [
-        "prod.demo.pilot.arango.ai",
-        "https://prod.demo.pilot.arango.ai:8529",
+        "prod.gae-demo.example.net",
+        "https://prod.gae-demo.example.net:8529",
         "10.0.0.5",
         "customer-cluster.example.com",
         "arangodb.internal.corp",
@@ -51,14 +51,14 @@ def test_remote_hosts_are_refused(host):
 def test_escape_hatch_allows_remote_when_explicitly_opted_in(monkeypatch):
     """A disposable remote CI database can be opted into deliberately."""
     monkeypatch.setenv("ER_ALLOW_REMOTE_TEST_DB", "1")
-    assert_safe_test_host("prod.demo.pilot.arango.ai")  # must not raise
+    assert_safe_test_host("prod.gae-demo.example.net")  # must not raise
 
 
 def test_escape_hatch_requires_exact_opt_in(monkeypatch):
     """Only the literal value "1" opts in — no accidental truthiness."""
     monkeypatch.setenv("ER_ALLOW_REMOTE_TEST_DB", "true")
     with pytest.raises(RuntimeError):
-        assert_safe_test_host("prod.demo.pilot.arango.ai")
+        assert_safe_test_host("prod.gae-demo.example.net")
 
 
 def test_empty_host_is_refused():
