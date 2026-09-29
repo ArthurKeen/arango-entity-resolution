@@ -8,7 +8,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from entity_resolution.ui.auth import extract_request_token, tokens_match
+from entity_resolution.ui.auth import extract_request_token, token_is_accepted
 from entity_resolution.ui.routes.pipeline import RUNS_COLLECTION
 
 router = APIRouter(tags=["websocket"])
@@ -22,7 +22,7 @@ async def pipeline_progress(websocket: WebSocket, run_id: str) -> None:
         # Accept the token via header (Authorization/X-API-Key) or a `token`
         # query parameter (browsers cannot set headers on WebSocket handshakes).
         provided = extract_request_token(websocket.headers) or websocket.query_params.get("token")
-        if not tokens_match(provided, token):
+        if not token_is_accepted(provided, token, getattr(websocket.app.state, "reviewers", None)):
             await websocket.close(code=1008)  # policy violation
             return
     await websocket.accept()

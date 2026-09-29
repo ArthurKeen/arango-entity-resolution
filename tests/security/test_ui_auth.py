@@ -59,8 +59,18 @@ def test_parse_reviewers():
     assert parse_reviewers("garbage,c=Carol") == {"c": "Carol"}
 
 
-def test_resolve_reviewer_header_wins():
-    assert resolve_reviewer({"x-reviewer": "Alice"}, {"tok": "Bob"}) == "Alice"
+def test_header_is_ignored_once_reviewers_are_configured():
+    # This test used to assert the opposite: with a reviewer map configured, a
+    # caller holding no mapped token could still name themselves "Alice" and be
+    # recorded as Alice. Identity now comes from the token alone.
+    assert resolve_reviewer({"x-reviewer": "Alice"}, {"tok": "Bob"}) == ANONYMOUS_REVIEWER
+    shared = {"authorization": "Bearer shared-token", "x-reviewer": "Alice Chen"}
+    assert resolve_reviewer(shared, {"tok-alice": "Alice Chen"}) == ANONYMOUS_REVIEWER
+
+
+def test_header_is_the_attribution_when_no_reviewers_are_configured():
+    # No identities exist to check it against; it is a session name, not auth.
+    assert resolve_reviewer({"x-reviewer": "Alice"}, {}) == "Alice"
 
 
 def test_resolve_reviewer_from_token_map():
@@ -187,3 +197,40 @@ def test_cli_refuses_public_bind_without_token(monkeypatch):
     assert result.exit_code == 1
     assert "Refusing to bind" in result.output
 
+
+
+# ---------------------------------------------------------------------------
+# Reviewer tokens are credentials
+# ---------------------------------------------------------------------------
+
+def _reviewer_client():
+    return TestClient(create_app(db=None, auth_token=TOKEN, reviewers={"tok-alice": "Alice Chen"}))
+
+
+def test_reviewer_token_authenticates():
+    # Previously a 401: only the shared token was accepted, so the reviewer map
+    # could not be used with auth enabled. db is None, so passing auth is a 503.
+    resp = _reviewer_client().get("/api/collections", headers={"Authorization": "Bearer tok-alice"})
+    assert resp.status_code == 503
+
+
+def test_unknown_token_is_still_refused_with_reviewers_configured():
+    resp = _reviewer_client().get("/api/collections", headers={"Authorization": "Bearer tok-mallory"})
+    assert resp.status_code == 401
+
+
+def test_reviewer_token_authenticates_the_websocket():
+    from starlette.websockets import WebSocketDisconnect
+
+    class _NoRunsDB:
+        def has_collection(self, name):
+            return False
+
+    client = TestClient(create_app(db=_NoRunsDB(), auth_token=TOKEN, reviewers={"tok-alice": "Alice Chen"}))
+    with pytest.raises(WebSocketDisconnect) as refused:
+        with client.websocket_connect("/ws/pipeline/some-run?token=tok-mallory") as ws:
+            ws.receive_json()
+    assert refused.value.code == 1008
+    # A reviewer token gets past the handshake and reaches the run lookup.
+    with client.websocket_connect("/ws/pipeline/some-run?token=tok-alice") as ws:
+        assert ws.receive_json() == {"type": "error", "detail": "No pipeline runs collection"}

@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from entity_resolution.utils.constants import __version__
-from .auth import extract_request_token, resolve_reviewer, tokens_match
+from .auth import extract_request_token, resolve_reviewer, token_is_accepted
 
 from .routes import (
     collections,
@@ -121,7 +121,7 @@ def create_app(
             path = request.url.path
             if path.startswith("/api/") and path != "/api/health":
                 provided = extract_request_token(request.headers)
-                if not tokens_match(provided, token):
+                if not token_is_accepted(provided, token, app.state.reviewers):
                     return JSONResponse({"detail": "Unauthorized"}, status_code=401)
         # Resolve the acting reviewer for attribution (audit log / verdicts).
         request.state.reviewer = resolve_reviewer(request.headers, app.state.reviewers)
