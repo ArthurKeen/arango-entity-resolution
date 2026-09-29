@@ -105,7 +105,7 @@ pipeline = EntityResolutionPipeline(
 host="db.company.com",
 port=8529,
 username="root",
-password="MySecretPassword123", # SECURITY RISK!
+password="MySecretPassword123", # SECURITY RISK! scan-secrets: allow
 database="production_db"
 )
 ```
@@ -134,7 +134,7 @@ pipeline = EntityResolutionPipeline()
 ARANGO_HOST=db.company.com
 ARANGO_PORT=8529
 ARANGO_USERNAME=root
-ARANGO_ROOT_PASSWORD=MySecretPassword123
+ARANGO_ROOT_PASSWORD=MySecretPassword123  # scan-secrets: allow
 ARANGO_DATABASE=production_db
 ```
 
@@ -355,7 +355,7 @@ ARANGO_DATABASE=entity_resolution
 ARANGO_HOST=arangodb
 ARANGO_PORT=8529
 ARANGO_USERNAME=root
-ARANGO_ROOT_PASSWORD=actual_production_password
+ARANGO_ROOT_PASSWORD=actual_production_password  # scan-secrets: allow
 ARANGO_DATABASE=entity_resolution
 ```
 

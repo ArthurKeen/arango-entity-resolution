@@ -44,13 +44,22 @@ ALLOWLIST_PATHS = {
     "SECURITY.md",
 }
 
-ALLOWLIST_DIRS = ("docs/", "examples/", "tests/", "legacy/", "ui/node_modules/")
+# Only vendored third-party code is skipped wholesale. Directory-level skips once
+# covered docs/, examples/ and tests/ — all of which ship in the sdist — so a real
+# key pasted into any of them passed the gate that exists to stop it.
+ALLOWLIST_DIRS = ("ui/node_modules/",)
+
+#: Per-line opt-out for text that deliberately shows a credential-shaped literal
+#: (an "insecure example" in a guide, a fixture proving a value is redacted). It
+#: is explicit and grep-able, unlike the placeholder words, which are guesses.
+ALLOW_PRAGMA = "scan-secrets: allow"
 
 # Obvious placeholders — their presence is the point of an example file.
 PLACEHOLDER_MARKERS = (
     "change_me",
     "changeme",
     "your_",
+    "your-",
     "yourpassword",
     "xxx",
     "<",
@@ -95,6 +104,16 @@ PATTERNS: List[Pattern] = [
         re.compile(
             r"(?i)\b(?:password|passwd|secret|api_?key|access_?token|auth_?token)"
             r"\s*[:=]\s*[\"']([^\"'\s]{8,})[\"']"
+        ),
+    ),
+    # dotenv / shell style, where the value is conventionally unquoted:
+    # ``ARANGO_PASSWORD=...``. Anchored to an upper-case name at line start so
+    # ordinary ``password=password`` keyword arguments do not match.
+    Pattern(
+        "Unquoted env credential",
+        re.compile(
+            r"^\s*(?:export\s+)?[A-Z0-9_]*(?:PASSWORD|PASSWD|SECRET|TOKEN|API_KEY)[A-Z0-9_]*"
+            r"\s*=\s*([^\s\"'#]{8,})"
         ),
     ),
 ]
@@ -145,18 +164,24 @@ def scan_file(path: Path, rel_path: str) -> List[Finding]:
     for line_no, line in enumerate(content.splitlines(), start=1):
         if len(line) > 4000:  # minified assets
             continue
+        if ALLOW_PRAGMA in line:
+            continue
         for pattern in PATTERNS:
             match = pattern.regex.search(line)
             if not match:
                 continue
             captured = match.group(1) if match.groups() else match.group(0)
-            if _looks_like_placeholder(captured) or _looks_like_placeholder(line):
+            # Judge the captured value only. Checking the whole line meant a
+            # trailing ``# test`` comment, or the word "example" anywhere on it,
+            # silenced a genuine key.
+            if _looks_like_placeholder(captured):
                 continue
             if _looks_like_code(captured):
                 continue
             findings.append(
                 Finding(rel_path, line_no, pattern.name, _redact(captured))
             )
+            break  # one finding per line; overlapping patterns add noise, not signal
     return findings
 
 

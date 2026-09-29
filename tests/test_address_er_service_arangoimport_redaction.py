@@ -25,7 +25,7 @@ class _DummyDB:
 
 
 def test_arangoimport_failure_does_not_log_password(monkeypatch: pytest.MonkeyPatch, caplog, tmp_path) -> None:
-    secret = "supersecret-password"
+    secret = "supersecret-password"  # scan-secrets: allow (fixture proving redaction)
     monkeypatch.setenv("ARANGO_HOST", "localhost")
     monkeypatch.setenv("ARANGO_PORT", "18530")
     monkeypatch.setenv("ARANGO_USERNAME", "root")

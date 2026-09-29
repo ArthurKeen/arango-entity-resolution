@@ -141,7 +141,7 @@ pipeline = EntityResolutionPipeline(
 host="localhost",
 port=8529,
 username="root",
-password="mypassword" # INSECURE
+password="mypassword" # INSECURE; scan-secrets: allow
 )
 ```
 

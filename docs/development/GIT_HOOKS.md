@@ -80,7 +80,7 @@ This catches syntax errors before they reach CI/CD.
 #### 2. Hardcoded Credentials Check
 Searches for patterns like:
 ```python
-password = "secret123" # BAD - will be caught
+password = "secret123" # BAD - will be caught; scan-secrets: allow
 password = os.getenv("ARANGO_PASSWORD") # GOOD - passes
 password = "" # GOOD - empty default
 ```

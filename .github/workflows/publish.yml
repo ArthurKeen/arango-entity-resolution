@@ -26,6 +26,11 @@ jobs:
         python -m pip install build twine
         python -m pip install -e ".[test,ml,llm,mcp,ui]"
         
+    - name: Scan committed files for secrets
+      # The PyPI release is the widest-reaching thing this repo does; it must
+      # not depend on the CI workflow having run on the same commit.
+      run: python scripts/scan_secrets.py --committed-only
+
     - name: Run unit tests
       env:
         USE_DEFAULT_PASSWORD: "true"

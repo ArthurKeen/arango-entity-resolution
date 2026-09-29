@@ -74,6 +74,21 @@ dev = [
 path = "src/entity_resolution/utils/constants.py"
 pattern = "__version__ = \"(?P<version>[^\"]+)\""
 
+# The sdist is an allowlist, not hatch's default of "everything .gitignore does
+# not exclude". That default shipped untracked worktree files (AGENTS.md), 338
+# files of ui/node_modules, demo data and internal reports to PyPI: anything that
+# happened to be on the release machine's disk went public.
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src/entity_resolution",
+    "/tests",
+    "/README.md",
+    "/LICENSE",
+    "/CHANGELOG.md",
+    "/SECURITY.md",
+    "/pyproject.toml",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/entity_resolution"]
 # Ensure 'src' is treated as a source directory so the package is just 'entity_resolution'
