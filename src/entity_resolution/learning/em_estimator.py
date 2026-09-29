@@ -237,7 +237,17 @@ def estimate_categorical_mu(
     for column, field in enumerate(fields):
         n_levels = len(field_levels[field])
         col = gamma[:, column]
+        if np.isinf(col).any():
+            raise ValueError(
+                f"gamma contains inf for field {field!r}; use NaN for unobserved"
+            )
         observed = np.isfinite(col)
+        if (col[observed] != np.round(col[observed])).any():
+            # astype(int64) below would truncate 1.7 to level 1 without a word.
+            raise ValueError(
+                f"gamma must hold integer level indices for field {field!r}, "
+                "not similarity scores"
+            )
         indices = np.where(observed, np.nan_to_num(col, nan=0.0), 0).astype(np.int64)
         if observed.any() and (
             indices[observed].min() < 0 or indices[observed].max() >= n_levels
@@ -446,6 +456,19 @@ def estimate_mu(
         )
     if n_pairs == 0:
         raise ValueError("need at least one comparison vector")
+    # The likelihood below is Bernoulli: g and (1 - g) are the agree/disagree
+    # indicators. Raw similarities (0.73) are silently accepted by the algebra
+    # and EM "converges" on a meaningless model, and +/-inf would be masked as
+    # unobserved by isfinite. Reject both rather than fit nonsense.
+    if np.isinf(gamma).any():
+        raise ValueError("gamma must not contain inf; use NaN for an unobserved field")
+    observed_cells = gamma[~np.isnan(gamma)]
+    if not np.isin(observed_cells, (0.0, 1.0)).all():
+        raise ValueError(
+            "gamma must hold agreement indicators (1, 0, or NaN for unobserved), "
+            "not similarity scores; threshold them first (see EMEstimator.build_gamma), "
+            "or use estimate_categorical_mu for multi-level comparisons"
+        )
 
     if weights is None:
         weights = np.ones(n_pairs, dtype=np.float64)
