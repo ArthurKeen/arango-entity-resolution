@@ -80,6 +80,46 @@ def categorical_u_from_comparisons(
     return u_levels
 
 
+def binary_u_from_comparisons(
+    comparisons: Sequence[Dict[str, float]],
+    field_names: Sequence[str],
+    agreement_thresholds: Dict[str, float],
+    default_threshold: float,
+) -> Dict[str, float]:
+    """Count a per-field agreement rate ``u`` from non-match comparisons.
+
+    The binary counterpart of :func:`categorical_u_from_comparisons`, with the
+    same conventions: counted only where the field was observed, and a field
+    observed on no pair is omitted so EM keeps its default.
+
+    The rate is clamped to ``[1/(n+1), n/(n+1)]`` — the resolution of an
+    ``n``-pair sample — on BOTH sides. Clamping only the lower side let a
+    near-constant field (every record ``country="US"``) reach ``u = 1.0``. The
+    scorer then clipped that to ``1 - 1e-6``, so a single disagreement on the
+    field scored ``log((1-m)/1e-6)``: about +9 nats of *match* evidence at
+    ``m = 0.99``, a magnitude set by an arbitrary epsilon rather than the data.
+    """
+    agree_counts: Dict[str, int] = {f: 0 for f in field_names}
+    observed_counts: Dict[str, int] = {f: 0 for f in field_names}
+    for comp in comparisons:
+        for field in field_names:
+            value = comp.get(field)
+            if value is None:
+                continue  # unobserved: carries no information about u
+            observed_counts[field] += 1
+            if value >= agreement_thresholds.get(field, default_threshold):
+                agree_counts[field] += 1
+
+    u_values: Dict[str, float] = {}
+    for field in field_names:
+        n = observed_counts[field]
+        if n == 0:
+            continue  # never observed — leave it to the EM default
+        floor, ceiling = 1.0 / (n + 1), n / (n + 1)
+        u_values[field] = min(max(agree_counts[field] / n, floor), ceiling)
+    return u_values
+
+
 def config_hash(
     field_names: Sequence[str],
     agreement_thresholds: Dict[str, float],
@@ -278,27 +318,12 @@ class ModelParameterEstimator:
         if not comparisons:
             return {}
 
-        agree_counts: Dict[str, int] = {f: 0 for f in self.field_names}
-        observed_counts: Dict[str, int] = {f: 0 for f in self.field_names}
-        for comp in comparisons:
-            for field in self.field_names:
-                value = comp.get(field)
-                if value is None:
-                    continue  # unobserved: carries no information about u
-                observed_counts[field] += 1
-                threshold = self.agreement_thresholds.get(field, self.default_threshold)
-                if value >= threshold:
-                    agree_counts[field] += 1
-
-        u_values: Dict[str, float] = {}
-        for field in self.field_names:
-            observed = observed_counts[field]
-            if observed == 0:
-                continue  # never observed — leave it to the EM default
-            # Clamp away from 0: a field that never agreed by chance in the
-            # sample would otherwise make log(m/u) infinite.
-            u_values[field] = max(agree_counts[field] / observed, 1.0 / (observed + 1))
-        return u_values
+        return binary_u_from_comparisons(
+            comparisons,
+            self.field_names,
+            self.agreement_thresholds,
+            self.default_threshold,
+        )
 
     def estimate_categorical_u_from_random_pairs(
         self, sample_size: int, source_collection: str
