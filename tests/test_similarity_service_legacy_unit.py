@@ -201,3 +201,21 @@ def test_weighted_heuristic_matches_legacy_formula() -> None:
     expected_total = llr_email * 2.0 + llr_phone * 1.0
     assert out["total_score"] == pytest.approx(expected_total)
     assert out["normalized_score"] == pytest.approx(expected_total / 3.0)
+
+
+@pytest.mark.parametrize("field", ["email", "phone"])
+def test_missing_exact_field_is_absent_evidence_not_disagreement(field: str) -> None:
+    # email/phone were scored 0.0 whenever either side lacked them, so a pair
+    # missing an email scored exactly like a pair whose emails differ.
+    with pytest.warns(DeprecationWarning):
+        svc = SimilarityService()
+    base = {"first_name": "Jonathan", "last_name": "Smith", "city": "Austin"}
+    present = {**base, field: "Alpha"}
+    differs = {**base, field: "Bravo"}
+
+    def score(a, b):
+        return svc.compute_similarity(a, b, include_details=True)["total_score"]
+
+    assert score(present, base) == pytest.approx(score(base, base))
+    assert score(present, differs) < score(present, base)
+    assert score(present, present) > score(present, base)

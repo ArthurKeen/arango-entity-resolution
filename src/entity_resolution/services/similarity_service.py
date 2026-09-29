@@ -296,11 +296,15 @@ class SimilarityService(BaseEntityResolutionService):
                 similarities["city_ngram"] = self._ngram_similarity(
                     doc_a['city'], doc_b['city'])
             
-            # Exact match fields
-            similarities["email_exact"] = 1.0 if (doc_a.get('email') and doc_b.get('email') and 
-                                                 doc_a['email'].lower() == doc_b['email'].lower()) else 0.0
-            similarities["phone_exact"] = 1.0 if (doc_a.get('phone') and doc_b.get('phone') and 
-                                                 doc_a['phone'] == doc_b['phone']) else 0.0
+            # Exact match fields. Like every comparison above, these are emitted
+            # only when both sides are present: a missing email is absent
+            # evidence, and scoring it 0.0 made it indistinguishable from two
+            # different emails — a disagreement penalty for sparse records.
+            if doc_a.get('email') and doc_b.get('email'):
+                similarities["email_exact"] = 1.0 if (
+                    str(doc_a['email']).lower() == str(doc_b['email']).lower()) else 0.0
+            if doc_a.get('phone') and doc_b.get('phone'):
+                similarities["phone_exact"] = 1.0 if doc_a['phone'] == doc_b['phone'] else 0.0
             
             # Company comparison
             if doc_a.get('company') and doc_b.get('company'):
