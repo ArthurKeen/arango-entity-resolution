@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import tempfile
 from pathlib import Path
 from typing import Any, Dict
@@ -16,6 +17,24 @@ router = APIRouter(prefix="/api/export", tags=["export"])
 
 def _db(request: Request):
     return request.app.state.db
+
+
+#: What the export service writes: ``<prefix>_<timestamp>.json|csv``.
+_EXPORT_FILENAME = re.compile(r"^[A-Za-z0-9_-]{1,128}\.(json|csv)$")
+
+
+def _export_dir(request: Request) -> Path:
+    """The one directory this app writes exports to and serves them from.
+
+    Created on first use, per app instance. The download route used to search
+    the whole system temp directory, so it would serve any file there whose
+    name looked safe, and it never found the exports, which were written to a
+    fresh mkdtemp subdirectory it did not search.
+    """
+    state = request.app.state
+    if getattr(state, "export_dir", None) is None:
+        state.export_dir = Path(tempfile.mkdtemp(prefix="er_exports_"))
+    return state.export_dir
 
 
 @router.post("/{collection}")
@@ -41,18 +60,19 @@ async def export_clusters(
         cluster_collection=body.cluster_collection,
     )
 
-    output_dir = body.output_dir or tempfile.mkdtemp(prefix="er_export_")
     result = service.export(
-        output_dir=output_dir,
+        output_dir=str(_export_dir(request)),
         filename_prefix=body.filename_prefix,
         limit=body.limit,
     )
 
+    # Names only: the download route resolves them, and server paths are not
+    # the client's business.
     return {
         "collection": collection,
         "output_files": {
-            "json": result["json"],
-            "csv": result["csv"],
+            "json": Path(result["json"]).name,
+            "csv": Path(result["csv"]).name,
         },
         "clusters_exported": result["clusters_exported"],
     }
@@ -64,24 +84,12 @@ async def download_export(
     collection: str,
     filename: str,
 ) -> FileResponse:
-    """Serve an exported file for download."""
-    safe_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-.")
-    if not all(c in safe_chars for c in filename):
+    """Serve a file this app exported, and nothing else."""
+    if not _EXPORT_FILENAME.match(filename):
         raise HTTPException(status_code=400, detail="Invalid filename")
-
-    search_dirs = [
-        Path(tempfile.gettempdir()),
-        Path.cwd() / "exports",
-    ]
-
-    for directory in search_dirs:
-        candidate = directory / filename
-        if candidate.is_file():
-            media_type = "application/json" if filename.endswith(".json") else "text/csv"
-            return FileResponse(
-                path=str(candidate),
-                filename=filename,
-                media_type=media_type,
-            )
-
-    raise HTTPException(status_code=404, detail="File not found")
+    directory = _export_dir(request).resolve()
+    candidate = (directory / filename).resolve()
+    if candidate.parent != directory or not candidate.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+    media_type = "application/json" if filename.endswith(".json") else "text/csv"
+    return FileResponse(path=str(candidate), filename=filename, media_type=media_type)

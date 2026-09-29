@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CollectionInfo(BaseModel):
@@ -137,10 +137,13 @@ class SplitClusterRequest(BaseModel):
 
 
 class ExportRequest(BaseModel):
-    # Optional: when omitted the server writes to a temp dir so browser clients
-    # do not need to know server filesystem paths.
-    output_dir: Optional[str] = None
-    filename_prefix: str = "cluster_export"
+    # The server chooses where exports go. A client-supplied output_dir, or a
+    # prefix containing "../", let any caller of this route write files
+    # anywhere the server process could. Unknown fields are rejected rather
+    # than ignored, so an old client sending output_dir fails loudly.
+    model_config = ConfigDict(extra="forbid")
+
+    filename_prefix: str = Field(default="cluster_export", pattern=r"^[A-Za-z0-9_-]{1,64}$")
     limit: Optional[int] = None
     cluster_collection: Optional[str] = None
     edge_collection: Optional[str] = None

@@ -353,7 +353,7 @@ class TestConfigExportRequest:
 class TestExportRequest:
 
     def test_valid_with_defaults(self):
-        obj = ExportRequest(output_dir="/tmp/out")
+        obj = ExportRequest()
         assert obj.filename_prefix == "cluster_export"
         assert obj.limit is None
         assert obj.cluster_collection is None
@@ -361,7 +361,6 @@ class TestExportRequest:
 
     def test_all_fields(self):
         obj = ExportRequest(
-            output_dir="/tmp/out",
             filename_prefix="test",
             limit=100,
             cluster_collection="cl",
@@ -369,12 +368,16 @@ class TestExportRequest:
         )
         assert obj.limit == 100
 
-    def test_output_dir_optional(self):
-        # output_dir is optional: the server falls back to a temp dir so browser
-        # clients do not need to supply server filesystem paths.
-        obj = ExportRequest()
-        assert obj.output_dir is None
-        assert obj.filename_prefix == "cluster_export"
+    def test_output_dir_is_rejected(self):
+        # The server owns the export location. Accepting output_dir let any
+        # API caller write files anywhere the server process could.
+        with pytest.raises(ValidationError, match="output_dir"):
+            ExportRequest(output_dir="/tmp/out")
+
+    @pytest.mark.parametrize("prefix", ["../x", "a/b", "", "x" * 65])
+    def test_prefix_must_be_a_plain_name(self, prefix):
+        with pytest.raises(ValidationError, match="filename_prefix"):
+            ExportRequest(filename_prefix=prefix)
 
 
 # ===================================================================

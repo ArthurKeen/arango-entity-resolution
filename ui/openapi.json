@@ -375,6 +375,7 @@
         "type": "object"
       },
       "ExportRequest": {
+        "additionalProperties": false,
         "properties": {
           "cluster_collection": {
             "anyOf": [
@@ -400,6 +401,7 @@
           },
           "filename_prefix": {
             "default": "cluster_export",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
             "title": "Filename Prefix",
             "type": "string"
           },
@@ -413,17 +415,6 @@
               }
             ],
             "title": "Limit"
-          },
-          "output_dir": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Output Dir"
           }
         },
         "title": "ExportRequest",
@@ -1711,7 +1702,7 @@
     },
     "/api/export/{collection}/download/{filename}": {
       "get": {
-        "description": "Serve an exported file for download.",
+        "description": "Serve a file this app exported, and nothing else.",
         "operationId": "download_export_api_export__collection__download__filename__get",
         "parameters": [
           {

@@ -819,22 +819,17 @@ class TestExport:
             "clusters_exported": 10,
         }
         mock_svc_cls.return_value = mock_svc
-        resp = client.post(
-            "/api/export/customers",
-            json={"output_dir": "/tmp/out"},
-        )
+        resp = client.post("/api/export/customers", json={})
         assert resp.status_code == 200
         data = resp.json()
         assert data["clusters_exported"] == 10
-        assert "output_files" in data
+        # Names only; the server path is not returned to the client.
+        assert data["output_files"] == {"json": "out.json", "csv": "out.csv"}
 
     def test_export_readonly(self, mock_db):
         readonly_app = create_app(db=mock_db, readonly=True)
         readonly_client = TestClient(readonly_app)
-        resp = readonly_client.post(
-            "/api/export/customers",
-            json={"output_dir": "/tmp/out"},
-        )
+        resp = readonly_client.post("/api/export/customers", json={})
         assert resp.status_code == 403
 
     def test_download_invalid_filename(self, client):

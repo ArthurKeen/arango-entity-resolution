@@ -191,6 +191,9 @@ def create_app(
         @app.get("/{full_path:path}", include_in_schema=False)
         async def spa_fallback(request: Request, full_path: str) -> FileResponse:
             """Serve the SPA index for any non-API path."""
+            if full_path == "api" or full_path.startswith("api/"):
+                # An unknown API path is a 404, not the SPA's HTML with a 200.
+                return JSONResponse({"detail": "Not found"}, status_code=404)
             file_path = (_STATIC_DIR / full_path).resolve()
             try:
                 file_path.relative_to(static_root)

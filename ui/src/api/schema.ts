@@ -373,7 +373,7 @@ export interface paths {
         };
         /**
          * Download Export
-         * @description Serve an exported file for download.
+         * @description Serve a file this app exported, and nothing else.
          */
         get: operations["download_export_api_export__collection__download__filename__get"];
         put?: never;
@@ -1077,8 +1077,6 @@ export interface components {
             filename_prefix: string;
             /** Limit */
             limit?: number | null;
-            /** Output Dir */
-            output_dir?: string | null;
         };
         /** GoldenApplyRequest */
         GoldenApplyRequest: {
