@@ -502,6 +502,11 @@ def _get_unresolved_doc_ids(db: Any, collection: str, edge_collection: str) -> s
           LET linked = LENGTH(
             FOR e IN @@edge_collection
               FILTER e._from == d._id OR e._to == d._id
+              // A steward-suppressed edge is a rejected match, not a link.
+              // Counting it left the record "resolved" and skipped by every
+              // later cascade stage, the same rule every clustering backend
+              // applies.
+              FILTER e.suppressed != true
               LIMIT 1
               RETURN 1
           )
