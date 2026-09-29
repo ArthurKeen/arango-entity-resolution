@@ -550,3 +550,31 @@ class TestPhoneticTransformers:
     def test_distinct_names_do_not_collide(self):
         sim = self._sim("soundex")
         assert sim.compute({"name": "Robert"}, {"name": "Xavier"}) < 1.0
+
+
+def _raises_on_boom(a: str, b: str) -> float:
+    if "BOOM" in a or "BOOM" in b:
+        raise ValueError("comparison failed")
+    return 1.0 if a == b else 0.5
+
+
+@pytest.mark.parametrize("handle_nulls", ["skip", "zero"])
+@pytest.mark.parametrize(
+    "doc1, doc2",
+    [
+        ({"name": "BOOM", "city": "Austin"}, {"name": "x", "city": "Austin"}),
+        ({"name": "Ann", "city": None}, {"name": "Ann", "city": "Austin"}),
+        ({"name": "Ann", "city": "  "}, {"name": "Anne", "city": "Austin"}),
+        ({"name": "Ann", "city": "Austin"}, {"name": "Ann", "city": "Austin"}),
+    ],
+)
+def test_compute_and_compute_detailed_agree(handle_nulls, doc1, doc2):
+    # Two copies of the same loop had drifted: on a comparison error compute()
+    # skipped the field while compute_detailed() scored it 0.0 with full weight,
+    # so one pair returned 1.0 from one method and 0.5 from the other.
+    sim = WeightedFieldSimilarity(
+        field_weights={"name": 0.5, "city": 0.5},
+        algorithm=_raises_on_boom,
+        handle_nulls=handle_nulls,
+    )
+    assert sim.compute_detailed(doc1, doc2)["overall_score"] == sim.compute(doc1, doc2)

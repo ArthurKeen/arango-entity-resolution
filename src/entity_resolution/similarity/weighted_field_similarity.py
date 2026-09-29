@@ -302,8 +302,10 @@ class WeightedFieldSimilarity:
                     f"Similarity computation failed for field '{field}': {e}",
                     exc_info=True
                 )
-                field_scores[field] = 0.0
-                total_weight += weight
+                # Same as compute(): a failed comparison is missing evidence.
+                # Scoring it 0.0 with its weight made the two methods return
+                # different overall scores for the same pair.
+                field_scores[field] = None
         
         weighted_score = round(total_score / total_weight, 4) if total_weight > 0 else 0.0
         
