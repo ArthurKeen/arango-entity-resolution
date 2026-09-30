@@ -320,3 +320,15 @@ def test_api_key_is_scrubbed_from_error_text(monkeypatch, caplog):
     for text in (result["error"], result["reasoning"], caplog.text, str(verifier.healthcheck())):
         assert key not in text
     assert "***" in result["error"]
+
+
+def test_from_provider_config_honours_api_key_env(monkeypatch):
+    from entity_resolution.config.er_config import LLMProviderConfig
+    from entity_resolution.reasoning.llm_verifier import LLMMatchVerifier
+
+    monkeypatch.setenv("TEAM_LLM_KEY", "team-key-value")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "someone-elses-key")
+    config = LLMProviderConfig(provider="openrouter", model="google/gemini-2.0-flash", api_key_env="TEAM_LLM_KEY")
+    verifier = LLMMatchVerifier.from_provider_config(config)
+    assert verifier.api_key == "team-key-value"
+    assert verifier.model == "openrouter/google/gemini-2.0-flash"

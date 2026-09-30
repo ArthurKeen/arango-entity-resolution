@@ -150,6 +150,11 @@ class LLMMatchVerifier:
         """Build a verifier from a structured :class:`LLMProviderConfig`."""
         from entity_resolution.config.er_config import LLMProviderConfig as _LPC  # noqa: F811
 
+        # The pipeline's verifier construction honours api_key_env; this
+        # sibling path did not, so a key named in config was silently replaced
+        # by whatever OPENROUTER_API_KEY / OPENAI_API_KEY held.
+        if provider_config.api_key_env and "api_key" not in kwargs:
+            kwargs["api_key"] = os.environ.get(provider_config.api_key_env)
         return cls(
             model=provider_config.to_litellm_model_string(),
             base_url=provider_config.base_url,
