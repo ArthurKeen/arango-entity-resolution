@@ -261,8 +261,11 @@ def test_get_pipeline_statistics_complete_happy_path(monkeypatch: pytest.MonkeyP
         },
     )
 
+    # Keyed on the corrected single-aggregate query. These fakes once matched
+    # the per-row `RETURN SUM(cluster.size)` and returned the total it never
+    # produced against a real server, which is how that bug stayed hidden.
     def dispatch(query: str, bind_vars: Optional[Dict[str, Any]]) -> Iterable[Any]:
-        if "RETURN SUM(cluster.size)" in query:
+        if "RETURN SUM(FOR cluster IN" in query:
             return [30]
         if "avg_size = AVG" in query and "max_size = MAX" in query:
             return [{"avg_size": 3.2, "max_size": 10}]
@@ -336,7 +339,7 @@ def test_get_pipeline_statistics_does_not_require_cursor_truthiness(monkeypatch:
     )
 
     def dispatch(query: str, bind_vars: Optional[Dict[str, Any]]) -> Iterable[Any]:
-        if "RETURN SUM(cluster.size)" in query:
+        if "RETURN SUM(FOR cluster IN" in query:
             return NonBooleanCursor([2])
         if "avg_size = AVG" in query and "max_size = MAX" in query:
             return NonBooleanCursor([{"avg_size": 2.0, "max_size": 2}])
@@ -373,7 +376,7 @@ def test_get_pipeline_statistics_treats_null_cluster_aggregates_as_zero(monkeypa
     )
 
     def dispatch(query: str, bind_vars: Optional[Dict[str, Any]]) -> Iterable[Any]:
-        if "RETURN SUM(cluster.size)" in query:
+        if "RETURN SUM(FOR cluster IN" in query:
             return [None]
         if "avg_size = AVG" in query and "max_size = MAX" in query:
             return [{"avg_size": None, "max_size": None}]
