@@ -451,8 +451,8 @@ class DemoOrchestrator:
         
         print("TECHNOLOGY LEADERSHIP:")
         print(f"  - Processing speed: {self.results['processing_results']['records_per_second']:,.0f} records/second")
-        print("  - Accuracy: 99.5% precision, 98% recall")
-        print("  - Scalability: Linear scaling to millions of records")
+        print("  - Accuracy (public benchmarks, docs/BENCHMARKS.md): pairwise F1 0.937 on DBLP-ACM, 0.995 on FEBRL person records")
+        print("  - Largest measured run: 66,879 records (DBLP-Scholar); the GAE backend is the path beyond that")
         print("  - Real-time processing: Sub-second entity matching")
         
         print("\nARANGODB UNIQUE ADVANTAGES:")
@@ -561,15 +561,11 @@ class DemoOrchestrator:
         
         print("PERFORMANCE AT SCALE:")
         
-        scale_scenarios = [
-            (100000, "0.5 seconds", "200K records/sec"),
-            (1000000, "4.2 seconds", "240K records/sec"),  
-            (10000000, "38 seconds", "260K records/sec"),
-            (100000000, "5.8 minutes", "290K records/sec")
-        ]
-        
-        for records, time_taken, throughput in scale_scenarios:
-            print(f"  {records:,} records: {time_taken} ({throughput})")
+        # Measured, not projected. This table once listed 100M records in 5.8
+        # minutes; no run of this system has come near that. See the scale
+        # limits section of docs/BENCHMARKS.md.
+        print("  66,879 records (DBLP-Scholar): blocking ~19 minutes, scoring <1s, on a laptop")
+        print("  4,910 records (DBLP-ACM): blocking 7.1s, scoring 0.3s")
         
         print("\nSCALABILITY FEATURES:")
         print("  - Horizontal scaling across multiple ArangoDB nodes")

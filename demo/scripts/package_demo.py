@@ -475,15 +475,15 @@ python3 industry_scenarios.py
 
 ## Business Value Highlights
 
-- **Eliminate 99%+ duplicates** with 99.5% precision
-- **Process 250K+ records/second** with linear scalability  
+- **Pairwise F1 0.937 on DBLP-ACM and 0.995 on FEBRL**, measured on public benchmarks
+- **Blocking removes 99%+ of candidate comparisons** (99.08–99.96% measured)
 - **Deliver 500-3000% first-year ROI** depending on scale
 - **Reduce operational costs** by 20-40% across departments
 
 ## Technical Advantages
 
 - **ArangoDB's unique FTS+Graph** capabilities in one platform
-- **99.9% efficiency improvement** via intelligent blocking
+- **99%+ fewer comparisons** via blocking
 - **Real-time processing** for live applications
 - **Enterprise scalability** to millions of records
 

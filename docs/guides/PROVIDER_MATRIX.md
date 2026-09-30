@@ -1,6 +1,6 @@
 # Provider Compatibility Matrix
 
-**Version:** 3.5.1 | **Last Updated:** March 30, 2026
+**Last Updated:** September 29, 2026
 
 This matrix documents tested compatibility across embedding runtimes, LLM providers, clustering backends, and platform configurations.
 
@@ -22,9 +22,18 @@ This matrix documents tested compatibility across embedding runtimes, LLM provid
 
 ## LLM Providers
 
+"Supported" below means the provider works through the verifier. It says
+nothing about whether a given model is any good at match verification, and on
+that the measurements are blunt: on 200 ambiguous Amazon-Google pairs,
+`llama3.1:8b` scored **0.505** accuracy against **0.563** for the plain score
+threshold, while `gemini-3.8-flash` scored **0.814** at about $1.90 per 1,000
+pairs. A smaller local model is not expected to do better than the 8B one. See
+[BENCHMARKS.md](../BENCHMARKS.md#llm-verification-of-the-ambiguous-band-measured),
+and measure on your own data before relying on any model here.
+
 | Provider | Model Example | API Key Env Var | Local | Status |
 |----------|--------------|-----------------|-------|--------|
-| Ollama | `llama3.2:3b` | None (local) | Yes | Supported |
+| Ollama | `llama3.1:8b` | None (local) | Yes | Supported; measured below the score threshold |
 | OpenRouter | `google/gemini-2.0-flash` | `OPENROUTER_API_KEY` | No | Supported |
 | OpenAI | `gpt-4o` | `OPENAI_API_KEY` | No | Supported |
 | Anthropic | `claude-3-5-sonnet` | `ANTHROPIC_API_KEY` | No | Supported |
@@ -35,7 +44,7 @@ This matrix documents tested compatibility across embedding runtimes, LLM provid
 active_learning:
   llm:
     provider: ollama          # or openrouter, openai, anthropic
-    model: llama3.2:3b
+    model: llama3.1:8b
     base_url: http://localhost:11434
     timeout_seconds: 60
     healthcheck_on_start: true
@@ -46,10 +55,10 @@ active_learning:
 ```python
 from entity_resolution import LLMMatchVerifier, LLMProviderConfig
 
-config = LLMProviderConfig(provider="ollama", model="llama3.2:3b")
+config = LLMProviderConfig(provider="ollama", model="llama3.1:8b")
 verifier = LLMMatchVerifier.from_provider_config(config)
 print(verifier.healthcheck())
-# {'ok': True, 'model': 'ollama/llama3.2:3b', 'latency_ms': 641.3, 'error': None}
+# {'ok': True, 'model': 'ollama/llama3.1:8b', 'latency_ms': ..., 'error': None}
 ```
 
 ---

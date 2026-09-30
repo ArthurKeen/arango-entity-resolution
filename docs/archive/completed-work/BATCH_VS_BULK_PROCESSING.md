@@ -1,3 +1,6 @@
+> **Archived September 2026.** This describes the Foxx bulk-processing path, which has
+> since been removed; the library is Python-only. Kept for history.
+
 # Batch vs Bulk Processing Guide
 
 ## Overview
@@ -506,9 +509,9 @@ print(f"Pairs/sec: {result['statistics']['pairs_per_second']}")
 
 ## Related Documentation
 
-- [API Reference](../api/API_REFERENCE.md) - Complete API documentation
+- [API Reference](../../api/API_REFERENCE.md) - Complete API documentation
 - [Testing Guide](TESTING.md) - Performance testing procedures
-- [PRD.md](../PRD.md) - Project requirements and roadmap
+- [PRD.md](../../PRD.md) - Project requirements and roadmap
 
 ---
 

@@ -162,8 +162,8 @@ This is a comprehensive presentation script for demonstrating entity resolution 
 **Script:** "This solution provides unique advantages:"
 
 **Performance:**
-- "250,000 records/second processing"
-- "99.5% precision, 98% recall"
+- "Pairwise F1 0.937 on DBLP-ACM and 0.995 on FEBRL, measured on public benchmarks"
+- "Blocking removes over 99% of the comparisons a naive approach would make"
 - "Real-time entity matching"
 - "Linear scalability"
 
@@ -180,7 +180,7 @@ This is a comprehensive presentation script for demonstrating entity resolution 
 ### Common Questions & Answers
 
 **Q: "How accurate is the matching?"**
-**A:** "99.5% precision means 99.5% of matches are correct. 98% recall means we catch 98% of actual duplicates. Industry-leading accuracy."
+**A:** "It depends on the data, and we publish where it is weak. On clean bibliographic data pairwise F1 is 0.937; on structured person records, 0.995; on noisy product listings it is under 0.55 unsupervised. The numbers and the commands that reproduce them are in docs/BENCHMARKS.md."
 
 **Q: "What about false positives?"**
 **A:** "Our confidence scoring prevents false matches. Records below 85% similarity require human review."
@@ -189,7 +189,7 @@ This is a comprehensive presentation script for demonstrating entity resolution 
 **A:** "Typical timeline: 2-4 weeks for POC, 8-12 weeks for production deployment."
 
 **Q: "Can it handle our data volume?"**
-**A:** "Yes, we scale linearly. Largest deployment: 50M records, processing 500K records/second."
+**A:** "The largest run we have measured is 66,879 records (2,616 matched against 64,263), with about 19 minutes of blocking on a laptop. Beyond that, clustering can move to ArangoDB's Graph Analytics Engine; blocking at that scale is the part still to be proven."
 
 **Q: "What about data privacy?"**
 **A:** "Full GDPR/CCPA compliance. Data never leaves your environment. Audit trails for all decisions."

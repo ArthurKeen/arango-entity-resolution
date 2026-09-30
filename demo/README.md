@@ -146,8 +146,8 @@ Entity resolution addresses one of the most costly data quality problems in ente
 
 ### Our Solution Delivers
 
-- **Eliminates 99%+ of duplicate records** with 99.5% precision
-- **Processes 250K+ records per second** with linear scalability
+- **Pairwise F1 0.937 on DBLP-ACM and 0.995 on FEBRL**, measured on public benchmarks ([BENCHMARKS.md](../docs/BENCHMARKS.md))
+- **Blocking removes 99%+ of candidate comparisons** (99.08–99.96% measured)
 - **Real-time entity matching** for live applications
 - **Single platform simplicity** with ArangoDB
 
@@ -313,7 +313,7 @@ python3 industry_scenarios.py
 
 **Key Talking Points**:
 - "Watch AI solve this in real-time"
-- "99.5% accuracy with advanced algorithms"
+- "Measured on public benchmarks, not asserted: F1 0.937 on DBLP-ACM, 0.995 on FEBRL"
 - "10 messy records become 7 clean entities"
 
 #### Act 3: Business Value (15 minutes)
@@ -353,13 +353,13 @@ python3 industry_scenarios.py
 **Common Questions**:
 
 1. **"How accurate is it?"**
-   - 99.5% precision with configurable thresholds
+   - Depends on the data, and the benchmarks say where: F1 0.937 on bibliographic records, 0.995 on structured person records, under 0.55 unsupervised on noisy product listings
    - Human-in-the-loop for edge cases
    - Continuous learning and improvement
 
 2. **"How fast is it?"**
-   - 250K+ records per second
-   - Linear scalability with dataset size
+   - Measured, not projected: 4,910 records in about 7 seconds; 66,879 records with about 19 minutes of blocking on a laptop
+   - Beyond that, clustering can offload to the Graph Analytics Engine; blocking at larger scale is not yet evidenced
    - Real-time matching for operational use
 
 3. **"What about our specific industry?"**

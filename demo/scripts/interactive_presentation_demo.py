@@ -826,10 +826,10 @@ class InteractivePresentationDemo:
             print()
         
         print("[QUICK] TECHNICAL ADVANTAGES:")
-        print("  * Processing speed: 250,000+ records/second")
-        print("  * Accuracy: 99.5% precision, 98% recall")
+        print("  * Accuracy (public benchmarks, docs/BENCHMARKS.md): pairwise F1 0.937 on DBLP-ACM, 0.995 on FEBRL person records")
+        print("  * Blocking removes 99%+ of candidate comparisons")
         print("  * Real-time processing capability")
-        print("  * Scales to billions of records")
+        print("  * Largest measured run: 66,879 records (DBLP-Scholar); the GAE backend is the path beyond that")
         print("  * Enterprise-grade security")
     
     def run_presentation_demo(self):

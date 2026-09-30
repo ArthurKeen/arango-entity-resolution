@@ -1,3 +1,6 @@
+> **Archived September 2026.** This describes the Foxx bulk-processing path, which has
+> since been removed; the library is Python-only. Kept for history.
+
 # Bulk Processing Implementation Summary
 
 ## Overview
@@ -471,9 +474,9 @@ batch_size=1000
 ## [DOCS] Reference Documentation
 
 - **[BATCH_VS_BULK_PROCESSING.md](BATCH_VS_BULK_PROCESSING.md)** - Comprehensive guide
-- **[API_REFERENCE.md](../api/API_REFERENCE.md)** - API documentation
+- **[API_REFERENCE.md](../../api/API_REFERENCE.md)** - API documentation
 - **[TESTING.md](TESTING.md)** - Testing procedures
-- **[PRD.md](../PRD.md)** - Product roadmap
+- **[PRD.md](../../PRD.md)** - Product roadmap
 
 ---
 

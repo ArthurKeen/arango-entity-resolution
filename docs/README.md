@@ -33,7 +33,7 @@ Welcome to the ArangoDB Entity Resolution documentation!
 - [Enhancement Plan](archive/completed-work/LIBRARY_ENHANCEMENT_PLAN.md) - Historical formalization plan
 - [Next Release Brief](development/NEXT_RELEASE_IMPLEMENTATION_BRIEF.md) - Implementation brief for releases `3.3.0`–`3.5.0` (all shipped)
 - [GAE Enhancement Path](development/GAE_ENHANCEMENT_PATH.md) - GAE clustering design (implemented in 3.5.0)
-- [Batch vs Bulk Processing](development/BATCH_VS_BULK_PROCESSING.md) - Performance patterns
+- [Batch vs Bulk Processing](archive/completed-work/BATCH_VS_BULK_PROCESSING.md) - Performance patterns (archived: Foxx era)
 - [Blocking Benchmarks](development/BLOCKING_BENCHMARKS.md) - Supported evaluator workflow
 - [Runtime Health CI Runbook](development/RUNTIME_HEALTH_CI_RUNBOOK.md) - Runtime baseline, compare, and gate workflows
 - [Provider Rollout Runbook](development/PROVIDER_ROLLOUT_RUNBOOK.md) - Rollout, monitoring, and rollback for ONNX Runtime providers

@@ -132,7 +132,8 @@ class DemoWalkthrough:
             "similarity_pairs": 5,
             "high_confidence_matches": 3,
             "processing_time": "0.8 seconds",
-            "accuracy": "99.5%"
+            # No accuracy figure: these results are illustrative, and a
+            # precision number printed beside them would read as measured.
         }
         
         self.print_results("Similarity Analysis Results", similarity_results)
@@ -209,9 +210,9 @@ class DemoWalkthrough:
         self.print_results("Enterprise ROI", enterprise_roi)
         
         self.print_step("Technical Capabilities", "What makes this possible")
-        print("   * Performance: 250,000+ records/second")
-        print("   * Accuracy: 99.5% precision, 98% recall")
-        print("   * Scalability: Linear scaling to billions")
+        print("   * Accuracy (public benchmarks, docs/BENCHMARKS.md): pairwise F1 0.937 on DBLP-ACM, 0.995 on FEBRL person records")
+        print("   * Blocking removes 99%+ of candidate comparisons")
+        print("   * Largest measured run: 66,879 records (DBLP-Scholar); the GAE backend is the path beyond that")
         print("   * ArangoDB: Full-text search + graph database")
         
         # Next Steps

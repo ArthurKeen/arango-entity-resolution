@@ -86,17 +86,19 @@ gap without crossing it. The larger finding came from adding a second task shape
 
 **Neither scoring method is the answer; the data shape decides, and it is
 knowable in advance.** Weighted similarity wins on free text, Fellegi–Sunter wins
-decisively on structured multi-field records, and the deciding variable is the
+on structured multi-field records (decisively at the shipped threshold, and
+roughly level at the best swept one), and the deciding variable is the
 spread in per-field chance agreement — the sum of each field's squared value
 frequencies — which requires no labels to compute. Publishing a rule for choosing
 a matcher, rather than a single recommended matcher, is a position few
 comparators state at all.
 
 Two caveats hold this short of a SOTA claim. The project is still not a SOTA
-product matcher on noisy e-commerce text. And counter-intuitively, *binary* FS
-beat multi-level FS on the structured data, which means the more elaborate
-comparison model is not uniformly better and the library cannot yet auto-select
-between them.
+product matcher on noisy e-commerce text. And neither FS variant is uniformly
+better: binary FS edges out multi-level on the small, clean febrl1 set (1.000
+against 0.987) but collapses to an unfit model on both febrl3 sets, where only
+comparison levels fit. The library flags the collapse but cannot yet
+auto-select between the two.
 
 ## SOTA claims the project can defend
 

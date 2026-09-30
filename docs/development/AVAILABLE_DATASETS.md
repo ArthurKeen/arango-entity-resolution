@@ -191,9 +191,9 @@ python demo_orchestrator.py --records 25000 --auto
 - **1M records**: ~30 minutes
 
 ### **Accuracy Metrics**
-- **Precision**: 99.5%+ for high-confidence matches
-- **Recall**: 98%+ for obvious duplicates
-- **F1-Score**: 98.7%+ overall performance
+Measured figures, with the commands that reproduce them, are in
+[BENCHMARKS.md](../BENCHMARKS.md). Earlier targets quoted here (99.5% precision,
+98% recall) were never measured and have been removed.
 
 ## Getting Help
 

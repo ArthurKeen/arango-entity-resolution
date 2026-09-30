@@ -1,3 +1,5 @@
+# ARCHIVED: the v1 Foxx REST API, which no longer exists. The live UI API
+# contract is ui/openapi.json, generated from the FastAPI app.
 openapi: 3.0.3
 info:
   title: Entity Resolution API
@@ -17,8 +19,8 @@ info:
     name: Entity Resolution Team
     email: support@example.com
   license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
 
 servers:
   - url: http://localhost:8529/_db/entity_resolution/entity-resolution
