@@ -1,15 +1,27 @@
 # Project Health Scorecard
 
-**Evaluated:** September 22, 2026  
+**Evaluated:** September 29, 2026  
 **Release baseline:** `v3.8.0` plus committed post-release work  
 **Assessment scope:** released code plus committed, gate-passing work on `main`  
-**Overall health:** **7.7/10 — B**
+**Overall health:** **7.8/10 — B**
 
 This is the current operational scorecard. The June 2026 reviews remain useful
 as historical baselines, but their security, matching, UI, and graph-feature
 findings no longer describe the current system.
 
-The September 22 re-evaluation moves the score **down** 0.1, and that is the
+The September 29 re-evaluation moves the score **up** 0.1, and most of that
+movement is repair rather than new capability. A whole-repo quality review found,
+and this cycle fixed with mutation-checked regressions, a set of defects the
+previous scorecard had rated without knowing about. Two were exploitable: an
+arbitrary file write through the export route, and reviewer attribution that any
+token holder could spoof. The Workbench's pipeline-run route failed on its first
+call in every database, and the pipeline dropped the documented `llm:` config
+block. The Python CI workflow had run none of its gates since August 7. The
+current code is materially sounder than the September 22 code. The fact that the
+earlier grades did not know what they were grading is recorded under
+documentation discipline, which holds rather than rises.
+
+The September 22 re-evaluation moved the score **down** 0.1, and that was the
 scorecard working as intended. A published benchmark table was found to have five
 of nine rows wrong, including the headline, and the README carried a quality claim
 that measurement contradicts. Both were corrected properly — the withdrawn figures
@@ -26,31 +38,32 @@ score is weighted by impact on correctness, trust, and production use.
 | Dimension | Weight | Score | Current evidence |
 |---|---:|---:|---|
 | Architecture and core design | 12% | **9.0** | Config-driven pipeline, pluggable blocking and clustering, shared services behind CLI/MCP/UI, native ArangoDB graph/vector paths |
-| Correctness and reliability | 12% | **8.8** | Binding human verdicts, null-safe scoring, configuration-hashed model loading, strict known-defect and conformance gates; a degenerate parameter fit is flagged on both estimation paths rather than returned silently; the LLM verifier's response budget no longer truncates verbose verdicts. Both of those were shipped defects found by measurement this cycle, which is why the score holds rather than rises |
-| Tests and mechanical verification | 12% | **8.7** | `make verify`: 1,790 passed, 8 skipped, 75.37% coverage against a 72% floor; matching-quality and wiring gates are blocking; every regression test added this cycle was mutation-checked against the reversion it guards. Gates cover code, not prose — see risk 6 |
-| Security and privacy | 12% | **7.0** | Optional API/WebSocket auth and rate limiting, AQL hardening, SPA containment, secret scan, and optional LLM masking; secure deployment still depends on configuration |
-| Matching quality and evaluation | 12% | **8.4** | Two public benchmark families covering both task shapes, B-cubed metrics, multi-level Fellegi–Sunter learned end to end, an explicit reference population for `u`, a measurable rule for choosing a scorer, and now an oracle-bounded measurement of the LLM tier. The FEBRL conclusion was corrected to what the data supports — FS wins through comparison levels, and the win is robustness at the shipped threshold rather than peak accuracy |
-| Steward Workbench and API UX | 10% | **7.2** | Binding edits, audit, threshold tuning, profiling, survivorship overrides, auth UX, and dark mode; frontend and enterprise workflow coverage remain thin |
-| Maintainability and debt | 10% | **6.5** | Good layering and deprecation discipline, offset by legacy exports, unwired strategies, oversized modules, 4,057 advisory flake8 findings (flat since August 6), and no clean mypy baseline |
-| Documentation and release discipline | 8% | **8.0** | PRD reconciled against measurement, benchmark methodology current, every FEBRL row now records its command. Down from 8.5: a published benchmark table had five of nine rows wrong for four weeks and the README asserted a precision improvement that measurement contradicts. Both are corrected with the withdrawn figures named, but no gate reads prose, so nothing would have caught either without a manual re-run |
+| Correctness and reliability | 12% | **8.8** | Binding human verdicts, null-safe scoring, configuration-hashed model loading, strict known-defect and conformance gates, degenerate-fit detection on both EM paths. This cycle fixed ten shipped defects, each with a mutation-checked regression. Among them: missing email/phone scored as disagreement; `compute` and `compute_detailed` diverged; EM accepted non-indicator input; hybrid blocking used near-exact PHRASE retrieval; the cascade treated suppressed edges as links; pipeline statistics reported 0 clustered entities; seeded FS training was not reproducible. Held, not raised: the review found them rather than a gate, and the same class remains (config silently ignores unknown keys; `load_latest` is hashless; `fallback_provider` is unwired) |
+| Tests and mechanical verification | 12% | **8.8** | `make verify`: 1,898 passed, 8 skipped, 75.95% coverage against a 72% floor. New gates this cycle: README config, CLI, tool, backend and strategy tables checked against the objects that define them; published benchmark tables checked against committed artifacts; the secret scanner tested; strict fakes that enforce ArangoDB's naming rule. Up 0.1 because CI now actually runs these gates: it had failed at collection on every run from August 7 until 0b5212a. Held below 9 because the integration tests that prove recall and AQL semantics are not in CI, and nothing watched CI's own health for seven weeks |
+| Security and privacy | 12% | **7.4** | Optional API/WebSocket auth and rate limiting, AQL hardening, SPA containment. Fixed this cycle: arbitrary file write and temp-file read through the export routes; reviewer attribution spoofable by header; reviewer tokens unable to authenticate; the API key unscrubbed in provider error text; scanner blind spots over shipped directories; an sdist that shipped untracked worktree files. LLM masking is now configurable from the pipeline. Secure deployment still depends on configuration, and the published 3.8.0 carries the export defect until a release |
+| Matching quality and evaluation | 12% | **8.5** | Two public benchmark families covering both task shapes, B-cubed metrics, multi-level Fellegi–Sunter learned end to end, an explicit reference population for `u`, a measurable rule for choosing a scorer, and an oracle-bounded measurement of the LLM tier. Up 0.1: the FEBRL and review-band tables are now committed artifacts that reproduce to every digit and are test-checked against the docs. The LLM-judge table is honestly marked not artifact-backed, and two Leipzig FS tables predate seeding |
+| Steward Workbench and API UX | 10% | **7.3** | Binding edits, audit, threshold tuning, profiling, survivorship overrides, auth UX, and dark mode. Two advertised features never worked and now do: pipeline runs (the reserved `_er_pipeline_runs` name failed ERR 1208 in every database, taking run history and WebSocket progress with it) and export download. Up only 0.1, because MagicMock-based route tests passed throughout, and frontend and enterprise workflow coverage remain thin |
+| Maintainability and debt | 10% | **6.5** | Good layering and deprecation discipline, offset by legacy exports, unwired strategies, oversized modules, 4,059 advisory flake8 findings (flat since August 6), and no clean mypy baseline |
+| Documentation and release discipline | 8% | **8.0** | Gains: the README is now gated against the code, and its main config example, which silently resolved the wrong collection, is fixed. Twenty broken links fixed; fabricated demo figures (99.5% precision, 250K records/s, a 50M-record deployment) replaced with measured ones; Foxx-era docs archived; nine PRD patches proposed. Held, not raised, because of lapses in the same period: CI red for seven weeks while docs said it ran the gates, the published 3.8.0 `[mcp]` extra broken by an unbounded dependency, and the September 22 scorecard grading code with live defects it had not looked for |
 | Performance and scalability | 7% | **6.5** | GAE and local backend choices are strong; BM25 candidate generation is now adaptively chunked against a wall-clock budget and verified at 66,879 records against the default client timeout it previously exceeded, with a streaming `iter_candidates()` path; strategies still materialise all pairs client-side before deduplication, and nothing above ~67k is evidenced |
 | Operations and deployment | 5% | **5.0** | Health endpoints, migrations, and runtime-provider gates exist, but there is no service image/Kubernetes package or standard Prometheus/OpenTelemetry stack |
 
-**Weighted total:** 7.7/10.
+**Weighted total:** 7.8/10.
 
 ## Verification snapshot
 
-- Python correctness gate: **pass** — 1,790 tests passed; critical lint, secret
-  scan, version consistency, wiring conformance, statistical quality floors, and
-  72% coverage floor all passed on September 22.
-- Python coverage: **75.34%**.
+- Python correctness gate: **pass** — 1,898 tests passed; critical lint, secret
+  scan, version consistency, wiring conformance, docs and published-results
+  conformance, statistical quality floors, and the 72% coverage floor all passed
+  on September 29, locally and in CI (first green CI run since July 7: c0bb383).
+- Python coverage: **75.95%**.
 - UI unit tests: **pass** — 7 tests across 3 files.
 - UI production build: **pass**. Vite reports a large main bundle
   (~1.02 MB minified / ~292 KB gzip), so code splitting remains worthwhile.
 - Playwright smoke tests exist and CI installs Chromium. The local rerun was
   environment-blocked because the Playwright browser binary was not installed,
   not because an application assertion failed.
-- Full flake8 remains advisory and currently reports **4,057 findings** (`make
+- Full flake8 remains advisory and currently reports **4,059 findings** (`make
   lint`, line length 120), mostly formatting plus some unused imports — flat
   against August 6, so the debt is stable rather than growing. The blocking
   syntax/undefined-name subset passes.
@@ -110,9 +123,10 @@ register can be read as a history rather than only a snapshot.
 2. **Wiring completeness — P1 product constraint.** Geographic, hybrid, and
    graph-traversal strategies are exported and tested but are not selectable
    through `ConfigurableERPipeline.run_blocking()`, which reaches five of them
-   (`exact`, `bm25`/`arangosearch`, `vector`, `lsh`, `graph_embedding`). Wire
-   them or mark them experimental rather than describing them as uniformly
-   shipped.
+   (`exact`, `bm25`/`arangosearch`, `vector`, `lsh`, `graph_embedding`). The
+   README now labels the other four library-only, and a test holds that table to
+   `BlockingConfig.VALID_STRATEGIES`. Wiring them into the pipeline is still
+   open.
 3. **Maintainability — P1 engineering constraint.** Establish a ratcheted
    full-lint baseline, make local type checking reproducible (`mypy` is still
    absent from the development environment), reduce oversized modules, and
@@ -126,18 +140,40 @@ register can be read as a history rather than only a snapshot.
    appropriate for the current embedded scope, but RBAC, tenant isolation,
    immutable audit guarantees, erasure propagation, and default-on LLM masking
    remain v4 work.
-6. **Prose is ungated — P1 trust constraint.** Every mechanical gate reads code.
-   Nothing reads `README.md`, `docs/BENCHMARKS.md`, or these scorecards, which is
-   how a benchmark table with five wrong rows and a README quality claim with no
-   measurement behind it both shipped and survived. The surface most readers see
-   is the least verified. First step taken: the scorecards now carry a
-   mechanical staleness check (`make check-scorecards`, surfaced at session
-   start). Still open: checking numbers quoted in docs against the artifacts
-   they cite.
-7. **Verification-tier defaults — P2 product constraint.** The LLM tier is now
-   measured and works with a competent model, but ships with a band that holds
-   8.5% of errors and recommends a local model that does not work. Derive the
-   band from the error distribution and qualify the provider table.
+6. **Prose is partly gated — P2 trust constraint** *(was P1)*. The README's
+   config examples, CLI lines, tool, backend and strategy tables, and its
+   benchmark tables are now checked against code and committed artifacts, and so
+   are the BENCHMARKS FEBRL, summary and oracle tables, the scorecards'
+   internal agreement, and relative links. Still ungated: prose outside the
+   README (guides, demo scripts), the LLM-judge table (its raw rows were lost, and
+   it says so), and the Leipzig TF and multi-level tables, which predate seeded
+   training.
+7. **Verification-tier defaults — P2 product constraint.** The LLM tier works
+   with a competent model, and the provider docs now say that the local model
+   does not. The shipped 0.55–0.80 band still holds only 8.5% of errors; derive
+   it from the error distribution (proposed PRD patch REQ-L05).
+   `fallback_provider` is parsed and never acted on (drift alert
+   REQ-LLM-FALLBACK).
+8. **CI health is unmonitored — P1 process constraint.** The Python CI workflow
+   failed on every run for seven weeks, and nobody noticed, because a gate that
+   is always red is not read. Add a check that surfaces a red default branch at
+   session start, and run the integration tests in CI against an ArangoDB
+   service container. They currently prove recall and AQL semantics locally
+   only.
+9. **Silent config defaults — P2 correctness constraint.** Every config section
+   drops unknown keys without a word, so a misspelt key runs the default. This is
+   how the README's main example resolved the wrong collection. Warn on or reject
+   unknown keys.
+
+### Closed since September 22
+
+- **Security defects in the Workbench and packaging.** Export path confinement,
+  token-bound reviewer identity, API-key scrubbing, scanner recall, and an
+  allowlisted sdist, each with tests that fail on the old code.
+- **CI not running.** mcp is capped below 2, and the SPA route is excluded from
+  the schema. All three workflows are green.
+- **Non-reproducible FS benchmarks.** All three sampling sources are seeded,
+  and the published tables are artifact-backed and test-checked.
 
 ### Closed since August 6
 
@@ -160,17 +196,17 @@ register can be read as a history rather than only a snapshot.
 
 ## Release-readiness decision
 
-The code is **release-ready from `main`**. The blocking condition in the August 6
-assessment — a working tree mixing unrelated work — no longer holds: the work is
-committed in coherent groups, `make verify` passes (1,779 tests, 75.34%
-coverage), and benchmark results are reproducible from the current commit by a
-single documented command.
+`main` is **release-ready, and a release is now advisable rather than merely
+possible**. The published 3.8.0 has an arbitrary-file-write path through the
+Workbench export route, and its `[mcp]` extra installs mcp 2.x, which breaks the
+MCP server on import. Both are fixed on `main`, which passes `make verify` and
+all three CI workflows (Python Library, UI Contract, UI E2E) at c0bb383, with
+FEBRL and review-band results reproducible to every digit from committed
+artifacts.
 
-Two conditions remain before a release is cut rather than merely possible: rerun
-the UI unit/build/E2E gates, which were last verified on August 6 and are not
-covered by `make verify`; and decide the disposition of the two untracked files
-(`AGENTS.md`, a contributor guide that has never been committed, and
-`.prd-patches-pending.md`, now closed-out history).
+Remaining decisions: cut 3.8.1, and decide the disposition of the untracked
+`.prd-patches-pending.md`, the human-readable copy of eleven proposed PRD
+patches awaiting review.
 
 ## Evidence
 
