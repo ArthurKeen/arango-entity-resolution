@@ -39,9 +39,18 @@ def db():
         def __iter__(self):
             return iter(self.docs)
 
+    class NoRowsAQL:
+        # The superseded-edge and stale-golden sweeps are persistence semantics,
+        # and are tested against a real ArangoDB in
+        # test_golden_record_override_survival_integration.py. Here they find
+        # nothing, so these tests isolate consolidation.
+        def execute(self, query, bind_vars=None, **kwargs):
+            return iter([])
+
     class MockDB:
         def __init__(self):
             self._collections = {}
+            self.aql = NoRowsAQL()
 
         def has_collection(self, name):
             return name in self._collections

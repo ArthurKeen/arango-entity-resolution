@@ -637,6 +637,21 @@ class TestGolden:
         # reserved keys stripped from user fields
         assert data["golden_record"]["_key"] != "nope"
 
+    def test_apply_golden_uses_the_persistence_service_key(self, client, mock_db):
+        # The route once hashed bare keys while GoldenRecordPersistenceService
+        # hashes vertex ids, so a steward edit created a second, unlinked golden
+        # record. Unit-level, so it gates in CI; the end-to-end version is in
+        # test_golden_record_override_survival_integration.py.
+        from entity_resolution.services.golden_record_persistence_service import golden_key_for
+
+        mock_db.collection.return_value.get.return_value = None
+        resp = client.post(
+            "/api/golden/customers/apply",
+            json={"member_keys": ["b", "a"], "fields": {"name": "Acme Inc"}},
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["golden_key"] == golden_key_for(["customers/a", "customers/b"])
+
     def test_apply_golden_cannot_override_control_metadata(self, client, mock_db):
         mock_db.collection.return_value.get.return_value = {
             "_key": "g1",

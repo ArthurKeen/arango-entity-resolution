@@ -37,6 +37,8 @@ GOLDEN_METADATA_FIELDS = {
     "memberKeys",
     "sourceClusterHash",
     "stale",
+    "staleReason",
+    "staleAt",
     "runId",
     "updatedAt",
     "method",
@@ -47,6 +49,23 @@ GOLDEN_METADATA_FIELDS = {
 }
 
 MERGE_STRATEGIES = ("field_voting", "most_complete", "most_recent", "source_priority")
+
+
+def member_ids_for(member_keys: Sequence[str], source_collection: str) -> List[str]:
+    """Vertex ids for member keys; values that are already ids pass through."""
+    return [str(k) if "/" in str(k) else format_vertex_id(str(k), source_collection) for k in member_keys]
+
+
+def golden_key_for(member_ids: Sequence[str]) -> str:
+    """The one key a golden record has, derived from its members' vertex ids.
+
+    Every writer must use this. The Workbench's apply route used to hash bare
+    member keys instead, so a steward's correction landed in a second document
+    that no ``resolvedTo`` edge pointed at, while the record entities actually
+    resolve to kept the machine value. Pass ids, not keys: use
+    :func:`member_ids_for` when all you have are keys.
+    """
+    return hashlib.md5("|".join(sorted(member_ids)).encode("utf-8")).hexdigest()
 
 
 class GoldenRecordPersistenceService:
@@ -60,6 +79,13 @@ class GoldenRecordPersistenceService:
     Outputs:
     - `golden_collection`: golden record vertices (default "golden_records")
     - `resolved_edge_collection`: edges from source -> golden (default "resolvedTo")
+
+    To make the records editable in the Steward Workbench, pass
+    ``golden_collection=f"{source_collection}_golden_records"``, the name its
+    routes read and write. Keys come from :func:`golden_key_for`, which the
+    Workbench also uses, so a steward's edit lands on the record entities resolve
+    to. Each run also removes ``resolvedTo`` edges and flags ``stale`` the golden
+    records that no current cluster produced.
 
     Survivorship: `merge_strategy` selects how conflicting field values are
     resolved, with optional per-field overrides via `field_strategies`:
@@ -230,11 +256,63 @@ class GoldenRecordPersistenceService:
             self.resolved_edge_collection.insert_many(resolved_edges, overwrite_mode="ignore")
             edges_upserted = len(resolved_edges)
 
+        edges_removed, flagged_stale = self._retire_superseded(
+            {d["_key"] for d in golden_docs}, {e["_key"] for e in resolved_edges}
+        )
+
         return {
             "clusters_processed": clusters_processed,
             "golden_records_upserted": golden_upserted,
             "resolved_edges_upserted": edges_upserted,
+            "resolved_edges_removed": edges_removed,
+            "golden_records_flagged_stale": flagged_stale,
         }
+
+    def _retire_superseded(self, live_golden_keys: set, live_edge_keys: set) -> Tuple[int, int]:
+        """Bring the graph in line with the clusters as they are now.
+
+        Upserting alone is idempotent only while clusters never change. When one
+        did, the old golden record stayed, its members kept their edges to it,
+        and they gained edges to the new one: a record resolved to two entities,
+        and a record removed from a cluster still resolved to it.
+
+        Edges from this source collection that no live cluster produced are
+        removed. Golden records built from this source collection that no live
+        cluster produced are flagged ``stale``, not deleted, because they may
+        carry steward overrides and an audit history. This is the convention
+        FeedbackApplicationService already uses for a cluster changed by a verdict.
+        """
+        prefix = f"{self.source_collection_name}/"
+        superseded_edges = [
+            key for key in self.db.aql.execute(
+                "FOR e IN @@edges FILTER STARTS_WITH(e._from, @prefix) RETURN e._key",
+                bind_vars={"@edges": self.resolved_edge_collection_name, "prefix": prefix},
+            )
+            if key not in live_edge_keys
+        ]
+        if superseded_edges:
+            self.resolved_edge_collection.delete_many([{"_key": k} for k in superseded_edges])
+
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        orphaned = [
+            key for key in self.db.aql.execute(
+                """
+                FOR g IN @@golden
+                    FILTER g.stale != true
+                    FILTER LENGTH(FOR m IN (g.memberIds || []) FILTER STARTS_WITH(m, @prefix) LIMIT 1 RETURN 1) > 0
+                    RETURN g._key
+                """,
+                bind_vars={"@golden": self.golden_collection_name, "prefix": prefix},
+            )
+            if key not in live_golden_keys
+        ]
+        if orphaned:
+            self.golden_collection.update_many([
+                {"_key": k, "stale": True, "staleAt": now,
+                 "staleReason": "no current cluster has this member set"}
+                for k in orphaned
+            ])
+        return len(superseded_edges), len(orphaned)
 
     def _load_field_overrides(self, golden_key: str) -> Dict[str, Any]:
         """Steward-supplied field values that must outlive a rebuild.
@@ -298,9 +376,7 @@ class GoldenRecordPersistenceService:
         return docs
 
     def _golden_key(self, member_ids: Sequence[str]) -> str:
-        # Deterministic: hash of sorted member vertex ids.
-        s = "|".join(sorted(member_ids))
-        return hashlib.md5(s.encode("utf-8")).hexdigest()
+        return golden_key_for(member_ids)
 
     @staticmethod
     def cluster_hash(member_keys: Sequence[str]) -> str:

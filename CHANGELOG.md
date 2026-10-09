@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Golden records: a steward's edit in the Workbench now updates the golden
+  record its entities resolve to. The apply route keyed records differently from
+  `GoldenRecordPersistenceService`, so each edit created a second, unlinked
+  record and the linked one kept the machine value. The apply and merge routes
+  now share `golden_key_for()` with the service, and merge into the existing
+  record instead of replacing it.
+- Golden records: `GoldenRecordPersistenceService.run()` now cleans up after a
+  cluster changes. It removes `resolvedTo` edges no current cluster produced and
+  flags superseded golden records `stale`, keeping their steward overrides and
+  history. Previously a record could resolve to two golden records, and a record
+  removed from a cluster still resolved to it. `run()` reports
+  `resolved_edges_removed` and `golden_records_flagged_stale`.
+
 ## [3.8.0] - 2026-07-04
 
 The **Steward Workbench** release: a human-in-the-loop curation UI on top of the

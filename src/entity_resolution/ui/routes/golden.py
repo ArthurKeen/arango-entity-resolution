@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 
-import hashlib
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, Request
@@ -76,14 +75,29 @@ async def merge_records(
         strategy=body.strategy,
     )
 
-    golden = result.get("golden_record", {})
+    from entity_resolution.services.golden_record_persistence_service import (
+        SYSTEM_FIELDS,
+        golden_key_for,
+        member_ids_for,
+    )
+
     golden_coll_name = f"{collection}_golden_records"
     if not db.has_collection(golden_coll_name):
         db.create_collection(golden_coll_name)
 
+    # The merge result is a copy of the canonical member, system fields
+    # included, so it used to be stored under that MEMBER's _key: a third key
+    # scheme, beside the persistence service's and the apply route's. Key it
+    # like every other writer, and merge rather than replace so steward
+    # overrides on an existing record survive.
+    member_ids = member_ids_for(body.entity_keys, collection)
+    golden = {k: v for k, v in result.get("golden_record", {}).items() if k not in SYSTEM_FIELDS}
+    golden["_key"] = golden_key_for(member_ids)
+    golden["memberIds"] = member_ids
+    golden["memberKeys"] = list(body.entity_keys)
     golden["_merged_keys"] = body.entity_keys
     golden["_strategy"] = body.strategy
-    db.collection(golden_coll_name).insert(golden, overwrite=True)
+    db.collection(golden_coll_name).insert(golden, overwrite_mode="update")
     result["persisted"] = True
     result["golden_collection"] = golden_coll_name
 
@@ -166,18 +180,23 @@ async def apply_golden_record(
     if not db.has_collection(golden_coll):
         db.create_collection(golden_coll)
 
-    key = body.golden_key or hashlib.md5(
-        "|".join(sorted(body.member_keys)).encode("utf-8")
-    ).hexdigest()
-
-    coll = db.collection(golden_coll)
-    before = coll.get(key)
-
     from datetime import datetime, timezone
     from entity_resolution.services.golden_record_persistence_service import (
         GOLDEN_METADATA_FIELDS,
         SYSTEM_FIELDS,
+        golden_key_for,
+        member_ids_for,
     )
+
+    # The same key the persistence service gives this member set. This route
+    # used to hash bare member keys, so every steward edit landed in a second
+    # document no resolvedTo edge pointed at, and the record entities resolve
+    # to kept the machine value.
+    member_ids = member_ids_for(body.member_keys, collection)
+    key = body.golden_key or golden_key_for(member_ids)
+
+    coll = db.collection(golden_coll)
+    before = coll.get(key)
 
     # The API accepts arbitrary domain fields, but never lets them replace the
     # golden record's own control metadata. Use the same denylist as persistence
@@ -210,6 +229,7 @@ async def apply_golden_record(
     doc = {
         **clean_fields,
         "_key": key,
+        "memberIds": member_ids,
         "memberKeys": body.member_keys,
         "_merged_keys": body.member_keys,
         "stale": False,
@@ -219,7 +239,11 @@ async def apply_golden_record(
         "fieldOverrides": field_overrides,
         **({"mergeStrategy": body.merge_strategy} if body.merge_strategy else {}),
     }
-    coll.insert(doc, overwrite=True)
+    # Merge, not replace: the record usually came from the persistence service,
+    # and a replace erased its cluster id, provenance and every other
+    # consolidated field until the next pipeline run.
+    coll.insert(doc, overwrite_mode="update")
+    doc = {**(before or {}), **doc}  # what the update-mode write leaves stored
 
     actor = getattr(request.state, "reviewer", None) or "human"
     try:

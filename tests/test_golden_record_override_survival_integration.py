@@ -214,3 +214,77 @@ def test_source_field_cannot_clobber_golden_metadata(golden_fixture):
     assert doc["clusterSize"] == 3
     # Ordinary fields are still consolidated normally.
     assert doc["city"] == "Boston"
+
+
+# ---------------------------------------------------------------------------
+# Through the real Workbench route, and across a cluster change (issue #2)
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def workbench_fixture(golden_fixture):
+    """Same data, but the golden collection is the one the Workbench uses."""
+    db, source, clusters, _golden, edges = golden_fixture
+    golden = f"{source}_golden_records"
+    yield db, source, clusters, golden, edges
+    if db.has_collection(golden):
+        db.delete_collection(golden)
+
+
+def _apply_via_workbench(db, source, member_keys, fields):
+    from starlette.testclient import TestClient
+
+    from entity_resolution.ui.app import create_app
+
+    resp = TestClient(create_app(db=db)).post(
+        f"/api/golden/{source}/apply", json={"member_keys": member_keys, "fields": fields}
+    )
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+def test_workbench_edit_lands_on_the_record_entities_resolve_to(workbench_fixture):
+    # The earlier tests wrote the override straight into the document, at the
+    # service's key. The route computed a different key, so in a browser the edit
+    # created a second golden record with no resolvedTo edges, and the record
+    # the entities resolved to kept the machine value.
+    db, source, clusters, golden, edges = workbench_fixture
+    service = _service(db, source, clusters, golden, edges)
+    service.run()
+    _apply_via_workbench(db, source, ["r1", "r2", "r3"], {"name": "Jonathan Smith"})
+    service.run()
+
+    docs = list(db.collection(golden).all())
+    assert len(docs) == 1, "the edit must not create a second golden record"
+    assert docs[0]["name"] == "Jonathan Smith"
+    assert docs[0]["clusterId"] == "c1", "the edit must merge, not replace, pipeline metadata"
+    targets = {e["_to"] for e in db.collection(edges).all()}
+    assert targets == {f"{golden}/{docs[0]['_key']}"}
+
+
+def test_cluster_change_retires_the_old_record_and_its_edges(workbench_fixture):
+    db, source, clusters, golden, edges = workbench_fixture
+    service = _service(db, source, clusters, golden, edges)
+    service.run()
+    _apply_via_workbench(db, source, ["r1", "r2", "r3"], {"name": "Jonathan Smith"})
+
+    # r3 is split out; the cluster is now r1 and r2.
+    db.collection(clusters).update({"_key": "c1", "members": [f"{source}/r1", f"{source}/r2"]})
+    summary = service.run()
+
+    edges_by_member = {}
+    for e in db.collection(edges).all():
+        edges_by_member.setdefault(e["_from"], set()).add(e["_to"])
+    assert set(edges_by_member) == {f"{source}/r1", f"{source}/r2"}, "r3 left the cluster"
+    assert all(len(t) == 1 for t in edges_by_member.values()), "each record resolves to one entity"
+
+    live = [d for d in db.collection(golden).all() if not d.get("stale")]
+    stale = [d for d in db.collection(golden).all() if d.get("stale")]
+    assert len(live) == 1 and len(stale) == 1
+    # Retired, not deleted: the steward's correction and its history remain.
+    assert stale[0]["fieldOverrides"] == {"name": "Jonathan Smith"}
+    assert summary["golden_records_flagged_stale"] == 1
+    assert summary["resolved_edges_removed"] == 3
+
+    # Idempotent from here: a second run changes nothing.
+    again = service.run()
+    assert again["resolved_edges_removed"] == 0 and again["golden_records_flagged_stale"] == 0
