@@ -144,7 +144,12 @@ detailed_coverage_analysis_*.json
 
 # Local Claude Code harness config (per-user, not project-shared)
 .claude/
-.cursor/
+# .cursor/ is per-user, except the estate-wide rules that are reviewed and tracked.
+# (A directory pattern like `.cursor/` cannot be re-included from, hence `/*`.)
+.cursor/*
+!.cursor/rules/
+.cursor/rules/*
+!.cursor/rules/fix-upstream-dont-fork.mdc
 .prd-drift-queue/
 CLAUDE.md
 
