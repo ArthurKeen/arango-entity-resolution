@@ -9,9 +9,18 @@ make sure the guard itself works, including its escape hatch.
 
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
+from pathlib import Path
+
 import pytest
 
-from tests.conftest import assert_safe_test_host
+# pytest registers tests/conftest.py as the module ``conftest`` and puts tests/ on
+# sys.path, so this import never depends on collection order. ``tests.conftest``
+# resolved only when an earlier module had happened to put the repo root on
+# sys.path, and failed in CI the moment that order changed.
+from conftest import assert_safe_test_host
 
 
 @pytest.mark.parametrize(
@@ -65,3 +74,33 @@ def test_empty_host_is_refused():
     """An unset host must not silently pass the guard."""
     with pytest.raises(RuntimeError):
         assert_safe_test_host("")
+
+
+def test_this_module_imports_when_collected_on_its_own(tmp_path):
+    """Regression: collected alone, this module failed with
+    ``ModuleNotFoundError: No module named 'tests.conftest'``.
+
+    Runs pytest on this file in a fresh interpreter from a directory that is
+    not the repository, so nothing earlier in a session can have prepared
+    ``sys.path`` for it.
+    """
+    env = {key: value for key, value in os.environ.items() if key != "PYTHONPATH"}
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import sys, pytest; sys.exit(pytest.main(sys.argv[1:]))",
+            "-q",
+            "-p",
+            "no:cacheprovider",
+            "-k",
+            "not imports_when_collected_on_its_own",
+            str(Path(__file__).resolve()),
+        ],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
