@@ -562,7 +562,12 @@ def test_bm25_reads_search_field_from_blocking_config(monkeypatch) -> None:
 
 
 def test_bm25_falls_back_to_fields_list(monkeypatch) -> None:
-    """Falls back to first/second entries in blocking.fields when explicit attrs absent."""
+    """search_field falls back to fields[0]; fields[1] is NOT a filter.
+
+    This test used to assert blocking_field == "city": the second entry became an
+    exact-equality pre-filter without any message (issue #3). See
+    tests/test_bm25_fields_fallback.py for the end-to-end checks.
+    """
     import entity_resolution.core.configurable_pipeline as mod
     monkeypatch.setattr(mod, "BM25BlockingStrategy", _FakeBM25Strategy)
 
@@ -576,7 +581,7 @@ def test_bm25_falls_back_to_fields_list(monkeypatch) -> None:
 
     pipe.run_blocking()
     assert _FakeBM25Strategy.captured["search_field"] == "full_name"
-    assert _FakeBM25Strategy.captured["blocking_field"] == "city"
+    assert _FakeBM25Strategy.captured["blocking_field"] is None
 
 
 def test_bm25_raises_if_no_search_field(monkeypatch) -> None:

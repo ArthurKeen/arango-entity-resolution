@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- BM25 blocking no longer turns the second entry of `blocking.fields` into an
+  exact-equality filter. That entry silently dropped every pair differing in
+  the field; a filter is now taken only from an explicit
+  `blocking.blocking_field`, and other entries are ignored with a warning. A
+  computed field named as the BM25 search or filter field is now an error
+  (the view cannot search an expression, so it used to return zero candidates),
+  and zero candidates on a non-empty collection log a warning naming the view
+  and fields. ([#3](https://github.com/arango-solutions-org/arango-entity-resolution/issues/3))
+
 - Golden records: a steward's edit in the Workbench now updates the golden
   record its entities resolve to. The apply route keyed records differently from
   `GoldenRecordPersistenceService`, so each edit created a second, unlinked

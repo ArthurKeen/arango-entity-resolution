@@ -627,37 +627,7 @@ class ConfigurableERPipeline:
         
         elif strategy in ('bm25', 'arangosearch'):
             # Note: 'arangosearch' is a deprecated alias for 'bm25'.
-            # Resolve search_field and blocking_field from config.
-            # Explicit attributes on BlockingConfig take precedence; fall back to
-            # the first two entries in the generic `fields` list so callers that
-            # don't know about the BM25-specific keys still work.
-            generic_fields, _ = self._get_blocking_fields()
-
-            search_field = (
-                self.config.blocking.search_field
-                or (generic_fields[0] if generic_fields else None)
-            )
-            blocking_field = (
-                self.config.blocking.blocking_field
-                if self.config.blocking.blocking_field is not None
-                else (generic_fields[1] if len(generic_fields) > 1 else None)
-            )
-
-            if not search_field:
-                raise ValueError(
-                    "BM25 blocking strategy requires a search_field. "
-                    "Set blocking.search_field in your config, or provide at least "
-                    "one entry in blocking.fields."
-                )
-
-            blocking_strategy = BM25BlockingStrategy(
-                db=self.db,
-                collection=self.config.collection_name,
-                search_view=f"{self.config.collection_name}_search",
-                search_field=search_field,
-                blocking_field=blocking_field,
-            )
-            return list(blocking_strategy.generate_candidates())
+            return self._run_bm25_blocking()
 
         elif strategy == 'vector':
             embedding_field = self.config.blocking.embedding_field
@@ -711,6 +681,84 @@ class ConfigurableERPipeline:
             self.logger.warning(f"Unknown blocking strategy: {strategy}")
             return []
 
+
+    def _run_bm25_blocking(self) -> list:
+        """BM25 blocking, with the generic ``blocking.fields`` list read safely.
+
+        ``blocking.fields`` means "block on these together" under ``exact``.
+        BM25 searches ONE field and may filter on one more, so the list does not
+        map onto it, and the mapping used to be silent and wrong
+        (arango-solutions-org/arango-entity-resolution#3):
+
+        - ``fields[1]`` became ``blocking_field``, an exact-equality pre-filter
+          that dropped every pair differing in that field. It is now taken only
+          from an explicit ``blocking.blocking_field``; other entries are ignored
+          with a warning.
+        - A computed field's expression was discarded, so BM25 searched an
+          attribute that does not exist and found nothing. The view indexes
+          stored attributes only, so that is now an error.
+        - Zero candidates finished fast and looked like "no duplicates". On a
+          non-empty collection it now logs a warning naming what was searched.
+        """
+        blocking = self.config.blocking
+        generic_fields, computed_fields = self._get_blocking_fields()
+
+        search_field = blocking.search_field or (generic_fields[0] if generic_fields else None)
+        if not search_field:
+            raise ValueError(
+                "BM25 blocking strategy requires a search_field. "
+                "Set blocking.search_field in your config, or provide at least "
+                "one entry in blocking.fields."
+            )
+        blocking_field = blocking.blocking_field
+
+        for role, name in (("search_field", search_field), ("blocking_field", blocking_field)):
+            if name and name in computed_fields:
+                raise ValueError(
+                    f"BM25 blocking cannot use computed field {name!r} as its {role}: "
+                    "the ArangoSearch view indexes stored document attributes, and the "
+                    f"expression {computed_fields[name]!r} exists only in generated "
+                    "blocking queries. Store the value as an attribute, or name a "
+                    f"stored attribute in blocking.{role}."
+                )
+
+        if not blocking.search_field:
+            self.logger.warning(
+                "BM25 blocking: blocking.search_field is not set; searching %r, "
+                "the first entry of blocking.fields.", search_field,
+            )
+        ignored = [f for f in generic_fields if f not in (search_field, blocking_field)]
+        if ignored:
+            self.logger.warning(
+                "BM25 blocking ignores blocking.fields entries %s: it searches one "
+                "field and filters on at most one. Set blocking.blocking_field to "
+                "restrict candidates to records with an equal value in a field.",
+                ignored,
+            )
+
+        search_view = f"{self.config.collection_name}_search"
+        candidates = list(BM25BlockingStrategy(
+            db=self.db,
+            collection=self.config.collection_name,
+            search_view=search_view,
+            search_field=search_field,
+            blocking_field=blocking_field,
+        ).generate_candidates())
+
+        if not candidates:
+            try:
+                records = self.db.collection(self.config.collection_name).count()
+            except Exception:  # count is diagnostic only; never fail blocking on it
+                records = None
+            if records:
+                self.logger.warning(
+                    "BM25 blocking returned zero candidate pairs from %d records "
+                    "(view %r, search_field %r, blocking_field %r). That usually "
+                    "means a misconfiguration, not an absence of duplicates: check "
+                    "that the view indexes the field with its analyzer.",
+                    records, search_view, search_field, blocking_field,
+                )
+        return candidates
 
     def _get_blocking_fields(self) -> tuple[list, dict]:
         """
