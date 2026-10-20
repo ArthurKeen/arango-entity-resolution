@@ -809,6 +809,7 @@ class ConfigurableERPipeline:
             similarity_algorithm=self.config.similarity.algorithm,
             batch_size=self.config.similarity.batch_size,
             field_transformers=getattr(self.config.similarity, "transformers", {}),
+            field_algorithms=getattr(self.config.similarity, "field_algorithms", None) or None,
             scoring_method=scoring_method,
             fs_scorer=fs_scorer,
             graph_context=self._build_graph_context(),

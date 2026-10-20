@@ -69,6 +69,7 @@ class BatchSimilarityService:
         batch_size: int = DEFAULT_BATCH_SIZE,
         normalization_config: Optional[Dict[str, Any]] = None,
         field_transformers: Optional[Dict[str, Any]] = None,
+        field_algorithms: Optional[Dict[str, str]] = None,
         progress_callback: Optional[Callable[[int, int], None]] = None,
         scoring_method: str = "weighted_heuristic",
         fs_scorer: Optional[Any] = None,
@@ -136,6 +137,7 @@ class BatchSimilarityService:
             handle_nulls='skip',
             normalization_config=self.normalization_config,
             field_transformers=self.field_transformers,
+            field_algorithms=field_algorithms,
         )
         self.algorithm_name = similarity_algorithm if isinstance(similarity_algorithm, str) else "custom"
 

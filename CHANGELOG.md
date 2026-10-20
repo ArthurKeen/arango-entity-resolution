@@ -7,7 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `similarity.field_algorithms`: a per-field override of `similarity.algorithm`,
+  for example `{"title": "jaccard"}`. Fields not listed use the global
+  algorithm, and scoring without the key is unchanged (two published FEBRL
+  rows re-run identically). ([#2](https://github.com/arango-solutions-org/arango-entity-resolution/issues/2))
+
 ### Fixed
+
+- Field profiler: lists of numbers are typed `vector` before anything is
+  stringified (an embedding used to be typed `address` and compared with
+  Jaro-Winkler at the highest default weight), and three-to-five-word labels are
+  a new `phrase` type compared with word Jaccard. `--emit-config` now carries
+  each field's algorithm in `field_algorithms`, which it used to drop, so every
+  field was compared with Jaro-Winkler whatever the profile said. It also lists
+  the fields it left out, and why, in `excluded_fields`. ([#2](https://github.com/arango-solutions-org/arango-entity-resolution/issues/2))
 
 - BM25 blocking no longer turns the second entry of `blocking.fields` into an
   exact-equality filter. That entry silently dropped every pair differing in

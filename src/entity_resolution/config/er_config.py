@@ -392,6 +392,7 @@ class SimilarityConfig:
         auto_threshold: bool = False,
         auto_threshold_min_valley_depth: float = 0.15,
         comparison_levels: Optional[Dict[str, Any]] = None,
+        field_algorithms: Optional[Dict[str, str]] = None,
     ):
         """
         Initialize similarity configuration.
@@ -454,6 +455,9 @@ class SimilarityConfig:
         self.batch_size = batch_size
         self.field_weights = field_weights or {}
         self.transformers = transformers or {}
+        #: Per-field override of ``algorithm``, e.g. ``{"title": "jaccard"}``:
+        #: a token measure for multi-word phrases, edit distance for names.
+        self.field_algorithms = dict(field_algorithms or {})
         self.scoring_method = scoring_method
         self.match_prior = match_prior
         self.agreement_thresholds = agreement_thresholds or {}
@@ -471,6 +475,7 @@ class SimilarityConfig:
             batch_size=config_dict.get('batch_size', DEFAULT_BATCH_SIZE),
             field_weights=config_dict.get('field_weights', {}),
             transformers=config_dict.get('transformers', {}),
+            field_algorithms=config_dict.get('field_algorithms'),
             scoring_method=config_dict.get('scoring_method', 'weighted_heuristic'),
             match_prior=config_dict.get('match_prior'),
             agreement_thresholds=config_dict.get('agreement_thresholds', {}),
@@ -495,6 +500,8 @@ class SimilarityConfig:
             'match_prior': self.match_prior,
             'agreement_thresholds': self.agreement_thresholds,
         }
+        if self.field_algorithms:
+            out['field_algorithms'] = dict(self.field_algorithms)
         # Round-tripped explicitly: a config flag dropped by to_dict is silently
         # lost on save/reload, and comparison levels change what a learned model
         # means, so losing them would make a persisted model unreproducible.
@@ -1460,6 +1467,12 @@ class ERPipelineConfig:
                 f"got: {self.similarity.threshold}"
             )
         
+        for field_name, algo in self.similarity.field_algorithms.items():
+            if algo not in ('jaro_winkler', 'levenshtein', 'jaccard'):
+                errors.append(
+                    f"similarity.field_algorithms[{field_name!r}] must be 'jaro_winkler', "
+                    f"'levenshtein', or 'jaccard', got: {algo}"
+                )
         if self.similarity.algorithm not in ('jaro_winkler', 'levenshtein', 'jaccard'):
             errors.append(
                 f"similarity.algorithm must be 'jaro_winkler', 'levenshtein', or 'jaccard', "

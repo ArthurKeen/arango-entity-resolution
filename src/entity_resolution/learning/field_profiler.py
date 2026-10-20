@@ -44,24 +44,57 @@ TYPE_DEFAULTS: Dict[str, Dict[str, Any]] = {
     "address":     {"algorithm": "jaro_winkler", "transformers": ["street_suffix", "collapse_whitespace"],  "agreement_threshold": 0.85, "m": 0.88, "u": 0.06},
     "free_text":   {"algorithm": "jaccard",      "transformers": ["lower", "remove_punctuation"], "agreement_threshold": 0.6,  "m": 0.80, "u": 0.10},
     "short_string":{"algorithm": "jaro_winkler", "transformers": ["strip"],                   "agreement_threshold": 0.85, "m": 0.85, "u": 0.08},
+    # Multi-word labels ("DATA PRIVACY LAWS AND REGULATIONS"): they differ by
+    # inserted words, which an edit-distance measure built for short names
+    # handles badly. Word Jaccard scored F1 0.541 against Jaro-Winkler's 0.253
+    # on Abt-Buy titles.
+    "phrase":      {"algorithm": "jaccard",      "transformers": ["lower", "remove_punctuation"], "agreement_threshold": 0.6,  "m": 0.85, "u": 0.05},
+    # Embedding vectors: no string measure applies. Excluded from the emitted
+    # similarity config; compare them with blocking.strategy "vector".
+    "vector":      {"algorithm": None,           "transformers": [],                          "agreement_threshold": None, "m": None, "u": None},
 }
 
 # Rough relative weights by type (used as a seed before EM learns real weights).
 _TYPE_WEIGHT = {
     "email": 1.0, "phone": 0.9, "id": 1.0, "person_name": 0.8, "org_name": 0.8,
     "address": 0.7, "date": 0.4, "numeric": 0.3, "free_text": 0.5, "short_string": 0.5,
+    "phrase": 0.6, "vector": 0.0,
 }
+
+#: The global algorithm emit_similarity_config writes; fields whose type wants
+#: another one get it in ``field_algorithms``.
+_DEFAULT_ALGORITHM = "jaro_winkler"
 
 
 def _fraction(values: Sequence[str], pred) -> float:
     return sum(1 for v in values if pred(v)) / len(values) if values else 0.0
 
 
+def _is_numeric_vector(value: Any) -> bool:
+    return (
+        isinstance(value, (list, tuple))
+        and len(value) >= 2
+        and all(isinstance(x, (int, float)) and not isinstance(x, bool) for x in value)
+    )
+
+
 def classify_values(values: Sequence[Any]) -> Dict[str, Any]:
     """Classify a field from sampled values; returns ``{type, stats}``.
 
-    Pure: no DB access. Non-null values are stringified and trimmed first.
+    Pure: no DB access. Numeric vectors are recognised before anything is
+    stringified: a stringified list of floats has digits and many tokens, so it
+    used to be typed ``address`` and compared with Jaro-Winkler at the highest
+    default weight. Other non-null values are stringified and trimmed.
     """
+    non_null = [v for v in values if v is not None]
+    vectors = [v for v in non_null if _is_numeric_vector(v)]
+    if non_null and len(vectors) / len(non_null) >= 0.8:
+        dims = sorted({len(v) for v in vectors})
+        return {"type": "vector", "stats": {
+            "sampled": len(non_null), "non_null": len(non_null),
+            "dimensions": dims[0] if len(dims) == 1 else dims,
+        }}
+
     strs = [str(v).strip() for v in values if v is not None and str(v).strip()]
     n = len(strs)
     if n == 0:
@@ -108,6 +141,10 @@ def classify_values(values: Sequence[Any]) -> Dict[str, Any]:
         ftype = "id"
     elif avg_tokens >= 5 or avg_len >= 60:
         ftype = "free_text"
+    elif avg_tokens > 3 and frac_alpha_tokens >= 0.7 and frac_has_digit < 0.5:
+        # Three-to-five-word labels. Below this they are names (person_name
+        # above takes 2-3 tokens); at five and over, free_text.
+        ftype = "phrase"
     else:
         ftype = "short_string"
 
@@ -208,10 +245,22 @@ class FieldProfiler:
         transformers, agreement thresholds, and EM seed priors.
         """
         profile = profile or self.profile()
-        chosen = {
-            f: info for f, info in profile["fields"].items()
-            if info["completeness"] >= min_completeness and info["type"] != "free_text"
-        }
+        excluded: Dict[str, str] = {}
+        chosen = {}
+        for f, info in profile["fields"].items():
+            if info["type"] == "vector":
+                dims = info.get("stats", {}).get("dimensions")
+                excluded[f] = (
+                    f"vector{f' ({dims} dimensions)' if dims else ''}: no string measure "
+                    f"applies; compare it with blocking.strategy 'vector' and "
+                    f"blocking.embedding_field '{f}'"
+                )
+            elif info["type"] == "free_text":
+                excluded[f] = "free_text: long prose rarely discriminates; add it by hand if it does"
+            elif info["completeness"] < min_completeness:
+                excluded[f] = f"completeness {info['completeness']} is below {min_completeness}"
+            else:
+                chosen[f] = info
         # Prefer higher-weight, more-complete fields if over the cap.
         ordered = sorted(
             chosen.items(),
@@ -220,6 +269,7 @@ class FieldProfiler:
         )[:max_fields]
 
         field_weights: Dict[str, float] = {}
+        field_algorithms: Dict[str, str] = {}
         transformers: Dict[str, List[str]] = {}
         agreement_thresholds: Dict[str, float] = {}
         m_priors: Dict[str, float] = {}
@@ -227,6 +277,8 @@ class FieldProfiler:
         for field, info in ordered:
             c = info["config"]
             field_weights[field] = c["weight"]
+            if c["algorithm"] and c["algorithm"] != _DEFAULT_ALGORITHM:
+                field_algorithms[field] = c["algorithm"]
             transformers[field] = c["transformers"]
             agreement_thresholds[field] = c["agreement_threshold"]
             m_priors[field] = c["m_prior"]
@@ -235,10 +287,15 @@ class FieldProfiler:
         total = sum(field_weights.values()) or 1.0
         field_weights = {f: round(w / total, 4) for f, w in field_weights.items()}
 
-        return {
+        out: Dict[str, Any] = {
             "similarity": {
-                "algorithm": "jaro_winkler",
+                "algorithm": _DEFAULT_ALGORITHM,
                 "field_weights": field_weights,
+                # Each field's comparator, where its type wants one other than
+                # the global algorithm. Profiled per field and, before
+                # field_algorithms existed, dropped here: every field was
+                # compared with Jaro-Winkler whatever the profile said.
+                "field_algorithms": field_algorithms,
                 "transformers": transformers,
                 "agreement_thresholds": agreement_thresholds,
                 # Seed priors for EM (1.1); EM refines them from data.
@@ -246,3 +303,7 @@ class FieldProfiler:
                 "u_priors": u_priors,
             }
         }
+        if excluded:
+            # Outside "similarity" so it is never mistaken for a setting.
+            out["excluded_fields"] = excluded
+        return out
