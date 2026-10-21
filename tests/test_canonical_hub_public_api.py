@@ -20,6 +20,11 @@ import pytest
 import entity_resolution.canonical_hub as canonical_hub
 
 PUBLIC = {
+    # Shared checks, added for issue #4.
+    "ORACLE_KEYS",
+    "RESOLVE_REASONS",
+    "RequestCheck",
+    "check_request",
     "ArangoCanonicalHubVectorProvider",
     "CandidateSearchResult",
     "CanonicalCandidate",

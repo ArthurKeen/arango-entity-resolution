@@ -23,6 +23,11 @@ deprecation warning first.
   :class:`VerifierDecision`
 * An ArangoDB backend: :class:`ArangoCanonicalHubVectorProvider`, native
   vector index only, with no exact or Python fallback
+* Shared checks, for a consumer that guards the resolver independently
+  (arango-solutions-org/arango-entity-resolution#4): :func:`check_request`,
+  the request-side checks as a pure function, with its result type
+  :class:`RequestCheck`; :data:`ORACLE_KEYS`; and :data:`RESOLVE_REASONS`, the
+  reason vocabulary grouped by status
 
 Anything else, including the submodules' underscore-prefixed names, is
 internal and may change in any release.
@@ -35,6 +40,8 @@ paths still work in 3.9.x, with a ``DeprecationWarning``, and are removed in
 
 from .arango_vector_provider import ArangoCanonicalHubVectorProvider
 from .resolver import (
+    ORACLE_KEYS,
+    RESOLVE_REASONS,
     CandidateSearchResult,
     CanonicalCandidate,
     Embedder,
@@ -43,14 +50,20 @@ from .resolver import (
     ResolveProfile,
     ResolveRequest,
     ResolveResult,
+    RequestCheck,
     ResolveStatus,
     SemanticCanonicalHubResolver,
     UncertaintyVerifier,
     VectorCandidateProvider,
     VerifierDecision,
+    check_request,
 )
 
 __all__ = [
+    "ORACLE_KEYS",
+    "RESOLVE_REASONS",
+    "RequestCheck",
+    "check_request",
     "ArangoCanonicalHubVectorProvider",
     "CandidateSearchResult",
     "CanonicalCandidate",

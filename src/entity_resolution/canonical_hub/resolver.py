@@ -21,6 +21,10 @@ from typing import Any, Literal, Protocol
 ResolveStatus = Literal["resolved", "abstained", "refused"]
 
 __all__ = [
+    "ORACLE_KEYS",
+    "RESOLVE_REASONS",
+    "RequestCheck",
+    "check_request",
     "CandidateSearchResult",
     "CanonicalCandidate",
     "Embedder",
@@ -36,7 +40,10 @@ __all__ = [
     "VerifierDecision",
 ]
 
-_ORACLE_KEYS = frozenset(
+#: Attribute names that would let a request carry the answer it is asking for.
+#: A request naming any of them, or any key containing "oracle" or "canonical"
+#: after normalisation, is refused (``oracle_identifier_in_input``).
+ORACLE_KEYS = frozenset(
     {
         "canonical_id",
         "expected_canonical_id",
@@ -47,6 +54,46 @@ _ORACLE_KEYS = frozenset(
         "resolved_to",
     }
 )
+
+
+_ORACLE_KEYS = ORACLE_KEYS
+
+#: Every reason this package emits, grouped by the status it accompanies. A
+#: consumer can validate a result against it, and a reason added to the
+#: resolver without being added here fails tests/test_canonical_hub_shared_checks.py.
+#: A custom VectorCandidateProvider may return its own abstention reason, which
+#: the resolver passes through.
+RESOLVE_REASONS: Mapping[str, frozenset] = MappingProxyType({
+    "refused": frozenset({
+        "account_scope_required",
+        "oracle_identifier_in_input",
+        "non_observable_field",
+        "non_scalar_observable_value",
+        "cross_account_candidate",
+        "candidate_canonical_id_required",
+    }),
+    "abstained": frozenset({
+        "deadline_exceeded",
+        "no_observable_fields",
+        "embedding_unavailable",
+        "embedding_invalid",
+        "candidate_search_unavailable",
+        "vector_search_unavailable",
+        "no_candidate",
+        "candidate_score_invalid",
+        "below_threshold",
+        "ambiguous_margin",
+        "verifier_no_match",
+        "verifier_abstain",
+        # Passed through from ArangoCanonicalHubVectorProvider.
+        "account_scope_required",
+        "query_vector_invalid",
+        "configured_vector_index_unavailable",
+        "vector_capability_check_failed",
+        "candidate_payload_invalid",
+    }),
+    "resolved": frozenset({"threshold_and_margin_satisfied"}),
+})
 
 
 def _freeze_mapping(value: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -66,8 +113,15 @@ class ResolveProfile:
     top_k: int
     uncertainty_low: float
     uncertainty_high: float
+    #: An observable field that is present but unusable (null, blank, a
+    #: non-finite number, a container): "ignore" leaves it out and resolves on
+    #: the rest; "refuse" refuses the request (``non_scalar_observable_value``),
+    #: for a caller that would rather not guess on partial input.
+    on_unusable_value: Literal["ignore", "refuse"] = "ignore"
 
     def __post_init__(self) -> None:
+        if self.on_unusable_value not in ("ignore", "refuse"):
+            raise ValueError("on_unusable_value must be 'ignore' or 'refuse'")
         if not self.name or not self.observable_fields:
             raise ValueError("profile name and observable_fields are required")
         if len(set(self.observable_fields)) != len(self.observable_fields):
@@ -214,6 +268,69 @@ class _ScoredCandidate:
     fields: tuple[FieldEvidence, ...]
 
 
+@dataclass(frozen=True)
+class RequestCheck:
+    """Outcome of :func:`check_request`.
+
+    ``status`` and ``reason`` are set when the request must not proceed, and
+    ``None`` when it may. ``account_scope`` is the stripped scope, and
+    ``observable_attributes`` the normalised values to resolve on, in profile
+    order.
+    """
+
+    status: ResolveStatus | None
+    reason: str | None
+    account_scope: str
+    observable_attributes: Mapping[str, str | int | float | bool]
+
+    @property
+    def passed(self) -> bool:
+        return self.status is None
+
+
+def check_request(request: ResolveRequest, profile: ResolveProfile, *, now: float) -> RequestCheck:
+    """The resolver's request-side checks, as a pure function.
+
+    Runs before any embedding or search, in this order: an account scope is
+    required; the deadline must lie after ``now``; no oracle identifier may
+    appear in the input; every attribute must be an observable field of the
+    profile; present-but-unusable values are dropped or refused per
+    ``profile.on_unusable_value``; at least one usable value must remain.
+
+    :meth:`SemanticCanonicalHubResolver.resolve` calls this, so a consumer that
+    runs it ahead of its own backend applies exactly the resolver's rules
+    instead of a copy of them.
+    """
+    scope = request.account_scope.strip()
+
+    def stop(status: ResolveStatus, reason: str) -> RequestCheck:
+        return RequestCheck(status, reason, scope, MappingProxyType({}))
+
+    if not scope:
+        return stop("refused", "account_scope_required")
+    if not math.isfinite(request.deadline_at) or request.deadline_at <= now:
+        return stop("abstained", "deadline_exceeded")
+    input_keys = {_normalized_key(key) for key in request.attributes}
+    if input_keys & ORACLE_KEYS or any("oracle" in key or "canonical" in key for key in input_keys):
+        return stop("refused", "oracle_identifier_in_input")
+    if set(request.attributes) - set(profile.observable_fields):
+        return stop("refused", "non_observable_field")
+
+    attributes: dict[str, str | int | float | bool] = {}
+    for field in profile.observable_fields:
+        if field not in request.attributes:
+            continue
+        value = _observable_value(request.attributes[field])
+        if value is None:
+            if profile.on_unusable_value == "refuse":
+                return stop("refused", "non_scalar_observable_value")
+            continue
+        attributes[field] = value
+    if not attributes:
+        return stop("abstained", "no_observable_fields")
+    return RequestCheck(None, None, scope, MappingProxyType(attributes))
+
+
 class SemanticCanonicalHubResolver:
     """Resolve an observation to an existing canonical ID without any writes."""
 
@@ -257,26 +374,11 @@ class SemanticCanonicalHubResolver:
                 elapsed_ms=max(0.0, (self._clock() - started) * 1000),
             )
 
-        scope = request.account_scope.strip()
-        if not scope:
-            return result("refused", "account_scope_required")
-        if not math.isfinite(request.deadline_at) or request.deadline_at <= started:
-            return result("abstained", "deadline_exceeded")
-
-        input_keys = {_normalized_key(key) for key in request.attributes}
-        if input_keys & _ORACLE_KEYS or any("oracle" in key or "canonical" in key for key in input_keys):
-            return result("refused", "oracle_identifier_in_input")
-        unknown = set(request.attributes) - set(self.profile.observable_fields)
-        if unknown:
-            return result("refused", "non_observable_field")
-
-        query_fields = {
-            field: _observable_value(request.attributes[field])
-            for field in self.profile.observable_fields
-            if field in request.attributes and _observable_value(request.attributes[field]) is not None
-        }
-        if not query_fields:
-            return result("abstained", "no_observable_fields")
+        check = check_request(request, self.profile, now=started)
+        if not check.passed:
+            return result(check.status, check.reason)
+        scope = check.account_scope
+        query_fields = dict(check.observable_attributes)
         if self._expired(request.deadline_at):
             return result("abstained", "deadline_exceeded")
 

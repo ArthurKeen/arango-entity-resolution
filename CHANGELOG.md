@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Shared checks on `entity_resolution.canonical_hub`, for a consumer that
+  guards the resolver independently instead of copying its rules:
+  `check_request()`, the request-side checks as a pure function returning a
+  `RequestCheck` (status, reason, stripped scope, normalised attributes);
+  `ORACLE_KEYS`; and `RESOLVE_REASONS`, every reason the package emits, grouped
+  by status. `resolve()` now calls `check_request()`, so there is one
+  implementation. ([#4](https://github.com/arango-solutions-org/arango-entity-resolution/issues/4))
+- `ResolveProfile.on_unusable_value`: `"ignore"` (the default and the
+  existing behaviour) leaves out an observable field that is present but
+  unusable (null, blank, non-finite, a container); `"refuse"` refuses the
+  request with `non_scalar_observable_value`.
+
 ## [3.9.0] - 2026-10-20
 
 ### Upgrade notes
