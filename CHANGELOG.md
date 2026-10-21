@@ -7,58 +7,115 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Upgrade notes
+
+Read these before upgrading from 3.8.0. Each is a behaviour change.
+
+- **BM25 blocking reads `blocking.fields` differently.** The second entry is no
+  longer an implicit exact-equality filter. Set `blocking.blocking_field` to keep
+  a filter. A computed field as the BM25 search or filter field is now an error.
+  ([#3](https://github.com/arango-solutions-org/arango-entity-resolution/issues/3))
+- **The `[mcp]` extra requires `mcp<2`.** mcp 2.x removed the API the MCP server
+  imports, so a fresh 3.8.0 install with `[mcp]` failed on import.
+- **Workbench export API.** `output_dir` is rejected (422), `filename_prefix`
+  must match `^[A-Za-z0-9_-]{1,64}$`, the response returns file names rather
+  than server paths, and download serves only files this app exported.
+- **Workbench reviewer identity.** With `ER_UI_REVIEWERS` set, identity comes
+  from the token alone and `X-Reviewer` is ignored; reviewer tokens now
+  authenticate.
+- **Workbench pipeline runs** are stored in `er_pipeline_runs`. The old name,
+  `_er_pipeline_runs`, could never be created, so there is nothing to migrate.
+- **`estimate_mu` rejects input outside its domain.** Similarity scores in place
+  of 0/1/NaN indicators, or `inf`, raise `ValueError` instead of fitting a
+  meaningless model.
+- **Seeded Fellegi-Sunter training draws a different sample.** With
+  `random_pair_seed` set, every sample is seeded, so a model differs slightly
+  from one trained unseeded under 3.8.0.
+- **`arango-er profile --emit-config` output changed.** It adds
+  `similarity.field_algorithms` and `excluded_fields`, and phone, date, numeric
+  and ID fields now get the Levenshtein comparator the profile always chose.
+  ([#2](https://github.com/arango-solutions-org/arango-entity-resolution/issues/2))
+
 ### Added
 
-- `entity_resolution.canonical_hub`: the public, stable import path for the
-  precision-first canonical-hub resolver (`SemanticCanonicalHubResolver`), its
-  contract types (`ResolveRequest`, `ResolveResult`, `ResolveEvidence`,
-  `FieldEvidence`, `ResolveProfile`, `ResolveStatus`), its extension points,
-  and the ArangoDB vector candidate provider. The package docstring and
-  `__all__` define the public API. ([#1](https://github.com/arango-solutions-org/arango-entity-resolution/issues/1))
+- **Graph-aware resolution:** graph-context relationship features in scoring and
+  `explain_match`; collective, iterative resolution; incremental cluster
+  maintenance (`resolve_and_commit`), which honours human verdicts; and
+  graph-embedding blocking (`blocking.strategy: graph_embedding`).
+- **Multi-level Fellegi-Sunter:** categorical EM over comparison levels,
+  configured, persisted and loaded end to end, with bands inferred per field
+  from the score distribution, and an explicit population for `u`
+  (`categorical_u_source`).
+- **Fellegi-Sunter corrections:** a null comparison level (an absent field is not
+  a disagreement), `u` measured on random pairs, term-frequency adjustment, and
+  supervised and unsupervised threshold selection.
+- **`entity_resolution.canonical_hub`:** the public, stable import path for the
+  precision-first canonical-hub resolver, its contract types, its extension
+  points and its ArangoDB vector provider. The package docstring and `__all__`
+  define the public API. ([#1](https://github.com/arango-solutions-org/arango-entity-resolution/issues/1))
+- **`similarity.field_algorithms`:** a per-field override of
+  `similarity.algorithm`, e.g. `{"title": "jaccard"}`. Without the key,
+  scoring is unchanged. ([#2](https://github.com/arango-solutions-org/arango-entity-resolution/issues/2))
+- **LLM verification:** `active_learning.mask_fields` hashes identifier values
+  before they leave the network; the structured `llm:` block (provider,
+  base_url, timeout, api_key_env) and `healthcheck_on_start` now reach the
+  pipeline's verifier; `max_response_tokens` (default 1024).
+- **Scale:** BM25 candidate generation runs in adaptive, time-budgeted chunks,
+  verified at 66,879 records, with a streaming `iter_candidates()`.
+- **Evidence:** FEBRL deduplication benchmarks; published tables backed by
+  committed result files and checked by tests; a free review-band oracle
+  (`scripts/measure_review_band.py`) and an LLM band harness
+  (`scripts/measure_llm_band.py`).
+- **Workbench:** dark mode, and a Playwright smoke suite in CI.
+- **CI:** a Windows CPU lane with calibrated baselines; a calibration helper for
+  the runtime quality policy.
 
 ### Deprecated
 
 - `entity_resolution.services.fabric_canonical_hub_resolver_wp13` and
-  `entity_resolution.services.fabric_arango_vector_provider_wp13` still work, as
-  aliases of `entity_resolution.canonical_hub` that raise a `DeprecationWarning`.
-  They will be removed in 3.10.0.
-
-- `similarity.field_algorithms`: a per-field override of `similarity.algorithm`,
-  for example `{"title": "jaccard"}`. Fields not listed use the global
-  algorithm, and scoring without the key is unchanged (two published FEBRL
-  rows re-run identically). ([#2](https://github.com/arango-solutions-org/arango-entity-resolution/issues/2))
+  `entity_resolution.services.fabric_arango_vector_provider_wp13` are aliases of
+  `entity_resolution.canonical_hub` that raise a `DeprecationWarning`. They will
+  be removed in 3.10.0. ([#1](https://github.com/arango-solutions-org/arango-entity-resolution/issues/1))
 
 ### Fixed
 
-- Field profiler: lists of numbers are typed `vector` before anything is
-  stringified (an embedding used to be typed `address` and compared with
-  Jaro-Winkler at the highest default weight), and three-to-five-word labels are
-  a new `phrase` type compared with word Jaccard. `--emit-config` now carries
-  each field's algorithm in `field_algorithms`, which it used to drop, so every
-  field was compared with Jaro-Winkler whatever the profile said. It also lists
-  the fields it left out, and why, in `excluded_fields`. ([#2](https://github.com/arango-solutions-org/arango-entity-resolution/issues/2))
+- **Workbench:** pipeline runs failed on the first call in every database
+  (reserved collection name); export download never found the exported files; a
+  steward's golden-record edit landed in a second, unlinked record; a rerun now
+  cleans up `resolvedTo` edges and flags superseded golden records stale; the UI
+  can authenticate (it sent no token, so enabling auth made it unusable);
+  unknown `/api/` paths return a JSON 404 instead of the SPA page.
+- **Matching:** a missing email or phone scored as a disagreement;
+  `compute_detailed` disagreed with `compute` on a failed comparison; random-pair
+  `u` reached 1.0 on a near-constant field; a degenerate binary EM fit is now
+  flagged, as the categorical one was; seeded training is reproducible to the
+  digit; the field profiler typed embeddings as addresses and phrases as short
+  strings. ([#2](https://github.com/arango-solutions-org/arango-entity-resolution/issues/2))
+- **Blocking:** BM25 used near-exact phrase matching and a recall-losing key
+  filter, and hybrid blocking still did both; BM25 turned `fields[1]` into a
+  hidden filter. ([#3](https://github.com/arango-solutions-org/arango-entity-resolution/issues/3))
+- **Clustering:** GAE clustering re-merged clusters an analyst had split;
+  runaway transitive closure is flagged in validation.
+- **MCP:** the cascade treated a steward-suppressed edge as a link, so the
+  record was never revisited.
+- **Statistics:** pipeline statistics reported 0 clustered entities.
+- **Curation:** the audit log is indexed, and an audit write that fails is logged
+  instead of silently swallowed.
+- **CI:** the Python workflow had failed at test collection since 2026-08-07, and
+  the UI contract check could not pass; both are green.
 
-- BM25 blocking no longer turns the second entry of `blocking.fields` into an
-  exact-equality filter. That entry silently dropped every pair differing in
-  the field; a filter is now taken only from an explicit
-  `blocking.blocking_field`, and other entries are ignored with a warning. A
-  computed field named as the BM25 search or filter field is now an error
-  (the view cannot search an expression, so it used to return zero candidates),
-  and zero candidates on a non-empty collection log a warning naming the view
-  and fields. ([#3](https://github.com/arango-solutions-org/arango-entity-resolution/issues/3))
+### Security
 
-- Golden records: a steward's edit in the Workbench now updates the golden
-  record its entities resolve to. The apply route keyed records differently from
-  `GoldenRecordPersistenceService`, so each edit created a second, unlinked
-  record and the linked one kept the machine value. The apply and merge routes
-  now share `golden_key_for()` with the service, and merge into the existing
-  record instead of replacing it.
-- Golden records: `GoldenRecordPersistenceService.run()` now cleans up after a
-  cluster changes. It removes `resolvedTo` edges no current cluster produced and
-  flags superseded golden records `stale`, keeping their steward overrides and
-  history. Previously a record could resolve to two golden records, and a record
-  removed from a cluster still resolved to it. `run()` reports
-  `resolved_edges_removed` and `golden_records_flagged_stale`.
+- Workbench exports could be written anywhere the server could write
+  (`output_dir`, and `../` in the prefix), and download served any file in the
+  system temp directory. Both are confined to a server-owned directory.
+- With a reviewer map configured, any shared-token holder could record actions
+  as another reviewer.
+- Provider error text is scrubbed of the API key before it is logged or returned.
+- The secret scanner skipped `docs/`, `tests/` and `examples/`, all of which ship,
+  and a trailing comment could hide a key; the sdist shipped every untracked file
+  in the build tree. The sdist is now an explicit allowlist, and the publish
+  workflow scans before it builds.
 
 ## [3.8.0] - 2026-07-04
 
