@@ -1,6 +1,6 @@
 # Product Requirements and Roadmap
 
-This document captures the shipped baseline through `v3.8.0` and the forward-looking product roadmap.
+This document captures the shipped baseline through `v3.9.0` and the forward-looking product roadmap.
 
 ---
 
@@ -31,12 +31,12 @@ Provide a practical, ArangoDB-native entity-resolution toolkit that supports:
 
 ---
 
-## Shipped Scope Through 3.8.0
+## Shipped Scope Through 3.9.0
 
 ### Core Resolution Workflow
 
 - Candidate generation through exact/COLLECT, BM25, vector, LSH, geographic, and graph-traversal blocking paths
-- **BM25 text blocking** defaults to disjunctive token match (`match_mode: tokens`), ranked by BM25 score. Legacy phrase match (`match_mode: phrase`) remains for backward compatibility but is near-exact and unsuitable for noisy product text.
+- **BM25 text blocking** defaults to disjunctive token match (`match_mode: tokens`), ranked by BM25 score. Legacy phrase match (`match_mode: phrase`) remains for backward compatibility but is near-exact and unsuitable for noisy product text. BM25 searches one field and filters on at most one. It reads `blocking.search_field` (falling back, with a warning, to the first entry of `blocking.fields`) and takes an equality filter only from an explicit `blocking.blocking_field`; other `fields` entries are ignored with a warning. A computed field cannot be the search or filter field, since the view indexes stored attributes. Zero candidates from a non-empty collection are reported as a likely misconfiguration, never as a clean result.
 - Weighted similarity scoring with configurable field weights
 - Config-driven pipelines via `ERPipelineConfig` and `ConfigurableERPipeline`
 - Similarity edge creation and WCC clustering with pluggable backends
@@ -44,7 +44,7 @@ Provide a practical, ArangoDB-native entity-resolution toolkit that supports:
 
 ### Clustering Backend Abstraction (3.3.0–3.5.0)
 
-- Six pluggable WCC backends: `python_dfs`, `python_union_find`, `python_sparse`, `aql_graph`, `gae_wcc`, `auto`
+- Five pluggable WCC backends (`python_dfs`, `python_union_find`, `python_sparse`, `aql_graph`, `gae_wcc`), plus an `auto` selector that chooses among them
 - Automatic backend selection (`backend='auto'`, default since 3.5.0) based on edge count, optional dependency availability, and GAE status
 - Union-Find backend with path compression and union by rank
 - Sparse backend via `scipy.sparse.csgraph` for large dense graphs (optional dependency)
@@ -63,7 +63,7 @@ Provide a practical, ArangoDB-native entity-resolution toolkit that supports:
 
 - `LLMProviderConfig` for structured Ollama, OpenRouter, OpenAI, and Anthropic settings
 - `LLMMatchVerifier.healthcheck()` for provider reachability validation
-- `healthcheck_on_start` and `fallback_provider` for production resilience
+- `healthcheck_on_start`: the pipeline probes the provider when it builds the verifier, and reports the result in the run's statistics without aborting
 
 ### Trust and Review Features
 
@@ -74,9 +74,7 @@ Provide a practical, ArangoDB-native entity-resolution toolkit that supports:
 
 ### User-Facing Interfaces
 
-- `arango-er` CLI:
-  - `run`, `status`, `clusters`, `export`, `benchmark`
-  - `runtime-health`, `runtime-health-export`, `runtime-health-baseline`, `runtime-health-compare`, `runtime-health-gate`
+- `arango-er` CLI, by family: pipeline (`run`, `status`, `clusters`, `export`, `watch`, `repair-clusters`, `migrate`); data preparation (`profile`, `estimate`, `canonicalize`, `address-resolve`); the Workbench (`ui`); embeddings (`embedding-benchmark`, `onnx-export`); evaluation (`benchmark`); runtime health and quality gates (`runtime-health*`, `runtime-quality*`, `runtime-activation-summary`). `arango-er --help` is the authoritative list.
 - `arango-er-mcp` MCP server: 17 tools, 2 resources
 - `arango-er-demo`
 
@@ -86,11 +84,12 @@ Provide a practical, ArangoDB-native entity-resolution toolkit that supports:
 - Cluster and pipeline statistics for downstream reporting
 - Exact-vs-BM25 blocking benchmark workflow built on `ABEvaluationHarness`
 - Runtime health comparison artifacts (JSON, Markdown, CSV)
+- **LLM verification accounting**: the optional LLM tier is measured rather than assumed - accuracy against the plain score threshold, cost per pair, and latency, on a sampled band of a public benchmark, with an oracle bound establishing what any adjudicator could deliver before one is chosen.
 
 ### Matching Quality Improvements
 
 - Config-driven similarity field transformers for phone, state, street suffix, and company suffix normalization, plus `missing_sentinels` to map placeholders such as `NULL`, `UNKNOWN`, and `N/A` to absent values so they follow null-comparison semantics
-- Fellegi-Sunter probabilistic scoring with unsupervised EM parameter estimation (m/u probabilities, log-likelihood weights, versioned model persistence keyed by config hash), selectable alongside weighted-heuristic scoring; field profiling for semantic type/completeness/cardinality analysis
+- Fellegi-Sunter probabilistic scoring with unsupervised EM parameter estimation (m/u probabilities, log-likelihood weights, versioned model persistence keyed by config hash), selectable alongside weighted-heuristic scoring; field profiling that classifies each field's semantic type (including numeric vectors and multi-word phrases), completeness and cardinality, and emits a similarity configuration whose per-field comparator choices take effect through `similarity.field_algorithms`; fields it cannot compare with a string measure are listed with the reason they were left out
 - **Null comparison level**: unobserved fields contribute zero evidence, distinct from an observed mismatch which takes the full disagreement weight. Training and scoring share this definition, so per-field m/u are estimated only over the pairs where that field was actually compared
 - **Two-population parameter estimation**: `m` from blocked candidate pairs (where true matches concentrate) and `u` from the population the model will actually score, named explicitly per model. For the binary path that is a random sample of record pairs, measured directly rather than inferred jointly, because candidate pairs have already passed a similarity gate and cannot furnish a representative non-match sample. For the multi-level path the default is the blocked candidate population, because taking `u` from random pairs there measured *worse* at the shipped operating point — a `u` estimated over a population the model never scores makes it overconfident. Each persisted model records which regime produced it
 - **Term-frequency-adjusted agreement weight**: when two records share an identical value, the match weight is computed from that value's observed frequency rather than the field's average chance-agreement rate, so agreeing on a rare value counts as stronger evidence than agreeing on a common one. Values absent from the maintained per-field table fall back to the field average rather than being guessed
@@ -109,6 +108,11 @@ Provide a practical, ArangoDB-native entity-resolution toolkit that supports:
 - Cross-collection matching for linking entities across two collections
 - MCP canonical `options`-based request shape with legacy reconciliation and deprecation warnings
 
+### Canonical-Hub Resolution
+
+- Precision-first, read-only resolution of one incoming record to an existing canonical entity (`entity_resolution.canonical_hub.SemanticCanonicalHubResolver`): it resolves, abstains, or refuses with a stated reason under an explicit precision, scope and observable-field policy, with embedding, candidate retrieval and verification injected.
+- The ArangoDB candidate provider uses the native vector index only, with no exact or Python fallback.
+
 ### Evaluation and Verifiability
 
 - Cluster-level metrics: B-cubed precision/recall/F1 and pairwise metrics over the transitive closure of produced clusters
@@ -126,11 +130,13 @@ Provide a practical, ArangoDB-native entity-resolution toolkit that supports:
 
 ## Current Functional Requirements
 
-### 1. Pipeline Execution
+### FR-1. Pipeline Execution
 
 The product must allow users to run ER pipelines from configuration without writing orchestration glue code.
 
-### 2. Result Inspection
+Similarity supports a per-field algorithm, so short names can use an edit-distance measure while phrases and titles use a token measure in the same run.
+
+### FR-2. Result Inspection
 
 The product must expose cluster summaries, cluster quality signals, and collection-level status in both CLI and MCP-facing workflows.
 
@@ -142,7 +148,7 @@ single spurious edge can silently merge unrelated entities while the run reports
 success. Suspect clusters are flagged for review, never discarded: removing them
 deletes the evidence of the defect along with the data.
 
-### 3. Review and Adjudication
+### FR-3. Review and Adjudication
 
 The product must support optional active-learning and LLM-assisted review for ambiguous pairs without forcing those dependencies into the default runtime path.
 
@@ -168,11 +174,19 @@ field must not be reverted by a subsequent pipeline run. Manual values are
 recorded as overrides and re-applied after recomputation, with provenance
 identifying them as human rather than machine choices.
 
-### 4. Portability
+**Resolution reflects the current clusters.** After a persistence run, every
+source record resolves to at most one golden record: the one built from its
+current cluster. A golden record that no current cluster produced must be
+flagged stale, with the reason and time, and must not be silently deleted, so
+that steward overrides and history on it remain reviewable. A cluster change does
+not carry overrides to the new golden record automatically; the stale record
+surfaces them for a steward.
+
+### FR-4. Portability
 
 The product must allow users to export results in JSON and CSV for analyst and downstream-system consumption.
 
-### 5. Evaluation
+### FR-5. Evaluation
 
 The product must provide one supported benchmark workflow that compares blocking strategies using a simple ground-truth input format.
 
@@ -214,6 +228,23 @@ construction — the product must flag it on the model and surface it to the
 caller. A model whose parameters are unfit must not be indistinguishable from one
 that is.
 
+**A review band must be justified against the error distribution, not
+assumed.** Routing pairs to human or model adjudication is only worth its cost if
+the band actually contains the errors. The product must be able to report what
+share of its errors fall inside a candidate band, and must not present a fixed
+default as suitable without that evidence: measured on Amazon-Google, the shipped
+0.55-0.80 band held 8.5% of errors against 61% for 0.30-0.95, a difference
+between a tier worth +0.02 F1 and one worth +0.25.
+
+**A published figure must reproduce from a committed artifact.** Every benchmark
+table the project publishes must be backed by a committed result file recording
+the command that produced each row, and a test must fail when the published
+figure and the artifact disagree. Training must be reproducible given a seed:
+two runs of the same configuration and seed must produce the same model and the
+same metrics. A figure that is not artifact-backed, for example one whose raw
+results were lost or whose re-measurement costs money, must say so where it is
+published.
+
 **Threshold selection.** The product must be able to choose a decision threshold
 from data rather than requiring a hand-set constant. Benchmarking established
 that a single fixed default is unsafe: the best-F1 threshold varies by more than
@@ -222,11 +253,16 @@ yielded roughly a tenth of the achievable F1. Threshold selection must therefore
 be derivable from a labelled sample or from the score distribution, and the
 chosen operating point must be reported with the score.
 
-### 6. Integration
+### FR-6. Integration
 
 The product must support both human-operated CLI workflows and AI-agent workflows via MCP.
 
-### 7. Enterprise Scalability
+**A consumed API has a stable, versioned path.** Code that another product
+depends on is exported from a public module with its public names stated, ships
+in a tagged release, and is changed incompatibly only after a deprecation that
+names the replacement and the removal release.
+
+### FR-7. Enterprise Scalability
 
 The product must support optional GAE clustering for enterprise-scale graphs, with graceful fallback to local backends when GAE is unavailable.
 
@@ -243,7 +279,7 @@ deduplication, though `iter_candidates()` offers a streaming path. The README's
 1M-records figure remains unsubstantiated and claims above roughly 50k records
 should cite measurements. See `docs/BENCHMARKS.md#scale-limits`.
 
-### 8. Steward Workbench UI
+### FR-8. Steward Workbench UI
 
 The product must provide an optional browser-based curation UI (pip extra `[ui]`,
 `arango-er ui`) exposing dashboard, review queue with verdict capture, cluster
@@ -264,9 +300,17 @@ metadata last, so a source column or steward edit named like `method`,
 endpoint reports that authentication is required without exposing the secret.
 The SPA keeps the supplied token in tab-scoped `sessionStorage`, sends it as a
 bearer credential on API calls, and authenticates pipeline WebSocket
-connections. When `ER_UI_REVIEWERS` maps tokens to display names, the mapped
-authenticated identity outranks the freely editable `X-Reviewer` attribution
-header.
+connections. When `ER_UI_REVIEWERS` maps tokens to display names, each mapped
+token is a credential in its own right and the reviewer identity is taken from
+the token alone: the free-text `X-Reviewer` header is ignored, and a caller whose
+token is not mapped is attributed as anonymous. Without a reviewer map,
+`X-Reviewer` is a self-asserted session name used for attribution only, never for
+authorization.
+
+**Filesystem confinement.** The UI must never let a request choose a server
+filesystem path. Exports are written to a directory the server owns, requests
+name files only by bare generated names, and the download route serves only files
+that directory contains. Unknown request fields are rejected rather than ignored.
 
 ---
 
@@ -284,9 +328,9 @@ header.
 
 ---
 
-## Roadmap Beyond 3.8.0
+## Roadmap Beyond 3.9.0
 
-These items remain forward-looking and are not part of the currently shipped `3.8.0` baseline.
+These items remain forward-looking and are not part of the currently shipped `3.9.0` baseline.
 
 ### Centralized Enterprise ER Service (v4.x)
 
@@ -298,37 +342,37 @@ See [Centralized ER Service Design](architecture/CENTRALIZED_ER_SERVICE.md) for 
 
 | Requirement | Description |
 |-------------|-------------|
-| **FR-8: Submit-and-Resolve API** | REST endpoint that accepts a single record, resolves it against the knowledge graph, and returns the matched entity with golden record and global identifiers. Synchronous, sub-500ms p95 latency. |
-| **FR-9: Schema Registry** | Configurable field mapping per source/tenant, translating business-unit-specific field names to the canonical entity model. |
-| **FR-10: Global ID Allocation** | Stable internal entity identifiers with cross-reference index to external IDs (LEI, DUNS, IMO, Tax ID, etc.). Entity IDs must not change after initial assignment except in explicit merge operations. |
-| **FR-11: Source Provenance** | Every contributed record is preserved with full lineage: source identifier, ingestion timestamp, match confidence, and original payload. |
-| **FR-12: Tenant Access Control** | Multi-tenant read/write permissions defining which entity types, fields, and operations each business unit can access. Authority ranking for survivorship decisions. |
+| **V4-FR-1: Submit-and-Resolve API** | REST endpoint that accepts a single record, resolves it against the knowledge graph, and returns the matched entity with golden record and global identifiers. Synchronous, sub-500ms p95 latency. |
+| **V4-FR-2: Schema Registry** | Configurable field mapping per source/tenant, translating business-unit-specific field names to the canonical entity model. |
+| **V4-FR-3: Global ID Allocation** | Stable internal entity identifiers with cross-reference index to external IDs (LEI, DUNS, IMO, Tax ID, etc.). Entity IDs must not change after initial assignment except in explicit merge operations. |
+| **V4-FR-4: Source Provenance** | Every contributed record is preserved with full lineage: source identifier, ingestion timestamp, match confidence, and original payload. |
+| **V4-FR-5: Tenant Access Control** | Multi-tenant read/write permissions defining which entity types, fields, and operations each business unit can access. Authority ranking for survivorship decisions. |
 
 #### Phase 2: Knowledge Graph (v4.1)
 
 | Requirement | Description |
 |-------------|-------------|
-| **FR-13: Multi-Entity-Type Graph** | Support for company, person, vessel, and address entity types within the same knowledge graph, with typed relationship edges (subsidiary_of, beneficial_owner, operates_vessel, registered_at, same_as). |
-| **FR-14: Authority-Ranked Survivorship** | Golden record field values determined by source authority rank, completeness, and freshness. Conflicts flagged for review when sources disagree beyond a configurable threshold. |
-| **FR-15: External Feed Integration** | Scheduled ETL for authoritative external sources (GLEIF LEI registry, sanctions lists, vessel registries, company house filings). Resolved against the knowledge graph like any other source. |
-| **FR-16: Graph Traversal API** | Query endpoint for walking the knowledge graph from an entity — following relationship edges with configurable depth, direction, and edge-type filters. |
+| **V4-FR-6: Multi-Entity-Type Graph** | Support for company, person, vessel, and address entity types within the same knowledge graph, with typed relationship edges (subsidiary_of, beneficial_owner, operates_vessel, registered_at, same_as). |
+| **V4-FR-7: Authority-Ranked Survivorship** | Golden record field values determined by source authority rank, completeness, and freshness. Conflicts flagged for review when sources disagree beyond a configurable threshold. |
+| **V4-FR-8: External Feed Integration** | Scheduled ETL for authoritative external sources (GLEIF LEI registry, sanctions lists, vessel registries, company house filings). Resolved against the knowledge graph like any other source. |
+| **V4-FR-9: Graph Traversal API** | Query endpoint for walking the knowledge graph from an entity — following relationship edges with configurable depth, direction, and edge-type filters. |
 
 #### Phase 3: Continuous Operation (v4.2)
 
 | Requirement | Description |
 |-------------|-------------|
-| **FR-17: Entity Subscriptions** | Business units subscribe to entity change events (golden record updates, new relationships, sanctions flag changes) via webhooks or event bus. |
-| **FR-18: Streaming Ingest** | Kafka/CDC connector for real-time record ingestion in addition to REST and batch modes. |
-| **FR-19: Audit Trail** | Immutable log of every resolution decision — match/no-match verdicts, golden record field changes, merge operations, and human overrides — with full source provenance. |
-| **FR-20: Batch Backfill** | When a new business unit onboards, its historical data is bulk-ingested via `ConfigurableERPipeline` and spliced into the live knowledge graph without downtime. Target: 1M records within 1 hour. |
+| **V4-FR-10: Entity Subscriptions** | Business units subscribe to entity change events (golden record updates, new relationships, sanctions flag changes) via webhooks or event bus. |
+| **V4-FR-11: Streaming Ingest** | Kafka/CDC connector for real-time record ingestion in addition to REST and batch modes. |
+| **V4-FR-12: Audit Trail** | Immutable log of every resolution decision — match/no-match verdicts, golden record field changes, merge operations, and human overrides — with full source provenance. |
+| **V4-FR-13: Batch Backfill** | When a new business unit onboards, its historical data is bulk-ingested via `ConfigurableERPipeline` and spliced into the live knowledge graph without downtime. Target: 1M records within 1 hour. |
 
 #### Phase 4: Intelligence Layer (v4.3)
 
 | Requirement | Description |
 |-------------|-------------|
-| **FR-21: AI Data Steward** | MCP-based workflow where an AI agent acts as a data steward — submitting records, reviewing ambiguous matches, querying relationships, and monitoring entity changes through natural language. |
-| **FR-22: Automated Anomaly Detection** | Alerts for new sanctions matches, ownership structure changes, dormant entities becoming active, and data quality degradation. |
-| **FR-23: Network Analysis** | Hidden relationship discovery through multi-hop graph analysis — identifying shared beneficial owners, circular ownership, and sanctions-adjacent entities. |
+| **V4-FR-14: AI Data Steward** | MCP-based workflow where an AI agent acts as a data steward — submitting records, reviewing ambiguous matches, querying relationships, and monitoring entity changes through natural language. |
+| **V4-FR-15: Automated Anomaly Detection** | Alerts for new sanctions matches, ownership structure changes, dormant entities becoming active, and data quality degradation. |
+| **V4-FR-16: Network Analysis** | Hidden relationship discovery through multi-hop graph analysis — identifying shared beneficial owners, circular ownership, and sanctions-adjacent entities. |
 
 #### Non-Functional Requirements (Centralized Service)
 
@@ -355,10 +399,9 @@ Still open:
 - Geospatial-temporal validation as Fellegi-Sunter evidence rather than a binary pre-filter
 - Graph-neural matching (the current graph-embedding blocker is an unweighted-DeepWalk prototype; GraphSAGE / ArangoGraphML is the scale path)
 - Stricter anti-merge constraints and policy controls (minimum-evidence floor, conflicting-hard-identifier veto)
-- **Chunked, streaming candidate generation** — required before any throughput claim above ~50k records (see Functional Requirement 7)
+- **End-to-end streaming candidate generation**: chunked blocking and a streaming `iter_candidates()` path have shipped (FR-7); what remains is consuming candidates without materialising them client-side before deduplication, which is required before any throughput claim above ~67k records.
 - **Active learning**: uncertainty-sampled pair selection for labelling, so a useful model needs tens rather than thousands of labels
 - **Embeddings as a scoring feature**, not blocking-only
-- **LLM cascade for the clerical-review band** with explicit accuracy/cost/latency accounting
 - Retraction in incremental maintenance, so a record *update* can split a cluster rather than only a human verdict
 
 > The original library enhancement plan (Phases 0–4) is complete and archived at
@@ -397,4 +440,4 @@ The current product is successful when users can:
 
 ---
 
-**Last Updated:** August 5, 2026
+**Last Updated:** October 20, 2026
