@@ -128,7 +128,7 @@ Historical documentation is preserved in [`archive/`](archive/):
 
 ## Version Information
 
-- **Current Version:** 3.8.0
+- **Current Version:** 3.9.0
 - **API Version:** v3
 - **Last Updated:** August 6, 2026
 

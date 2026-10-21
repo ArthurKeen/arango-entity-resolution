@@ -1,7 +1,7 @@
 # State-of-the-Art and Competitive Scorecard
 
 **Evaluated:** September 29, 2026  
-**Release baseline:** `v3.8.0` plus committed post-release work  
+**Release baseline:** `v3.9.0`  
 **Overall competitive score:** **6.3/10 — differentiated mid-tier contender**
 
 The project now has one of the broadest **open, graph-native ER toolkits** rather

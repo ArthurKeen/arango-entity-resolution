@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.9.0] - 2026-10-20
+
 ### Upgrade notes
 
 Read these before upgrading from 3.8.0. Each is a behaviour change.
