@@ -34,8 +34,8 @@ internal and may change in any release.
 
 Until 3.9.0 this lived in ``entity_resolution.services.fabric_canonical_hub_resolver_wp13``
 and ``entity_resolution.services.fabric_arango_vector_provider_wp13``. Those
-paths still work in 3.9.x, with a ``DeprecationWarning``, and are removed in
-3.10.0.
+paths still work, with a ``DeprecationWarning``, and are removed in 3.11.0
+(extended from 3.10.0 so that consumers can migrate first).
 """
 
 from .arango_vector_provider import ArangoCanonicalHubVectorProvider

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.10.0] - 2026-10-21
+
 ### Added
 
 - Shared checks on `entity_resolution.canonical_hub`, for a consumer that
@@ -20,6 +22,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   existing behaviour) leaves out an observable field that is present but
   unusable (null, blank, non-finite, a container); `"refuse"` refuses the
   request with `non_scalar_observable_value`.
+
+### Deprecated
+
+- The removal of `entity_resolution.services.fabric_canonical_hub_resolver_wp13`
+  and `entity_resolution.services.fabric_arango_vector_provider_wp13`, announced
+  for 3.10.0, moves to **3.11.0** because a known consumer still imports them.
+  They keep working in 3.10.x, and keep raising a `DeprecationWarning`. Import from
+  `entity_resolution.canonical_hub`.
 
 ## [3.9.0] - 2026-10-20
 

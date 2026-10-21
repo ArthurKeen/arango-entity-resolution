@@ -4,7 +4,7 @@ It used to be importable only as ``services.fabric_canonical_hub_resolver_wp13``
 a work-package name that reads as internal, and it was in no release, so a
 consumer could neither import it with confidence nor pin a version
 (arango-solutions-org/arango-entity-resolution#1). These tests pin the public
-surface: removing a name, or breaking the deprecated alias before 3.10.0, fails
+surface: removing a name, or breaking the deprecated alias before 3.11.0, fails
 here first.
 """
 
@@ -75,7 +75,7 @@ def test_deprecated_paths_still_work_and_say_so(old_module: str, name: str) -> N
         module = importlib.import_module(old_module)
     assert getattr(module, name) is getattr(canonical_hub, name)
     messages = [str(w.message) for w in caught if issubclass(w.category, DeprecationWarning)]
-    assert any("entity_resolution.canonical_hub" in m and "3.10.0" in m for m in messages)
+    assert any("entity_resolution.canonical_hub" in m and "3.11.0" in m for m in messages)
 
 
 def test_the_new_path_does_not_warn() -> None:
