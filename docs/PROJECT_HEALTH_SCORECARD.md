@@ -40,7 +40,7 @@ score is weighted by impact on correctness, trust, and production use.
 | Architecture and core design | 12% | **9.0** | Config-driven pipeline, pluggable blocking and clustering, shared services behind CLI/MCP/UI, native ArangoDB graph/vector paths |
 | Correctness and reliability | 12% | **8.8** | Binding human verdicts, null-safe scoring, configuration-hashed model loading, strict known-defect and conformance gates, degenerate-fit detection on both EM paths. This cycle fixed ten shipped defects, each with a mutation-checked regression. Among them: missing email/phone scored as disagreement; `compute` and `compute_detailed` diverged; EM accepted non-indicator input; hybrid blocking used near-exact PHRASE retrieval; the cascade treated suppressed edges as links; pipeline statistics reported 0 clustered entities; seeded FS training was not reproducible. Held, not raised: the review found them rather than a gate, and the same class remains (config silently ignores unknown keys; `load_latest` is hashless; `fallback_provider` is unwired) |
 | Tests and mechanical verification | 12% | **8.8** | `make verify`: 1,898 passed, 8 skipped, 75.95% coverage against a 72% floor. New gates this cycle: README config, CLI, tool, backend and strategy tables checked against the objects that define them; published benchmark tables checked against committed artifacts; the secret scanner tested; strict fakes that enforce ArangoDB's naming rule. Up 0.1 because CI now actually runs these gates: it had failed at collection on every run from August 7 until 0b5212a. Held below 9 because the integration tests that prove recall and AQL semantics are not in CI, and nothing watched CI's own health for seven weeks |
-| Security and privacy | 12% | **7.4** | Optional API/WebSocket auth and rate limiting, AQL hardening, SPA containment. Fixed this cycle: arbitrary file write and temp-file read through the export routes; reviewer attribution spoofable by header; reviewer tokens unable to authenticate; the API key unscrubbed in provider error text; scanner blind spots over shipped directories; an sdist that shipped untracked worktree files. LLM masking is now configurable from the pipeline. Secure deployment still depends on configuration, and the published 3.8.0 carries the export defect until a release |
+| Security and privacy | 12% | **7.4** | Optional API/WebSocket auth and rate limiting, AQL hardening, SPA containment. Fixed this cycle: arbitrary file write and temp-file read through the export routes; reviewer attribution spoofable by header; reviewer tokens unable to authenticate; the API key unscrubbed in provider error text; scanner blind spots over shipped directories; an sdist that shipped untracked worktree files. LLM masking is now configurable from the pipeline. Secure deployment still depends on configuration; the export fix shipped in 3.9.0 |
 | Matching quality and evaluation | 12% | **8.5** | Two public benchmark families covering both task shapes, B-cubed metrics, multi-level Fellegi–Sunter learned end to end, an explicit reference population for `u`, a measurable rule for choosing a scorer, and an oracle-bounded measurement of the LLM tier. Up 0.1: the FEBRL and review-band tables are now committed artifacts that reproduce to every digit and are test-checked against the docs. The LLM-judge table is honestly marked not artifact-backed, and two Leipzig FS tables predate seeding |
 | Steward Workbench and API UX | 10% | **7.3** | Binding edits, audit, threshold tuning, profiling, survivorship overrides, auth UX, and dark mode. Two advertised features never worked and now do: pipeline runs (the reserved `_er_pipeline_runs` name failed ERR 1208 in every database, taking run history and WebSocket progress with it) and export download. Up only 0.1, because MagicMock-based route tests passed throughout, and frontend and enterprise workflow coverage remain thin |
 | Maintainability and debt | 10% | **6.5** | Good layering and deprecation discipline, offset by legacy exports, unwired strategies, oversized modules, 4,059 advisory flake8 findings (flat since August 6), and no clean mypy baseline |
@@ -196,17 +196,16 @@ register can be read as a history rather than only a snapshot.
 
 ## Release-readiness decision
 
-`main` is **release-ready, and a release is now advisable rather than merely
-possible**. The published 3.8.0 has an arbitrary-file-write path through the
-Workbench export route, and its `[mcp]` extra installs mcp 2.x, which breaks the
-MCP server on import. Both are fixed on `main`, which passes `make verify` and
-all three CI workflows (Python Library, UI Contract, UI E2E) at c0bb383, with
-FEBRL and review-band results reproducible to every digit from committed
-artifacts.
+**3.9.0 was released on 2026-10-20** from a commit green on all three CI
+workflows in both repositories. It ships the fixes for the two defects that
+made a release necessary: an arbitrary-file-write path through the 3.8.0
+Workbench export route, and a 3.8.0 `[mcp]` extra that installed mcp 2.x and broke the MCP
+server on import. A fresh install from PyPI was checked: `[mcp]` resolves to
+mcp 1.30.0, the MCP server imports, and `entity_resolution.canonical_hub`
+imports from the installed package.
 
-Remaining decisions: cut 3.8.1, and decide the disposition of the untracked
-`.prd-patches-pending.md`, the human-readable copy of eleven proposed PRD
-patches awaiting review.
+Remaining decision: review the proposed PRD patches in the untracked
+`.prd-patches-pending.md`. The PRD's shipped-scope sections still describe 3.8.0.
 
 ## Evidence
 
