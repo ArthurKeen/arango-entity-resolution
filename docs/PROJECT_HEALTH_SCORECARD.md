@@ -204,8 +204,13 @@ server on import. A fresh install from PyPI was checked: `[mcp]` resolves to
 mcp 1.30.0, the MCP server imports, and `entity_resolution.canonical_hub`
 imports from the installed package.
 
-Remaining decision: review the proposed PRD patches in the untracked
-`.prd-patches-pending.md`. The PRD's shipped-scope sections still describe 3.8.0.
+**3.10.0 followed on 2026-10-21**, adding the shared canonical-hub checks
+(issue #4). The deprecated `_wp13` import paths it was to remove stay until
+3.11.0, because a known consumer has not yet migrated.
+
+The fourteen PRD patches proposed through 3.9.0 were accepted and applied on
+2026-10-20. One more, describing the shared checks, is proposed in the untracked
+`.prd-patches-pending.md`.
 
 ## Evidence
 
