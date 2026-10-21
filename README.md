@@ -262,6 +262,7 @@ For address resolution specifically, there is a dedicated `AddressERPipeline` th
 | `arango://clusters/{collection}/{key}` | Full cluster details with all member documents |
 
 ### Other Integrations
+- **Canonical-hub resolution** — `entity_resolution.canonical_hub` resolves one record to an existing canonical entity, or abstains or refuses with a stated reason, under an explicit precision and scope policy (read-only; native vector index only)
 - **ONNX Runtime** — faster CPU inference for embedding workloads
 - **Incremental Resolver** — real-time single-record matching without batch re-run
 

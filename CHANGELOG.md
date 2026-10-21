@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `entity_resolution.canonical_hub`: the public, stable import path for the
+  precision-first canonical-hub resolver (`SemanticCanonicalHubResolver`), its
+  contract types (`ResolveRequest`, `ResolveResult`, `ResolveEvidence`,
+  `FieldEvidence`, `ResolveProfile`, `ResolveStatus`), its extension points,
+  and the ArangoDB vector candidate provider. The package docstring and
+  `__all__` define the public API. ([#1](https://github.com/arango-solutions-org/arango-entity-resolution/issues/1))
+
+### Deprecated
+
+- `entity_resolution.services.fabric_canonical_hub_resolver_wp13` and
+  `entity_resolution.services.fabric_arango_vector_provider_wp13` still work, as
+  aliases of `entity_resolution.canonical_hub` that raise a `DeprecationWarning`.
+  They will be removed in 3.10.0.
+
 - `similarity.field_algorithms`: a per-field override of `similarity.algorithm`,
   for example `{"title": "jaccard"}`. Fields not listed use the global
   algorithm, and scoring without the key is unchanged (two published FEBRL

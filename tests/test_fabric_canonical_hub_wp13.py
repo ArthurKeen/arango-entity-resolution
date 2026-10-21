@@ -8,10 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from entity_resolution.services.fabric_arango_vector_provider_wp13 import (
+from entity_resolution.canonical_hub import (
     ArangoCanonicalHubVectorProvider,
-)
-from entity_resolution.services.fabric_canonical_hub_resolver_wp13 import (
     CandidateSearchResult,
     CanonicalCandidate,
     ResolveProfile,
